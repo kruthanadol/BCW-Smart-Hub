@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Center - โรงเรียนบัวเชดวิทยา</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        .fade-out {
+            transition: all 0.5s ease-out;
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white !important; color: black !important; }
+        }
+
+        .student-tt-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .student-tt-box {
+            visibility: hidden;
+            opacity: 0;
+            width: 240px;
+            background-color: #0f172a;
+            color: #ffffff;
+            text-align: left;
+            border-radius: 10px;
+            padding: 10px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            pointer-events: none;
+        }
+
+        .student-tt-box::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #0f172a transparent transparent transparent;
+        }
+
+        .student-tt-container:hover .student-tt-box {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .student-avatar {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .student-avatar:hover {
+            transform: scale(1.15);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header Bar -->
+    <header class="bg-indigo-950 text-white border-b-4 border-indigo-700 shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-1 rounded-full shadow">
+                    <img src="logo_bcw.png" alt="BCW Logo" class="w-10 h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+                </div>
+                <div>
+                    <h1 class="text-base md:text-lg font-bold leading-tight">ฝ่ายวิชาการ (Academic Center)</h1>
+                    <p class="text-xs text-indigo-300">โรงเรียนบัวเชดวิทยา &bull; Smart School Ecosystem v6.0</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 no-print">
+                <a href="landing.html" class="text-xs bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-lg border border-indigo-700 font-semibold transition">
+                    <i class="fa-solid fa-house mr-1"></i> หน้าหลัก
+                </a>
+                <a href="index.html" class="text-xs bg-indigo-800 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-semibold transition">
+                    <i class="fa-solid fa-chart-line mr-1"></i> Executive Dashboard
+                </a>
+                <a href="reports.html?reportType=academic" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition shadow">
+                    <i class="fa-solid fa-file-pdf mr-1"></i> พิมพ์รายงาน PDF
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
+
+        <!-- 4 การ์ดสรุปสถิติวิชาการ -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-2xl shadow border border-slate-200 flex justify-between items-center">
+                <div>
+                    <span class="text-xs text-slate-500 font-bold">อัตราเข้าเรียนเฉลี่ยรวม</span>
+                    <div id="overallAttendance" class="text-2xl font-black text-emerald-600 mt-1">0%</div>
+                </div>
+                <span class="p-3 bg-emerald-50 text-emerald-600 rounded-xl text-lg"><i class="fa-solid fa-chart-line"></i></span>
+            </div>
+
+            <div onclick="showStudentModal('warning')" class="relative group bg-white p-4 rounded-2xl shadow border border-yellow-300 hover:border-yellow-500 transition cursor-pointer flex justify-between">
+                <div>
+                    <span class="text-xs text-yellow-800 font-bold flex items-center gap-1">
+                        กลุ่มเฝ้าระวังพิเศษ
+                        <i class="fa-solid fa-circle-info text-[10px] text-yellow-600"></i>
+                    </span>
+                    <div class="text-2xl font-black text-yellow-600 mt-1"><span id="countWarning">0</span> คน <span class="text-xs font-normal text-slate-400">(เวลา 80%-82%)</span></div>
+                </div>
+                <span class="p-3 bg-yellow-50 text-yellow-600 rounded-xl text-lg"><i class="fa-solid fa-eye"></i></span>
+            </div>
+
+            <div onclick="showStudentModal('risk')" class="relative group bg-white p-4 rounded-2xl shadow border border-amber-200 hover:border-amber-500 transition cursor-pointer flex justify-between"> 
+                <div>
+                    <span class="text-xs text-amber-700 font-bold flex items-center gap-1">
+                        กลุ่มเสี่ยงติด มส.
+                        <i class="fa-solid fa-circle-info text-[10px] text-amber-500"></i>
+                    </span>
+                    <div class="text-2xl font-black text-amber-600 mt-1"><span id="countRisk">0</span> คน <span class="text-xs font-normal text-slate-400">(เวลา 60%-79%)</span></div>
+                </div>
+                <span class="p-3 bg-amber-50 text-amber-600 rounded-xl text-lg"><i class="fa-solid fa-user-clock"></i></span>
+            </div>
+
+            <div onclick="showStudentModal('repeat')" class="relative group bg-white p-4 rounded-2xl shadow border border-rose-300 hover:border-rose-600 transition cursor-pointer flex justify-between">
+                <div>
+                    <span class="text-xs text-rose-700 font-bold flex items-center gap-1">
+                        ต้องลงทะเบียนเรียนซ้ำ
+                        <i class="fa-solid fa-circle-info text-[10px] text-rose-500"></i>
+                    </span>
+                    <div class="text-2xl font-black text-rose-600 mt-1"><span id="countRepeat">0</span> คน <span class="text-xs font-normal text-slate-400">(เวลา &lt;60%)</span></div>
+                </div>
+                <span class="p-3 bg-rose-50 text-rose-600 rounded-xl text-lg"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            </div>
+        </div>
+
+        <!-- 📊 แผนภูมิที่ 1 -->
+        <div class="bg-white p-5 rounded-2xl shadow border border-slate-200 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-bar text-indigo-600"></i>
+                        1. แผนภูมิแสดงจำนวนนักเรียนเสี่ยงติด มส. และเรียนซ้ำ (เฉพาะห้องที่มีปัญหา)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">วิเคราะห์สถิติจำนวนนักเรียนในจุดวิกฤตแยกตามระดับชั้นและห้องเรียน</p>
+                </div>
+                
+                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                    <button id="btnByRoom" onclick="switchChartView('room')" class="px-3 py-1 rounded-lg bg-indigo-600 text-white shadow transition">
+                        รายห้องเรียน
+                    </button>
+                    <button id="btnByGrade" onclick="switchChartView('grade')" class="px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition">
+                        รวมตามระดับชั้น (ม.1-ม.6)
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative w-full h-72 md:h-80">
+                <canvas id="riskChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 📈 แผนภูมิและตารางที่ 2 -->
+        <div class="bg-white p-5 rounded-2xl shadow border border-slate-200 space-y-4">
+            <div class="border-b pb-3">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-indigo-600"></i>
+                    2. วิเคราะห์จำแนกตามรายวิชาที่มีนักเรียนเสี่ยงติด มส. / เรียนซ้ำ สูงสุด
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">ช่วยให้ฝ่ายวิชาการติดตามครูประจำวิชาเพื่อปรับปรุงกระบวนการวัดผลหรือซ่อมฟื้นฟูได้ตรงจุด</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                <div class="lg:col-span-5 relative h-64 border-r border-slate-100 pr-0 lg:pr-4">
+                    <canvas id="subjectChart"></canvas>
+                </div>
+
+                <div class="lg:col-span-7 overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                                <th class="p-2.5">รหัส/ชื่อวิชา</th>
+                                <th class="p-2.5">ครูผู้สอนประจำวิชา</th>
+                                <th class="p-2.5 text-center">เฝ้าระวัง</th>
+                                <th class="p-2.5 text-center">เสี่ยง มส.</th>
+                                <th class="p-2.5 text-center">เรียนซ้ำ</th>
+                                <th class="p-2.5 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topSubjectsTableBody" class="divide-y divide-slate-100 font-medium">
+                            <tr><td colspan="6" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🟡 ตารางที่ 3: เฝ้าระวังพิเศษ (80%-82%) -->
+        <div class="bg-white p-5 rounded-2xl shadow border border-yellow-300 space-y-3">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-yellow-800 flex items-center gap-2">
+                        <i class="fa-solid fa-eye text-yellow-600"></i>
+                        3. รายชื่อนักเรียนกลุ่มเฝ้าระวังพิเศษ (เวลาเรียนร้อยละ 80 - 82 : เสี่ยงต่อการติด มส.)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">นักเรียนที่มีเวลาเรียนหมิ่นเหม่เกณฑ์ 80% แจ้งครูที่ปรึกษาเพื่อป้องปรามล่วงหน้าก่อนติด มส.</p>
+                </div>
+                <span class="text-[10px] bg-yellow-100 text-yellow-800 font-bold px-2.5 py-1 rounded-full border border-yellow-300">
+                    👁️ เฝ้าระวังล่วงหน้า
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                            <th class="p-2.5 text-center w-14">รูปถ่าย</th>
+                            <th class="p-2.5">ชื่อ - นามสกุล</th>
+                            <th class="p-2.5 text-center">ระดับชั้น</th>
+                            <th class="p-2.5">ครูที่ปรึกษา (ครูประจำชั้น)</th>
+                            <th class="p-2.5">รายวิชาที่เฝ้าระวัง</th>
+                            <th class="p-2.5 text-center">ขาด/หนี</th>
+                            <th class="p-2.5 text-center">เวลาเรียน (%)</th>
+                            <th class="p-2.5 text-center">สถานะ</th>
+                            <th class="p-2.5 text-center">จัดการ/บันทึกการแก้</th>
+                        </tr>
+                    </thead>
+                    <tbody id="warningTableBody" class="divide-y divide-slate-100 font-medium">
+                        <tr><td colspan="9" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 🟠 ตารางที่ 4: เสี่ยงติด มส. (60%-79%) -->
+        <div class="bg-white p-5 rounded-2xl shadow border border-amber-200 space-y-3">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-amber-800 flex items-center gap-2">
+                        <i class="fa-solid fa-user-clock text-amber-600"></i>
+                        4. รายชื่อนักเรียนกลุ่มเสี่ยงติด มส. (เวลาเรียน 60% - 79% : ต้องยื่นคำร้องยื่นเวลาเรียน)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">กลุ่มที่ยังมีสิทธิ์แก้ตัวยื่นเวลาเรียนให้ครบ 80% เพื่อเข้าสอบตามปกติ</p>
+                </div>
+                <span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full border border-amber-200">
+                    ⚠️ เร่งติดตามยื่นเวลาเรียน
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                            <th class="p-2.5 text-center w-14">รูปถ่าย</th>
+                            <th class="p-2.5">ชื่อ - นามสกุล</th>
+                            <th class="p-2.5 text-center">ระดับชั้น</th>
+                            <th class="p-2.5">ครูที่ปรึกษา (ครูประจำชั้น)</th>
+                            <th class="p-2.5">รายวิชาที่เสี่ยง</th>
+                            <th class="p-2.5 text-center">ขาด/หนี</th>
+                            <th class="p-2.5 text-center">เวลาเรียน (%)</th>
+                            <th class="p-2.5 text-center">สถานะ</th>
+                            <th class="p-2.5 text-center">จัดการ/บันทึกการแก้</th>
+                        </tr>
+                    </thead>
+                    <tbody id="riskTableBody" class="divide-y divide-slate-100 font-medium">
+                        <tr><td colspan="9" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 🔴 ตารางที่ 5: ต้องลงทะเบียนเรียนซ้ำ (<60%) -->
+        <div class="bg-white p-5 rounded-2xl shadow border border-rose-300 space-y-3">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-rose-800 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                        5. รายชื่อนักเรียนที่ต้องลงทะเบียนเรียนซ้ำ (เวลาเรียน &lt; 60% : หมดสิทธิ์สอบ/หมดสิทธิ์ยื่นเวลาเรียน)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">กลุ่มที่ขาดเรียนเกิน 40% ของเวลาเรียนทั้งหมด ต้องลงทะเบียนเรียนซ้ำรายวิชาเท่านั้น</p>
+                </div>
+                <span class="text-[10px] bg-rose-600 text-white font-bold px-2.5 py-1 rounded-full shadow">
+                    🚨 ต้องลงทะเบียนเรียนซ้ำ
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                            <th class="p-2.5 text-center w-14">รูปถ่าย</th>
+                            <th class="p-2.5">ชื่อ - นามสกุล</th>
+                            <th class="p-2.5 text-center">ระดับชั้น</th>
+                            <th class="p-2.5">ครูที่ปรึกษา (ครูประจำชั้น)</th>
+                            <th class="p-2.5">รายวิชา</th>
+                            <th class="p-2.5 text-center">ขาด/หนี</th>
+                            <th class="p-2.5 text-center">เวลาเรียน (%)</th>
+                            <th class="p-2.5 text-center">ผลการประเมิน</th>
+                            <th class="p-2.5 text-center">จัดการ/ลงทะเบียนซ้ำ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="repeatTableBody" class="divide-y divide-slate-100 font-medium">
+                        <tr><td colspan="9" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 📘 ตารางที่ 6: สรุปภาระงานแยกกลุ่มสาระฯ -->
+        <div class="bg-white p-5 rounded-2xl shadow border border-slate-200 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-book-open text-indigo-600"></i>
+                        6. สรุปการสั่งและส่งภาระงาน/การบ้าน แยกตามกลุ่มสาระการเรียนรู้
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">คลิกที่แถวกลุ่มสาระฯ เพื่อเปิดดูรายละเอียดภาระงาน ครูผู้สอน และยอดส่งงานรายห้อง</p>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                            <th class="p-3">กลุ่มสาระการเรียนรู้</th>
+                            <th class="p-3 text-center">การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-medium">
+                        <tr onclick="showAcademicModal('คณิตศาสตร์')" class="hover:bg-indigo-50/50 cursor-pointer transition">
+                            <td class="p-3 text-slate-800 font-bold">คณิตศาสตร์</td>
+                            <td class="p-3 text-center"><button class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[10px] font-bold px-2 py-1 rounded"><i class="fa-solid fa-search mr-1"></i> ดูภาระงาน/ครู</button></td>
+                        </tr>
+                        <tr onclick="showAcademicModal('ภาษาต่างประเทศ')" class="hover:bg-indigo-50/50 cursor-pointer transition">
+                            <td class="p-3 text-slate-800 font-bold">ภาษาต่างประเทศ</td>
+                            <td class="p-3 text-center"><button class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[10px] font-bold px-2 py-1 rounded"><i class="fa-solid fa-search mr-1"></i> ดูภาระงาน/ครู</button></td>
+                        </tr>
+                        <tr onclick="showAcademicModal('วิทยาศาสตร์และเทคโนโลยี')" class="hover:bg-indigo-50/50 cursor-pointer transition">
+                            <td class="p-3 text-slate-800 font-bold">วิทยาศาสตร์และเทคโนโลยี</td>
+                            <td class="p-3 text-center"><button class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[10px] font-bold px-2 py-1 rounded"><i class="fa-solid fa-search mr-1"></i> ดูภาระงาน/ครู</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 🔴 NEW! SECTION 7: ตารางติดตามการเข้าสอนและการเช็คชื่อรายคาบประจำวัน -->
+        <div class="bg-white p-5 rounded-2xl shadow border border-indigo-200 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-indigo-950 flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-user text-indigo-600"></i>
+                        7. ตารางติดตามการเข้าสอนและการเช็คชื่อรายคาบประจำวัน (Real-Time Teacher Attendance Monitor)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">ตรวจสอบความเคลื่อนไหวการเข้าห้องเรียนและการเช็คชื่อของครูผู้สอนในแต่ละคาบเรียน</p>
+                </div>
+
+                <!-- ตัวเลือกวันที่และคาบเรียน -->
+                <div class="flex items-center gap-2 text-xs font-semibold">
+                    <div>
+                        <label class="text-[10px] text-slate-400 block mb-0.5">วันที่เลือก:</label>
+                        <input type="date" id="teacherMonitorDate" onchange="loadTeacherAttendanceMonitor()" class="p-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-700 bg-slate-50 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 block mb-0.5">คาบเรียน:</label>
+                        <select id="teacherMonitorPeriod" onchange="loadTeacherAttendanceMonitor()" class="p-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-700 bg-slate-50 focus:ring-2 focus:ring-indigo-500">
+                            <option value="1">คาบที่ 1 (08.30 - 09.20)</option>
+                            <option value="2">คาบที่ 2 (09.20 - 10.10)</option>
+                            <option value="3">คาบที่ 3 (10.10 - 11.00)</option>
+                            <option value="4">คาบที่ 4 (11.00 - 11.50)</option>
+                            <option value="5">คาบที่ 5 (12.50 - 13.40)</option>
+                            <option value="6">คาบที่ 6 (13.40 - 14.30)</option>
+                            <option value="7">คาบที่ 7 (14.30 - 15.20)</option>
+                            <option value="8">คาบที่ 8 (15.20 - 16.10)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- สรุปตัวเลขคาบเรียน -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-indigo-50/60 p-3 rounded-xl border border-indigo-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-indigo-700">คาบเรียนทั้งหมด</span>
+                        <div id="pTotalClasses" class="text-xl font-black text-indigo-950 mt-0.5">0 วิชา</div>
+                    </div>
+                    <i class="fa-solid fa-chalkboard text-indigo-400 text-lg"></i>
+                </div>
+                <div class="bg-emerald-50/60 p-3 rounded-xl border border-emerald-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-emerald-700">เช็คชื่อแล้ว (🟢)</span>
+                        <div id="pCheckedClasses" class="text-xl font-black text-emerald-600 mt-0.5">0 วิชา</div>
+                    </div>
+                    <i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>
+                </div>
+                <div class="bg-amber-50/60 p-3 rounded-xl border border-amber-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-amber-700">กำลังสอน/รอเช็ค (🟡)</span>
+                        <div id="pPendingClasses" class="text-xl font-black text-amber-600 mt-0.5">0 วิชา</div>
+                    </div>
+                    <i class="fa-solid fa-clock text-amber-500 text-lg"></i>
+                </div>
+                <div class="bg-rose-50/60 p-3 rounded-xl border border-rose-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-rose-700">ยังไม่เช็คชื่อ (🔴)</span>
+                        <div id="pMissingClasses" class="text-xl font-black text-rose-600 mt-0.5">0 วิชา</div>
+                    </div>
+                    <i class="fa-solid fa-circle-exclamation text-rose-500 text-lg"></i>
+                </div>
+            </div>
+
+            <!-- ตารางแสดงสถานะครู -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                            <th class="p-2.5 text-center w-12">คาบ</th>
+                            <th class="p-2.5">ครูผู้สอน</th>
+                            <th class="p-2.5">วิชาที่สอน</th>
+                            <th class="p-2.5 text-center">ห้องเรียน</th>
+                            <th class="p-2.5 text-center">เวลาบันทึกล่าสุด</th>
+                            <th class="p-2.5 text-center">สถานะการเช็คชื่อ</th>
+                            <th class="p-2.5 text-center">การจัดการ/แจ้งเตือน</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teacherMonitorTableBody" class="divide-y divide-slate-100 font-medium">
+                        <tr><td colspan="7" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูลการเข้าสอน...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-500">
+        โรงเรียนบัวเชดวิทยา (BCW) &bull; Academic Center v6.0
+    </footer>
+
+    <!-- 🖼️ Modal ดูรูปภาพนักเรียน -->
+    <div id="imagePreviewModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 cursor-pointer" onclick="closeImagePreview()">
+        <div class="bg-white rounded-2xl p-4 max-w-sm w-full text-center shadow-2xl relative space-y-3" onclick="event.stopPropagation()">
+            <button onclick="closeImagePreview()" class="absolute top-2 right-3 text-slate-400 hover:text-slate-700 text-2xl font-bold">&times;</button>
+            <div class="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-indigo-500 shadow-md">
+                <img id="previewImg" src="" class="w-full h-full object-cover" alt="รูปภาพนักเรียน">
+            </div>
+            <div>
+                <h4 id="previewName" class="font-bold text-slate-800 text-base">ชื่อนักเรียน</h4>
+                <p id="previewRoom" class="text-xs text-slate-500">ระดับชั้น: -</p>
+                <div id="previewBadge" class="mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold">สถานะ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📝 Modal บันทึกผลการแก้ไข มส. -->
+    <div id="remediationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="p-4 bg-emerald-700 text-white flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-file-signature"></i>
+                    บันทึกอนุมัติการแก้ไข มส. / ลงทะเบียนเรียนซ้ำ
+                </h3>
+                <button onclick="closeRemediationModal()" class="text-white/80 hover:text-white text-xl font-bold">&times;</button>
+            </div>
+
+            <form id="remediationForm" onsubmit="submitRemediation(event)" class="p-4 space-y-3 text-xs">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                    <div id="remStudentName" class="font-bold text-slate-800 text-sm">ชื่อนักเรียน: -</div>
+                    <div id="remSubject" class="text-slate-600">วิชา: -</div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ผลการดำเนินการ / อนุมัติการแก้ไข:</label>
+                    <select id="remStatusSelect" required class="w-full p-2 border border-slate-300 rounded-lg font-medium text-xs focus:ring-2 focus:ring-emerald-500">
+                        <option value="resolved_time">✅ ยื่นคำร้องยื่นเวลาเรียนครบถ้วน (เวลาเรียนผ่านเกณฑ์ 80% แล้ว)</option>
+                        <option value="resolved_exam">✅ เข้าซ่อมฟื้นฟู / สอบแก้ตัวผ่านเกณฑ์เรียบร้อย</option>
+                        <option value="resolved_re-enroll">📝 ลงทะเบียนเรียนซ้ำเรียบร้อยแล้ว (เข้าตารางเรียนใหม่)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">เลขที่เอกสารอ้างอิง / หมายเหตุประกอบ:</label>
+                    <input type="text" id="remNote" placeholder="เช่น ใบยื่นเวลาเรียน เลขที่ 012/2569" required class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeRemediationModal()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow">
+                        <i class="fa-solid fa-save mr-1"></i> บันทึก & ตัดรายการออก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 📘 Modal รายละเอียดภาระงาน -->
+    <div id="academicModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden">
+            <div class="p-4 text-white flex justify-between items-center bg-indigo-900">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-xl"></i>
+                    <h3 id="modalTitle" class="font-bold text-base">รายละเอียดภาระงานและครูผู้สอน</h3>
+                </div>
+                <button onclick="closeModal()" class="text-white/80 hover:text-white text-xl font-bold px-2">&times;</button>
+            </div>
+            
+            <div class="p-4 overflow-y-auto flex-1">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                                <th class="p-2.5">รายวิชา</th>
+                                <th class="p-2.5">หัวข้อภาระงาน/การบ้าน</th>
+                                <th class="p-2.5">ครูผู้สอน/สั่งงาน</th>
+                                <th class="p-2.5 text-center">ระดับชั้น</th>
+                                <th class="p-2.5 text-center">กำหนดส่ง</th>
+                                <th class="p-2.5 text-center">อัตราการส่งงาน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeModal()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-lg font-semibold">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript logic -->
+    <script>
+        const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
+        var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let academicRiskChartInstance = null;
+        let subjectChart = null;
+        let activeRecordId = null;
+        let activeCategory = null;
+        let rawRiskData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // ตั้งค่าวันที่และคาบเรียนปัจจุบัน
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('teacherMonitorDate');
+            if (dateInput) dateInput.value = today;
+
+            // สุ่มคาบเรียนปัจจุบันตามเวลาจริง
+            const currentHour = new Date().getHours();
+            let currentPeriod = 1;
+            if (currentHour >= 9 && currentHour < 10) currentPeriod = 2;
+            else if (currentHour >= 10 && currentHour < 11) currentPeriod = 3;
+            else if (currentHour >= 11 && currentHour < 12) currentPeriod = 4;
+            else if (currentHour >= 12 && currentHour < 14) currentPeriod = 5;
+            else if (currentHour >= 14 && currentHour < 15) currentPeriod = 6;
+            else if (currentHour >= 15) currentPeriod = 7;
+
+            const periodSelect = document.getElementById('teacherMonitorPeriod');
+            if (periodSelect) periodSelect.value = currentPeriod;
+
+            loadAcademicRiskData();
+            loadOverallAttendance();
+            loadTopSubjects();
+            loadTeacherAttendanceMonitor(); // โหลด Section 7
+        });
+
+        // ============================================================
+        // SECTION 7: ระบบติดตามการเข้าสอนและการเช็คชื่อครูผู้สอน
+        // ============================================================
+        async function loadTeacherAttendanceMonitor() {
+            const selectedDate = document.getElementById('teacherMonitorDate').value;
+            const tbody = document.getElementById('teacherMonitorTableBody');
+
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังโหลดข้อมูลการเข้าสอน...</td></tr>';
+
+            try {
+                // ดึงประวัติการเช็กชื่อของครูประจำวันจากตาราง attendance_logs จริง
+                const { data: logs, error } = await supabase
+                    .from('attendance_logs')
+                    .select('*')
+                    .gte('check_in_time', `${selectedDate}T00:00:00`)
+                    .lte('check_in_time', `${selectedDate}T23:59:59`);
+
+                if (error) throw error;
+
+                if (!logs || logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลการเช็กชื่อของครูในวันที่ ${selectedDate}</td></tr>`;
+                    document.getElementById('pTotalClasses').innerText = `0 วิชา`;
+                    document.getElementById('pCheckedClasses').innerText = `0 วิชา`;
+                    document.getElementById('pPendingClasses').innerText = `0 วิชา`;
+                    document.getElementById('pMissingClasses').innerText = `0 วิชา`;
+                    return;
+                }
+
+                // จัดกลุ่มตามห้องเรียน/วิชาที่เช็กชื่อ
+                const classMap = {};
+                logs.forEach(log => {
+                    const key = log.classroom || 'ทั่วไป';
+                    if (!classMap[key]) {
+                        classMap[key] = {
+                            classroom: key,
+                            lastTime: new Date(log.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                            count: 0
+                        };
+                    }
+                    classMap[key].count++;
+                });
+
+                let html = '';
+                Object.values(classMap).forEach((item, idx) => {
+                    html += `
+                        <tr class="hover:bg-slate-50 transition border-b">
+                            <td class="p-2.5 text-center font-bold text-slate-500">คาบปกติ</td>
+                            <td class="p-2.5 font-bold text-indigo-950">ครูผู้สอนประจำห้อง</td>
+                            <td class="p-2.5 text-slate-700">เช็กชื่อเข้าเรียนประจำวัน</td>
+                            <td class="p-2.5 text-center"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">${item.classroom}</span></td>
+                            <td class="p-2.5 text-center text-slate-500">${item.lastTime} น.</td>
+                            <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold text-[10px] inline-flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> เช็กชื่อแล้ว (${item.count} คน)</span></td>
+                            <td class="p-2.5 text-center"><button disabled class="bg-slate-100 text-slate-400 text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-not-allowed"><i class="fa-solid fa-check"></i> เรียบร้อย</button></td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+                document.getElementById('pTotalClasses').innerText = `${Object.keys(classMap).length} ห้อง`;
+                document.getElementById('pCheckedClasses').innerText = `${Object.keys(classMap).length} ห้อง`;
+
+            } catch (err) {
+                console.error('Error in teacher monitor:', err.message);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-rose-500 font-bold">เกิดข้อผิดพลาดในการดึงข้อมูลการเข้าสอน</td></tr>';
+            }
+        }
+
+        // ฟังก์ชันสะกิดเตือนครูผู้สอน
+        function remindTeacher(teacherName, subjectCode) {
+            alert(`🔔 ส่งการแจ้งเตือนไปยัง ${teacherName} (วิชา ${subjectCode}) เรียบร้อยแล้ว!`);
+        }
+
+        // ============================================================
+        // ฟังก์ชันงานวิชาการหลัก (ตาราง 1 - 6)
+        // ============================================================
+        async function loadAcademicRiskData() {
+            try {
+                const [sumRes, stdRes] = await Promise.all([
+                    supabase.from('academic_attendance_summary').select('*').neq('status', 'resolved'),
+                    supabase.from('students').select('*')
+                ]);
+
+                if (sumRes.error) throw sumRes.error;
+
+                const studentsMap = {};
+                if (stdRes.data) {
+                    stdRes.data.forEach(s => { studentsMap[s.student_id] = s; });
+                }
+
+                rawRiskData = (sumRes.data || []).map(item => {
+                    const student = studentsMap[item.student_id] || {};
+                    return {
+                        ...item,
+                        student_name: item.student_name || student.name || (student.first_name ? `${student.first_name} ${student.last_name}` : 'ไม่ระบุชื่อ'),
+                        classroom: item.class || student.classroom || student.class || 'ไม่ระบุห้อง',
+                        advisor_name: item.advisor_name || student.advisor_name || 'ไม่ระบุ',
+                        image_url: student.image_url || student.avatar_url || item.image_url || 'https://via.placeholder.com/150'
+                    };
+                });
+
+                const warningList = rawRiskData.filter(r => r.status === 'warning' || (r.attendance_percent >= 80 && r.attendance_percent <= 82));
+                const riskList = rawRiskData.filter(r => r.status === 'risk' || (r.attendance_percent >= 60 && r.attendance_percent < 80));
+                const repeatList = rawRiskData.filter(r => r.status === 'repeat' || r.attendance_percent < 60);
+
+                if (document.getElementById('countWarning')) document.getElementById('countWarning').innerText = warningList.length;
+                if (document.getElementById('countRisk')) document.getElementById('countRisk').innerText = riskList.length;
+                if (document.getElementById('countRepeat')) document.getElementById('countRepeat').innerText = repeatList.length;
+
+                renderTable('warningTableBody', warningList, 'warning');
+                renderTable('riskTableBody', riskList, 'risk');
+                renderTable('repeatTableBody', repeatList, 'repeat');
+
+                updateRiskChart('room');
+
+            } catch (err) {
+                console.error('Error loading academic data:', err.message);
+            }
+        }
+
+        function renderTable(elementId, items, category) {
+            const tbody = document.getElementById(elementId);
+            if (!tbody) return;
+            
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-slate-400">ไม่มีรายการนักเรียนในกลุ่มนี้</td></tr>';
+                return;
+            }
+
+            let html = '';
+            items.forEach(item => {
+                const studentName = item.student_name || 'ไม่ระบุชื่อ';
+                const room = item.classroom || '-';
+                const advisor = item.advisor_name || '-';
+                const imgUrl = item.image_url || 'https://via.placeholder.com/150';
+
+                let badgeClass = 'bg-yellow-100 text-yellow-800';
+                let statusText = 'เฝ้าระวัง มส.';
+                let btnText = 'บันทึกการแก้ มส.';
+                let btnClass = 'bg-emerald-600 hover:bg-emerald-700';
+                let avatarBorder = 'border-yellow-400';
+
+                if (category === 'risk') {
+                    badgeClass = 'bg-amber-100 text-amber-800';
+                    statusText = 'เสี่ยงติด มส.';
+                    avatarBorder = 'border-amber-500';
+                } else if (category === 'repeat') {
+                    badgeClass = 'bg-rose-600 text-white';
+                    statusText = 'เรียนซ้ำรายวิชา';
+                    btnText = 'บันทึกลงเรียนซ้ำ';
+                    btnClass = 'bg-indigo-600 hover:bg-indigo-700';
+                    avatarBorder = 'border-rose-500';
+                }
+
+                html += `
+                    <tr id="row-${item.id}" class="hover:bg-slate-50 transition">
+                        <td class="p-2 text-center">
+                            <div class="w-10 h-10 mx-auto rounded-full overflow-hidden border-2 ${avatarBorder} shadow-sm student-avatar cursor-pointer" 
+                                 onclick="openImagePreview('${imgUrl}', '${studentName}', '${room}', '${statusText}', '${badgeClass}')">
+                                <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/150'" alt="${studentName}">
+                            </div>
+                        </td>
+                        <td class="p-2.5 font-bold text-slate-800">${studentName}</td>
+                        <td class="p-2.5 text-center"><span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold">${room}</span></td>
+                        <td class="p-2.5 text-indigo-900 font-semibold"><i class="fa-solid fa-user-tie text-slate-400 mr-1"></i> ${advisor}</td>
+                        <td class="p-2.5 text-slate-700">${item.subject_name || '-'} (${item.subject_code || '-'})</td>
+                        <td class="p-2.5 text-center text-slate-600">ขาด ${item.absent_count || 0} / หนี ${item.truant_count || 0}</td>
+                        <td class="p-2.5 text-center font-bold text-amber-600">${item.attendance_percent}%</td>
+                        <td class="p-2.5 text-center"><span class="${badgeClass} px-2 py-0.5 rounded font-bold text-[10px]">${statusText}</span></td>
+                        <td class="p-2.5 text-center">
+                            <button onclick="openRemediationModal('${item.id}', '${studentName}', '${room}', '${item.subject_name}', '${category}')" class="${btnClass} text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition shadow">
+                                <i class="fa-solid fa-circle-check mr-1"></i> ${btnText}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function openImagePreview(imgUrl, name, room, statusText, badgeClass) {
+            document.getElementById('previewImg').src = imgUrl;
+            document.getElementById('previewName').innerText = name;
+            document.getElementById('previewRoom').innerText = `ระดับชั้น: ${room}`;
+            
+            const badgeEl = document.getElementById('previewBadge');
+            badgeEl.innerText = statusText;
+            badgeEl.className = `mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold ${badgeClass}`;
+            
+            document.getElementById('imagePreviewModal').classList.remove('hidden');
+        }
+
+        function closeImagePreview() {
+            document.getElementById('imagePreviewModal').classList.add('hidden');
+        }
+
+        async function loadOverallAttendance() {
+            try {
+                const { data, error } = await supabase.from('academic_attendance_summary').select('attendance_percent');
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    const total = data.reduce((sum, r) => sum + parseFloat(r.attendance_percent || 0), 0);
+                    const avg = (total / data.length).toFixed(1);
+                    document.getElementById('overallAttendance').innerText = `${avg}%`;
+                }
+            } catch (err) {
+                console.error('Error fetching overall attendance:', err.message);
+            }
+        }
+
+        async function loadTopSubjects() {
+            try {
+                const { data: attendanceData, error } = await supabase
+                    .from('academic_attendance_summary')
+                    .select('*')
+                    .neq('status', 'resolved');
+
+                if (error) throw error;
+
+                const { data: studentsData } = await supabase.from('students').select('*');
+                const studentsMap = {};
+                if (studentsData) {
+                    studentsData.forEach(s => { studentsMap[s.student_id] = s; });
+                }
+
+                const subjectsGroup = {};
+
+                if (attendanceData && attendanceData.length > 0) {
+                    attendanceData.forEach(item => {
+                        const subjectKey = item.subject_code || item.subject_name || 'UNSPECIFIED';
+                        if (!subjectsGroup[subjectKey]) {
+                            subjectsGroup[subjectKey] = {
+                                code: item.subject_code || 'ไม่ระบุรหัส',
+                                name: item.subject_name || 'ไม่ระบุชื่อวิชา',
+                                teacher: item.teacher_name || 'ไม่ระบุครูผู้สอน',
+                                warningStudents: [],
+                                riskStudents: [],
+                                repeatStudents: []
+                            };
+                        }
+
+                        const studentDetail = studentsMap[item.student_id] || {};
+                        const studentInfo = {
+                            student_name: item.student_name || studentDetail.name || (studentDetail.first_name ? `${studentDetail.first_name} ${studentDetail.last_name}` : 'ไม่ระบุชื่อ'),
+                            classroom: item.class || studentDetail.classroom || studentDetail.class || '-',
+                            advisor_name: item.advisor_name || studentDetail.advisor_name || 'ไม่ระบุ'
+                        };
+
+                        const percent = parseFloat(item.attendance_percent || 0);
+                        if (item.status === 'warning' || (percent >= 80 && percent <= 82)) {
+                            subjectsGroup[subjectKey].warningStudents.push(studentInfo);
+                        } else if (item.status === 'risk' || (percent >= 60 && percent < 80)) {
+                            subjectsGroup[subjectKey].riskStudents.push(studentInfo);
+                        } else if (item.status === 'repeat' || percent < 60) {
+                            subjectsGroup[subjectKey].repeatStudents.push(studentInfo);
+                        }
+                    });
+                }
+
+                const subjectList = Object.values(subjectsGroup);
+                const tbody = document.getElementById('topSubjectsTableBody');
+
+                if (subjectList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400 font-semibold"><i class="fa-solid fa-circle-check text-emerald-500 mr-2"></i>ไม่พบนักเรียนกลุ่มเสี่ยงในรายวิชาใดๆ</td></tr>';
+                    renderSubjectChart([]);
+                    return;
+                }
+
+                let html = '';
+                subjectList.forEach(sub => {
+                    html += `
+                        <tr class="hover:bg-slate-50 border-b transition">
+                            <td class="p-2.5 font-bold text-indigo-950">${sub.code} ${sub.name}</td>
+                            <td class="p-2.5 text-slate-700">${sub.teacher}</td>
+                            <td class="p-2.5 text-center font-bold text-yellow-600">${renderStudentTooltip(sub.warningStudents)}</td>
+                            <td class="p-2.5 text-center font-bold text-amber-600">${renderStudentTooltip(sub.riskStudents)}</td>
+                            <td class="p-2.5 text-center font-bold text-rose-600">${renderStudentTooltip(sub.repeatStudents)}</td>
+                            <td class="p-2.5 text-center">
+                                <button onclick="notifySubjectTeacher('${sub.teacher}', '${sub.code}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-indigo-200 transition shadow-sm">
+                                    <i class="fa-solid fa-paper-plane mr-1"></i> สะกิดครูวิชา
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+                renderSubjectChart(subjectList);
+
+            } catch (err) {
+                console.error('Error loading top subjects:', err.message);
+            }
+        }
+
+        function renderSubjectChart(subjectList) {
+            const canvasEl = document.getElementById('subjectChart');
+            if (!canvasEl) return;
+            
+            const ctx = canvasEl.getContext('2d');
+            if (subjectChart) subjectChart.destroy();
+
+            if (!subjectList || subjectList.length === 0) {
+                ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+                return;
+            }
+
+            const labels = subjectList.map(s => `${s.code} ${s.name}`);
+            const totals = subjectList.map(s => (s.warningStudents?.length || 0) + (s.riskStudents?.length || 0) + (s.repeatStudents?.length || 0));
+
+            subjectChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'รวมนักเรียนกลุ่มเสี่ยง (คน)',
+                        data: totals,
+                        backgroundColor: 'rgba(249, 115, 22, 0.85)',
+                        borderColor: '#ea580c',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        title: { display: true, text: 'วิชาที่มีนักเรียนกลุ่มเสี่ยงรวมสูงสุด (คน)', font: { family: 'Kanit', size: 12, weight: 'bold' }, color: '#1e293b' },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { family: 'Kanit', size: 12, weight: 'bold' },
+                            bodyFont: { family: 'Kanit', size: 11 },
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const sub = subjectList[context.dataIndex];
+                                    if (!sub) return '';
+                                    let lines = [` รวมทั้งหมด: ${context.parsed.x} คน`];
+                                    const allStudents = [...(sub.warningStudents || []), ...(sub.riskStudents || []), ...(sub.repeatStudents || [])];
+                                    if (allStudents.length > 0) {
+                                        lines.push('------------------------');
+                                        allStudents.forEach((st, i) => {
+                                            lines.push(`${i + 1}. ${st.student_name} (${st.classroom})`);
+                                            lines.push(`   ครูที่ปรึกษา: ${st.advisor_name}`);
+                                        });
+                                    }
+                                    return lines;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Kanit' } }, grid: { color: '#f1f5f9' } },
+                        y: { ticks: { font: { family: 'Kanit', size: 11 } }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function openRemediationModal(recordId, name, room, subject, category) {
+            activeRecordId = recordId;
+            activeCategory = category;
+            document.getElementById('remStudentName').innerText = `ชื่อนักเรียน: ${name} (${room})`;
+            document.getElementById('remSubject').innerText = `วิชา: ${subject}`;
+            document.getElementById('remediationModal').classList.remove('hidden');
+        }
+
+        function closeRemediationModal() {
+            document.getElementById('remediationModal').classList.add('hidden');
+        }
+
+        async function submitRemediation(e) {
+            e.preventDefault();
+            const note = document.getElementById('remNote').value;
+            const newStatusType = document.getElementById('remStatusSelect').value;
+
+            try {
+                const currentRecord = rawRiskData.find(item => item.id === activeRecordId) || {};
+
+                await supabase.from('remediation_records').insert([{
+                    student_id: currentRecord.student_id || null,
+                    subject_code: currentRecord.subject_code || null,
+                    remediation_type: newStatusType,
+                    doc_ref: note || null,
+                    recorded_by: 'ฝ่ายวิชาการ'
+                }]);
+
+                const { error: updateErr } = await supabase
+                    .from('academic_attendance_summary')
+                    .update({ status: 'resolved' })
+                    .eq('id', activeRecordId);
+
+                if (updateErr) throw updateErr;
+
+                const targetRow = document.getElementById(`row-${activeRecordId}`);
+                if (targetRow) {
+                    targetRow.classList.add('fade-out');
+                    setTimeout(() => {
+                        targetRow.remove();
+                        loadAcademicRiskData();
+                    }, 500);
+                }
+
+                alert('บันทึกอนุมัติการแก้ไขเรียบร้อยแล้ว!');
+                closeRemediationModal();
+
+            } catch (err) {
+                console.error('Error submitting remediation:', err.message);
+                alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+            }
+        }
+
+        async function showAcademicModal(groupName) {
+            document.getElementById('modalTitle').innerText = `รายละเอียดภาระงานและครูผู้สอน กลุ่มสาระฯ ${groupName}`;
+            document.getElementById('academicModal').classList.remove('hidden');
+
+            const tbody = document.getElementById('modalTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>';
+
+            try {
+                const { data: tasks, error } = await supabase
+                    .from('academic_assignments')
+                    .select('*')
+                    .eq('department', groupName);
+
+                if (error) throw error;
+
+                let html = '';
+                tasks.forEach(item => {
+                    html += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-2.5 font-bold text-slate-800">${item.subject_name}</td>
+                            <td class="p-2.5 font-semibold text-indigo-900">${item.task_title}</td>
+                            <td class="p-2.5 text-slate-700 font-medium">${item.teacher_name}</td>
+                            <td class="p-2.5 text-center text-slate-600">${item.class_room}</td>
+                            <td class="p-2.5 text-center text-slate-500">${item.due_date}</td>
+                            <td class="p-2.5 text-center font-bold text-emerald-700">${item.submission_rate}</td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html || '<tr><td colspan="6" class="text-center py-4 text-slate-400">ไม่พบภาระงานในกลุ่มสาระฯ นี้</td></tr>';
+
+            } catch (err) {
+                console.error('Error fetching assignments:', err.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('academicModal').classList.add('hidden');
+        }
+
+        function updateRiskChart(viewType = 'room') {
+            try {
+                const grouped = {};
+
+                rawRiskData.forEach(row => {
+                    const key = viewType === 'room' ? (row.classroom || 'ไม่ระบุห้อง') : (row.classroom ? row.classroom.split('/')[0] : 'อื่นๆ');
+                    if (!grouped[key]) grouped[key] = { warning: [], risk: [], repeat: [] };
+
+                    const detail = `${row.student_name} (${row.classroom}) - ครูที่ปรึกษา: ${row.advisor_name}`;
+                    if (row.status === 'warning') grouped[key].warning.push(detail);
+                    else if (row.status === 'risk') grouped[key].risk.push(detail);
+                    else if (row.status === 'repeat') grouped[key].repeat.push(detail);
+                });
+
+                const labels = Object.keys(grouped).sort();
+                const warningCounts = labels.map(l => grouped[l].warning.length);
+                const riskCounts = labels.map(l => grouped[l].risk.length);
+                const repeatCounts = labels.map(l => grouped[l].repeat.length);
+
+                const ctx = document.getElementById('riskChart').getContext('2d');
+                if (academicRiskChartInstance) academicRiskChartInstance.destroy();
+
+                academicRiskChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'เฝ้าระวังพิเศษ (80-82%)', data: warningCounts, backgroundColor: '#eab308', borderRadius: 6 },
+                            { label: 'เสี่ยงติด มส. (60-79%)', data: riskCounts, backgroundColor: '#f97316', borderRadius: 6 },
+                            { label: 'ต้องเรียนซ้ำ (<60%)', data: repeatCounts, backgroundColor: '#e11d48', borderRadius: 6 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top', labels: { font: { family: 'Kanit', size: 11 } } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const groupKey = context.label;
+                                        const statusKeys = ['warning', 'risk', 'repeat'];
+                                        const statusKey = statusKeys[context.datasetIndex];
+                                        const list = grouped[groupKey] ? grouped[groupKey][statusKey] : [];
+
+                                        if (list.length === 0) return ` ${context.dataset.label}: 0 คน`;
+                                        let lines = [` ${context.dataset.label}: ${list.length} คน`];
+                                        list.forEach(st => lines.push(`  • ${st}`));
+                                        return lines;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { font: { family: 'Kanit' } } },
+                            y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Kanit' } } }
+                        }
+                    }
+                });
+
+            } catch (err) {
+                console.error('Error rendering chart:', err.message);
+            }
+        }
+
+        function switchChartView(type) {
+            if (type === 'room') {
+                document.getElementById('btnByRoom').className = "px-3 py-1 rounded-lg bg-indigo-600 text-white shadow transition";
+                document.getElementById('btnByGrade').className = "px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition";
+            } else {
+                document.getElementById('btnByGrade').className = "px-3 py-1 rounded-lg bg-indigo-600 text-white shadow transition";
+                document.getElementById('btnByRoom').className = "px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition";
+            }
+            updateRiskChart(type);
+        }
+
+        function renderStudentTooltip(students) {
+            if (!students || !Array.isArray(students) || students.length === 0) {
+                return '<span class="text-slate-400 font-normal">-</span>';
+            }
+
+            const studentItems = students.map((s, idx) => `
+                <div class="py-1 border-b border-slate-700/60 last:border-0 text-xs">
+                    <div class="font-bold text-yellow-400">${idx + 1}. ${s.student_name || 'ไม่ระบุชื่อ'} <span class="text-slate-300 font-normal">(${s.classroom || '-'})</span></div>
+                    <div class="text-[10px] text-slate-300"><i class="fa-solid fa-user-tie mr-1 text-indigo-400"></i>ครูที่ปรึกษา: ${s.advisor_name || 'ไม่ระบุ'}</div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="student-tt-container">
+                    <span class="font-bold text-indigo-600 underline decoration-dashed underline-offset-4 cursor-pointer hover:text-indigo-800 transition">
+                        ${students.length} คน
+                    </span>
+                    <div class="student-tt-box">
+                        <div class="font-bold text-xs text-slate-200 mb-1 border-b border-slate-700 pb-1 flex items-center gap-1">
+                            <i class="fa-solid fa-users text-indigo-400"></i> รายชื่อนักเรียนในกลุ่มนี้
+                        </div>
+                        ${studentItems}
+                    </div>
+                </div>
+            `;
+        }
+
+        function notifySubjectTeacher(teacherName, subjectCode) {
+            if (!teacherName || teacherName === 'ไม่ระบุ') {
+                alert('ไม่พบข้อมูลครูผู้สอนในรายวิชานี้');
+                return;
+            }
+            alert(`ระบบได้ส่งข้อความแจ้งเตือนไปยัง ${teacherName} (วิชา ${subjectCode}) เรียบร้อยแล้ว`);
+        }
+    </script>
+</body>
+</html>

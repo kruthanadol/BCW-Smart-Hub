@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCW Smart Gate - กล้องสแกนมือถือ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Kanit', sans-serif; background: #0f172a; }</style>
+</head>
+<body class="min-h-screen text-white flex flex-col items-center justify-between p-4">
+
+    <!-- Header -->
+    <div class="text-center space-y-1">
+        <h1 class="text-xl font-black text-amber-400">📸 BCW Smart Gate Scan</h1>
+        <p class="text-xs text-slate-300">ระบบสแกนเข้าโรงเรียนผ่านกล้องมือถือ</p>
+    </div>
+
+    <!-- กรอบกล้องมือถือ -->
+    <div class="relative w-full max-w-sm aspect-[3/4] bg-slate-800 rounded-3xl overflow-hidden border-4 border-emerald-500 shadow-2xl flex items-center justify-center">
+        <!-- วิดีโอจากกล้องมือถือ -->
+        <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
+        
+        <!-- เส้นเล็งสแกนหน้า -->
+        <div class="absolute inset-12 border-2 border-dashed border-emerald-400 rounded-2xl pointer-events-none animate-pulse flex items-center justify-center">
+            <span class="text-xs font-bold text-emerald-300 bg-black/50 px-3 py-1 rounded-full">วางใบหน้าให้อยู่ในกรอบ</span>
+        </div>
+    </div>
+
+    <!-- กล่องแสดงผลการสแกนล่าสุด -->
+    <div id="scanResult" class="w-full max-w-sm bg-white text-slate-900 rounded-2xl p-4 shadow-lg text-center space-y-1">
+        <span class="text-xs text-slate-500 font-bold block">สถานะสแกนล่าสุด</span>
+        <h3 id="studentName" class="text-lg font-black text-emerald-700">พร้อมสแกนหน้า...</h3>
+        <p id="scanTime" class="text-xs text-slate-600 font-semibold">กรุณาส่องกล้องไปที่ใบหน้านักเรียน</p>
+    </div>
+
+    <!-- ปุ่มเปิดกล้อง -->
+    <button onclick="startMobileCamera()" class="w-full max-w-sm bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl shadow-lg transition">
+        🎥 เปิดกล้องมือถือสแกน
+    </button>
+
+    <script>
+        const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function startMobileCamera() {
+        const video = document.getElementById('webcam');
+        
+        // ลองเปิดกล้องทั่วไป (ใช้ได้ทั้งโน้ตบุ๊กและมือถือ)
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+                audio: false 
+            });
+            video.srcObject = stream;
+        } catch (err1) {
+            // ถ้าไม่ผ่าน ลองเปิดด้วยสเปกพื้นฐานที่สุด
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                video.srcObject = stream;
+            } catch (err2) {
+                console.error('Camera Error:', err2);
+                alert('⛔ ไม่สามารถเปิดกล้องได้!\n\nกรุณาตรวจสอบว่า:\n1. ได้กด "Allow" (อนุญาต) สิทธิ์กล้องบนแถบด้านบนเบราว์เซอร์แล้วหรือยัง\n2. ไม่มีโปรแกรมอื่น (เช่น Zoom/Teams) เปิดใช้วิดีโออยู่');
+            }
+        }
+    }
+
+        // ตัวอย่างฟังก์ชันบันทึกเวลาสแกนเข้า Supabase เมื่อตรวจพบหน้านักเรียน
+        async function recordGateIn(studentId, studentFullName) {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+            const { error } = await db.from('attendance_logs').insert([{
+                student_id: studentId,
+                check_date: today,
+                gate_in_time: now.toISOString(),
+                traffic_status: 'GREEN',
+                status: 'PRESENT',
+                recorded_by: 'กล้องมือถือครูประจำประตู'
+            }]);
+
+            if (!error) {
+                document.getElementById('studentName').innerText = `🟢 ${studentFullName}`;
+                document.getElementById('scanTime').innerText = `บันทึกเข้าโรงเรียนเวลา ${timeStr} น. เรียบร้อยแล้ว`;
+            }
+        }
+    </script>
+</body>
+</html>
