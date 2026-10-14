@@ -524,15 +524,26 @@
             if (modal) modal.classList.remove('hidden');
         }
 
-        // 🟢 ตรวจสอบรหัส PIN Admin
-        function verifyAdminPin() {
-            const pin = document.getElementById('adminPinInput')?.value;
-            if (pin === '1234' || pin === '9999') {
-                window.location.href = 'admin_dashboard.html';
-            } else {
-                alert('⛔ รหัส PIN ไม่ถูกต้อง!');
-            }
+        async function checkAdminLogin() {
+        const usernameInput = document.getElementById('adminUsername').value;
+        const passwordInput = document.getElementById('adminPassword').value;
+
+        // 🔍 ดึงข้อมูลจากตาราง users ใน Supabase มาตรวจสอบ
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('full_name', usernameInput) // หรือเปลี่ยนเป็นคอลัมน์ username
+            .eq('password', passwordInput)
+            .eq('role', 'ADMIN')
+            .single();
+
+        if (error || !data) {
+            alert('❌ รหัสผ่านผู้ดูแลระบบไม่ถูกต้อง!');
+        } else {
+            alert('✅ ยินดีต้อนรับเข้าสู่ระบบ Admin');
+            window.location.href = 'admin_import.html'; // ผ่านแล้วไปยังหน้าจัดการ
         }
+    }
 
         // 🟢 วาดกราฟ Chart.js
         let chartObj = null;
