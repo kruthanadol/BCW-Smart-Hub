@@ -680,5 +680,52 @@
             loadLandingRealStats();
         });
     </script>
+    <!-- วางต่อท้ายล่างสุดของไฟล์ landing.html -->
+        <script>
+        async function verifyAdminPin() {
+            const pinInput = document.getElementById('adminPinInput');
+            if (!pinInput) {
+                alert('❌ ไม่พบช่องกรอกรหัสผ่าน (adminPinInput)');
+                return;
+            }
+
+            const inputPin = pinInput.value.trim();
+            if (!inputPin) {
+                alert('กรุณากรอกรหัสผ่าน Admin');
+                return;
+            }
+
+            try {
+                // ดึงตัวแปร Supabase มาใช้งาน (ลองเช็กชื่อตัวแปร Supabase ในไฟล์ของครู เช่น _supabase หรือ supabase)
+                const client = typeof _supabase !== 'undefined' ? _supabase : supabase;
+
+                const { data, error } = await client
+                    .from('users')
+                    .select('*')
+                    .eq('role', 'ADMIN')
+                    .eq('password', inputPin);
+
+                if (error) {
+                    console.error('Supabase Error:', error);
+                    alert('❌ เกิดข้อผิดพลาดจาก Supabase: ' + error.message);
+                    return;
+                }
+
+                if (data && data.length > 0) {
+                    alert('✅ ยินดีต้อนรับเข้าสู่ระบบ Admin');
+                    sessionStorage.setItem('isAdmin', 'true');
+                    sessionStorage.setItem('adminUser', JSON.stringify(data[0]));
+                    
+                    // ย้ายไปยังหน้าจัดการ
+                    window.location.href = 'admin_import.html';
+                } else {
+                    alert('❌ รหัส PIN ไม่ถูกต้อง!');
+                }
+            } catch (err) {
+                console.error('System Error:', err);
+                alert('❌ เกิดข้อผิดพลาดในระบบ: ' + err.message);
+            }
+        }
+        </script>
 </body>
 </html>
