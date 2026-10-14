@@ -523,10 +523,11 @@
             if (modal) modal.classList.remove('hidden');
         }
 
+        // 🟢 ฟังก์ชันยืนยันรหัสผ่าน Admin กับ Supabase
         async function verifyAdminPin() {
             const pinInput = document.getElementById('adminPinInput');
             if (!pinInput) {
-                alert('❌ ไม่พบช่องกรอกรหัสผ่าน');
+                alert('❌ ไม่พบช่องกรอกรหัสผ่าน (adminPinInput)');
                 return;
             }
 
@@ -537,7 +538,7 @@
             }
 
             try {
-                // 🟢 เรียกใช้ตัวแปร db (ตัวแปรเดียวกับที่ประกาศไว้ข้างบน)
+                // ดึงข้อมูลจากตาราง users ใน Supabase โดยใช้ตัวแปร db
                 const { data, error } = await db
                     .from('users')
                     .select('*')
@@ -550,15 +551,11 @@
                     return;
                 }
 
-                // ตรวจสอบว่าพบข้อมูลหรือไม่
                 if (data && data.length > 0) {
                     alert('✅ ยินดีต้อนรับเข้าสู่ระบบ Admin');
-                    
-                    // บันทึกสถานะและข้อมูลแอดมิน
                     sessionStorage.setItem('isAdmin', 'true');
                     sessionStorage.setItem('adminUser', JSON.stringify(data[0]));
-
-                    // 🚀 พาไปยังหน้าจัดการแอดมินทันที
+                    
                     window.location.href = 'admin_import.html'; 
                 } else {
                     alert('❌ รหัส PIN ไม่ถูกต้อง!');
@@ -619,41 +616,42 @@
                 const totalElem = document.getElementById('statTotalStudentsLanding');
                 if (totalElem) totalElem.innerText = `${total.toLocaleString()} คน`;
 
-               // 🟢 2. ดึงจำนวนนักเรียนที่มาเรียนวันนี้
-            const { count: presentCount } = await db.from('attendance_records')
-                .select('*', { count: 'exact', head: true })
-                .eq('date', today)
-                .or('status.eq.PRESENT,status.eq.LATE'); // ✅ ใช้ .or() แทน .in() เพื่อป้องกัน URL Encode เพี้ยน
-
-            const present = presentCount || 0;
-            const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
-
-            const countElem = document.getElementById('statPresentCountLanding');
-            if (countElem) countElem.innerText = present.toLocaleString();
-
-            const percentElem = document.getElementById('statPresentPercentLanding');
-            if (percentElem) percentElem.innerText = `(${percent}%)`;
-
-            // 🟢 3. ยอด ขาด / สาย / ลา
-            const { count: absentCount } = await db.from('attendance_records')
-                .select('*', { count: 'exact', head: true })
-                .eq('date', today)
-                .eq('status', 'ABSENT');
-            if (absentCount !== null) document.getElementById('statAbsentLanding').innerText = absentCount;
-
-            const { count: lateCount } = await db.from('attendance_records')
-                .select('*', { count: 'exact', head: true })
-                .eq('date', today)
-                .eq('status', 'LATE');
-            if (lateCount !== null) document.getElementById('statLateLanding').innerText = lateCount;
-
-            const { count: leaveCount } = await db.from('attendance_records')
-                .select('*', { count: 'exact', head: true })
-                .eq('date', today)
-                .or('status.eq.LEAVE_SICK,status.eq.LEAVE_PERSONAL,status.eq.LEAVE');
-            if (leaveCount !== null) document.getElementById('statLeaveLanding').innerText = leaveCount;
+                const { count: presentCount } = await db.from('attendance_records')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('date', today)
+                    .or('status.eq.PRESENT,status.eq.LATE');
                     
+                const present = presentCount || 0;
+                const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
 
+                const countElem = document.getElementById('statPresentCountLanding');
+                if (countElem) countElem.innerText = present.toLocaleString();
+
+                const percentElem = document.getElementById('statPresentPercentLanding');
+                if (percentElem) percentElem.innerText = `(${percent}%)`;
+
+                const { count: absentCount } = await db.from('attendance_records')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('date', today)
+                    .eq('status', 'ABSENT');
+                if (absentCount !== null) document.getElementById('statAbsentLanding').innerText = absentCount;
+
+                const { count: lateCount } = await db.from('attendance_records')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('date', today)
+                    .eq('status', 'LATE');
+                if (lateCount !== null) document.getElementById('statLateLanding').innerText = lateCount;
+
+                const { count: leaveCount } = await db.from('attendance_records')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('date', today)
+                    .or('status.eq.LEAVE_SICK,status.eq.LEAVE_PERSONAL,status.eq.LEAVE');
+                if (leaveCount !== null) document.getElementById('statLeaveLanding').innerText = leaveCount;
+
+            } catch (err) {
+                console.warn('Load Landing Stats Warning:', err);
+            }
+        }
 
         // 🟢 เรียกทำงานทันทีเมื่อเริ่มโหลดหน้า
         document.addEventListener('DOMContentLoaded', function() {
