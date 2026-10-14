@@ -1062,20 +1062,32 @@
                     : `<li class="text-slate-400">ไม่มีรายการขอออกนอกโรงเรียนวันนี้</li>`;
             }
 
+            // 1. หาค่าวันที่ปัจจุบัน (รูปแบบ YYYY-MM-DD)
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            // 2. กรองเอาเฉพาะข้อมูลการเข้าห้องพยาบาลของวันนี้เท่านั้น (ประวัติวันเก่าๆ จะไม่ถูกนำมารวม)
+            const activeClinicRecords = (dbClinicRecords || []).filter(c => {
+                const recordDate = c.created_at ? c.created_at.split('T')[0] : (c.date || '');
+                return recordDate === todayStr; // หรือใส่เงื่อนไข c.status === 'resting' เพิ่มได้ครับ
+            });
+
+            // 3. นำตัวแปรที่กรองแล้ว (activeClinicRecords) ไปใช้งานแสดงผลแทน
             const kpiClinic = document.getElementById('kpiInfirmaryCount');
-            if (kpiClinic) kpiClinic.innerText = `${dbClinicRecords.length} คน`;
+            if (kpiClinic) kpiClinic.innerText = `${activeClinicRecords.length} คน`;
 
             const ulClinic = document.getElementById('tooltipInfirmaryUl');
             if (ulClinic) {
-            ulClinic.innerHTML = dbClinicRecords.length > 0
-            ? dbClinicRecords.map(c => {
-                const st = dbStudents.find(s => s.student_id === c.student_id || getStudentFullName(s));
-                const name = st ? getStudentFullName(st) : (c.student_name || c.student_id | '');
-                const className = st ? ` (${st.classroom || st.class_name || ""})` : '';
-                return `<li>• ${name}${className} - ${c.symptom || 'ป่วย'}</li>`;
-            }).join('')
-            : `<li class="text-slate-400">ไม่มีเด็กนอนห้องพยาบาล ณ ปัจจุบัน</li>`;
-        }
+                ulClinic.innerHTML = activeClinicRecords.length > 0
+                ? activeClinicRecords.map(c => {
+                    const st = (dbStudents || []).find(s => s.student_id === c.student_id);
+                    const name = st ? getStudentFullName(st) : (c.student_name || c.student_id || 'นักเรียน');
+                    const className = st ? ` (${st.classroom || st.class_name || ''})` : '';
+                    const symptom = c.symptom_detail || c.symptom || c.symptoms || 'ป่วย/ไม่สบาย';
+                    
+                    return `<li>• ${name}${className} - ${symptom}</li>`;
+                }).join('')
+                : `<li class="text-slate-400">ไม่มีเด็กนอนห้องพยาบาล ณ ปัจจุบัน</li>`;
+            }
 
             const kpiTruancy = document.getElementById('kpiTruancyCount');
             if (kpiTruancy) kpiTruancy.innerText = `${dbAttendanceLogs.length} เคส`;
