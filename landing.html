@@ -523,11 +523,10 @@
             if (modal) modal.classList.remove('hidden');
         }
 
-        // 🟢 ฟังก์ชันยืนยันรหัสผ่าน Admin กับ Supabase
         async function verifyAdminPin() {
             const pinInput = document.getElementById('adminPinInput');
             if (!pinInput) {
-                alert('❌ ไม่พบช่องกรอกรหัสผ่าน (adminPinInput)');
+                alert('❌ ไม่พบช่องกรอกรหัสผ่าน');
                 return;
             }
 
@@ -538,7 +537,7 @@
             }
 
             try {
-                // ดึงข้อมูลจากตาราง users ใน Supabase โดยใช้ตัวแปร db
+                // 🟢 เรียกใช้ตัวแปร db (ตัวแปรเดียวกับที่ประกาศไว้ข้างบน)
                 const { data, error } = await db
                     .from('users')
                     .select('*')
@@ -551,11 +550,15 @@
                     return;
                 }
 
+                // ตรวจสอบว่าพบข้อมูลหรือไม่
                 if (data && data.length > 0) {
                     alert('✅ ยินดีต้อนรับเข้าสู่ระบบ Admin');
+                    
+                    // บันทึกสถานะและข้อมูลแอดมิน
                     sessionStorage.setItem('isAdmin', 'true');
                     sessionStorage.setItem('adminUser', JSON.stringify(data[0]));
-                    
+
+                    // 🚀 พาไปยังหน้าจัดการแอดมินทันที
                     window.location.href = 'admin_import.html'; 
                 } else {
                     alert('❌ รหัส PIN ไม่ถูกต้อง!');
