@@ -43,10 +43,10 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <a href="index.html" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-semibold transition border border-slate-200 flex items-center gap-1.5">
+                <a href="landing.html" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-semibold transition border border-slate-200 flex items-center gap-1.5">
                     <i class="fa-solid fa-arrow-left"></i> กลับหน้าหลัก
                 </a>
-                <button onclick="BCW_STORE.logout()" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-xl font-semibold transition cursor-pointer">
+                <button onclick="handleLogout()" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-xl font-semibold transition cursor-pointer">
                     <i class="fa-solid fa-right-from-bracket mr-1"></i> ออกจากระบบ
                 </button>
             </div>
@@ -94,9 +94,7 @@
                             <option value="discipline_catalog">👮‍♂️ เกณฑ์การตัดคะแนนพฤติกรรม (discipline_catalog)</option>
                         </optgroup>
                         <optgroup label="จัดการสถานะนักเรียน & ครู (ย้ายเข้า / ย้ายออก)">
-                            <option value="students">👨‍🎓 นำเข้า/อัปเดตรายชื่อนักเรียน (students)</option>
                             <option value="students_transfer_out">⛔ จำหน่ายนักเรียนย้ายออก/ลาออก (mark transferred_out)</option>
-                            <option value="teachers">👩‍🏫 นำเข้า/อัปเดตบัญชีครู (users)</option>
                             <option value="teachers_transfer_out">⛔ จำหน่ายครู/บุคลากรย้ายออก (mark inactive)</option>
                         </optgroup>
                     </select>
@@ -164,12 +162,8 @@
                 <span id="countAvatars" class="text-xl font-bold text-amber-500 mt-1 block">0 รูป</span>
             </div>
         </div>
-<!-- Data Overview Cards เดิม -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            ...
-        </div>
 
-        <!-- 🟢 วางโค้ด UI ส่วนเสริม (ปุ่มเปิด + Pop-up Modal) ตรงนี้ครับ -->
+        <!-- Class Manager UI Card -->
         <div class="glass-card rounded-3xl p-6 border border-white/80 shadow-xl space-y-4">
             <div class="flex justify-between items-center">
                 <div>
@@ -260,8 +254,27 @@
     </footer>
 
     <!-- Script Logic -->
-    <script src="store.js"></script>
     <script>
+        // 🟢 1. ประกาศตัวแปร Supabase Client แบบมาตรฐาน
+        const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 🟢 2. ตรวจสอบ Session สิทธิ์การเป็น Admin
+        function checkAdminSession() {
+            const isAdmin = sessionStorage.getItem('isAdmin');
+            if (isAdmin !== 'true') {
+                alert('🔒 กรุณาเข้าสู่ระบบในฐานะ Admin ผ่านหน้าหลักก่อนครับ');
+                window.location.href = 'landing.html';
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.clear();
+            localStorage.clear();
+            window.location.href = 'landing.html';
+        }
+
         function switchTab(mode) {
             const secCsv = document.getElementById('sectionCsv');
             const secImg = document.getElementById('sectionImage');
@@ -282,17 +295,19 @@
         }
 
         async function updateDataCounts() {
-            if (!supabase) return;
+            try {
+                const { count: cStudents } = await db.from('students').select('*', { count: 'exact', head: true });
+                const { count: cUsers } = await db.from('users').select('*', { count: 'exact', head: true });
+                const { count: cCourses } = await db.from('courses').select('*', { count: 'exact', head: true });
+                const { data: files } = await db.storage.from('avatars').list();
 
-            const { count: cStudents } = await supabase.from('students').select('*', { count: 'exact', head: true });
-            const { count: cUsers } = await supabase.from('users').select('*', { count: 'exact', head: true });
-            const { count: cCourses } = await supabase.from('courses').select('*', { count: 'exact', head: true });
-            const { data: files } = await supabase.storage.from('avatars').list();
-
-            document.getElementById('countStudents').innerText = `${cStudents || 0} คน`;
-            document.getElementById('countTeachers').innerText = `${cUsers || 0} คน`;
-            document.getElementById('countCourses').innerText = `${cCourses || 0} วิชา`;
-            document.getElementById('countAvatars').innerText = `${files ? files.length : 0} รูป`;
+                document.getElementById('countStudents').innerText = `${cStudents || 0} คน`;
+                document.getElementById('countTeachers').innerText = `${cUsers || 0} คน`;
+                document.getElementById('countCourses').innerText = `${cCourses || 0} วิชา`;
+                document.getElementById('countAvatars').innerText = `${files ? files.length : 0} รูป`;
+            } catch (err) {
+                console.warn('Update counts warning:', err);
+            }
         }
 
         async function executeImportCSV() {
@@ -316,7 +331,7 @@
                         if (category === 'students') {
                             payload = rows.map(r => ({
                                 student_id: r.student_id || r['รหัสนักเรียน'],
-                                name: r.name || `${r['คำนำหน้า']||''}${r['ชื่อ']} ${r['นามสกุล']}`,
+                                name: r.name || `${r['คำนำหน้า']||''}${r['ชื่อ']||''} ${r['นามสกุล']||''}`.trim(),
                                 class: r.class || r['ชั้นเรียน'],
                                 no: parseInt(r.no || r['เลขที่']) || 0,
                                 behavior_score: parseInt(r.behavior_score) || 100,
@@ -327,15 +342,16 @@
                             tableName = 'users';
                             payload = rows.map(r => ({
                                 ref_id: r.teacher_id || r['รหัสครู'],
-                                full_name: r.name || r['ชื่อ-นามสกุล'],
-                                role: 'teacher',
-                                email: r.email || `${r.teacher_id}@bcw.ac.th`
+                                full_name: r.name || r['ชื่อ-นามสกุล'] || r.full_name,
+                                role: 'TEACHER',
+                                email: r.email || `${r.teacher_id || r['รหัสครู']}@bcw.ac.th`,
+                                password: r.password || '123456'
                             }));
                         } 
                         else if (category === 'class_advisors') {
                             tableName = 'class_advisors';
                             payload = rows.map(r => ({
-                                class_name: r.class_name || r['ชั้นเรียน'],
+                                class_name: r.class_name || r['ชั้นเรียน'] || r.grade_level,
                                 teacher_id: r.teacher_id || r['รหัสครู'],
                                 advisor_type: r.advisor_type || r['ประเภทที่ปรึกษา'] || 'main'
                             }));
@@ -375,34 +391,33 @@
                                 category: r.category || r['หมวดหมู่'] || 'ทั่วไป'
                             }));
                         }
-                        // บล็อกจัดการนักเรียนย้ายออก
                         else if (category === 'students_transfer_out') {
                             tableName = 'students';
                             payload = rows.map(r => ({
                                 student_id: r.student_id || r['รหัสนักเรียน'],
-                                status: 'transferred_out', // กำหนดสถานะเป็นย้ายออก
+                                status: 'transferred_out',
                                 updated_at: new Date().toISOString()
                             }));
                         }
-                        // บล็อกจัดการครูย้ายออก
                         else if (category === 'teachers_transfer_out') {
                             tableName = 'users';
                             payload = rows.map(r => ({
                                 ref_id: r.teacher_id || r['รหัสครู'],
-                                status: 'inactive', // ปิดการใช้งานบัญชีผู้ใช้
+                                status: 'inactive',
                                 updated_at: new Date().toISOString()
                             }));
                         }
 
-                        const { error } = await supabase.from(tableName).upsert(payload);
+                        // 🟢 เรียกผ่าน db.from() แทน
+                        const { error } = await db.from(tableName).upsert(payload);
                         if (error) throw error;
 
-                        alert(`นำเข้าข้อมูลตาราง ${tableName} สำเร็จจำนวน ${payload.length} รายการ!`);
+                        alert(`✅ นำเข้าข้อมูลตาราง ${tableName} สำเร็จจำนวน ${payload.length} รายการ!`);
                         fileInput.value = '';
                         updateDataCounts();
 
                     } catch (err) {
-                        alert('เกิดข้อผิดพลาดในการนำเข้า: ' + err.message);
+                        alert('❌ เกิดข้อผิดพลาดในการนำเข้า: ' + err.message);
                         console.error(err);
                     }
                 }
@@ -430,7 +445,8 @@
                 const file = files[i];
                 const fileName = file.name;
 
-                const { error } = await supabase.storage
+                // 🟢 เรียกผ่าน db.storage แทน
+                const { error } = await db.storage
                     .from('avatars')
                     .upload(fileName, file, { upsert: true });
 
@@ -442,15 +458,12 @@
                 progressText.innerText = `กำลังอัปโหลด (${i + 1}/${files.length}): ${fileName}`;
             }
 
-            alert(`อัปโหลดรูปภาพเข้าสู่ Supabase Storage สำเร็จ ${uploadedCount} รูป!`);
+            alert(`✅ อัปโหลดรูปภาพเข้าสู่ Supabase Storage สำเร็จ ${uploadedCount} รูป!`);
             fileInput.value = '';
             progressContainer.classList.add('hidden');
             updateDataCounts();
         }
 
-        window.onload = updateDataCounts;
-        
-    // 🟢 วางฟังก์ชัน JavaScript จัดการย้ายห้องไว้ตรงนี้ครับ
         function openClassManagerModal() {
             document.getElementById('classManagerModal').classList.remove('hidden');
             loadStudentsByClass();
@@ -468,7 +481,7 @@
             tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> โหลดข้อมูลนักเรียนห้อง ${classroom}...</td></tr>`;
 
             try {
-                let query = supabase.from('students').select('*').eq('classroom', classroom);
+                let query = db.from('students').select('*').eq('classroom', classroom);
                 if (statusFilter !== 'ALL') {
                     query = query.eq('status', statusFilter);
                 }
@@ -523,14 +536,14 @@
             if (!newClass || newClass.trim() === '' || newClass === currentClass) return;
 
             try {
-                const { error: updateErr } = await supabase
+                const { error: updateErr } = await db
                     .from('students')
                     .update({ classroom: newClass.trim(), updated_at: new Date().toISOString() })
                     .eq('student_id', studentId);
 
                 if (updateErr) throw updateErr;
 
-                await supabase.from('student_transfers').insert([{
+                await db.from('student_transfers').insert([{
                     student_id: studentId,
                     student_name: studentName,
                     transfer_type: 'move_class',
@@ -552,14 +565,14 @@
             if (reason === null) return;
 
             try {
-                const { error: updateErr } = await supabase
+                const { error: updateErr } = await db
                     .from('students')
                     .update({ status: 'transferred_out', updated_at: new Date().toISOString() })
                     .eq('student_id', studentId);
 
                 if (updateErr) throw updateErr;
 
-                await supabase.from('student_transfers').insert([{
+                await db.from('student_transfers').insert([{
                     student_id: studentId,
                     student_name: studentName,
                     transfer_type: 'transfer_out',
@@ -579,7 +592,7 @@
             if (!confirm(`ต้องการรับนักเรียน ${studentName} กลับเข้าเรียนใช่หรือไม่?`)) return;
 
             try {
-                const { error: updateErr } = await supabase
+                const { error: updateErr } = await db
                     .from('students')
                     .update({ status: 'active', updated_at: new Date().toISOString() })
                     .eq('student_id', studentId);
@@ -592,7 +605,13 @@
             } catch (err) {
                 alert('❌ เกิดข้อผิดพลาด: ' + err.message);
             }
-        }    
+        }
+
+        // 🟢 เรียกทำงานเมื่อโหลดหน้าสำเร็จ
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminSession();
+            updateDataCounts();
+        });
     </script>
 </body>
 </html>
