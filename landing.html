@@ -616,42 +616,41 @@
                 const totalElem = document.getElementById('statTotalStudentsLanding');
                 if (totalElem) totalElem.innerText = `${total.toLocaleString()} คน`;
 
-                const { count: presentCount } = await db.from('attendance_records')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('date', today)
-                    .in('status', ['PRESENT', 'LATE']);
+               // 🟢 2. ดึงจำนวนนักเรียนที่มาเรียนวันนี้
+            const { count: presentCount } = await db.from('attendance_records')
+                .select('*', { count: 'exact', head: true })
+                .eq('date', today)
+                .or('status.eq.PRESENT,status.eq.LATE'); // ✅ ใช้ .or() แทน .in() เพื่อป้องกัน URL Encode เพี้ยน
+
+            const present = presentCount || 0;
+            const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
+
+            const countElem = document.getElementById('statPresentCountLanding');
+            if (countElem) countElem.innerText = present.toLocaleString();
+
+            const percentElem = document.getElementById('statPresentPercentLanding');
+            if (percentElem) percentElem.innerText = `(${percent}%)`;
+
+            // 🟢 3. ยอด ขาด / สาย / ลา
+            const { count: absentCount } = await db.from('attendance_records')
+                .select('*', { count: 'exact', head: true })
+                .eq('date', today)
+                .eq('status', 'ABSENT');
+            if (absentCount !== null) document.getElementById('statAbsentLanding').innerText = absentCount;
+
+            const { count: lateCount } = await db.from('attendance_records')
+                .select('*', { count: 'exact', head: true })
+                .eq('date', today)
+                .eq('status', 'LATE');
+            if (lateCount !== null) document.getElementById('statLateLanding').innerText = lateCount;
+
+            const { count: leaveCount } = await db.from('attendance_records')
+                .select('*', { count: 'exact', head: true })
+                .eq('date', today)
+                .or('status.eq.LEAVE_SICK,status.eq.LEAVE_PERSONAL,status.eq.LEAVE');
+            if (leaveCount !== null) document.getElementById('statLeaveLanding').innerText = leaveCount;
                     
-                const present = presentCount || 0;
-                const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
 
-                const countElem = document.getElementById('statPresentCountLanding');
-                if (countElem) countElem.innerText = present.toLocaleString();
-
-                const percentElem = document.getElementById('statPresentPercentLanding');
-                if (percentElem) percentElem.innerText = `(${percent}%)`;
-
-                const { count: absentCount } = await db.from('attendance_records')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('date', today)
-                    .eq('status', 'ABSENT');
-                if (absentCount !== null) document.getElementById('statAbsentLanding').innerText = absentCount;
-
-                const { count: lateCount } = await db.from('attendance_records')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('date', today)
-                    .eq('status', 'LATE');
-                if (lateCount !== null) document.getElementById('statLateLanding').innerText = lateCount;
-
-                const { count: leaveCount } = await db.from('attendance_records')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('date', today)
-                    .in('status', ['LEAVE_SICK', 'LEAVE_PERSONAL', 'LEAVE']);
-                if (leaveCount !== null) document.getElementById('statLeaveLanding').innerText = leaveCount;
-
-            } catch (err) {
-                console.warn('Load Landing Stats Warning:', err);
-            }
-        }
 
         // 🟢 เรียกทำงานทันทีเมื่อเริ่มโหลดหน้า
         document.addEventListener('DOMContentLoaded', function() {
