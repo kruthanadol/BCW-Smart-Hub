@@ -423,24 +423,19 @@
                             selectEl.innerHTML = '';
             
                             if (!error && scheduleList && scheduleList.length > 0) {
-                                selectEl.innerHTML = scheduleList.map(s => {
-                                    // ดึงชื่อวิชาจริงจาก courses ถ้าไม่มีให้โชว์รหัสวิชา
-                                    const courseName = s.courses?.course_name || s.course_code;
-                                    const room = s.class_name;
-                                    return `<option value="${s.course_code}|${room}">${courseName} (${s.course_code}) - ห้อง ${room}</option>`;
-                                }).join('');
-            
-                                const firstRoom = scheduleList[0].class_name;
-                                document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
-                            } else {
-                                // กรณีตารางสอนไม่มีข้อมูล ให้โชว์แจ้งเตือนใน Dropdown ชัดเจน ไม่ใช้คำว่า "วิชาทั่วไป"
-                                selectEl.innerHTML = '<option value="">⚠️ ไม่พบข้อมูลตารางสอนของคุณครู</option>';
-                                document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
-                            }
-                        } catch (err) {
-                            console.error('Load Classrooms Error:', err);
+                            selectEl.innerHTML = scheduleList.map(s => {
+                                const courseName = s.courses?.course_name || s.course_code;
+                                const room = s.class_name;
+                                return `<option value="${s.course_code}|${room}">${courseName} (${s.course_code}) - ห้อง ${room}</option>`;
+                            }).join('');
+        
+                            const firstRoom = scheduleList[0].class_name;
+                            document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
+                        } else {
+                            // หากไม่พบตารางสอน ให้แจ้งเตือนตรงๆ ไม่ใช้คำว่าวิชาทั่วไปแล้วครับ
+                            selectEl.innerHTML = '<option value="">⚠️ ไม่พบข้อมูลตารางสอนของคุณครู</option>';
+                            document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
                         }
-                    }
 
                     const firstRoom = scheduleList[0].class_name;
                     document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
