@@ -408,13 +408,21 @@
                     .select('classroom')
                     .not('classroom', 'is', null);
 
-                if (!error && classrooms && classrooms.length > 0) {
-                    const uniqueRooms = [...new Set(classrooms.map(c => c.classroom))];
-                    const selectEl = document.getElementById('subjectSelect');
-                    
-                    selectEl.innerHTML = uniqueRooms.map(room => `
-                        <option value="ALL|${room}">วิชาทั่วไป - ห้อง ${room}</option>
-                    `).join('');
+                if (!error && scheduleList && scheduleList.length > 0) {
+                const selectEl = document.getElementById('subjectSelect');
+            
+                selectEl.innerHTML = scheduleList.map(s => {
+                    const courseName = s.courses?.course_name || s.course_code || 'วิชาทั่วไป';
+                    const room = s.class_name;
+                    return `<option value="${s.course_code}|${room}">${courseName} - ห้อง ${room}</option>`;
+                }).join('');
+            
+                if (scheduleList.length > 0) {
+                    // ทำงานต่อกับห้องแรกในลิสต์ (ถ้ามีฟังก์ชันดึงรายชื่อนักเรียนต่อ)
+                    const firstCourse = scheduleList[0];
+                    // loadStudents(firstCourse.class_name);
+                }
+            }
 
                     if (uniqueRooms.length > 0) {
                         const firstRoom = uniqueRooms[0];
