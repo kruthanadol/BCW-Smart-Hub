@@ -401,34 +401,41 @@
 
         // 🟢 [แก้ไขสมบูรณ์]: โหลดรายวิชาและห้องเรียนจากตาราง schedules และ courses
                     async function loadClassroomOptions() {
-            try {
-                // ดึง teacher_id จากผู้ใช้ที่กำลังล็อกอิน
-                const teacherId = CURRENT_TEACHER?.teacher_id || CURRENT_TEACHER?.id;
-                
-                // Query ตาราง schedules JOIN กับ courses
-                let query = db.from('schedules').select(`
-                    course_code,
-                    class_name,
-                    teacher_id,
-                    courses:course_code ( course_name )
-                `);
-
-                // Filter ตามครูผู้สอน
-                if (teacherId) {
-                    query = query.eq('teacher_id', teacherId);
+                    try {
+                        const teacherId = CURRENT_TEACHER?.teacher_id || CURRENT_TEACHER?.id;
+                        
+                        let query = db.from('schedules').select(`
+                            course_code,
+                            class_name,
+                            teacher_id,
+                            courses:course_code ( course_name )
+                        `);
+        
+                        if (teacherId) {
+                            query = query.eq('teacher_id', teacherId);
+                        }
+        
+                        const { data: scheduleList, error } = await query;
+                        const selectEl = document.getElementById('subjectSelect');
+                        selectEl.innerHTML = '';
+        
+                        if (!error && scheduleList && scheduleList.length > 0) {
+                            selectEl.innerHTML = scheduleList.map(s => {
+                                const courseName = s.courses?.course_name || s.course_code;
+                                const room = s.class_name;
+                                return `<option value="${s.course_code}|${room}">${courseName} (${s.course_code}) - ห้อง ${room}</option>`;
+                            }).join('');
+        
+                            const firstRoom = scheduleList[0].class_name;
+                            document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
+                        } else {
+                            selectEl.innerHTML = '<option value="">⚠️ ไม่พบข้อมูลตารางสอนของคุณครู</option>';
+                            document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
+                        }
+                    } catch (err) {
+                        console.error('Load Classrooms Error:', err);
+                    }
                 }
-
-                const { data: scheduleList, error } = await query;
-                const selectEl = document.getElementById('subjectSelect');
-                selectEl.innerHTML = '';
-
-                if (!error && scheduleList && scheduleList.length > 0) {
-                    selectEl.innerHTML = scheduleList.map(s => {
-                        const courseName = s.courses?.course_name || s.course_code;
-                        const room = s.class_name;
-                        return `<option value="${s.course_code}|${room}">${courseName} (${s.course_code}) - ห้อง ${room}</option>`;
-                    }).join('');
-
                     const firstRoom = scheduleList[0].class_name;
                     document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
                 } else {
