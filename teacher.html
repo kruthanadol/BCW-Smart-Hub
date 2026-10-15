@@ -313,7 +313,7 @@
         </div>
     </div>
 
-    <!-- Script Integration -->
+   <!-- Script Integration -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -346,7 +346,8 @@
                     if (teacherData) {
                         CURRENT_TEACHER = {
                             id: teacherData.id,
-                            name: teacherData.full_name || 'ครูสมศรี วิชาการ',
+                            teacher_id: teacherData.teacher_id,
+                            name: teacherData.full_name || 'ครูผู้สอน',
                             avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png'
                         };
                     }
@@ -356,11 +357,12 @@
             }
 
             if (!CURRENT_TEACHER) {
-                CURRENT_TEACHER = { id: '11111111-1111-1111-1111-111111111111', name: 'ครูสมศรี วิชาการ', avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' };
+                CURRENT_TEACHER = { id: '11111111-1111-1111-1111-111111111111', teacher_id: '0101', name: 'ครูผู้สอน', avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' };
             }
 
-            document.getElementById('teacherName').innerText = CURRENT_TEACHER.name || CURRENT_TEACHER.full_name;
-            document.getElementById('headerTeacherName').innerText = `👤 ครูผู้สอน: ${CURRENT_TEACHER.name || CURRENT_TEACHER.full_name}`;
+            const teacherDisplayName = CURRENT_TEACHER.name || CURRENT_TEACHER.full_name || 'ครูผู้สอน';
+            document.getElementById('teacherName').innerText = teacherDisplayName;
+            document.getElementById('headerTeacherName').innerText = `👤 ครูผู้สอน: ${teacherDisplayName}`;
             
             const teacherImg = CURRENT_TEACHER.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
             document.getElementById('teacherAvatar').src = teacherImg;
@@ -371,7 +373,7 @@
             await renderStudents();
         }
 
-        // [เพิ่มใหม่]: โหลดสรุปสถานะไฟจราจรประตูโรงเรียนยามเช้า
+        // โหลดสรุปสถานะไฟจราจรประตูโรงเรียนยามเช้า
         async function loadTrafficSummary() {
             try {
                 const today = new Date().toISOString().split('T')[0];
@@ -397,32 +399,47 @@
             }
         }
 
+        // 🟢 [แก้ไขสมบูรณ์]: โหลดรายวิชาและห้องเรียนจากตาราง schedules และ courses
         async function loadClassroomOptions() {
             try {
-                const { data: classrooms, error } = await db
-                    .from('students')
-                    .select('classroom')
-                    .not('classroom', 'is', null);
+                const teacherId = CURRENT_TEACHER?.teacher_id || CURRENT_TEACHER?.id;
+                
+                // Query ตาราง schedules พร้อม JOIN ตาราง courses
+                let query = db.from('schedules').select(`
+                    course_code,
+                    class_name,
+                    courses:course_code ( course_name )
+                `);
+
+                if (teacherId) {
+                    query = query.eq('teacher_id', teacherId);
+                }
+
+                const { data: scheduleList, error } = await query;
+
+                const selectEl = document.getElementById('subjectSelect');
+                selectEl.innerHTML = '';
 
                 if (!error && scheduleList && scheduleList.length > 0) {
-                const selectEl = document.getElementById('subjectSelect');
-            
-                selectEl.innerHTML = scheduleList.map(s => {
-                    const courseName = s.courses?.course_name || s.course_code || 'วิชาทั่วไป';
-                    const room = s.class_name;
-                    return `<option value="${s.course_code}|${room}">${courseName} - ห้อง ${room}</option>`;
-                }).join('');
-            
-                if (scheduleList.length > 0) {
-                    // ทำงานต่อกับห้องแรกในลิสต์ (ถ้ามีฟังก์ชันดึงรายชื่อนักเรียนต่อ)
-                    const firstCourse = scheduleList[0];
-                    // loadStudents(firstCourse.class_name);
-                }
-            }
+                    selectEl.innerHTML = scheduleList.map(s => {
+                        const courseName = s.courses?.course_name || s.course_code || 'วิชาทั่วไป';
+                        const room = s.class_name;
+                        return `<option value="${s.course_code}|${room}">${courseName} (${s.course_code}) - ห้อง ${room}</option>`;
+                    }).join('');
 
-                    if (uniqueRooms.length > 0) {
-                        const firstRoom = uniqueRooms[0];
-                        document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
+                    const firstRoom = scheduleList[0].class_name;
+                    document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
+                } else {
+                    // หากไม่พบตารางสอน ให้ดึงห้องเรียนจากตาราง students เป็น fallback
+                    const { data: classrooms } = await db.from('students').select('classroom').not('classroom', 'is', null);
+                    if (classrooms && classrooms.length > 0) {
+                        const uniqueRooms = [...new Set(classrooms.map(c => c.classroom))];
+                        selectEl.innerHTML = uniqueRooms.map(room => 
+                            `<option value="ALL|${room}">วิชาทั่วไป - ห้อง ${room}</option>`
+                        ).join('');
+                        document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${uniqueRooms[0]}`;
+                    } else {
+                        selectEl.innerHTML = '<option value="ALL|ม.1/1">วิชาทั่วไป - ห้อง ม.1/1</option>';
                     }
                 }
             } catch (err) {
@@ -528,6 +545,7 @@
             `;
         }
 
+        // 🟢 [แก้ไขสมบูรณ์]: ดึงเลขที่นักเรียนรองรับทุกชื่อคอลัมน์ (no, student_no, number_no, number)
         async function renderStudents() {
             const tbody = document.getElementById('studentList');
             if (!tbody) return;
@@ -541,8 +559,7 @@
                 const { data, error } = await db
                     .from('students')
                     .select('*')
-                    .eq('classroom', targetClass)
-                    .order('number_no', { ascending: true });
+                    .eq('classroom', targetClass);
                     
                 if (!error && data) studentsData = data;
             } catch (err) {
@@ -556,14 +573,24 @@
                 return;
             }
 
+            // เรียงลำดับนักเรียนตามเลขที่
+            studentsData.sort((a, b) => {
+                const noA = parseInt(a.no || a.student_no || a.number_no || a.number || 999);
+                const noB = parseInt(b.no || b.student_no || b.number_no || b.number || 999);
+                return noA - noB;
+            });
+
             let htmlRows = '';
             for (const s of studentsData) {
                 const alertData = await fetchStudentAlerts(s.student_id);
                 const phone = alertData.phone || s.parent_phone || s.phone || '0800000000';
+                
+                // 🟢 ดึงเลขที่ให้รองรับทุกชื่อคอลัมน์ใน Supabase
+                const studentNo = s.no ?? s.student_no ?? s.number_no ?? s.number ?? '-';
 
                 htmlRows += `
                     <tr class="hover:bg-slate-50/80 transition border-b border-slate-100">
-                        <td class="p-3 text-center font-bold text-slate-500">${s.number_no || '-'}</td>
+                        <td class="p-3 text-center font-bold text-slate-500">${studentNo}</td>
                         <td class="p-3">
                             ${renderStudentCellRightAvatar(s)}
                             <div class="mt-1 flex flex-wrap gap-1">${alertData.badges}</div>
@@ -591,7 +618,6 @@
                                     <span class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 peer-checked:bg-purple-600 peer-checked:text-white transition block">หนีเรียน</span>
                                 </label>
                             </div>
-                            <!-- [เพิ่มใหม่]: ปุ่ม Manual Override ช่วยลงลาให้กรณีตา/ยายโทรไลน์บอก -->
                             <div class="mt-2 text-center">
                                 <button type="button" onclick="manualOverrideLeave('${s.student_id}')" class="text-[10px] bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 px-2 py-0.5 rounded-full font-bold transition">
                                     <i class="fa-solid fa-phone-volume mr-1"></i> ปรับเป็นลา (ผู้ปกครองแจ้งทางโทรศัพท์/ไลน์)
@@ -601,7 +627,6 @@
                         <td class="p-3 space-y-1.5">
                             <div class="flex items-center gap-2">
                                 <input type="text" id="note_${s.student_id}" value="${alertData.noteText}" placeholder="ระบุหมายเหตุ..." class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none">
-                                <!-- [เพิ่มใหม่]: ปุ่ม Click-to-Call โทรหาผู้ปกครองด่วน -->
                                 <a href="tel:${phone}" class="bg-emerald-600 hover:bg-emerald-700 text-white p-2 rounded-xl text-xs font-bold shrink-0 shadow-sm transition" title="โทรหาผู้ปกครอง">
                                     <i class="fa-solid fa-phone"></i>
                                 </a>
@@ -614,7 +639,6 @@
             tbody.innerHTML = htmlRows;
         }
 
-        // [เพิ่มใหม่]: ฟังก์ชัน Manual Override สลับสถานะเป็น "ลา" ให้ทันที
         function manualOverrideLeave(studentId) {
             const leaveRadio = document.querySelector(`input[name="status_${studentId}"][value="leave"]`);
             if (leaveRadio) leaveRadio.checked = true;
@@ -648,7 +672,6 @@
                     const sName = `${s.prefix || ''}${s.first_name || s.firstname || ''} ${s.last_name || s.lastname || ''}`.trim();
                     const noteText = document.getElementById(`note_${s.student_id}`)?.value || '';
 
-                    // แปลงสถานะสำหรับการ์ดไฟจราจร
                     let trafficStatus = 'GREEN';
                     if (statusVal === 'absent' || statusVal === 'truant') trafficStatus = 'RED';
                     else if (statusVal === 'leave') trafficStatus = 'BLUE';
@@ -683,7 +706,6 @@
             }
         }
 
-        // ฟังก์ชันสั่งการบ้าน (คงเดิม)
         async function saveHomework(event) {
             if (event) event.preventDefault();
             
@@ -700,7 +722,7 @@
 
             const subjectSelect = document.getElementById('subjectSelect');
             let targetClass = 'ม.5/1';
-            let subjectCode = 'ค32201';
+            let subjectCode = 'ท31101';
 
             if (subjectSelect && subjectSelect.value) {
                 const parts = subjectSelect.value.split('|');
@@ -780,9 +802,11 @@
                     }
 
                     const sName = `${s.prefix || ''}${s.first_name || s.firstname || ''} ${s.last_name || s.lastname || ''}`.trim();
+                    const studentNo = s.no ?? s.student_no ?? s.number_no ?? s.number ?? (idx + 1);
+
                     studentRows += `
                         <tr>
-                            <td style="border:1px solid #cbd5e1; text-align:center; padding:3px; font-size:10px;">${s.number_no || (idx + 1)}</td>
+                            <td style="border:1px solid #cbd5e1; text-align:center; padding:3px; font-size:10px;">${studentNo}</td>
                             <td style="border:1px solid #cbd5e1; text-align:center; padding:3px; font-size:10px;">${s.student_id || '-'}</td>
                             <td style="border:1px solid #cbd5e1; padding:3px 6px; font-size:10px; font-weight:600; white-space:nowrap;">${sName}</td>
                             ${daysCells}
@@ -844,9 +868,10 @@
                 const sel = document.querySelector(`input[name="status_${s.student_id}"]:checked`);
                 const currentStatus = sel ? sel.value : 'present';
                 const noteElem = document.getElementById(`note_${s.student_id}`);
+                const studentNo = s.no ?? s.student_no ?? s.number_no ?? s.number ?? (idx + 1);
 
                 return {
-                    'เลขที่': s.number_no || (idx + 1),
+                    'เลขที่': studentNo,
                     'รหัสนักเรียน': s.student_id || '-',
                     'ชื่อ-นามสกุล': `${s.prefix || ''}${s.first_name || s.firstname || ''} ${s.last_name || s.lastname || ''}`.trim(),
                     'ห้องเรียน': targetClass,
