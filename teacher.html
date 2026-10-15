@@ -439,23 +439,16 @@
                 console.error('Load Classrooms Error:', err);
             }
         }
-
+        } 
+            else {
+                    selectEl.innerHTML = '<option value="">⚠️ ไม่พบข้อมูลตารางสอนของคุณครู</option>';
+                    document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
+                }
                     const firstRoom = scheduleList[0].class_name;
                     document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
-                } else {
-                    // หากไม่พบตารางสอน ให้ดึงห้องเรียนจากตาราง students เป็น fallback
-                    const { data: classrooms } = await db.from('students').select('classroom').not('classroom', 'is', null);
-                    if (classrooms && classrooms.length > 0) {
-                        const uniqueRooms = [...new Set(classrooms.map(c => c.classroom))];
-                        selectEl.innerHTML = uniqueRooms.map(room => 
-                            `<option value="ALL|${room}">วิชาทั่วไป - ห้อง ${room}</option>`
-                        ).join('');
-                        document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${uniqueRooms[0]}`;
-                    } else {
-                        selectEl.innerHTML = '<option value="ALL|ม.1/1">วิชาทั่วไป - ห้อง ม.1/1</option>';
-                    }
-                }
-            } catch (err) {
+                } 
+        
+             catch (err) {
                 console.error('Load Classrooms Error:', err);
             }
         }
