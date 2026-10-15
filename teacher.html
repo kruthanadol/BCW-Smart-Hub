@@ -33,7 +33,6 @@
                 <a href="landing.html" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-white transition text-xs font-medium flex items-center gap-1.5 border border-white/10 shadow-sm">
                     <span>←</span> หน้าหลัก
                 </a>
-                <!-- [เพิ่มใหม่]: ปุ่มทางลัดไปหน้ารายงานภาพรวม reports.html -->
                 <a href="reports.html" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 px-3 py-1.5 rounded-xl transition text-xs font-bold border border-amber-400/30 flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-pie"></i> หน้ารายงานภาพรวม
                 </a>
@@ -68,7 +67,7 @@
             <span id="toastMessage" class="text-xs font-bold"></span>
         </div>
 
-        <!-- [เพิ่มใหม่]: โซนสรุปสถานะการสแกนหน้าประตูยามเช้า (Smart Gate Traffic Summary) -->
+        <!-- โซนสรุปสถานะการสแกนหน้าประตูยามเช้า -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-lg font-bold"><i class="fa-solid fa-school"></i></div>
@@ -133,7 +132,7 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center flex-wrap gap-2">
-                <h3 class="font-bold text-slate-800 text-sm md:text-base" id="tableHeaderTitle">รายชื่อนักเรียนประจำห้อง ม.5/1</h3>
+                <h3 class="font-bold text-slate-800 text-sm md:text-base" id="tableHeaderTitle">รายชื่อนักเรียนประจำห้อง</h3>
                 <div class="flex items-center gap-3 text-xs flex-wrap">
                     <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 bg-emerald-500 rounded-full inline-block"></span> มา</span>
                     <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 bg-amber-500 rounded-full inline-block"></span> สาย</span>
@@ -174,7 +173,6 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <!-- 1. หัวข้อ/รายละเอียดการบ้าน -->
                 <div class="md:col-span-7">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">
                         หัวข้อภาระงาน / รายละเอียดการบ้าน:
@@ -182,12 +180,11 @@
                     <input 
                         type="text" 
                         id="homeworkTitleInput" 
-                        placeholder="เช่น ทำแบบฝึกหัดที่ 1 เรื่องการบวกเลข หน้า 12" 
+                        placeholder="เช่น ทำแบบฝึกหัดที่ 1 หน้า 12" 
                         class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-600"
                     >
                 </div>
 
-                <!-- 2. วันที่กำหนดส่ง -->
                 <div class="md:col-span-3">
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">
                         📅 กำหนดส่งงาน (Due Date):
@@ -199,7 +196,6 @@
                     >
                 </div>
 
-                <!-- 3. ปุ่มสั่งการบ้าน -->
                 <div class="md:col-span-2">
                     <button 
                         type="button" 
@@ -313,7 +309,7 @@
         </div>
     </div>
 
-   <!-- Script Integration -->
+    <!-- Script Integration -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -373,7 +369,6 @@
             await renderStudents();
         }
 
-        // โหลดสรุปสถานะไฟจราจรประตูโรงเรียนยามเช้า
         async function loadTrafficSummary() {
             try {
                 const today = new Date().toISOString().split('T')[0];
@@ -399,43 +394,32 @@
             }
         }
 
-        // 🟢 [แก้ไขสมบูรณ์]: โหลดรายวิชาและห้องเรียนจากตาราง schedules และ courses
-                    async function loadClassroomOptions() {
-                    try {
-                        const teacherId = CURRENT_TEACHER?.teacher_id || CURRENT_TEACHER?.id;
-                        
-                        let query = db.from('schedules').select(`
-                            course_code,
-                            class_name,
-                            teacher_id,
-                            courses:course_code ( course_name )
-                        `);
-        
-                        if (teacherId) {
-                            query = query.eq('teacher_id', teacherId);
-                        }
-        
-                        const { data: scheduleList, error } = await query;
-                        const selectEl = document.getElementById('subjectSelect');
-                        selectEl.innerHTML = '';
-        
-                        if (!error && scheduleList && scheduleList.length > 0) {
-                            selectEl.innerHTML = scheduleList.map(s => {
-                                const courseName = s.courses?.course_name || s.course_code;
-                                const room = s.class_name;
-                                return `<option value="${s.course_code}|${room}">${courseName} (${s.course_code}) - ห้อง ${room}</option>`;
-                            }).join('');
-        
-                            const firstRoom = scheduleList[0].class_name;
-                            document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
-                        } else {
-                            selectEl.innerHTML = '<option value="">⚠️ ไม่พบข้อมูลตารางสอนของคุณครู</option>';
-                            document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
-                        }
-                    } catch (err) {
-                        console.error('Load Classrooms Error:', err);
-                    }
+        async function loadClassroomOptions() {
+            try {
+                const teacherId = CURRENT_TEACHER?.teacher_id || CURRENT_TEACHER?.id;
+                
+                let query = db.from('schedules').select(`
+                    course_code,
+                    class_name,
+                    teacher_id,
+                    courses:course_code ( course_name )
+                `);
+
+                if (teacherId) {
+                    query = query.eq('teacher_id', teacherId);
                 }
+
+                const { data: scheduleList, error } = await query;
+                const selectEl = document.getElementById('subjectSelect');
+                selectEl.innerHTML = '';
+
+                if (!error && scheduleList && scheduleList.length > 0) {
+                    selectEl.innerHTML = scheduleList.map(s => {
+                        const courseName = s.courses?.course_name || s.course_code;
+                        const room = s.class_name;
+                        return `<option value="${s.course_code}|${room}">${courseName} (${s.course_code}) - ห้อง ${room}</option>`;
+                    }).join('');
+
                     const firstRoom = scheduleList[0].class_name;
                     document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
                 } else {
@@ -443,19 +427,6 @@
                     document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
                 }
             } catch (err) {
-                console.error('Load Classrooms Error:', err);
-            }
-        }
-        } 
-            else {
-                    selectEl.innerHTML = '<option value="">⚠️ ไม่พบข้อมูลตารางสอนของคุณครู</option>';
-                    document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
-                }
-                    const firstRoom = scheduleList[0].class_name;
-                    document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
-                } 
-        
-             catch (err) {
                 console.error('Load Classrooms Error:', err);
             }
         }
@@ -487,7 +458,10 @@
         function closePrintModal() { document.getElementById('printableReportModal')?.classList.add('hidden'); }
 
         function changeSubject() {
-            const selected = document.getElementById('subjectSelect').value.split('|');
+            const selectedVal = document.getElementById('subjectSelect').value;
+            if (!selectedVal) return;
+            
+            const selected = selectedVal.split('|');
             const classRoom = selected[1] || 'ม.1/1';
             document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${classRoom}`;
             renderStudents();
@@ -558,12 +532,17 @@
             `;
         }
 
-        // 🟢 [แก้ไขสมบูรณ์]: ดึงเลขที่นักเรียนรองรับทุกชื่อคอลัมน์ (no, student_no, number_no, number)
         async function renderStudents() {
             const tbody = document.getElementById('studentList');
             if (!tbody) return;
 
-            const selected = document.getElementById('subjectSelect').value.split('|');
+            const selectedVal = document.getElementById('subjectSelect').value;
+            if (!selectedVal) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400 font-medium text-xs">กรุณาเลือกตารางสอน/ห้องเรียน</td></tr>';
+                return;
+            }
+
+            const selected = selectedVal.split('|');
             const targetClass = selected[1] || 'ม.1/1';
 
             let studentsData = [];
@@ -586,7 +565,6 @@
                 return;
             }
 
-            // เรียงลำดับนักเรียนตามเลขที่
             studentsData.sort((a, b) => {
                 const noA = parseInt(a.no || a.student_no || a.number_no || a.number || 999);
                 const noB = parseInt(b.no || b.student_no || b.number_no || b.number || 999);
@@ -597,8 +575,6 @@
             for (const s of studentsData) {
                 const alertData = await fetchStudentAlerts(s.student_id);
                 const phone = alertData.phone || s.parent_phone || s.phone || '0800000000';
-                
-                // 🟢 ดึงเลขที่ให้รองรับทุกชื่อคอลัมน์ใน Supabase
                 const studentNo = s.no ?? s.student_no ?? s.number_no ?? s.number ?? '-';
 
                 htmlRows += `
@@ -675,7 +651,8 @@
             }
 
             const today = new Date().toISOString().split('T')[0];
-            const selected = document.getElementById('subjectSelect').value.split('|');
+            const selectedVal = document.getElementById('subjectSelect').value;
+            const selected = selectedVal ? selectedVal.split('|') : [];
             const subjectCode = selected[0] || 'GEN101';
 
             try {
@@ -734,8 +711,8 @@
             }
 
             const subjectSelect = document.getElementById('subjectSelect');
-            let targetClass = 'ม.5/1';
-            let subjectCode = 'ท31101';
+            let targetClass = 'ม.1/1';
+            let subjectCode = 'ท21101';
 
             if (subjectSelect && subjectSelect.value) {
                 const parts = subjectSelect.value.split('|');
@@ -869,8 +846,9 @@
         }
 
         async function exportToExcelPnP(reportType, month, term, subject) {
-            const selected = document.getElementById('subjectSelect').value.split('|');
-            const targetClass = selected[1];
+            const selectedVal = document.getElementById('subjectSelect').value;
+            const selected = selectedVal ? selectedVal.split('|') : [];
+            const targetClass = selected[1] || 'ม.1/1';
 
             if (typeof XLSX === 'undefined') {
                 showToast('⚠️ ไม่สามารถโหลด XLSX Library ได้', 'warning');
