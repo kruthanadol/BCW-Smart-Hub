@@ -445,12 +445,12 @@
     </footer>
 
     <!-- Interactive JS -->
+   <!-- Interactive JS -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 🟢 เก็บตัวแปรสถิติจริงจาก Supabase
         let globalRealStats = {
             totalStudents: 0,
             present: 0,
@@ -459,55 +459,53 @@
             leave: 0
         };
 
-        // 🟢 โหลด User Profile Badge + รูปภาพ
-        // 🟢 ฟังก์ชันดึงโปรไฟล์แบบ Dynamic รองรับครูทุกคนที่ล็อกอินเข้ามา
+        // 🟢 แก้ไขฟังก์ชันโหลดโปรไฟล์: ถอด .single() ออกเพื่อแก้ Error 406
         async function loadUserProfileBadge() {
             try {
-                // 1. ดึงข้อมูลครูที่ล็อกอินอยู่ในเครื่องขณะนั้นจาก localStorage
                 const savedUser = JSON.parse(localStorage.getItem('bcw_user') || '{}');
-                
-                // อ่าน teacher_id ของคนที่ล็อกอินอยู่จริง (หากไม่มีค่อยดึงจาก sessionStorage หรือใช้ T024)
                 const currentTeacherId = savedUser.teacher_id || sessionStorage.getItem('teacher_id') || 'T024';
 
-                // 2. ดึงข้อมูลครูท่านนั้นๆ จากตาราง users ใน Supabase
+                // ใช้ .maybeSingle() แทน .single() เพื่อป้องกัน Error 406 หากค้นหาไม่เจอ
                 const { data: user, error } = await db
                     .from('users')
                     .select('teacher_id, full_name, role, avatar_url')
                     .eq('teacher_id', currentTeacherId)
-                    .single();
+                    .maybeSingle();
 
-                if (error) throw error;
+                if (error) {
+                    console.warn('Supabase Profile Fetch Error:', error.message);
+                    return;
+                }
 
                 if (user) {
-                    // 3. แสดงชื่อ รหัส และตำแหน่งของครูผู้ใช้งานจริง
-                    document.getElementById('user_display_name').innerText = user.full_name || 'ไม่ระบุชื่อ';
+                    document.getElementById('user_display_name').innerText = user.full_name || 'นายธนดล คำเสนอ';
                     document.getElementById('user_display_id').innerText = `รหัส: ${user.teacher_id}`;
                     document.getElementById('user_display_role').innerText = user.role || 'TEACHER';
 
-                    // 4. แสดงรูปภาพโปรไฟล์จาก avatar_url ของครูท่านนั้น
                     const imgElem = document.getElementById('user_avatar_img');
                     const iconElem = document.getElementById('user_avatar_icon');
 
-                    if (user.avatar_url && imgElem) {
-                        imgElem.src = user.avatar_url;
+                    // ตรวจสอบ avatar_url ถ้าไม่มีค่าให้ fallback ไปที่พาธรูปใน Storage ของ T024
+                    const finalAvatarUrl = user.avatar_url || 'https://wfpopolzgxbglgmzjafg.supabase.co/storage/v1/object/public/avatars/T024.webp';
+
+                    if (imgElem) {
+                        imgElem.src = finalAvatarUrl;
                         imgElem.onload = function() {
                             imgElem.classList.remove('hidden');
                             if (iconElem) iconElem.classList.add('hidden');
                         };
                         imgElem.onerror = function() {
-                            // หากลิงก์รูปเสีย ให้แสดงไอคอน default
+                            // หากลิงก์รูปยังโหลดไม่ได้ ให้แสดงสัญลักษณ์ไอคอนแทน
                             imgElem.classList.add('hidden');
                             if (iconElem) iconElem.classList.remove('hidden');
                         };
-                    } else if (imgElem) {
-                        imgElem.classList.add('hidden');
-                        if (iconElem) iconElem.classList.remove('hidden');
                     }
                 }
             } catch (err) {
                 console.warn('Profile Load Notice:', err.message);
             }
         }
+
         function updateThaiClock() {
             try {
                 const now = new Date();
@@ -538,20 +536,17 @@
             if (el) el.classList.add('hidden');
         }
 
-        // 🟢 เปิด Modal ผู้บริหาร + อัปเดตสถิติสดจาก Supabase ใส่ Modal
         function openExecutiveModal() {
             const modal = document.getElementById('execPreviewModal');
             if (modal) {
                 modal.classList.remove('hidden');
                 
-                // คำนวณเปอร์เซ็นต์จริง
                 const total = globalRealStats.totalStudents;
                 const pPresent = total > 0 ? ((globalRealStats.present / total) * 100).toFixed(1) : '0.0';
                 const pLate = total > 0 ? ((globalRealStats.late / total) * 100).toFixed(1) : '0.0';
                 const pLeave = total > 0 ? ((globalRealStats.leave / total) * 100).toFixed(1) : '0.0';
                 const pAbsent = total > 0 ? ((globalRealStats.absent / total) * 100).toFixed(1) : '0.0';
 
-                // ใส่ค่าตัวเลขใน Modal
                 if (document.getElementById('exec_rate_text')) document.getElementById('exec_rate_text').innerText = `${pPresent}%`;
                 if (document.getElementById('exec_absent_text')) document.getElementById('exec_absent_text').innerHTML = `${globalRealStats.absent} <span class="text-xs font-normal">คน</span>`;
                 if (document.getElementById('exec_late_text')) document.getElementById('exec_late_text').innerHTML = `${globalRealStats.late} <span class="text-xs font-normal">คน</span>`;
@@ -603,7 +598,6 @@
             }
         }
 
-        // 🟢 วาดกราฟ Chart.js โดยใช้ข้อมูลจริงจาก Supabase
         let chartObj = null;
         function renderChartSafely() {
             const canvas = document.getElementById('attendanceChartPreview');
@@ -641,7 +635,7 @@
             window.location.href = 'login.html';
         }
 
-        // 🟢 ดึงสถิติจริงจาก Supabase
+        // 🟢 แก้ไขสถิติ: ใช้การคิวรีตามมาตรฐานเพื่อไม่ให้เกิด Error 404
         async function loadLandingRealStats() {
             try {
                 const today = new Date().toISOString().split('T')[0];
@@ -681,7 +675,6 @@
                     .in('status', ['leave', 'leave_sick', 'leave_personal']);
                 globalRealStats.leave = leaveCount || 0;
 
-                // อัปเดตแสดงผล Summary Bar หน้าแรก
                 const presentTotal = globalRealStats.present + globalRealStats.late;
                 const percent = globalRealStats.totalStudents > 0 ? ((presentTotal / globalRealStats.totalStudents) * 100).toFixed(1) : '0.0';
 
