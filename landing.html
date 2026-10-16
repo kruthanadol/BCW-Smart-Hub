@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>ศูนย์รวมระบบงาน - โรงเรียนบัวเชดวิทยา (BCW Smart Hub)</title>
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <!-- Google Fonts: Kanit & Sarabun -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="[https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap)" rel="stylesheet">
     <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
     <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="[https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2)"></script>
     
     <script>
         tailwind.config = {
@@ -65,14 +65,14 @@
         </div>
     </div>
 
-    <!-- Main Branding Header (พร้อม User Profile Badge ตรงกลาง) -->
+    <!-- Main Branding Header (พร้อม User Profile Badge และรูปภาพโปรไฟล์) -->
     <header class="bg-white border-b-4 border-emerald-600 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4">
             
             <!-- ฝั่งซ้าย: โลโก้และชื่อโรงเรียน -->
             <div class="flex items-center gap-4 w-full lg:w-auto justify-center lg:justify-start">
                 <div class="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-2xl flex items-center justify-center p-1.5 shadow-md border-2 border-emerald-500 shrink-0">
-                    <img src="logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="w-full h-full object-contain" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
+                    <img src="logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="w-full h-full object-contain" onerror="this.src='[https://via.placeholder.com/60?text=BCW](https://via.placeholder.com/60?text=BCW)'">
                 </div>
                 <div>
                     <h1 class="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight flex flex-wrap items-center gap-2">
@@ -87,16 +87,18 @@
                 </div>
             </div>
 
-            <!-- ตรงกลาง: User Profile Badge (ดึงข้อมูลจาก Supabase) -->
+            <!-- ตรงกลาง: User Profile Badge (รองรับการแสดงรูปโปรไฟล์จาก Supabase) -->
             <div class="w-full lg:w-auto flex justify-center my-1 lg:my-0">
                 <div class="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300/80 px-4 py-2 rounded-2xl shadow-sm">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white font-extrabold flex items-center justify-center text-lg shadow shrink-0">
-                        👤
+                    <!-- รูปโปรไฟล์ Avatar -->
+                    <div class="w-11 h-11 rounded-xl bg-emerald-600 text-white font-extrabold flex items-center justify-center text-lg shadow shrink-0 overflow-hidden border-2 border-emerald-400">
+                        <img id="user_avatar_img" src="" alt="Profile" class="w-full h-full object-cover hidden">
+                        <span id="user_avatar_icon">👤</span>
                     </div>
                     <div class="text-left">
                         <div class="flex items-center gap-2">
                             <span id="user_display_name" class="font-black text-slate-800 text-sm sm:text-base leading-tight">
-                                กำลังโหลดข้อมูล...
+                                กำลังโหลด...
                             </span>
                             <span id="user_display_role" class="bg-emerald-700 text-amber-200 text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm">
                                 TEACHER
@@ -485,21 +487,20 @@
 
     <!-- Interactive JS -->
     <script>
-        const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+        const SUPABASE_URL = '[https://wfpopolzgxbglgmzjafg.supabase.co](https://wfpopolzgxbglgmzjafg.supabase.co)';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 🟢 ฟังก์ชันดึงข้อมูลผู้ใช้จาก Supabase แสดงบน Badge
+        // 🟢 ฟังก์ชันดึงข้อมูลผู้ใช้ + รูปโปรไฟล์จาก Supabase แสดงบน Badge
         async function loadUserProfileBadge() {
             try {
-                // ดึง teacher_id จาก session/localStorage หรือใช้ T024 เป็นค่าเริ่มต้น
                 const savedUser = JSON.parse(localStorage.getItem('bcw_user') || '{}');
                 const targetTeacherId = savedUser.teacher_id || 'T024';
 
-                // ดึงข้อมูลจากตาราง users ใน Supabase
+                // ดึงข้อมูลจากตาราง users รวมถึง avatar_url
                 const { data, error } = await db
                     .from('users')
-                    .select('teacher_id, full_name, role')
+                    .select('teacher_id, full_name, role, avatar_url')
                     .eq('teacher_id', targetTeacherId)
                     .single();
 
@@ -509,6 +510,16 @@
                     document.getElementById('user_display_name').innerText = data.full_name || 'นายธนดล คำเสนอ';
                     document.getElementById('user_display_id').innerText = `รหัส: ${data.teacher_id}`;
                     document.getElementById('user_display_role').innerText = data.role || 'TEACHER';
+
+                    // สลับการแสดงผลรูปภาพโปรไฟล์
+                    const imgElem = document.getElementById('user_avatar_img');
+                    const iconElem = document.getElementById('user_avatar_icon');
+
+                    if (data.avatar_url && imgElem) {
+                        imgElem.src = data.avatar_url;
+                        imgElem.classList.remove('hidden');
+                        if (iconElem) iconElem.classList.add('hidden');
+                    }
                 }
             } catch (err) {
                 console.warn('ดึงข้อมูลโปรไฟล์จาก Supabase ใช้ค่าเริ่มต้น:', err.message);
@@ -675,7 +686,7 @@
                 const { count: presentCount } = await db.from('attendance_records')
                     .select('*', { count: 'exact', head: true })
                     .eq('date', today)
-                    .in('status.eq.present,status.eq.late');
+                    .in('status', ['present', 'late']);
                     
                 const present = presentCount || 0;
                 const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
@@ -708,7 +719,7 @@
                 const { count: leaveCount } = await db.from('attendance_records')
                     .select('*', { count: 'exact', head: true })
                     .eq('date', today)
-                    .in('status.eq.leave,status.eq.leave_sick,status.eq.leave_personal');
+                    .in('status', ['leave', 'leave_sick', 'leave_personal']);
                 if (leaveCount !== null && document.getElementById('statLeaveLanding')) {
                     document.getElementById('statLeaveLanding').innerText = leaveCount;
                 }
@@ -720,41 +731,11 @@
 
         // 🟢 เรียกทำงานทันทีเมื่อเริ่มโหลดหน้า
         document.addEventListener('DOMContentLoaded', function() {
-            loadUserProfileBadge(); // ดึงข้อมูลผู้ใช้งานบน Badge
+            loadUserProfileBadge(); // ดึงข้อมูลโปรไฟล์ + รูปภาพ
             updateThaiClock();
             setInterval(updateThaiClock, 1000);
             loadLandingRealStats();
         });
-    </script>
-    <script>
-      // 🟢 สคริปต์อัปเดตชื่อโปรไฟล์และตารางสอนสำหรับ Teacher Portal
-      document.addEventListener('DOMContentLoaded', async function() {
-        try {
-          // 1. กำหนด ID ของครู (อ่านจาก localStorage หรือใช้ T024 ของครูธนดล)
-          const savedUser = JSON.parse(localStorage.getItem('bcw_user') || '{}');
-          const teacherId = savedUser.teacher_id || 'T024';
-    
-          // 2. ดึงข้อมูลครูจากตาราง users ใน Supabase
-          const { data: teacher } = await db
-            .from('users')
-            .select('full_name, teacher_id')
-            .eq('teacher_id', teacherId)
-            .single();
-    
-          if (teacher) {
-            // เปลี่ยนข้อความคำว่า "ครูผู้สอน: ครูผู้สอน" เป็นชื่อจริงของคุณครู
-            const badgeElem = document.querySelector('.bg-emerald-950, header, nav');
-            if (badgeElem) {
-              // ค้นหาตำแหน่งที่แสดงคำว่า ครูผู้สอน แล้วแทนที่
-              document.body.innerHTML = document.body.innerHTML
-                .replace(/ครูผู้สอน: ครูผู้สอน/g, `ครูผู้สอน: ${teacher.full_name}`)
-                .replace(/ครูผู้สอนประจำวิชา<br>ครูผู้สอน/g, `ครูผู้สอนประจำวิชา<br>${teacher.full_name}`);
-            }
-          }
-        } catch (err) {
-          console.warn('Profile sync error:', err);
-        }
-      });
     </script>
 </body>
 </html>
