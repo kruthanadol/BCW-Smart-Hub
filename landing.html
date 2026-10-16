@@ -65,11 +65,12 @@
         </div>
     </div>
 
-    <!-- Main Branding Header -->
+    <!-- Main Branding Header (พร้อม User Profile Badge ตรงกลาง) -->
     <header class="bg-white border-b-4 border-emerald-600 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4">
             
-            <div class="flex items-center gap-4 w-full sm:w-auto">
+            <!-- ฝั่งซ้าย: โลโก้และชื่อโรงเรียน -->
+            <div class="flex items-center gap-4 w-full lg:w-auto justify-center lg:justify-start">
                 <div class="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-2xl flex items-center justify-center p-1.5 shadow-md border-2 border-emerald-500 shrink-0">
                     <img src="logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="w-full h-full object-contain" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
                 </div>
@@ -86,7 +87,32 @@
                 </div>
             </div>
 
-            <div class="w-full sm:w-auto flex items-center justify-end">
+            <!-- ตรงกลาง: User Profile Badge (ดึงข้อมูลจาก Supabase) -->
+            <div class="w-full lg:w-auto flex justify-center my-1 lg:my-0">
+                <div class="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300/80 px-4 py-2 rounded-2xl shadow-sm">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white font-extrabold flex items-center justify-center text-lg shadow shrink-0">
+                        👤
+                    </div>
+                    <div class="text-left">
+                        <div class="flex items-center gap-2">
+                            <span id="user_display_name" class="font-black text-slate-800 text-sm sm:text-base leading-tight">
+                                กำลังโหลดข้อมูล...
+                            </span>
+                            <span id="user_display_role" class="bg-emerald-700 text-amber-200 text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm">
+                                TEACHER
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-500 font-bold flex items-center gap-2 mt-0.5">
+                            <span id="user_display_id">รหัส: T024</span>
+                            <span class="text-emerald-400">•</span>
+                            <span class="text-emerald-700 font-semibold">เข้าสู่ระบบแล้ว</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ฝั่งขวา: สถานะการเชื่อมต่อระบบ -->
+            <div class="w-full lg:w-auto flex items-center justify-center lg:justify-end">
                 <div class="inline-flex items-center gap-2.5 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-200 text-emerald-900 shadow-sm font-bold text-xs sm:text-sm">
                     <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>เชื่อมต่อระบบสารสนเทศ BCW เรียบร้อย</span>
@@ -463,6 +489,35 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // 🟢 ฟังก์ชันดึงข้อมูลผู้ใช้จาก Supabase แสดงบน Badge
+        async function loadUserProfileBadge() {
+            try {
+                // ดึง teacher_id จาก session/localStorage หรือใช้ T024 เป็นค่าเริ่มต้น
+                const savedUser = JSON.parse(localStorage.getItem('bcw_user') || '{}');
+                const targetTeacherId = savedUser.teacher_id || 'T024';
+
+                // ดึงข้อมูลจากตาราง users ใน Supabase
+                const { data, error } = await db
+                    .from('users')
+                    .select('teacher_id, full_name, role')
+                    .eq('teacher_id', targetTeacherId)
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    document.getElementById('user_display_name').innerText = data.full_name || 'นายธนดล คำเสนอ';
+                    document.getElementById('user_display_id').innerText = `รหัส: ${data.teacher_id}`;
+                    document.getElementById('user_display_role').innerText = data.role || 'TEACHER';
+                }
+            } catch (err) {
+                console.warn('ดึงข้อมูลโปรไฟล์จาก Supabase ใช้ค่าเริ่มต้น:', err.message);
+                document.getElementById('user_display_name').innerText = 'นายธนดล คำเสนอ';
+                document.getElementById('user_display_id').innerText = 'รหัส: T024';
+                document.getElementById('user_display_role').innerText = 'TEACHER';
+            }
+        }
+
         // 🟢 ฟังก์ชันอัปเดตวันที่และเวลาภาษาไทย
         function updateThaiClock() {
             try {
@@ -538,7 +593,6 @@
             }
 
             try {
-                // ดึงข้อมูลจากตาราง users ใน Supabase โดยใช้ตัวแปร db
                 const { data, error } = await db
                     .from('users')
                     .select('*')
@@ -663,8 +717,10 @@
                 console.warn('Load Landing Stats Warning:', err);
             }
         }
+
         // 🟢 เรียกทำงานทันทีเมื่อเริ่มโหลดหน้า
         document.addEventListener('DOMContentLoaded', function() {
+            loadUserProfileBadge(); // ดึงข้อมูลผู้ใช้งานบน Badge
             updateThaiClock();
             setInterval(updateThaiClock, 1000);
             loadLandingRealStats();
