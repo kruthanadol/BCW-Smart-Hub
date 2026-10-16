@@ -609,51 +609,60 @@
         async function loadLandingRealStats() {
             try {
                 const today = new Date().toISOString().split('T')[0];
-
+        
+                // 1. ดึงจำนวนนักเรียนทั้งหมด
                 const { count: studentCount } = await db.from('students').select('*', { count: 'exact', head: true });
                 const total = studentCount || 0;
                 
                 const totalElem = document.getElementById('statTotalStudentsLanding');
                 if (totalElem) totalElem.innerText = `${total.toLocaleString()} คน`;
-
+        
+                // 2. ดึงจำนวนคนมาเรียน (present หรือ late)
                 const { count: presentCount } = await db.from('attendance_records')
                     .select('*', { count: 'exact', head: true })
                     .eq('date', today)
-                    .or('status.eq.PRESENT,status.eq.lete
-                    ');
+                    .or('status.eq.present,status.eq.late');
                     
                 const present = presentCount || 0;
                 const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
-
+        
                 const countElem = document.getElementById('statPresentCountLanding');
                 if (countElem) countElem.innerText = present.toLocaleString();
-
+        
                 const percentElem = document.getElementById('statPresentPercentLanding');
                 if (percentElem) percentElem.innerText = `(${percent}%)`;
-
+        
+                // 3. ดึงจำนวนคนขาด (absent)
                 const { count: absentCount } = await db.from('attendance_records')
                     .select('*', { count: 'exact', head: true })
                     .eq('date', today)
                     .eq('status', 'absent');
-                if (absentCount !== null) document.getElementById('statAbsentLanding').innerText = absentCount;
-
+                if (absentCount !== null && document.getElementById('statAbsentLanding')) {
+                    document.getElementById('statAbsentLanding').innerText = absentCount;
+                }
+        
+                // 4. ดึงจำนวนคนสาย (late)
                 const { count: lateCount } = await db.from('attendance_records')
                     .select('*', { count: 'exact', head: true })
                     .eq('date', today)
                     .eq('status', 'late');
-                if (lateCount !== null) document.getElementById('statLateLanding').innerText = lateCount;
-
+                if (lateCount !== null && document.getElementById('statLateLanding')) {
+                    document.getElementById('statLateLanding').innerText = lateCount;
+                }
+        
+                // 5. ดึงจำนวนคนลา (leave)
                 const { count: leaveCount } = await db.from('attendance_records')
                     .select('*', { count: 'exact', head: true })
                     .eq('date', today)
-                    .or('status.eq.LEAVE_SICK,status.eq.LEAVE_PERSONAL,status.eq.LEAVE');
-                if (leaveCount !== null) document.getElementById('statLeaveLanding').innerText = leaveCount;
-
+                    .or('status.eq.leave,status.eq.leave_sick,status.eq.leave_personal');
+                if (leaveCount !== null && document.getElementById('statLeaveLanding')) {
+                    document.getElementById('statLeaveLanding').innerText = leaveCount;
+                }
+        
             } catch (err) {
                 console.warn('Load Landing Stats Warning:', err);
             }
         }
-
         // 🟢 เรียกทำงานทันทีเมื่อเริ่มโหลดหน้า
         document.addEventListener('DOMContentLoaded', function() {
             updateThaiClock();
