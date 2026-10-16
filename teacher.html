@@ -408,39 +408,72 @@
         async function loadClassroomOptions() {
             try {
                 const teacherId = CURRENT_TEACHER?.teacher_id || 'T024';
-                
-                let query = db.from('schedules').select(`
-                    course_code,
-                    class_name,
-                    teacher_id,
-                    courses:course_code ( course_name )
-                `);
 
-                if (teacherId) {
-                    query = query.eq('teacher_id', teacherId);
+                // 1. ดึงข้อมูลตารางสอนจริงจากตาราง schedules ของครูผู้สอนที่ล็อกอิน
+                let { data: scheduleList, error: scheduleErr } = await db
+                    .from('schedules')
+                    .select('course_code, class_name, teacher_id')
+                    .eq('teacher_id', teacherId);
+
+                if (scheduleErr) throw scheduleErr;
+
+                // 2. ดึงชื่อวิชาจากตาราง courses มาจับคู่ด้วย course_code
+                const { data: coursesList, error: courseErr } = await db
+                    .from('courses')
+                    .select('course_code, course_name');
+
+                if (courseErr) console.warn('Courses fetch notice:', courseErr.message);
+
+                const courseMap = {};
+                if (coursesList) {
+                    coursesList.forEach(c => { courseMap[c.course_code] = c.course_name; });
                 }
 
-                const { data: scheduleList, error } = await query;
                 const selectEl = document.getElementById('subjectSelect');
                 if (!selectEl) return;
-                
+
                 selectEl.innerHTML = '';
 
-                if (!error && scheduleList && scheduleList.length > 0) {
-                    selectEl.innerHTML = scheduleList.map(s => {
-                        const courseName = s.courses?.course_name || s.course_code;
-                        const room = s.class_name;
-                        return `<option value="${s.course_code}|${room}">${courseName} (${s.course_code}) - ห้อง ${room}</option>`;
-                    }).join('');
+                // 3. แสดงผลตัวเลือกวิชาเฉพาะที่มีอยู่จริงในตาราง schedules
+                if (scheduleList && scheduleList.length > 0) {
+                    const uniqueOptions = [];
+                    const seen = new Set();
 
+                    scheduleList.forEach(s => {
+                        const key = `${s.course_code}|${s.class_name}`;
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            const courseName = courseMap[s.course_code] || s.course_code;
+                            uniqueOptions.push(`<option value="${s.course_code}|${s.class_name}">${courseName} (${s.course_code}) - ห้อง ${s.class_name}</option>`);
+                        }
+                    });
+
+                    selectEl.innerHTML = uniqueOptions.join('');
+
+                    // แสดงชื่อห้องเรียนแรกและโหลดรายชื่อนักเรียนจาก DB จริงทันที
                     const firstRoom = scheduleList[0].class_name;
-                    if (document.getElementById('tableHeaderTitle')) document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
+                    if (document.getElementById('tableHeaderTitle')) {
+                        document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
+                    }
+
+                    renderStudents();
                 } else {
-                    selectEl.innerHTML = '<option value="">⚠️ ไม่พบข้อมูลตารางสอนของคุณครู</option>';
-                    if (document.getElementById('tableHeaderTitle')) document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
+                    // หากในตาราง schedules ไม่มีข้อมูลตารางสอนของ teacher_id นี้จริงๆ
+                    selectEl.innerHTML = `<option value="">⚠️ ไม่พบข้อมูลตารางสอนของรหัสครู ${teacherId} ในฐานข้อมูล</option>`;
+                    if (document.getElementById('tableHeaderTitle')) {
+                        document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
+                    }
+                    const tbody = document.getElementById('studentList');
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400 font-medium text-xs">ไม่พบข้อมูลตารางสอนของรหัสครู ${teacherId} ในระบบ Supabase</td></tr>`;
+                    }
                 }
             } catch (err) {
                 console.error('Load Classrooms Error:', err);
+                const selectEl = document.getElementById('subjectSelect');
+                if (selectEl) {
+                    selectEl.innerHTML = `<option value="">❌ เกิดข้อผิดพลาดในการดึงตารางสอน: ${err.message}</option>`;
+                }
             }
         }
 
