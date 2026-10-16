@@ -309,7 +309,7 @@
         </div>
     </div>
 
-    <!-- Script Integration -->
+    <!-- Script Integration (ปรับปรุงการดึงชื่อครู + รูปภาพโปรไฟล์ webp จาก Supabase) -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -325,44 +325,55 @@
             window.location.href = 'login.html';
         }
 
+        // 🟢 ฟังก์ชันดึงข้อมูลครูที่ล็อกอินแบบ Real-time รองรับทุกบัญชี
         async function initTeacherPortal() {
-            const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
-            
-            if (storedUser && storedUser.full_name) {
-                CURRENT_TEACHER = storedUser;
-            } else {
-                try {
-                    const { data: teacherData } = await db
-                        .from('users')
-                        .select('*')
-                        .eq('role', 'TEACHER')
-                        .limit(1)
-                        .maybeSingle();
+            // 1. อ่านข้อมูลครูจาก localStorage (ใช้คีย์ bcw_user หรือ teacher_id)
+            const savedUser = JSON.parse(localStorage.getItem('bcw_user') || localStorage.getItem('user_profile') || '{}');
+            const targetTeacherId = savedUser.teacher_id || sessionStorage.getItem('teacher_id') || 'T024';
 
-                    if (teacherData) {
-                        CURRENT_TEACHER = {
-                            id: teacherData.id,
-                            teacher_id: teacherData.teacher_id,
-                            name: teacherData.full_name || 'ครูผู้สอน',
-                            avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png'
-                        };
-                    }
-                } catch (e) {
-                    console.error('Fetch Teacher Error:', e);
+            try {
+                // 2. คิวรีข้อมูลครูจากตาราง users ใน Supabase
+                const { data: teacherData, error } = await db
+                    .from('users')
+                    .select('*')
+                    .eq('teacher_id', targetTeacherId)
+                    .maybeSingle();
+
+                if (teacherData) {
+                    CURRENT_TEACHER = {
+                        id: teacherData.id,
+                        teacher_id: teacherData.teacher_id,
+                        name: teacherData.full_name || 'นายธนดล คำเสนอ',
+                        avatar: teacherData.avatar_url || `https://wfpopolzgxbglgmzjafg.supabase.co/storage/v1/object/public/avatars/${teacherData.teacher_id}.webp`
+                    };
+                } else {
+                    CURRENT_TEACHER = {
+                        teacher_id: targetTeacherId,
+                        name: savedUser.full_name || 'นายธนดล คำเสนอ',
+                        avatar: `https://wfpopolzgxbglgmzjafg.supabase.co/storage/v1/object/public/avatars/${targetTeacherId}.webp`
+                    };
                 }
+            } catch (e) {
+                console.error('Fetch Teacher Error:', e);
+                CURRENT_TEACHER = {
+                    teacher_id: 'T024',
+                    name: 'นายธนดล คำเสนอ',
+                    avatar: 'https://wfpopolzgxbglgmzjafg.supabase.co/storage/v1/object/public/avatars/T024.webp'
+                };
             }
 
-            if (!CURRENT_TEACHER) {
-                CURRENT_TEACHER = { id: '11111111-1111-1111-1111-111111111111', teacher_id: '0101', name: 'ครูผู้สอน', avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' };
-            }
+            // 3. อัปเดตชื่อและรูปโปรไฟล์ขึ้น UI
+            const teacherDisplayName = CURRENT_TEACHER.name;
+            const teacherAvatarUrl = CURRENT_TEACHER.avatar;
 
-            const teacherDisplayName = CURRENT_TEACHER.name || CURRENT_TEACHER.full_name || 'ครูผู้สอน';
-            document.getElementById('teacherName').innerText = teacherDisplayName;
-            document.getElementById('headerTeacherName').innerText = `👤 ครูผู้สอน: ${teacherDisplayName}`;
+            if (document.getElementById('teacherName')) document.getElementById('teacherName').innerText = teacherDisplayName;
+            if (document.getElementById('headerTeacherName')) document.getElementById('headerTeacherName').innerText = `👤 ครูผู้สอน: ${teacherDisplayName}`;
             
-            const teacherImg = CURRENT_TEACHER.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-            document.getElementById('teacherAvatar').src = teacherImg;
-            document.getElementById('headerTeacherAvatar').src = teacherImg;
+            const avatarImg = document.getElementById('teacherAvatar');
+            const headerAvatarImg = document.getElementById('headerTeacherAvatar');
+
+            if (avatarImg) avatarImg.src = teacherAvatarUrl;
+            if (headerAvatarImg) headerAvatarImg.src = teacherAvatarUrl;
 
             await loadClassroomOptions();
             await loadTrafficSummary();
@@ -385,10 +396,10 @@
                     });
                 }
 
-                document.getElementById('summary-green-count').innerText = `${green} คน`;
-                document.getElementById('summary-blue-count').innerText = `${blue} คน`;
-                document.getElementById('summary-red-count').innerText = `${red} คน`;
-                document.getElementById('summary-purple-count').innerText = `${purple} คน`;
+                if (document.getElementById('summary-green-count')) document.getElementById('summary-green-count').innerText = `${green} คน`;
+                if (document.getElementById('summary-blue-count')) document.getElementById('summary-blue-count').innerText = `${blue} คน`;
+                if (document.getElementById('summary-red-count')) document.getElementById('summary-red-count').innerText = `${red} คน`;
+                if (document.getElementById('summary-purple-count')) document.getElementById('summary-purple-count').innerText = `${purple} คน`;
             } catch (err) {
                 console.error('Error loadTrafficSummary:', err);
             }
@@ -396,7 +407,7 @@
 
         async function loadClassroomOptions() {
             try {
-                const teacherId = CURRENT_TEACHER?.teacher_id || CURRENT_TEACHER?.id;
+                const teacherId = CURRENT_TEACHER?.teacher_id || 'T024';
                 
                 let query = db.from('schedules').select(`
                     course_code,
@@ -411,6 +422,8 @@
 
                 const { data: scheduleList, error } = await query;
                 const selectEl = document.getElementById('subjectSelect');
+                if (!selectEl) return;
+                
                 selectEl.innerHTML = '';
 
                 if (!error && scheduleList && scheduleList.length > 0) {
@@ -421,10 +434,10 @@
                     }).join('');
 
                     const firstRoom = scheduleList[0].class_name;
-                    document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
+                    if (document.getElementById('tableHeaderTitle')) document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
                 } else {
                     selectEl.innerHTML = '<option value="">⚠️ ไม่พบข้อมูลตารางสอนของคุณครู</option>';
-                    document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
+                    if (document.getElementById('tableHeaderTitle')) document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
                 }
             } catch (err) {
                 console.error('Load Classrooms Error:', err);
@@ -463,11 +476,11 @@
             
             const selected = selectedVal.split('|');
             const classRoom = selected[1] || 'ม.1/1';
-            document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${classRoom}`;
+            if (document.getElementById('tableHeaderTitle')) document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${classRoom}`;
             renderStudents();
         }
 
-        async function fetchStudentAlerts(studentId, subjectCode) {
+        async function fetchStudentAlerts(studentId) {
             if (!db) return { badges: '', noteText: '', phone: '' };
             const today = new Date().toISOString().split('T')[0];
             let badges = [];
@@ -484,7 +497,6 @@
                     .maybeSingle();
 
                 if (leaveReq) {
-                    const statusText = leaveReq.status === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ';
                     const leaveType = leaveReq.leave_type === 'sick' ? 'ลาป่วย' : 'ลากิจ';
                     badges.push(`<span class="bg-blue-100 text-blue-800 border border-blue-300 text-[10px] px-2 py-0.5 rounded-md font-semibold">✉️ ${leaveType} (PIN: ${leaveReq.parent_pin || 'ยืนยัน'})</span>`);
                     autoNote = `ขอ${leaveType} (${leaveReq.reason || '-'}) [โทร: ${leaveReq.parent_phone || '-'}]`;
@@ -536,7 +548,7 @@
             const tbody = document.getElementById('studentList');
             if (!tbody) return;
 
-            const selectedVal = document.getElementById('subjectSelect').value;
+            const selectedVal = document.getElementById('subjectSelect')?.value;
             if (!selectedVal) {
                 tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400 font-medium text-xs">กรุณาเลือกตารางสอน/ห้องเรียน</td></tr>';
                 return;
@@ -566,10 +578,10 @@
             }
 
             studentsData.sort((a, b) => {
-            const noA = parseInt(a.no || a.student_no || a.number || a.no_id || a.std_no || 999);
-            const noB = parseInt(b.no || b.student_no || b.number || b.no_id || b.std_no || 999);
-            return noA - noB;
-        });
+                const noA = parseInt(a.no || a.student_no || a.number || a.no_id || a.std_no || 999);
+                const noB = parseInt(b.no || b.student_no || b.number || b.no_id || b.std_no || 999);
+                return noA - noB;
+            });
 
             let htmlRows = '';
             for (const s of studentsData) {
@@ -651,7 +663,7 @@
             }
 
             const today = new Date().toISOString().split('T')[0];
-            const selectedVal = document.getElementById('subjectSelect').value;
+            const selectedVal = document.getElementById('subjectSelect')?.value;
             const selected = selectedVal ? selectedVal.split('|') : [];
             const subjectCode = selected[0] || 'GEN101';
 
@@ -846,7 +858,7 @@
         }
 
         async function exportToExcelPnP(reportType, month, term, subject) {
-            const selectedVal = document.getElementById('subjectSelect').value;
+            const selectedVal = document.getElementById('subjectSelect')?.value;
             const selected = selectedVal ? selectedVal.split('|') : [];
             const targetClass = selected[1] || 'ม.1/1';
 
