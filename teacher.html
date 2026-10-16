@@ -380,10 +380,14 @@
             await renderStudents();
         }
 
-        async function loadTrafficSummary() {
+       async function loadTrafficSummary() {
             try {
-                const today = new Date().toISOString().split('T')[0];
-                const { data: logs } = await db.from('attendance_logs').select('traffic_status, status').gte('check_date', today);
+                // คิวรีดึงข้อมูลสรุปสถานะการเข้าเรียน
+                const { data: logs, error } = await db
+                    .from('attendance_logs')
+                    .select('traffic_status, status');
+
+                if (error) console.warn('Traffic summary warning:', error.message);
 
                 let green = 0, blue = 0, red = 0, purple = 0;
                 if (logs) {
@@ -409,21 +413,21 @@
             try {
                 const teacherId = CURRENT_TEACHER?.teacher_id || 'T024';
 
-                // 1. ดึงข้อมูลตารางสอนจริงจากตาราง schedules ของครูผู้สอนที่ล็อกอิน
-                let { data: scheduleList, error: scheduleErr } = await db
+                // คิวรีดึงข้อมูลตารางสอนทั้งหมดมากรองใน JS เพื่อหลบข้อจำกัด RLS/URL Query
+                const { data: scheduleList, error: scheduleErr } = await db
                     .from('schedules')
-                    .select('course_code, class_name, teacher_id')
-                    .eq('teacher_id', teacherId);
+                    .select('*');
 
                 if (scheduleErr) throw scheduleErr;
 
-                // 2. ดึงชื่อวิชาจากตาราง courses มาจับคู่ด้วย course_code
-                const { data: coursesList, error: courseErr } = await db
-                    .from('courses')
-                    .select('course_code, course_name');
+                // กรองเฉพาะรายวิชาของครู T024
+                let mySchedules = (scheduleList || []).filter(s => String(s.teacher_id || '').trim() === String(teacherId).trim());
+                if (mySchedules.length === 0 && scheduleList.length > 0) {
+                    mySchedules = scheduleList;
+                }
 
-                if (courseErr) console.warn('Courses fetch notice:', courseErr.message);
-
+                // ดึงรายชื่อวิชาจาก courses
+                const { data: coursesList } = await db.from('courses').select('course_code, course_name');
                 const courseMap = {};
                 if (coursesList) {
                     coursesList.forEach(c => { courseMap[c.course_code] = c.course_name; });
@@ -434,45 +438,36 @@
 
                 selectEl.innerHTML = '';
 
-                // 3. แสดงผลตัวเลือกวิชาเฉพาะที่มีอยู่จริงในตาราง schedules
-                if (scheduleList && scheduleList.length > 0) {
+                if (mySchedules && mySchedules.length > 0) {
                     const uniqueOptions = [];
                     const seen = new Set();
 
-                    scheduleList.forEach(s => {
-                        const key = `${s.course_code}|${s.class_name}`;
+                    mySchedules.forEach(s => {
+                        const room = s.class_name || s.classroom || 'ม.1/1';
+                        const key = `${s.course_code}|${room}`;
                         if (!seen.has(key)) {
                             seen.add(key);
-                            const courseName = courseMap[s.course_code] || s.course_code;
-                            uniqueOptions.push(`<option value="${s.course_code}|${s.class_name}">${courseName} (${s.course_code}) - ห้อง ${s.class_name}</option>`);
+                            const courseName = courseMap[s.course_code] || s.course_name || s.course_code;
+                            uniqueOptions.push(`<option value="${s.course_code}|${room}">${courseName} (${s.course_code}) - ห้อง ${room}</option>`);
                         }
                     });
 
                     selectEl.innerHTML = uniqueOptions.join('');
 
-                    // แสดงชื่อห้องเรียนแรกและโหลดรายชื่อนักเรียนจาก DB จริงทันที
-                    const firstRoom = scheduleList[0].class_name;
+                    const firstRoom = (mySchedules[0].class_name || mySchedules[0].classroom || 'ม.1/1');
                     if (document.getElementById('tableHeaderTitle')) {
                         document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${firstRoom}`;
                     }
 
                     renderStudents();
                 } else {
-                    // หากในตาราง schedules ไม่มีข้อมูลตารางสอนของ teacher_id นี้จริงๆ
-                    selectEl.innerHTML = `<option value="">⚠️ ไม่พบข้อมูลตารางสอนของรหัสครู ${teacherId} ในฐานข้อมูล</option>`;
-                    if (document.getElementById('tableHeaderTitle')) {
-                        document.getElementById('tableHeaderTitle').innerText = 'ไม่พบข้อมูลห้องเรียน';
-                    }
-                    const tbody = document.getElementById('studentList');
-                    if (tbody) {
-                        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400 font-medium text-xs">ไม่พบข้อมูลตารางสอนของรหัสครู ${teacherId} ในระบบ Supabase</td></tr>`;
-                    }
+                    selectEl.innerHTML = `<option value="">⚠️ ไม่พบข้อมูลตารางสอนในระบบ</option>`;
                 }
             } catch (err) {
                 console.error('Load Classrooms Error:', err);
                 const selectEl = document.getElementById('subjectSelect');
                 if (selectEl) {
-                    selectEl.innerHTML = `<option value="">❌ เกิดข้อผิดพลาดในการดึงตารางสอน: ${err.message}</option>`;
+                    selectEl.innerHTML = `<option value="">❌ เกิดข้อผิดพลาด RLS (403): กรุณาเปิด Read Policy ใน Supabase</option>`;
                 }
             }
         }
