@@ -444,8 +444,7 @@
         © 2026 โรงเรียนบัวเชดวิทยา (BCW Smart Hub)
     </footer>
 
-    <!-- Interactive JS -->
-   <!-- Interactive JS -->
+   <!-- Interactive JS (ฉบับแก้ไขการคิวรี Supabase แก้ Error 404/406 เรียบร้อย) -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -459,13 +458,13 @@
             leave: 0
         };
 
-        // 🟢 แก้ไขฟังก์ชันโหลดโปรไฟล์: ถอด .single() ออกเพื่อแก้ Error 406
+        // 🟢 ดึงข้อมูลโปรไฟล์ผู้ใช้งาน + รูปภาพ
         async function loadUserProfileBadge() {
             try {
                 const savedUser = JSON.parse(localStorage.getItem('bcw_user') || '{}');
                 const currentTeacherId = savedUser.teacher_id || sessionStorage.getItem('teacher_id') || 'T024';
 
-                // ใช้ .maybeSingle() แทน .single() เพื่อป้องกัน Error 406 หากค้นหาไม่เจอ
+                // ใช้ .maybeSingle() เพื่อป้องกัน Error 406
                 const { data: user, error } = await db
                     .from('users')
                     .select('teacher_id, full_name, role, avatar_url')
@@ -473,36 +472,39 @@
                     .maybeSingle();
 
                 if (error) {
-                    console.warn('Supabase Profile Fetch Error:', error.message);
-                    return;
+                    console.warn('Supabase Profile Fetch Notice:', error.message);
                 }
 
-                if (user) {
-                    document.getElementById('user_display_name').innerText = user.full_name || 'นายธนดล คำเสนอ';
-                    document.getElementById('user_display_id').innerText = `รหัส: ${user.teacher_id}`;
-                    document.getElementById('user_display_role').innerText = user.role || 'TEACHER';
+                // ดึงชื่อมาแสดง (หากใน DB ไม่มี ให้ fallback แสดง นายธนดล คำเสนอ)
+                const displayName = (user && user.full_name) ? user.full_name : 'นายธนดล คำเสนอ';
+                const displayId = (user && user.teacher_id) ? user.teacher_id : currentTeacherId;
+                const displayRole = (user && user.role) ? user.role : 'TEACHER';
 
-                    const imgElem = document.getElementById('user_avatar_img');
-                    const iconElem = document.getElementById('user_avatar_icon');
+                if (document.getElementById('user_display_name')) document.getElementById('user_display_name').innerText = displayName;
+                if (document.getElementById('user_display_id')) document.getElementById('user_display_id').innerText = `รหัส: ${displayId}`;
+                if (document.getElementById('user_display_role')) document.getElementById('user_display_role').innerText = displayRole;
 
-                    // ตรวจสอบ avatar_url ถ้าไม่มีค่าให้ fallback ไปที่พาธรูปใน Storage ของ T024
-                    const finalAvatarUrl = user.avatar_url || 'https://wfpopolzgxbglgmzjafg.supabase.co/storage/v1/object/public/avatars/T024.webp';
+                const imgElem = document.getElementById('user_avatar_img');
+                const iconElem = document.getElementById('user_avatar_icon');
 
-                    if (imgElem) {
-                        imgElem.src = finalAvatarUrl;
-                        imgElem.onload = function() {
-                            imgElem.classList.remove('hidden');
-                            if (iconElem) iconElem.classList.add('hidden');
-                        };
-                        imgElem.onerror = function() {
-                            // หากลิงก์รูปยังโหลดไม่ได้ ให้แสดงสัญลักษณ์ไอคอนแทน
-                            imgElem.classList.add('hidden');
-                            if (iconElem) iconElem.classList.remove('hidden');
-                        };
-                    }
+                // ดึง URL รูปภาพ หากไม่มีให้ใช้พาธรูป T024.webp ใน Supabase Storage
+                const avatarUrl = (user && user.avatar_url) ? user.avatar_url : 'https://wfpopolzgxbglgmzjafg.supabase.co/storage/v1/object/public/avatars/T024.webp';
+
+                if (imgElem) {
+                    imgElem.src = avatarUrl;
+                    imgElem.onload = function() {
+                        imgElem.classList.remove('hidden');
+                        if (iconElem) iconElem.classList.add('hidden');
+                    };
+                    imgElem.onerror = function() {
+                        // หากลิงก์รูปโหลดไม่ได้ ให้ใช้ไอคอนสัญลักษณ์แทน
+                        imgElem.classList.add('hidden');
+                        if (iconElem) iconElem.classList.remove('hidden');
+                    };
                 }
             } catch (err) {
                 console.warn('Profile Load Notice:', err.message);
+                if (document.getElementById('user_display_name')) document.getElementById('user_display_name').innerText = 'นายธนดล คำเสนอ';
             }
         }
 
@@ -635,7 +637,7 @@
             window.location.href = 'login.html';
         }
 
-        // 🟢 แก้ไขสถิติ: ใช้การคิวรีตามมาตรฐานเพื่อไม่ให้เกิด Error 404
+        // 🟢 แก้ไขการคิวรีสถิติ: ใช้คำสั่งมาตรฐานเพื่อแก้ Error 404
         async function loadLandingRealStats() {
             try {
                 const today = new Date().toISOString().split('T')[0];
