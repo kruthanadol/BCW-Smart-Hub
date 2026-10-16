@@ -726,5 +726,35 @@
             loadLandingRealStats();
         });
     </script>
+    <script>
+      // 🟢 สคริปต์อัปเดตชื่อโปรไฟล์และตารางสอนสำหรับ Teacher Portal
+      document.addEventListener('DOMContentLoaded', async function() {
+        try {
+          // 1. กำหนด ID ของครู (อ่านจาก localStorage หรือใช้ T024 ของครูธนดล)
+          const savedUser = JSON.parse(localStorage.getItem('bcw_user') || '{}');
+          const teacherId = savedUser.teacher_id || 'T024';
+    
+          // 2. ดึงข้อมูลครูจากตาราง users ใน Supabase
+          const { data: teacher } = await db
+            .from('users')
+            .select('full_name, teacher_id')
+            .eq('teacher_id', teacherId)
+            .single();
+    
+          if (teacher) {
+            // เปลี่ยนข้อความคำว่า "ครูผู้สอน: ครูผู้สอน" เป็นชื่อจริงของคุณครู
+            const badgeElem = document.querySelector('.bg-emerald-950, header, nav');
+            if (badgeElem) {
+              // ค้นหาตำแหน่งที่แสดงคำว่า ครูผู้สอน แล้วแทนที่
+              document.body.innerHTML = document.body.innerHTML
+                .replace(/ครูผู้สอน: ครูผู้สอน/g, `ครูผู้สอน: ${teacher.full_name}`)
+                .replace(/ครูผู้สอนประจำวิชา<br>ครูผู้สอน/g, `ครูผู้สอนประจำวิชา<br>${teacher.full_name}`);
+            }
+          }
+        } catch (err) {
+          console.warn('Profile sync error:', err);
+        }
+      });
+    </script>
 </body>
 </html>
