@@ -425,53 +425,66 @@
             const timeIn = document.getElementById('timeGateIn');
             const timeOut = document.getElementById('timeGateOut');
 
+            if (!card || !studentId) return;
+
             try {
-                const today = new Date().toISOString().split('T')[0];
-                const { data: logs } = await db.from('attendance_logs')
+                // ดึงข้อมูลเช็กชื่อล่าสุดของนักเรียนคนนี้โดยตรง (ไม่จำกัดเฉพาะวันที่ เพื่อป้องกันปัญหา Timezone)
+                const { data: logs, error } = await db.from('attendance_logs')
                     .select('*')
                     .eq('student_id', studentId)
-                    .eq('check_date', today)
                     .order('created_at', { ascending: false })
                     .limit(1);
 
+                if (error) throw error;
+
+                const todayStr = new Date().toISOString().split('T')[0];
+
                 if (logs && logs.length > 0) {
                     const log = logs[0];
-                    const status = log.traffic_status || (log.status === 'present' ? 'GREEN' : (log.status === 'absent' ? 'RED' : 'GREEN'));
-                    const gateIn = log.entry_time || (log.created_at ? new Date(log.created_at).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}) : '--:--');
-                    const gateOut = log.exit_time || '--:--';
+                    // เช็กว่าเป็นรายการของวันนี้หรือไม่ (เช็กจาก check_date หรือ created_at)
+                    const logDate = log.check_date || (log.created_at ? log.created_at.split('T')[0] : '');
 
-                    if (timeIn) timeIn.textContent = `${gateIn} น.`;
-                    if (timeOut) timeOut.textContent = gateOut !== '--:--' ? `${gateOut} น.` : '--:--';
+                    if (logDate === todayStr) {
+                        const status = log.traffic_status || (log.status === 'present' ? 'GREEN' : (log.status === 'absent' ? 'RED' : (log.status === 'truant' ? 'PURPLE' : 'GREEN')));
+                        const gateIn = log.entry_time || (log.created_at ? new Date(log.created_at).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}) : '--:--');
+                        const gateOut = log.exit_time || '--:--';
 
-                    if (status === 'GREEN') {
-                        card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
-                        if (icon) icon.className = "fa-solid fa-school-flag";
-                        title.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)";
-                        desc.textContent = "เช็กชื่อเข้าเรียนเรียบร้อยแล้ว";
-                    } else if (status === 'BLUE') {
-                        card.className = "bg-sky-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
-                        if (icon) icon.className = "fa-solid fa-file-signature";
-                        title.textContent = "🔵 ออกนอกโรงเรียน (มีใบอนุญาต)";
-                        desc.textContent = "อยู่ระหว่างการได้รับอนุญาตออกนอกบริเวณโรงเรียน";
-                    } else if (status === 'RED') {
-                        card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300 animate-pulse";
-                        if (icon) icon.className = "fa-solid fa-triangle-exclamation";
-                        title.textContent = "🔴 ไม่พบในโรงเรียน (ขาดเรียน)";
-                        desc.textContent = "ครูเช็กชื่อขาดเรียน โปรดตรวจสอบกับบุตรหลาน";
-                    } else if (status === 'PURPLE') {
-                        card.className = "bg-purple-700 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
-                        if (icon) icon.className = "fa-solid fa-house-user";
-                        title.textContent = "🟣 หนีเรียน / สแกนกลับบ้านแล้ว";
-                        desc.textContent = "สแกนกล้องประตูทางออกเพื่อเดินทางกลับบ้านเรียบร้อยแล้ว";
+                        if (timeIn) timeIn.textContent = gateIn !== '--:--' ? `${gateIn} น.` : '--:--';
+                        if (timeOut) timeOut.textContent = gateOut !== '--:--' ? `${gateOut} น.` : '--:--';
+
+                        if (status === 'GREEN' || log.status === 'present' || log.status === 'มา') {
+                            card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
+                            if (icon) icon.className = "fa-solid fa-school-flag";
+                            if (title) title.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)";
+                            if (desc) desc.textContent = "เช็กชื่อเข้าเรียนเรียบร้อยแล้ว";
+                        } else if (status === 'BLUE' || log.status === 'leave' || log.status === 'ลา') {
+                            card.className = "bg-sky-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
+                            if (icon) icon.className = "fa-solid fa-file-signature";
+                            if (title) title.textContent = "🔵 ลา / ออกนอกโรงเรียน (มีใบอนุญาต)";
+                            if (desc) desc.textContent = "มีประวัติการยื่นใบลาหรือขออนุญาตออกนอกโรงเรียน";
+                        } else if (status === 'RED' || log.status === 'absent' || log.status === 'ขาด') {
+                            card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300 animate-pulse";
+                            if (icon) icon.className = "fa-solid fa-triangle-exclamation";
+                            if (title) title.textContent = "🔴 ขาดเรียน";
+                            if (desc) desc.textContent = "ครูเช็กชื่อขาดเรียน โปรดตรวจสอบกับบุตรหลาน";
+                        } else if (status === 'PURPLE' || log.status === 'truant' || log.status === 'หนีเรียน') {
+                            card.className = "bg-purple-700 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
+                            if (icon) icon.className = "fa-solid fa-house-user";
+                            if (title) title.textContent = "🟣 หนีเรียน / ออกก่อนเวลา";
+                            if (desc) desc.textContent = "มีบันทึกการเช็กชื่อหนีเรียนในระบบ";
+                        }
+                        return; // ทำงานเสร็จแล้วให้ออกทันที ป้องกันโดนโค้ดส่วนล่างสั่งเปลี่ยนกลับ
                     }
-                } else {
-                    card.className = "bg-slate-700 text-white rounded-2xl p-5 shadow-md";
-                    if (icon) icon.className = "fa-solid fa-clock";
-                    title.textContent = "⚪ รอการเช็กชื่อยามเช้า";
-                    desc.textContent = "ยังไม่พบสถิติสแกนหน้าหรือเข้าแถวในวันนี้";
-                    if (timeIn) timeIn.textContent = "--:--";
-                    if (timeOut) timeOut.textContent = "--:--";
                 }
+
+                // ถ้าไม่มีข้อมูลของวันนี้จริงๆ ให้แสดงรอเช็กชื่อ
+                card.className = "bg-slate-700 text-white rounded-2xl p-5 shadow-md";
+                if (icon) icon.className = "fa-solid fa-clock";
+                if (title) title.textContent = "⚪ รอการเช็กชื่อยามเช้า";
+                if (desc) desc.textContent = "ยังไม่พบสถิติสแกนหน้าหรือเข้าแถวในวันนี้";
+                if (timeIn) timeIn.textContent = "--:--";
+                if (timeOut) timeOut.textContent = "--:--";
+
             } catch (err) {
                 console.error('Error updating traffic card:', err);
             }
