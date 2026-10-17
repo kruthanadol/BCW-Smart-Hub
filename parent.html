@@ -309,258 +309,256 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
 
-    <!-- JS Master Engine (Smart Hybrid Matching) -->
-    <script>
-        const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+   <script>
+    const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let currentStudentId = '';
-        let currentStudentClass = '';
-        let globalSchedules = [];
+    let currentStudentId = '';
+    let currentStudentClass = '';
+    let globalSchedules = [];
 
-        async function initParentPortal() {
-            const session = JSON.parse(localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session') || '{}');
-            currentStudentId = session && session.student_id ? String(session.student_id) : '';
-            loadDashboard();
-        }
+    async function initParentPortal() {
+        const session = JSON.parse(localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session') || '{}');
+        currentStudentId = session && session.student_id ? String(session.student_id) : '';
+        loadDashboard();
+    }
 
-        async function switchChild(sid) {
-            if (!sid) return;
-            currentStudentId = String(sid);
-            loadDashboard();
-        }
+    async function switchChild(sid) {
+        if (!sid) return;
+        currentStudentId = String(sid);
+        loadDashboard();
+    }
 
-        async function loadDashboard() {
-            // 1. ดึงข้อมูลตาราง students และเติม Dropdown เสมอ
-            try {
-                const { data: students } = await db.from('students').select('*');
-                if (students && students.length > 0) {
-                    const selector = document.getElementById('childSelector');
-                    if (selector) {
-                        selector.innerHTML = students.map(s => {
-                            const name = (s.first_name || s.last_name) ? `${s.prefix || ''}${s.first_name || ''} ${s.last_name || ''}`.trim() : (s.full_name || 'นักเรียน');
-                            return `<option value="${s.student_id}">${name} (${s.student_id})</option>`;
-                        }).join('');
-                    }
+    async function loadDashboard() {
+        // ดึงข้อมูลทุกตารางพร้อมกันรวดเดียว (Parallel Fetching)
+        const [resStudents, resLogs, resSchedules, resLeaves, resHomework, resNotes, resUsers] = await Promise.all([
+            db.from('students').select('*').then(r => r.data || []).catch(() => []),
+            db.from('attendance_logs').select('*').then(r => r.data || []).catch(() => []),
+            db.from('schedules').select('*').then(r => r.data || []).catch(() => []),
+            db.from('leave_requests').select('*').then(r => r.data || []).catch(() => []),
+            db.from('homework_assignments').select('*').then(r => r.data || []).catch(() => []),
+            db.from('teacher_notifications').select('*').then(r => r.data || []).catch(() => []),
+            db.from('users').select('*').then(r => r.data || []).catch(() => [])
+        ]);
 
-                    // หา student ตาม ID หรือเลือกคนแรกถ้าระบบสแกนไม่เจอ ID
-                    let st = students.find(s => String(s.student_id) === currentStudentId);
-                    if (!st) st = students[0];
-
-                    currentStudentId = String(st.student_id);
-                    if (selector) selector.value = currentStudentId;
-
-                    const name = (st.first_name || st.last_name) ? `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim() : (st.full_name || 'นักเรียนในปกครอง');
-                    currentStudentClass = st.classroom || st.class_name || 'ม.2/2';
-
-                    document.getElementById('student-fullname').textContent = name;
-                    document.getElementById('student-class').textContent = currentStudentClass;
-                    document.getElementById('student-no').textContent = st.student_no || st.number || st.no || '1';
-                    document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
-                    if (st.avatar_url || st.photo_url) document.getElementById('student-avatar').src = st.avatar_url || st.photo_url;
-
-                    renderAdvisor(st.advisor_name);
-                }
-            } catch (e) { console.warn('Student profile err:', e); }
-
-            // 2. ดึงประวัติเข้าเรียน + Smart Gate
-            try {
-                const { data: logs } = await db.from('attendance_logs').select('*');
-                const myLogs = logs ? logs.filter(l => String(l.student_id) === currentStudentId) : [];
-
-                if (myLogs.length > 0) {
-                    let p=0, l=0, a=0, t=0;
-                    myLogs.forEach(log => {
-                        const s = String(log.status || '').toLowerCase();
-                        if (s === 'present' || s === 'มา') p++;
-                        else if (s === 'late' || s === 'สาย') l++;
-                        else if (s === 'absent' || s === 'leave' || s === 'ขาด' || s === 'ลา') a++;
-                        else if (s === 'truant' || s === 'หนีเรียน') t++;
-                    });
-                    document.getElementById('stat-present').innerText = p;
-                    document.getElementById('stat-late').innerText = l;
-                    document.getElementById('stat-absent').innerText = a;
-                    document.getElementById('stat-truant').innerText = t;
-
-                    const last = myLogs[myLogs.length - 1];
-                    const st = String(last.status || '').toLowerCase();
-                    const card = document.getElementById('trafficCardContainer');
-                    const title = document.getElementById('trafficStatusTitle');
-                    const desc = document.getElementById('trafficStatusDesc');
-
-                    document.getElementById('timeGateIn').textContent = (last.entry_time || last.gate_in_time || '07:30') + ' น.';
-                    document.getElementById('timeGateOut').textContent = (last.exit_time || last.gate_out_time || '--:--') + ' น.';
-
-                    if (st === 'absent' || st === 'ขาด') {
-                        card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md animate-pulse";
-                        title.textContent = "🔴 ขาดเรียน";
-                        desc.textContent = "ครูเช็กชื่อขาดเรียน โปรดตรวจสอบกับบุตรหลาน";
-                    } else if (st === 'leave' || st === 'ลา') {
-                        card.className = "bg-sky-600 text-white rounded-2xl p-5 shadow-md";
-                        title.textContent = "🔵 ลา / ออกนอกโรงเรียน";
-                        desc.textContent = "มีประวัติการยื่นใบลาในระบบ";
-                    } else {
-                        card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md";
-                        title.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)";
-                        desc.textContent = "สแกนเข้าประตูโรงเรียนเรียบร้อยแล้ว";
-                    }
-
-                    const bhList = myLogs.slice(-5).reverse().map(item => `
-                        <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs flex justify-between items-center">
-                            <div>
-                                <span class="font-bold text-slate-800">${item.check_date || 'วันนี้'} (${item.time_slot || 'เช้า'})</span>
-                                <p class="text-[10px] text-slate-500">สถานะ: ${item.status || 'ปกติ'}</p>
-                            </div>
-                            <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full">${item.status}</span>
-                        </div>
-                    `).join('');
-                    document.getElementById('behaviorLogsContainer').innerHTML = bhList;
-                }
-            } catch (e) { console.warn('Attendance err:', e); }
-
-            // 3. ดึงตารางเรียน
-            try {
-                const { data: sch } = await db.from('schedules').select('*');
-                globalSchedules = sch || [];
-                renderSchedule();
-            } catch (e) { console.warn('Schedule err:', e); }
-
-            // 4. ดึงใบลา
-            try {
-                const { data: reqs } = await db.from('leave_requests').select('*');
-                const myReqs = reqs ? reqs.filter(r => String(r.student_id) === currentStudentId) : [];
-                if (myReqs.length > 0) {
-                    document.getElementById('leaveHistoryList').innerHTML = myReqs.map(r => `
-                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center">
-                            <div>
-                                <span class="font-bold text-slate-800">${r.leave_type === 'sick' ? '🤒 ลาป่วย' : '🏠 ลากิจ'}</span>
-                                <p class="text-[10px] text-slate-500 mt-0.5">วันที่: ${r.start_date} ถึง ${r.end_date} | เหตุผล: ${r.reason}</p>
-                            </div>
-                            <span class="text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">${r.status || 'รออนุมัติ'}</span>
-                        </div>
-                    `).join('');
-                }
-            } catch (e) { console.warn('Leave err:', e); }
-
-            // 5. ดึงการบ้าน
-            try {
-                const { data: hw } = await db.from('homework_assignments').select('*');
-                const myHw = hw ? hw.filter(h => h.classroom === currentStudentClass) : [];
-                if (myHw.length > 0) {
-                    document.getElementById('homeworkList').innerHTML = myHw.map(item => `
-                        <div class="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl text-xs flex justify-between items-center">
-                            <div>
-                                <span class="bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded text-[10px]">${item.subject_code || 'วิชาเรียน'}</span>
-                                <h5 class="font-bold text-slate-800 mt-1">${item.title}</h5>
-                                <p class="text-[10px] text-slate-500 mt-0.5">📅 ส่ง: ${item.due_date || 'ไม่ระบุ'}</p>
-                            </div>
-                            <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">มอบหมายแล้ว</span>
-                        </div>
-                    `).join('');
-                }
-            } catch (e) { console.warn('Homework err:', e); }
-
-            // 6. ดึงข้อความแจ้งเตือน
-            try {
-                const { data: notes } = await db.from('teacher_notifications').select('*');
-                const myNotes = notes ? notes.filter(n => String(n.student_id) === currentStudentId) : [];
-                if (myNotes.length > 0) {
-                    document.getElementById('notificationList').innerHTML = myNotes.slice(-3).reverse().map(n => `
-                        <div class="p-3 bg-amber-50/50 border border-amber-100 rounded-xl text-xs">
-                            <h5 class="font-bold text-amber-900">${n.title || 'แจ้งเตือน'}</h5>
-                            <p class="text-[11px] text-slate-600 mt-0.5">${n.message}</p>
-                        </div>
-                    `).join('');
-                }
-            } catch (e) { console.warn('Notes err:', e); }
-        }
-
-        function renderSchedule() {
-            const day = document.getElementById('dayFilter').value || 'Monday';
-            const list = globalSchedules.filter(s => s.class_name === currentStudentClass && s.day_of_week === day);
-            const container = document.getElementById('scheduleContainer');
-            if (list.length === 0) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed">ไม่มีตารางเรียนในวันนี้</div>`;
-                return;
+        // 1. ประมวลผลข้อมูลนักเรียน
+        if (resStudents.length > 0) {
+            const selector = document.getElementById('childSelector');
+            if (selector) {
+                selector.innerHTML = resStudents.map(s => {
+                    const sid = String(s.student_id || s.id || '');
+                    const name = (s.first_name || s.last_name) 
+                        ? `${s.prefix || ''}${s.first_name || ''} ${s.last_name || ''}`.trim() 
+                        : (s.full_name || 'นักเรียน');
+                    return `<option value="${sid}">${name} (${sid})</option>`;
+                }).join('');
             }
-            container.innerHTML = list.map(s => `
-                <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center">${s.period_no || 1}</div>
-                        <div>
-                            <h4 class="font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
-                            <p class="text-[10px] text-slate-400">ห้อง: ${s.room_no || 'ไม่ระบุ'}</p>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
 
-        async function renderAdvisor(advisorName) {
-            const container = document.getElementById('advisorsContainer');
-            if (advisorName) {
-                container.innerHTML = `
-                    <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl col-span-2">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold"><i class="fa-solid fa-user-tie"></i></div>
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-800">${advisorName}</h4>
-                            <p class="text-[10px] text-slate-400">ครูที่ปรึกษาประจำชั้น ${currentStudentClass}</p>
-                        </div>
-                    </div>`;
-                return;
+            let st = resStudents.find(s => String(s.student_id || s.id || '') === currentStudentId);
+            if (!st) st = resStudents[0];
+
+            currentStudentId = String(st.student_id || st.id || '');
+            currentStudentClass = st.classroom || st.class_name || 'ม.2/2';
+
+            if (selector) selector.value = currentStudentId;
+
+            const fullName = (st.first_name || st.last_name) 
+                ? `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim() 
+                : (st.full_name || 'นักเรียนในปกครอง');
+
+            document.getElementById('student-fullname').textContent = fullName;
+            document.getElementById('student-class').textContent = currentStudentClass;
+            document.getElementById('student-no').textContent = st.student_no || st.number_no || st.no || '1';
+            document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
+            if (st.avatar_url || st.photo_url) {
+                document.getElementById('student-avatar').src = st.avatar_url || st.photo_url;
             }
-            try {
-                const { data: users } = await db.from('users').select('*');
-                const teacher = users ? users.find(u => u.role === 'teacher' && u.advisor_classroom === currentStudentClass) : null;
-                if (teacher) {
-                    container.innerHTML = `
+
+            // 2. แสดงครูที่ปรึกษา
+            const teacher = resUsers.find(u => u.role === 'teacher' && u.advisor_classroom === currentStudentClass);
+            const advName = st.advisor_name || (teacher ? (teacher.full_name || teacher.email) : null);
+            
+            const advisorContainer = document.getElementById('advisorsContainer');
+            if (advisorContainer) {
+                if (advName) {
+                    advisorContainer.innerHTML = `
                         <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl col-span-2">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold"><i class="fa-solid fa-user-tie"></i></div>
+                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
                             <div>
-                                <h4 class="text-xs font-bold text-slate-800">${teacher.full_name || teacher.email}</h4>
+                                <h4 class="text-xs font-bold text-slate-800">${advName}</h4>
                                 <p class="text-[10px] text-slate-400">ครูที่ปรึกษาประจำชั้น ${currentStudentClass}</p>
                             </div>
                         </div>`;
                 } else {
-                    container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษา</p>`;
+                    advisorContainer.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษา</p>`;
                 }
-            } catch (e) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษา</p>`;
             }
         }
 
-        async function submitLeaveRequest(e) {
-            e.preventDefault();
-            const type = document.getElementById('leaveType').value;
-            const start = document.getElementById('startDate').value;
-            const end = document.getElementById('endDate').value;
-            const reason = document.getElementById('leaveReason').value;
-            const phone = document.getElementById('parentPhone').value;
-            const pin = document.getElementById('parentPin').value;
+        // 3. สถิติการเข้าเรียน & Smart Gate
+        const myLogs = resLogs.filter(l => String(l.student_id || l.id || '') === currentStudentId);
+        let p = 0, l = 0, a = 0, t = 0;
 
-            const { error } = await db.from('leave_requests').insert([{
-                student_id: currentStudentId,
-                class_name: currentStudentClass,
-                leave_type: type,
-                start_date: start,
-                end_date: end,
-                reason: reason,
-                parent_phone: phone,
-                parent_pin: pin,
-                created_by_role: 'parent',
-                status: 'pending'
-            }]);
+        if (myLogs.length > 0) {
+            myLogs.forEach(log => {
+                const s = String(log.status || '').toLowerCase();
+                if (s === 'present' || s === 'มา') p++;
+                else if (s === 'late' || s === 'สาย') l++;
+                else if (s === 'absent' || s === 'ขาด') a++;
+                else if (s === 'leave' || s === 'ลา') a++;
+                else if (s === 'truant' || s === 'หนีเรียน') t++;
+            });
 
-            if (error) alert('ยื่นใบลาไม่สำเร็จ: ' + error.message);
-            else { alert('ยื่นใบลาสำเร็จ!'); closeLeaveModal(); loadDashboard(); }
+            const last = myLogs[myLogs.length - 1];
+            const st = String(last.status || '').toLowerCase();
+            const card = document.getElementById('trafficCardContainer');
+            const title = document.getElementById('trafficStatusTitle');
+            const desc = document.getElementById('trafficStatusDesc');
+
+            if (document.getElementById('timeGateIn')) document.getElementById('timeGateIn').textContent = (last.entry_time || last.gate_in_time || '07:30') + ' น.';
+            if (document.getElementById('timeGateOut')) document.getElementById('timeGateOut').textContent = (last.exit_time || last.gate_out_time || '--:--') + ' น.';
+
+            if (card && title && desc) {
+                if (st === 'absent' || st === 'ขาด') {
+                    card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md animate-pulse";
+                    title.textContent = "🔴 ขาดเรียน";
+                    desc.textContent = "ครูเช็กชื่อขาดเรียน โปรดตรวจสอบกับบุตรหลาน";
+                } else if (st === 'leave' || st === 'ลา') {
+                    card.className = "bg-sky-600 text-white rounded-2xl p-5 shadow-md";
+                    title.textContent = "🔵 ลา / ออกนอกโรงเรียน";
+                    desc.textContent = "มีประวัติการยื่นใบลาในระบบ";
+                } else {
+                    card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md";
+                    title.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)";
+                    desc.textContent = "สแกนเข้าประตูโรงเรียนเรียบร้อยแล้ว";
+                }
+            }
+
+            const bhContainer = document.getElementById('behaviorLogsContainer');
+            if (bhContainer) {
+                bhContainer.innerHTML = myLogs.slice(-5).reverse().map(item => `
+                    <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-slate-800">${item.check_date || 'วันนี้'} (${item.time_slot || 'เช้า'})</span>
+                            <p class="text-[10px] text-slate-500">สถานะ: ${item.status || 'ปกติ'}</p>
+                        </div>
+                        <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full">${item.status}</span>
+                    </div>
+                `).join('');
+            }
         }
 
-        function openLeaveModal() { document.getElementById('leaveModal').classList.remove('hidden'); }
-        function closeLeaveModal() { document.getElementById('leaveModal').classList.add('hidden'); }
-        function logout() { localStorage.clear(); sessionStorage.clear(); window.location.href = 'login.html'; }
+        document.getElementById('stat-present').innerText = p;
+        document.getElementById('stat-late').innerText = l;
+        document.getElementById('stat-absent').innerText = a;
+        document.getElementById('stat-truant').innerText = t;
 
-        window.onload = initParentPortal;
-    </script>
+        // 4. ตารางเรียน
+        globalSchedules = resSchedules;
+        renderSchedule();
+
+        // 5. ประวัติใบลา
+        const myLeaves = resLeaves.filter(r => String(r.student_id || '') === currentStudentId);
+        const leaveContainer = document.getElementById('leaveHistoryList');
+        if (leaveContainer && myLeaves.length > 0) {
+            leaveContainer.innerHTML = myLeaves.map(r => `
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-slate-800">${r.leave_type === 'sick' ? '🤒 ลาป่วย' : '🏠 ลากิจ'}</span>
+                        <p class="text-[10px] text-slate-500 mt-0.5">วันที่: ${r.start_date} ถึง ${r.end_date} | เหตุผล: ${r.reason}</p>
+                    </div>
+                    <span class="text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">${r.status || 'รออนุมัติ'}</span>
+                </div>
+            `).join('');
+        }
+
+        // 6. การบ้าน
+        const myHw = resHomework.filter(h => h.classroom === currentStudentClass || h.class_name === currentStudentClass);
+        const hwContainer = document.getElementById('homeworkList');
+        if (hwContainer && myHw.length > 0) {
+            hwContainer.innerHTML = myHw.map(item => `
+                <div class="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl text-xs flex justify-between items-center">
+                    <div>
+                        <span class="bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded text-[10px]">${item.subject_code || 'วิชาเรียน'}</span>
+                        <h5 class="font-bold text-slate-800 mt-1">${item.title}</h5>
+                        <p class="text-[10px] text-slate-500 mt-0.5">📅 ส่ง: ${item.due_date || 'ไม่ระบุ'}</p>
+                    </div>
+                    <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">มอบหมายแล้ว</span>
+                </div>
+            `).join('');
+        }
+
+        // 7. แจ้งเตือน
+        const myNotes = resNotes.filter(n => String(n.student_id || '') === currentStudentId);
+        const noteContainer = document.getElementById('notificationList');
+        if (noteContainer && myNotes.length > 0) {
+            noteContainer.innerHTML = myNotes.slice(-3).reverse().map(n => `
+                <div class="p-3 bg-amber-50/50 border border-amber-100 rounded-xl text-xs">
+                    <h5 class="font-bold text-amber-900">${n.title || 'แจ้งเตือน'}</h5>
+                    <p class="text-[11px] text-slate-600 mt-0.5">${n.message}</p>
+                </div>
+            `).join('');
+        }
+    }
+
+    function renderSchedule() {
+        const day = document.getElementById('dayFilter')?.value || 'Monday';
+        const list = globalSchedules.filter(s => (s.class_name === currentStudentClass || s.classroom === currentStudentClass) && s.day_of_week === day);
+        const container = document.getElementById('scheduleContainer');
+        if (!container) return;
+
+        if (list.length === 0) {
+            container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed">ไม่มีตารางเรียนในวันนี้</div>`;
+            return;
+        }
+
+        container.innerHTML = list.map(s => `
+            <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center">${s.period_no || s.period || 1}</div>
+                    <div>
+                        <h4 class="font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
+                        <p class="text-[10px] text-slate-400">ห้อง: ${s.room_no || s.room || 'ไม่ระบุ'}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function submitLeaveRequest(e) {
+        e.preventDefault();
+        const type = document.getElementById('leaveType').value;
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+        const reason = document.getElementById('leaveReason').value;
+        const phone = document.getElementById('parentPhone').value;
+        const pin = document.getElementById('parentPin').value;
+
+        const { error } = await db.from('leave_requests').insert([{
+            student_id: currentStudentId,
+            class_name: currentStudentClass,
+            leave_type: type,
+            start_date: start,
+            end_date: end,
+            reason: reason,
+            parent_phone: phone,
+            parent_pin: pin,
+            created_by_role: 'parent',
+            status: 'pending'
+        }]);
+
+        if (error) alert('ยื่นใบลาไม่สำเร็จ: ' + error.message);
+        else { alert('ยื่นใบลาสำเร็จ!'); closeLeaveModal(); loadDashboard(); }
+    }
+
+    function openLeaveModal() { document.getElementById('leaveModal').classList.remove('hidden'); }
+    function closeLeaveModal() { document.getElementById('leaveModal').classList.add('hidden'); }
+    function logout() { localStorage.clear(); sessionStorage.clear(); window.location.href = 'login.html'; }
+
+    window.onload = initParentPortal;
+</script>
 </body>
 </html>
