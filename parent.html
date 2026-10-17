@@ -53,7 +53,7 @@
                     <span id="badge-status-dot" class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
                 </div>
                 <div class="space-y-0.5">
-                    <h2 id="student-fullname" class="text-base font-bold text-slate-800">กำลังโหลดข้อมูล...</h2>
+                    <h2 id="student-fullname" class="text-base font-bold text-slate-800">กำลังโหลด...</h2>
                     <p class="text-xs text-slate-500">ระดับชั้น: <span id="student-class" class="font-bold text-indigo-600">-</span> &bull; เลขที่: <span id="student-no">-</span></p>
                     <span id="student-status-badge" class="inline-block mt-1 text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">สถานะ: กำลังศึกษา</span>
                 </div>
@@ -309,7 +309,7 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
 
-    <!-- JS Master Engine -->
+    <!-- JS Master Engine (Smart Hybrid Matching) -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -321,18 +321,7 @@
 
         async function initParentPortal() {
             const session = JSON.parse(localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session') || '{}');
-            if (!session || !session.student_id) {
-                alert('กรุณาเข้าสู่ระบบก่อนใช้งาน');
-                window.location.href = 'login.html';
-                return;
-            }
-
-            const selector = document.getElementById('childSelector');
-            if (selector) {
-                selector.innerHTML = `<option value="${session.student_id}">${session.student_name || 'นักเรียนในปกครอง'} (${session.student_id})</option>`;
-            }
-
-            currentStudentId = String(session.student_id);
+            currentStudentId = session && session.student_id ? String(session.student_id) : '';
             loadDashboard();
         }
 
@@ -343,27 +332,39 @@
         }
 
         async function loadDashboard() {
-            // 1. ดึงโปรไฟล์นักเรียน (Safe-Execution)
+            // 1. ดึงข้อมูลตาราง students และเติม Dropdown เสมอ
             try {
                 const { data: students } = await db.from('students').select('*');
                 if (students && students.length > 0) {
-                    const st = students.find(s => String(s.student_id) === currentStudentId);
-                    if (st) {
-                        const name = (st.first_name || st.last_name) ? `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim() : (st.full_name || 'นักเรียน');
-                        currentStudentClass = st.classroom || st.class_name || 'ม.2/2';
-                        
-                        document.getElementById('student-fullname').textContent = name;
-                        document.getElementById('student-class').textContent = currentStudentClass;
-                        document.getElementById('student-no').textContent = st.student_no || st.number || '-';
-                        document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
-                        if (st.avatar_url || st.photo_url) document.getElementById('student-avatar').src = st.avatar_url || st.photo_url;
-
-                        renderAdvisor(st.advisor_name);
+                    const selector = document.getElementById('childSelector');
+                    if (selector) {
+                        selector.innerHTML = students.map(s => {
+                            const name = (s.first_name || s.last_name) ? `${s.prefix || ''}${s.first_name || ''} ${s.last_name || ''}`.trim() : (s.full_name || 'นักเรียน');
+                            return `<option value="${s.student_id}">${name} (${s.student_id})</option>`;
+                        }).join('');
                     }
+
+                    // หา student ตาม ID หรือเลือกคนแรกถ้าระบบสแกนไม่เจอ ID
+                    let st = students.find(s => String(s.student_id) === currentStudentId);
+                    if (!st) st = students[0];
+
+                    currentStudentId = String(st.student_id);
+                    if (selector) selector.value = currentStudentId;
+
+                    const name = (st.first_name || st.last_name) ? `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim() : (st.full_name || 'นักเรียนในปกครอง');
+                    currentStudentClass = st.classroom || st.class_name || 'ม.2/2';
+
+                    document.getElementById('student-fullname').textContent = name;
+                    document.getElementById('student-class').textContent = currentStudentClass;
+                    document.getElementById('student-no').textContent = st.student_no || st.number || st.no || '1';
+                    document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
+                    if (st.avatar_url || st.photo_url) document.getElementById('student-avatar').src = st.avatar_url || st.photo_url;
+
+                    renderAdvisor(st.advisor_name);
                 }
             } catch (e) { console.warn('Student profile err:', e); }
 
-            // 2. ดึงประวัติเข้าเรียน + Smart Gate (Safe-Execution)
+            // 2. ดึงประวัติเข้าเรียน + Smart Gate
             try {
                 const { data: logs } = await db.from('attendance_logs').select('*');
                 const myLogs = logs ? logs.filter(l => String(l.student_id) === currentStudentId) : [];
@@ -382,7 +383,6 @@
                     document.getElementById('stat-absent').innerText = a;
                     document.getElementById('stat-truant').innerText = t;
 
-                    // การ์ด Smart Gate สถานะล่าสุด
                     const last = myLogs[myLogs.length - 1];
                     const st = String(last.status || '').toLowerCase();
                     const card = document.getElementById('trafficCardContainer');
@@ -406,7 +406,6 @@
                         desc.textContent = "สแกนเข้าประตูโรงเรียนเรียบร้อยแล้ว";
                     }
 
-                    // ประวัติพฤติกรรมย้อนหลัง 5 รายการ
                     const bhList = myLogs.slice(-5).reverse().map(item => `
                         <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs flex justify-between items-center">
                             <div>
@@ -420,14 +419,14 @@
                 }
             } catch (e) { console.warn('Attendance err:', e); }
 
-            // 3. ดึงตารางเรียน (Safe-Execution)
+            // 3. ดึงตารางเรียน
             try {
                 const { data: sch } = await db.from('schedules').select('*');
                 globalSchedules = sch || [];
                 renderSchedule();
             } catch (e) { console.warn('Schedule err:', e); }
 
-            // 4. ดึงใบลา (Safe-Execution)
+            // 4. ดึงใบลา
             try {
                 const { data: reqs } = await db.from('leave_requests').select('*');
                 const myReqs = reqs ? reqs.filter(r => String(r.student_id) === currentStudentId) : [];
@@ -444,7 +443,7 @@
                 }
             } catch (e) { console.warn('Leave err:', e); }
 
-            // 5. ดึงการบ้าน (Safe-Execution)
+            // 5. ดึงการบ้าน
             try {
                 const { data: hw } = await db.from('homework_assignments').select('*');
                 const myHw = hw ? hw.filter(h => h.classroom === currentStudentClass) : [];
@@ -462,7 +461,7 @@
                 }
             } catch (e) { console.warn('Homework err:', e); }
 
-            // 6. ดึงข้อความแจ้งเตือน (Safe-Execution)
+            // 6. ดึงข้อความแจ้งเตือน
             try {
                 const { data: notes } = await db.from('teacher_notifications').select('*');
                 const myNotes = notes ? notes.filter(n => String(n.student_id) === currentStudentId) : [];
