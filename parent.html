@@ -309,10 +309,6 @@
         async function initParentPortal() {
             const session = JSON.parse(localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session') || '{}');
             currentStudentId = session && session.student_id ? String(session.student_id).trim() : '';
-            
-            if (!currentStudentId) {
-                console.warn("ไม่พบ session ผู้ปกครอง");
-            }
             loadDashboard();
         }
 
@@ -329,10 +325,8 @@
                     .select('*')
                     .or(`student_id.eq.${currentStudentId},parent_password.eq.${currentStudentId}`);
 
-                if (stErr) console.error("Error Querying Students:", stErr);
-
                 if (stList && stList.length > 0) {
-                    const st = stList[0]; // ดึงเฉพาะคนที่สอดคล้องจริง
+                    const st = stList[0];
 
                     currentStudentId = String(st.student_id).trim();
                     currentStudentClass = String(st.classroom || 'ม.1/1').trim();
@@ -344,21 +338,20 @@
                         selector.innerHTML = `<option value="${currentStudentId}">${fullName || 'นักเรียน'} (${currentStudentId})</option>`;
                     }
 
-                    // อัปเดตการแสดงผลโปรไฟล์จากคอลัมน์จริง
+                    // อัปเดตข้อมูลโปรไฟล์
                     const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                     document.getElementById('student-fullname').textContent = fullName || 'นักเรียนในปกครอง';
                     document.getElementById('student-class').textContent = currentStudentClass;
                     document.getElementById('student-no').textContent = st.student_no ?? '-';
                     document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
                     
-                    // อัปเดตรูปภาพจากคอลัมน์ avatar_url เป๊ะๆ
                     if (st.avatar_url && st.avatar_url.trim() !== '') {
                         document.getElementById('student-avatar').src = st.avatar_url;
                     } else {
                         document.getElementById('student-avatar').src = 'https://via.placeholder.com/100?text=No+Photo';
                     }
 
-                    // แสดงครูที่ปรึกษาจาก advisor_name
+                    // แสดงครูที่ปรึกษา
                     const advisorContainer = document.getElementById('advisorsContainer');
                     if (advisorContainer) {
                         if (st.advisor_name) {
@@ -376,12 +369,10 @@
                             advisorContainer.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษา</p>`;
                         }
                     }
-                } else {
-                    document.getElementById('student-fullname').textContent = 'ไม่พบข้อมูลนักเรียน (โปรดเข้าสู่ระบบใหม่)';
                 }
             } catch (e) { console.warn('Student profile err:', e); }
 
-            // 2. ดึงสถิติเช็กชื่อจาก attendance_logs
+            // 2. ดึงสถิติเช็กชื่อจาก attendance_logs (ตรวจจับสถานะ หนีเรียน / โดดเรียน เพิ่มเติม)
             try {
                 const { data: myLogs } = await db.from('attendance_logs').select('*').eq('student_id', currentStudentId);
 
@@ -393,7 +384,7 @@
                         else if (s === 'late' || s === 'สาย') l++;
                         else if (s === 'absent' || s === 'ขาด') a++;
                         else if (s === 'leave' || s === 'ลา') a++;
-                        else if (s === 'truant' || s === 'หนีเรียน') t++;
+                        else if (s === 'truant' || s === 'หนีเรียน' || s === 'โดดเรียน') t++;
                     });
 
                     const last = myLogs[myLogs.length - 1];
@@ -409,10 +400,18 @@
                     if (document.getElementById('timeGateOut')) document.getElementById('timeGateOut').textContent = gateOut !== '--:--' ? `${gateOut} น.` : '--:--';
 
                     if (card && title && desc) {
-                        if (stStatus === 'absent' || stStatus === 'ขาด') {
+                        if (stStatus === 'truant' || stStatus === 'หนีเรียน' || stStatus === 'โดดเรียน') {
+                            card.className = "bg-purple-700 text-white rounded-2xl p-5 shadow-md animate-bounce";
+                            title.textContent = "🟣 ตรวจพบการหนีเรียน / โดดเรียน";
+                            desc.textContent = "ขาดเช็กชื่อในรายวิชา โปรดติดตามสอบถามบุตรหลาน";
+                        } else if (stStatus === 'absent' || stStatus === 'ขาด') {
                             card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md animate-pulse";
                             title.textContent = "🔴 ขาดเรียน";
                             desc.textContent = "ครูเช็กชื่อขาดเรียน โปรดตรวจสอบกับบุตรหลาน";
+                        } else if (stStatus === 'late' || stStatus === 'สาย') {
+                            card.className = "bg-amber-600 text-white rounded-2xl p-5 shadow-md";
+                            title.textContent = "🟠 เข้าเรียนสาย";
+                            desc.textContent = "สแกนหรือเช็กชื่อเข้าเรียนสาย";
                         } else if (stStatus === 'leave' || stStatus === 'ลา') {
                             card.className = "bg-sky-600 text-white rounded-2xl p-5 shadow-md";
                             title.textContent = "🔵 ลา / ออกนอกโรงเรียน";
@@ -428,13 +427,17 @@
                     if (bhContainer) {
                         bhContainer.innerHTML = myLogs.slice(-5).reverse().map(item => {
                             const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : 'วันนี้';
+                            let badgeBg = 'bg-indigo-50 text-indigo-700';
+                            if (String(item.status).includes('หนี')) badgeBg = 'bg-purple-100 text-purple-800';
+                            else if (String(item.status).includes('ขาด')) badgeBg = 'bg-rose-100 text-rose-800';
+                            
                             return `
                                 <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs flex justify-between items-center mb-1">
                                     <div>
                                         <span class="font-bold text-slate-800">${dateStr} (คาบที่ ${item.period_no || 1})</span>
-                                        <p class="text-[10px] text-slate-500">สถานะ: ${item.status || 'ปกติ'}</p>
+                                        <p class="text-[10px] text-slate-500">วิชา: ${item.subject_name || 'วิชาทั่วไป'}</p>
                                     </div>
-                                    <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full">${item.status}</span>
+                                    <span class="text-[10px] ${badgeBg} font-bold px-2 py-0.5 rounded-full">${item.status}</span>
                                 </div>`;
                         }).join('');
                     }
@@ -496,13 +499,13 @@
                     clinicContainer.innerHTML = myClinic.map(c => `
                         <div class="p-3 bg-rose-50/50 border border-rose-100 rounded-xl text-xs space-y-1 mb-1">
                             <span class="font-bold text-rose-900">อาการ: ${c.symptom || 'ป่วย/มีไข้'}</span>
-                            <p class="text-[10px] text-slate-500">สถานะ: ${c.status || 'บันทึกแล้ว'}</p>
+                            <p class="text-[10px] text-slate-400">สถานะ: ${c.status || 'บันทึกแล้ว'}</p>
                         </div>
                     `).join('');
                 }
             } catch (e) { console.warn('Clinic err:', e); }
 
-            // 7. ดึงการบ้าน (ดึงทั้ง academic_assignments และ homework_assignments)
+            // 7. ดึงการบ้าน
             try {
                 let combinedHw = [];
                 const { data: hw1 } = await db.from('academic_assignments').select('*');
