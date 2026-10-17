@@ -321,14 +321,18 @@
         async function loadDashboard() {
             // 1. คิวรีเฉพาะนักเรียนที่สอดคล้องกับ currentStudentId จากตาราง students
             try {
-                const { data: stList, error: stErr } = await db.from('students')
-                    .select('*')
-                    .or(`student_id.eq.${currentStudentId},parent_password.eq.${currentStudentId}`);
+                const { data: stList, error: stErr } = await db.from('students').select('*');
 
                 if (stList && stList.length > 0) {
-                    const st = stList[0];
+                    let st = stList.find(s => 
+                        String(s.student_id || '').trim() === currentStudentId || 
+                        String(s.parent_password || '').trim() === currentStudentId ||
+                        String(s.student_no || '').trim() === currentStudentId
+                    );
 
-                    currentStudentId = String(st.student_id).trim();
+                    if (!st) st = stList[0];
+
+                    currentStudentId = String(st.student_id || '').trim();
                     currentStudentClass = String(st.classroom || 'ม.1/1').trim();
 
                     // อัปเดต Dropdown
@@ -372,19 +376,20 @@
                 }
             } catch (e) { console.warn('Student profile err:', e); }
 
-            // 2. ดึงสถิติเช็กชื่อจาก attendance_logs (ตรวจจับสถานะ หนีเรียน / โดดเรียน เพิ่มเติม)
+            // 2. ดึงสถิติเช็กชื่อจาก attendance_logs (แมตช์นักเรียนและตรวจจับ หนีเรียน/โดดเรียน)
             try {
-                const { data: myLogs } = await db.from('attendance_logs').select('*').eq('student_id', currentStudentId);
+                const { data: logs } = await db.from('attendance_logs').select('*');
+                const myLogs = logs ? logs.filter(l => String(l.student_id || '').trim() === currentStudentId) : [];
 
                 let p = 0, l = 0, a = 0, t = 0;
                 if (myLogs && myLogs.length > 0) {
                     myLogs.forEach(log => {
                         const s = String(log.status || '').toLowerCase();
-                        if (s === 'present' || s === 'มา') p++;
+                        if (s === 'present' || s === 'มา' || s === 'มาเรียน') p++;
                         else if (s === 'late' || s === 'สาย') l++;
-                        else if (s === 'absent' || s === 'ขาด') a++;
+                        else if (s === 'absent' || s === 'ขาด' || s === 'ขาดเรียน') a++;
                         else if (s === 'leave' || s === 'ลา') a++;
-                        else if (s === 'truant' || s === 'หนีเรียน' || s === 'โดดเรียน') t++;
+                        else if (s === 'truant' || s === 'หนีเรียน' || s === 'โดดเรียน' || s === 'หนี') t++;
                     });
 
                     const last = myLogs[myLogs.length - 1];
@@ -400,19 +405,19 @@
                     if (document.getElementById('timeGateOut')) document.getElementById('timeGateOut').textContent = gateOut !== '--:--' ? `${gateOut} น.` : '--:--';
 
                     if (card && title && desc) {
-                        if (stStatus === 'truant' || stStatus === 'หนีเรียน' || stStatus === 'โดดเรียน') {
+                        if (stStatus.includes('truant') || stStatus.includes('หนี') || stStatus.includes('โดด')) {
                             card.className = "bg-purple-700 text-white rounded-2xl p-5 shadow-md animate-bounce";
                             title.textContent = "🟣 ตรวจพบการหนีเรียน / โดดเรียน";
                             desc.textContent = "ขาดเช็กชื่อในรายวิชา โปรดติดตามสอบถามบุตรหลาน";
-                        } else if (stStatus === 'absent' || stStatus === 'ขาด') {
+                        } else if (stStatus.includes('absent') || stStatus.includes('ขาด')) {
                             card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md animate-pulse";
                             title.textContent = "🔴 ขาดเรียน";
                             desc.textContent = "ครูเช็กชื่อขาดเรียน โปรดตรวจสอบกับบุตรหลาน";
-                        } else if (stStatus === 'late' || stStatus === 'สาย') {
+                        } else if (stStatus.includes('late') || stStatus.includes('สาย')) {
                             card.className = "bg-amber-600 text-white rounded-2xl p-5 shadow-md";
                             title.textContent = "🟠 เข้าเรียนสาย";
                             desc.textContent = "สแกนหรือเช็กชื่อเข้าเรียนสาย";
-                        } else if (stStatus === 'leave' || stStatus === 'ลา') {
+                        } else if (stStatus.includes('leave') || stStatus.includes('ลา')) {
                             card.className = "bg-sky-600 text-white rounded-2xl p-5 shadow-md";
                             title.textContent = "🔵 ลา / ออกนอกโรงเรียน";
                             desc.textContent = "มีประวัติการยื่นใบลาในระบบ";
@@ -441,6 +446,9 @@
                                 </div>`;
                         }).join('');
                     }
+                } else {
+                    const bhContainer = document.getElementById('behaviorLogsContainer');
+                    if (bhContainer) bhContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติพฤติกรรม</p>`;
                 }
 
                 document.getElementById('stat-present').innerText = p;
@@ -452,10 +460,11 @@
 
             // 3. ดึงสถิติ มส.
             try {
-                const { data: myRisks } = await db.from('academic_attendance_summary').select('*').eq('student_id', currentStudentId);
+                const { data: myRisks } = await db.from('academic_attendance_summary').select('*');
+                const filteredRisks = myRisks ? myRisks.filter(r => String(r.student_id || '').trim() === currentStudentId) : [];
                 const container = document.getElementById('academicRiskContainer');
-                if (container && myRisks && myRisks.length > 0) {
-                    container.innerHTML = myRisks.map(r => `
+                if (container && filteredRisks.length > 0) {
+                    container.innerHTML = filteredRisks.map(r => `
                         <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl flex justify-between items-center text-xs mb-1">
                             <div>
                                 <span class="font-bold text-slate-800">${r.subject_name || r.subject_code}</span>
@@ -476,9 +485,10 @@
 
             // 5. ดึงประวัติใบลา
             try {
-                const { data: myReqs } = await db.from('leave_requests').select('*').eq('student_id', currentStudentId);
+                const { data: reqs } = await db.from('leave_requests').select('*');
+                const myReqs = reqs ? reqs.filter(r => String(r.student_id || '').trim() === currentStudentId) : [];
                 const leaveContainer = document.getElementById('leaveHistoryList');
-                if (leaveContainer && myReqs && myReqs.length > 0) {
+                if (leaveContainer && myReqs.length > 0) {
                     leaveContainer.innerHTML = myReqs.map(r => `
                         <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center mb-1">
                             <div>
@@ -493,9 +503,10 @@
 
             // 6. ดึงประวัติห้องพยาบาล
             try {
-                const { data: myClinic } = await db.from('clinic_records').select('*').eq('student_id', currentStudentId);
+                const { data: clinic } = await db.from('clinic_records').select('*');
+                const myClinic = clinic ? clinic.filter(c => String(c.student_id || '').trim() === currentStudentId) : [];
                 const clinicContainer = document.getElementById('clinicHistoryList');
-                if (clinicContainer && myClinic && myClinic.length > 0) {
+                if (clinicContainer && myClinic.length > 0) {
                     clinicContainer.innerHTML = myClinic.map(c => `
                         <div class="p-3 bg-rose-50/50 border border-rose-100 rounded-xl text-xs space-y-1 mb-1">
                             <span class="font-bold text-rose-900">อาการ: ${c.symptom || 'ป่วย/มีไข้'}</span>
@@ -554,9 +565,10 @@
 
             // 8. ดึงแจ้งเตือน
             try {
-                const { data: myNotes } = await db.from('teacher_notifications').select('*').eq('student_id', currentStudentId);
+                const { data: notes } = await db.from('teacher_notifications').select('*');
+                const myNotes = notes ? notes.filter(n => String(n.student_id || '').trim() === currentStudentId) : [];
                 const noteContainer = document.getElementById('notificationList');
-                if (noteContainer && myNotes && myNotes.length > 0) {
+                if (noteContainer && myNotes.length > 0) {
                     noteContainer.innerHTML = myNotes.slice(-3).reverse().map(n => `
                         <div class="p-3 bg-amber-50/50 border border-amber-100 rounded-xl text-xs mb-1">
                             <h5 class="font-bold text-amber-900">${n.title || 'แจ้งเตือน'}</h5>
