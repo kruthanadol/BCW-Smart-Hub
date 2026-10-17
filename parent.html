@@ -351,87 +351,64 @@
             loadStudentData(studentId);
         }
 
-        // 🟢 ดึงข้อมูลการสแกนประตูยามเช้า + ความเสี่ยง มส. จาก Supabase สด 100%
-        async function loadSmartGateAndRiskStatus(studentId) {
+        // 🟢 ฟังก์ชันหลัก: ดึงข้อมูลโปรไฟล์นักเรียนและเรียกโหลดทุกส่วนจาก DB จริง สด 100%
+        async function loadStudentData(studentId) {
+            if (!studentId || !db) return;
             try {
-                if (!db || !studentId) return;
-
-                // 1. ดึงข้อมูลสแกนหน้า/ลงเวลาเข้าโรงเรียนประจำวันนี้จากตาราง attendance_logs
-                const todayStr = new Date().toISOString().split('T')[0];
-                
-                const { data: todayLogs, error: gateErr } = await db
-                    .from('attendance_logs')
+                // 1. ดึงข้อมูลโปรไฟล์นักเรียนสดจากตาราง students
+                const { data: student, error: stdErr } = await db
+                    .from('students')
                     .select('*')
                     .eq('student_id', studentId)
-                    .eq('check_date', todayStr)
-                    .order('created_at', { ascending: false });
+                    .maybeSingle();
 
-                if (gateErr) console.warn('Gate logs query notice:', gateErr.message);
+                if (stdErr) console.warn('Student query warning:', stdErr.message);
 
-                // ตรวจสอบข้อมูลสแกนประตู
-                const firstLog = (todayLogs && todayLogs.length > 0) ? todayLogs[0] : null;
+                let advisorName = '';
+                if (student) {
+                    currentStudentClass = student.classroom || student.class_name || 'ม.2/2';
+                    
+                    // อัปเดตข้อมูลบนหน้าจอ
+                    const nameEl = document.getElementById('studentName') || document.querySelector('.student-name-title');
+                    if (nameEl) nameEl.innerText = student.full_name || `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
 
-                // อัปเดตกล่อง SMART GATE LIVE STATUS
-                const gateTitle = document.querySelector('.bg-slate-800 .font-bold.text-lg, #gate-title');
-                const gateSub = document.querySelector('.bg-slate-800 .text-slate-400.text-xs, #gate-sub');
-                const timeInEl = document.getElementById('time-in-display') || document.querySelector('[id*="time-in"]');
-                const timeOutEl = document.getElementById('time-out-display') || document.querySelector('[id*="time-out"]');
+                    const classEl = document.getElementById('studentClass') || document.querySelector('.student-class-title');
+                    if (classEl) classEl.innerText = `ระดับชั้น: ${currentStudentClass} • เลขที่: ${student.student_no || student.number || '-'}`;
 
-                if (firstLog) {
-                    if (gateTitle) gateTitle.innerText = `🟢 สแกนเข้าโรงเรียนเรียบร้อยแล้ว (${firstLog.status || 'เข้าเรียน'})`;
-                    if (gateSub) gateSub.innerText = `ลงเวลาเมื่อวันที่ ${todayStr}`;
-                    if (timeInEl) timeInEl.innerText = firstLog.entry_time || firstLog.created_at?.split('T')[1]?.substring(0,5) || '07:45';
-                    if (timeOutEl) timeOutEl.innerText = firstLog.exit_time || '--:--';
+                    const scoreEl = document.getElementById('behaviorScore') || document.querySelector('.behavior-score-val');
+                    if (scoreEl) scoreEl.innerText = student.behavior_score ?? 100;
+
+                    const avatarEl = document.getElementById('studentAvatar');
+                    if (avatarEl && student.avatar_url) avatarEl.src = student.avatar_url;
+
+                    advisorName = student.advisor_name || '';
                 }
 
-                // 2. ดึงสถิติความเสี่ยงติด มส. (ขาดเรียนรวมเกินกำหนด) จาก attendance_logs
-                const { data: allAbsentLogs, error: absentErr } = await db
-                    .from('attendance_logs')
-                    .select('course_code, status')
-                    .eq('student_id', studentId)
-                    .in('status', ['absent', 'truant', 'ขาด', 'หนีเรียน']);
-
-                if (absentErr) console.warn('Absent query notice:', absentErr.message);
-
-                const riskBox = document.querySelector('.border-emerald-200, .border-amber-200, .border-rose-200, #risk-status-box');
-                if (riskBox) {
-                    const totalAbsent = allAbsentLogs ? allAbsentLogs.length : 0;
-                    if (totalAbsent >= 5) {
-                        riskBox.className = "p-3 bg-rose-50 rounded-xl border border-rose-200 text-rose-800 text-xs font-semibold text-center";
-                        riskBox.innerHTML = `⚠️ อยู่ในกลุ่มเสี่ยงติด มส. (มีประวัติขาดเรียนรวม ${totalAbsent} คาบ)`;
-                    } else if (totalAbsent > 0) {
-                        riskBox.className = "p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-xs font-semibold text-center";
-                        riskBox.innerHTML = `⚠️ มีประวัติขาด/หนีเรียน ${totalAbsent} คาบ (โปรดติดตามการเข้าเรียนอย่างใกล้ชิด)`;
-                    } else {
-                        riskBox.className = "p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 text-xs font-semibold text-center";
-                        riskBox.innerHTML = `✔ เวลาเรียนปกติทุกรายวิชา (ไม่อยู่ในกลุ่มเสี่ยงติด มส.)`;
-                    }
+                // 2. ตั้งค่าวันปัจจุบันในตัวเลือกตารางเรียน
+                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const todayName = days[new Date().getDay()];
+                if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(todayName)) {
+                    const daySelect = document.getElementById('dayFilter');
+                    if (daySelect) daySelect.value = todayName;
                 }
+
+                // 3. เรียกฟังก์ชันดึงข้อมูลย่อยทั้งหมดจาก DB สด
+                updateTrafficCard(studentId);
+                loadAcademicRisks(studentId);
+                loadGateLocation(studentId);
+                loadStudentSchedule();
+                loadClassAdvisors(currentStudentClass);
+                loadLeaveHistory(studentId);
+                loadNotifications(studentId);
+                loadClinicRecords(studentId);
+                loadHomework(currentStudentClass);
+                subscribeToHomeworkUpdates(currentStudentClass);
+                loadAttendanceStats(studentId);
+                loadStudentAttendance(studentId);
 
             } catch (err) {
-                console.error('Error in loadSmartGateAndRiskStatus:', err);
+                console.error('Error in loadStudentData:', err);
             }
-        }
-
-            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            const todayName = days[new Date().getDay()];
-            if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(todayName)) {
-                const daySelect = document.getElementById('dayFilter');
-                if (daySelect) daySelect.value = todayName;
-            }
-
-            updateTrafficCard(studentId);
-            loadAcademicRisks(studentId);
-            loadGateLocation(studentId);
-            loadStudentSchedule();
-            if (!advisorName) loadClassAdvisors(currentStudentClass);
-            loadLeaveHistory(studentId);
-            loadNotifications(studentId);
-            loadClinicRecords(studentId);
-            loadHomework(currentStudentClass);
-            subscribeToHomeworkUpdates(currentStudentClass);
-            loadAttendanceStats(studentId);
-            loadBehaviorLogs(studentId);
         }
 
         async function updateTrafficCard(studentId) {
@@ -455,40 +432,44 @@
                 if (logs && logs.length > 0) {
                     const log = logs[0];
                     const status = log.traffic_status || (log.status === 'present' ? 'GREEN' : (log.status === 'absent' ? 'RED' : 'GREEN'));
-                    const gateIn = log.gate_in_time ? new Date(log.gate_in_time).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}) : '--:--';
-                    const gateOut = log.gate_out_time ? new Date(log.gate_out_time).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                    const gateIn = log.gate_in_time ? new Date(log.gate_in_time).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}) : (log.entry_time || '--:--');
+                    const gateOut = log.gate_out_time ? new Date(log.gate_out_time).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}) : (log.exit_time || '--:--');
 
-                    if (timeIn) timeIn.textContent = `${gateIn} น.`;
+                    if (timeIn) timeIn.textContent = gateIn !== '--:--' ? `${gateIn} น.` : '--:--';
                     if (timeOut) timeOut.textContent = gateOut !== '--:--' ? `${gateOut} น.` : '--:--';
 
-                    if (status === 'GREEN') {
-                        card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
-                        icon.className = "fa-solid fa-school-flag";
-                        title.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)";
-                        desc.textContent = "เช็กชื่อเข้าแถววิชาหน้าที่พลเมืองเรียบร้อยแล้ว";
-                    } else if (status === 'BLUE') {
-                        card.className = "bg-sky-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
-                        icon.className = "fa-solid fa-file-signature";
-                        title.textContent = "🔵 ออกนอกโรงเรียน (มีใบอนุญาต)";
-                        desc.textContent = "อยู่ระหว่างการได้รับอนุญาตออกนอกบริเวณโรงเรียน/ห้องพยาบาล";
-                    } else if (status === 'RED') {
-                        card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300 animate-pulse";
-                        icon.className = "fa-solid fa-triangle-exclamation";
-                        title.textContent = "🔴 ไม่พบในโรงเรียน (ขาดแถวเช้า)";
-                        desc.textContent = "ครูเช็กชื่อขาดเรียนยามเช้า โปรดตรวจสอบกับบุตรหลาน";
-                    } else if (status === 'PURPLE') {
-                        card.className = "bg-purple-700 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
-                        icon.className = "fa-solid fa-house-user";
-                        title.textContent = "🟣 สแกนหน้าออกจากโรงเรียนแล้ว";
-                        desc.textContent = "สแกนกล้องประตูทางออกเพื่อเดินทางกลับบ้านเรียบร้อยแล้ว";
+                    if (card && title && desc) {
+                        if (status === 'GREEN') {
+                            card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
+                            if (icon) icon.className = "fa-solid fa-school-flag";
+                            title.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)";
+                            desc.textContent = "เช็กชื่อเข้าแถววิชาหน้าที่พลเมืองเรียบร้อยแล้ว";
+                        } else if (status === 'BLUE') {
+                            card.className = "bg-sky-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
+                            if (icon) icon.className = "fa-solid fa-file-signature";
+                            title.textContent = "🔵 ออกนอกโรงเรียน (มีใบอนุญาต)";
+                            desc.textContent = "อยู่ระหว่างการได้รับอนุญาตออกนอกบริเวณโรงเรียน/ห้องพยาบาล";
+                        } else if (status === 'RED') {
+                            card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300 animate-pulse";
+                            if (icon) icon.className = "fa-solid fa-triangle-exclamation";
+                            title.textContent = "🔴 ไม่พบในโรงเรียน (ขาดแถวเช้า)";
+                            desc.textContent = "ครูเช็กชื่อขาดเรียนยามเช้า โปรดตรวจสอบกับบุตรหลาน";
+                        } else if (status === 'PURPLE') {
+                            card.className = "bg-purple-700 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
+                            if (icon) icon.className = "fa-solid fa-house-user";
+                            title.textContent = "🟣 สแกนหน้าออกจากโรงเรียนแล้ว";
+                            desc.textContent = "สแกนกล้องประตูทางออกเพื่อเดินทางกลับบ้านเรียบร้อยแล้ว";
+                        }
                     }
                 } else {
-                    card.className = "bg-slate-700 text-white rounded-2xl p-5 shadow-md";
-                    icon.className = "fa-solid fa-clock";
-                    title.textContent = "⚪ รอการเช็กชื่อยามเช้า";
-                    desc.textContent = "ยังไม่พบสถิติสแกนหน้าหรือเข้าแถวในวันนี้";
-                    if (timeIn) timeIn.textContent = "--:--";
-                    if (timeOut) timeOut.textContent = "--:--";
+                    if (card && title && desc) {
+                        card.className = "bg-slate-700 text-white rounded-2xl p-5 shadow-md";
+                        if (icon) icon.className = "fa-solid fa-clock";
+                        title.textContent = "⚪ รอการเช็กชื่อยามเช้า";
+                        desc.textContent = "ยังไม่พบสถิติสแกนหน้าหรือเข้าแถวในวันนี้";
+                        if (timeIn) timeIn.textContent = "--:--";
+                        if (timeOut) timeOut.textContent = "--:--";
+                    }
                 }
             } catch (err) {
                 console.error('Error updating traffic card:', err);
@@ -497,10 +478,17 @@
 
         async function loadAcademicRisks(studentId) {
             const container = document.getElementById('academicRiskContainer');
-            try {
-                const { data: risks, error } = await db.from('v_academic_attendance_risk').select('*').eq('student_id', studentId);
+            if (!container) return;
 
-                if (error || !risks || risks.length === 0) {
+            try {
+                // คิวรีเช็กจาก attendance_logs โดยตรง
+                const { data: absentLogs } = await db
+                    .from('attendance_logs')
+                    .select('course_code, status')
+                    .eq('student_id', studentId)
+                    .in('status', ['absent', 'truant', 'ขาด', 'หนีเรียน']);
+
+                if (!absentLogs || absentLogs.length === 0) {
                     container.innerHTML = `
                         <div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold">
                             <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา (ไม่อยู่ในกลุ่มเสี่ยงติด มส.)
@@ -508,24 +496,26 @@
                     return;
                 }
 
-                container.innerHTML = risks.map(r => {
-                    const isFailed = r.status === 'FAILED' || r.attendance_percentage < 80;
-                    const bgClass = isFailed ? 'bg-rose-50/60 border-rose-200' : 'bg-amber-50/60 border-amber-200';
-                    const badgeClass = isFailed ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800';
-                    const statusLabel = isFailed ? 'ติด มส. แล้ว' : 'เสี่ยงติด มส.';
-
-                    return `
-                        <div class="p-3 ${bgClass} border rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                            <div class="space-y-0.5">
-                                <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                                    <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
-                                    <span>${r.subject_name || r.course_code}</span>
-                                </div>
-                                <p class="text-[11px] text-slate-600">เวลาเรียนปัจจุบัน: <strong>${r.attendance_percentage}%</strong> &bull; ขาดเรียน ${r.absent_count || 0} คาบ</p>
+                const absentCount = absentLogs.length;
+                if (absentCount >= 4) {
+                    container.innerHTML = `
+                        <div class="p-3 bg-rose-50/60 border border-rose-200 rounded-xl flex items-center justify-between text-xs text-rose-800 font-bold">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                                <span>อยู่ในกลุ่มเสี่ยงติด มส. (มีประวัติขาด/หนีเรียนรวม ${absentCount} คาบ)</span>
                             </div>
-                            <span class="text-[10px] ${badgeClass} font-bold px-2.5 py-1 rounded-lg self-start sm:self-center">${statusLabel}</span>
+                            <span class="bg-rose-100 text-rose-800 px-2.5 py-1 rounded-lg text-[10px]">เสี่ยงติด มส.</span>
                         </div>`;
-                }).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-800 font-bold">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                                <span>มีประวัติขาดเรียน ${absentCount} คาบ (โปรดติดตามการเข้าเรียนอย่างใกล้ชิด)</span>
+                            </div>
+                            <span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-[10px]">เฝ้าระวัง</span>
+                        </div>`;
+                }
             } catch (err) {
                 container.innerHTML = `<div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา</div>`;
             }
@@ -533,6 +523,8 @@
 
         async function loadGateLocation(studentId) {
             const container = document.getElementById('locationGateContainer');
+            if (!container) return;
+
             try {
                 const today = new Date().toISOString().split('T')[0];
                 const { data: gateLogs } = await db.from('attendance_logs').select('*').eq('student_id', studentId).gte('check_date', today).order('created_at', { ascending: false }).limit(1);
@@ -552,7 +544,7 @@
                 }
 
                 const log = gateLogs[0];
-                const checkTime = new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                const checkTime = log.entry_time || new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
 
                 container.innerHTML = `
                     <div class="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl flex justify-between items-center text-xs">
@@ -576,6 +568,7 @@
             const dayElem = document.getElementById('dayFilter');
             const day = dayElem ? dayElem.value : 'Monday';
             const container = document.getElementById('scheduleContainer');
+            if (!container) return;
 
             if (!currentStudentClass || currentStudentClass === '-') {
                 container.innerHTML = `<div class="p-3 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">ไม่มีตารางเรียน (ไม่พบระดับชั้น)</div>`;
@@ -598,7 +591,7 @@
                                 <span class="text-sm font-extrabold leading-tight">${s.period_no || s.period || 1}</span>
                             </div>
                             <div>
-                                <h4 class="text-xs font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
+                                <h4 class="text-xs font-bold text-slate-800">${s.course_code || s.subject_name || 'วิชาเรียน'}</h4>
                                 <p class="text-[10px] text-slate-400"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.room_no || s.room || 'ไม่ระบุ'}</p>
                             </div>
                         </div>
@@ -611,6 +604,7 @@
         async function loadClassAdvisors(className) {
             const container = document.getElementById('advisorsContainer');
             const badge = document.getElementById('advisorCountBadge');
+            if (!container) return;
 
             if (!className || className === '-') {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ไม่พบข้อมูลครูที่ปรึกษา (ไม่พบระดับชั้น)</p>`;
@@ -619,10 +613,10 @@
             }
 
             try {
-                const { data: advisors } = await db.from('class_advisors').select('*').eq('class_name', className);
+                const { data: advisors } = await db.from('users').select('*').eq('role', 'teacher').eq('advisor_classroom', className);
 
                 if (!advisors || advisors.length === 0) {
-                    container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษา</p>`;
+                    container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษาสำหรับห้อง ${className}</p>`;
                     if (badge) badge.innerText = '0 คน';
                     return;
                 }
@@ -630,12 +624,10 @@
                 if (badge) badge.innerText = `${advisors.length} คน`;
                 container.innerHTML = advisors.map(adv => `
                     <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
-                            <i class="fa-solid fa-user-tie"></i>
-                        </div>
+                        <img src="${adv.avatar_url || 'https://via.placeholder.com/150'}" class="w-10 h-10 rounded-xl object-cover border border-slate-200">
                         <div class="overflow-hidden space-y-0.5">
-                            <h4 class="text-xs font-bold text-slate-800 truncate">${adv.teacher_name || adv.name || adv.teacher_id}</h4>
-                            <p class="text-[10px] text-slate-400 truncate">ครูที่ปรึกษาประจำชั้น</p>
+                            <h4 class="text-xs font-bold text-slate-800 truncate">${adv.full_name || adv.email}</h4>
+                            <p class="text-[10px] text-slate-400 truncate">ครูที่ปรึกษาประจำชั้น ${className} ${adv.phone ? '| โทร: ' + adv.phone : ''}</p>
                         </div>
                     </div>`).join('');
             } catch (err) {
@@ -645,6 +637,8 @@
 
         async function loadLeaveHistory(studentId) {
             const container = document.getElementById('leaveHistoryList');
+            if (!container) return;
+
             try {
                 const { data: requests } = await db.from('leave_requests').select('*').eq('student_id', studentId).order('created_at', { ascending: false });
 
@@ -670,6 +664,8 @@
 
         async function loadNotifications(studentId) {
             const container = document.getElementById('notificationList');
+            if (!container) return;
+
             try {
                 const { data: notes } = await db.from('teacher_notifications').select('*').eq('student_id', studentId).order('created_at', { ascending: false }).limit(3);
 
@@ -693,6 +689,8 @@
 
         async function loadClinicRecords(studentId) {
             const container = document.getElementById('clinicHistoryList');
+            if (!container) return;
+
             try {
                 const { data: records } = await db.from('clinic_records').select('*').eq('student_id', studentId);
 
@@ -727,8 +725,10 @@
 
         async function loadHomework(className) {
             const container = document.getElementById('homeworkList');
+            if (!container) return;
+
             if (!className || className === '-') {
-                if (container) container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้าน (ไม่พบระดับชั้น)</p>`;
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้าน (ไม่พบระดับชั้น)</p>`;
                 return;
             }
 
@@ -742,68 +742,40 @@
                 if (error) throw error;
 
                 if (!list || list.length === 0) {
-                    if (container) container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">🎉 ปัจจุบันไม่มีการบ้านค้างส่ง</p>`;
+                    container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">🎉 ปัจจุบันไม่มีการบ้านค้างส่ง</p>`;
                     return;
                 }
 
-                if (container) {
-                    container.innerHTML = list.map(item => `
-                        <div class="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl mb-2 text-xs flex justify-between items-center">
-                            <div>
-                                <span class="bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded text-[10px]">${item.subject_code || 'วิชาทั่วไป'}</span>
-                                <h5 class="font-bold text-slate-800 mt-1">${item.title}</h5>
-                                <p class="text-[11px] text-slate-500 mt-0.5">📅 กำหนดส่ง: ${item.due_date || 'ไม่ระบุ'}</p>
-                            </div>
-                            <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">มอบหมายแล้ว</span>
+                container.innerHTML = list.map(item => `
+                    <div class="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl mb-2 text-xs flex justify-between items-center">
+                        <div>
+                            <span class="bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded text-[10px]">${item.subject_code || 'วิชาทั่วไป'}</span>
+                            <h5 class="font-bold text-slate-800 mt-1">${item.title}</h5>
+                            <p class="text-[11px] text-slate-500 mt-0.5">📅 กำหนดส่ง: ${item.due_date || 'ไม่ระบุ'}</p>
                         </div>
-                    `).join('');
-                }
+                        <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">มอบหมายแล้ว</span>
+                    </div>
+                `).join('');
 
             } catch (err) {
                 console.error('Error loading homework:', err);
-                if (container) container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
             }
         }
 
-        async function loadAttendanceStats(studentId) {
-            try {
-                const { data: logs } = await db.from('attendance_logs').select('status').eq('student_id', studentId);
-
-                let present = 0, late = 0, absent = 0, truant = 0;
-                if (logs) {
-                    logs.forEach(l => {
-                        if (l.status === 'present') present++;
-                        else if (l.status === 'late') late++;
-                        else if (l.status === 'absent' || l.status === 'leave') absent++;
-                        else if (l.status === 'truant') truant++;
-                    });
-                }
-
-                document.getElementById('stat-present').innerText = present;
-                document.getElementById('stat-late').innerText = late;
-                document.getElementById('stat-absent').innerText = absent;
-                document.getElementById('stat-truant').innerText = truant;
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        // 🟢 1. ดึงสถิติการเช็กชื่อและประวัติการเข้าเรียนจากตาราง attendance_logs จริงเท่านั้น
+        // 🟢 ดึงสถิติรวม 4 กล่อง (มา/สาย/ขาด/หนี) จาก DB จริง
         async function loadStudentAttendance(studentId) {
             try {
                 if (!db || !studentId) return;
 
-                // คิวรีดึงข้อมูลจริงจากตาราง attendance_logs
                 const { data: logs, error } = await db
                     .from('attendance_logs')
-                    .select('status, check_date, time_slot, created_at')
+                    .select('status, check_date')
                     .eq('student_id', studentId);
 
                 if (error) throw error;
 
                 let present = 0, late = 0, leave = 0, absent = 0, truant = 0;
-                let todayLog = null;
-                const today = new Date().toISOString().split('T')[0];
 
                 if (logs && logs.length > 0) {
                     logs.forEach(log => {
@@ -813,76 +785,17 @@
                         else if (st === 'leave' || st === 'ลา') leave++;
                         else if (st === 'absent' || st === 'ขาด') absent++;
                         else if (st === 'truant' || st === 'หนีเรียน') truant++;
-
-                        // เช็กรายการเช็กชื่อประจำวันปัจจุบัน
-                        if (log.check_date === today) {
-                            todayLog = log;
-                        }
                     });
                 }
 
-                // แสดงผลสถิติรวมในช่องการเช็กชื่อ
                 if (document.getElementById('count-present')) document.getElementById('count-present').innerText = present;
                 if (document.getElementById('count-late')) document.getElementById('count-late').innerText = late;
                 if (document.getElementById('count-leave')) document.getElementById('count-leave').innerText = leave;
                 if (document.getElementById('count-absent')) document.getElementById('count-absent').innerText = absent;
                 if (document.getElementById('count-truant')) document.getElementById('count-truant').innerText = truant;
 
-                // แสดงสถานะ Smart Gate Live Status ของวันนี้จาก DB จริง
-                const gateStatusElem = document.getElementById('smart-gate-status');
-                if (gateStatusElem) {
-                    if (todayLog) {
-                        const statusMap = {
-                            'present': '🟢 เช็กชื่อเข้าเรียนแล้ว (มาเรียน)',
-                            'late': '🟡 มาสาย',
-                            'leave': '🔵 ลากิจ/ลาป่วย',
-                            'absent': '🔴 ขาดเรียน',
-                            'truant': '🟣 หนีเรียน'
-                        };
-                        const statusTxt = statusMap[todayLog.status] || todayLog.status;
-                        gateStatusElem.innerHTML = `<span class="font-bold text-emerald-400">${statusTxt}</span>`;
-                    } else {
-                        gateStatusElem.innerHTML = `<span class="text-slate-300">⚪ รอการเช็กชื่อยามเช้าในระบบ</span>`;
-                    }
-                }
-
             } catch (err) {
-                console.error('Error loadStudentAttendance from DB:', err);
-            }
-        }
-
-        // 🟢 2. ดึงครูที่ปรึกษาจากตาราง users / teachers จริงเท่านั้น
-        async function loadAdvisorTeacher(classroomId) {
-            try {
-                if (!db || !classroomId) return;
-
-                const { data: advisor, error } = await db
-                    .from('users')
-                    .select('full_name, phone, avatar_url')
-                    .eq('role', 'teacher')
-                    .eq('advisor_classroom', classroomId)
-                    .maybeSingle();
-
-                if (error) console.warn('Advisor fetch notice:', error.message);
-
-                const container = document.getElementById('advisor-container');
-                if (!container) return;
-
-                if (advisor) {
-                    container.innerHTML = `
-                        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                            <img src="${advisor.avatar_url || 'https://via.placeholder.com/150'}" class="w-12 h-12 rounded-full object-cover border border-slate-200">
-                            <div>
-                                <div class="font-bold text-slate-800 text-sm">${advisor.full_name}</div>
-                                <div class="text-xs text-slate-500">ครูที่ปรึกษาประจำห้อง ${classroomId} ${advisor.phone ? '| โทร: ' + advisor.phone : ''}</div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">ยังไม่มีการลงทะเบียนครูที่ปรึกษาสำหรับห้อง ${classroomId} ในฐานข้อมูล</div>`;
-                }
-            } catch (err) {
-                console.error('Error loadAdvisorTeacher:', err);
+                console.error('Error loadStudentAttendance:', err);
             }
         }
 
