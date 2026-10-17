@@ -789,60 +789,101 @@
             }
         }
 
-        async function loadBehaviorLogs(studentId) {
-            const container = document.getElementById('behaviorLogsContainer');
+        // 🟢 1. ดึงสถิติการเช็กชื่อและประวัติการเข้าเรียนจากตาราง attendance_logs จริงเท่านั้น
+        async function loadStudentAttendance(studentId) {
             try {
+                if (!db || !studentId) return;
+
+                // คิวรีดึงข้อมูลจริงจากตาราง attendance_logs
                 const { data: logs, error } = await db
-                    .from('behavior_logs')
-                    .select('*')
-                    .eq('student_id', studentId)
-                    .order('created_at', { ascending: false });
+                    .from('attendance_logs')
+                    .select('status, check_date, time_slot, created_at')
+                    .eq('student_id', studentId);
 
                 if (error) throw error;
 
-                let currentScore = 100;
+                let present = 0, late = 0, leave = 0, absent = 0, truant = 0;
+                let todayLog = null;
+                const today = new Date().toISOString().split('T')[0];
 
                 if (logs && logs.length > 0) {
-                    let html = '';
                     logs.forEach(log => {
-                        const scoreDeducted = Math.abs(parseInt(log.points || log.score_deducted || 0));
-                        const isDeduction = (log.type === 'deduct' || (log.points && log.points < 0));
-                        
-                        if (isDeduction) {
-                            currentScore -= scoreDeducted;
-                        } else {
-                            currentScore += scoreDeducted;
+                        const st = String(log.status || '').toLowerCase().trim();
+                        if (st === 'present' || st === 'มา') present++;
+                        else if (st === 'late' || st === 'สาย') late++;
+                        else if (st === 'leave' || st === 'ลา') leave++;
+                        else if (st === 'absent' || st === 'ขาด') absent++;
+                        else if (st === 'truant' || st === 'หนีเรียน') truant++;
+
+                        // เช็กรายการเช็กชื่อประจำวันปัจจุบัน
+                        if (log.check_date === today) {
+                            todayLog = log;
                         }
-
-                        const badgeColor = isDeduction ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800';
-                        const scoreText = isDeduction ? `-${scoreDeducted}` : `+${scoreDeducted}`;
-
-                        html += `
-                            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                <div>
-                                    <div class="font-bold text-xs text-slate-800">${log.action || log.note || log.description || 'บันทึกพฤติกรรม'}</div>
-                                    <div class="text-[10px] text-slate-400">${new Date(log.created_at).toLocaleDateString('th-TH')}</div>
-                                </div>
-                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${badgeColor}">
-                                    ${scoreText} คะแนน
-                                </span>
-                            </div>
-                        `;
                     });
-
-                    if (container) container.innerHTML = html;
-                } else {
-                    if (container) container.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">ยังไม่มีประวัติการบันทึกพฤติกรรม</div>`;
                 }
 
-                const scoreElement = document.getElementById('student-behavior-score');
-                if (scoreElement) {
-                    scoreElement.textContent = Math.max(0, currentScore);
+                // แสดงผลสถิติรวมในช่องการเช็กชื่อ
+                if (document.getElementById('count-present')) document.getElementById('count-present').innerText = present;
+                if (document.getElementById('count-late')) document.getElementById('count-late').innerText = late;
+                if (document.getElementById('count-leave')) document.getElementById('count-leave').innerText = leave;
+                if (document.getElementById('count-absent')) document.getElementById('count-absent').innerText = absent;
+                if (document.getElementById('count-truant')) document.getElementById('count-truant').innerText = truant;
+
+                // แสดงสถานะ Smart Gate Live Status ของวันนี้จาก DB จริง
+                const gateStatusElem = document.getElementById('smart-gate-status');
+                if (gateStatusElem) {
+                    if (todayLog) {
+                        const statusMap = {
+                            'present': '🟢 เช็กชื่อเข้าเรียนแล้ว (มาเรียน)',
+                            'late': '🟡 มาสาย',
+                            'leave': '🔵 ลากิจ/ลาป่วย',
+                            'absent': '🔴 ขาดเรียน',
+                            'truant': '🟣 หนีเรียน'
+                        };
+                        const statusTxt = statusMap[todayLog.status] || todayLog.status;
+                        gateStatusElem.innerHTML = `<span class="font-bold text-emerald-400">${statusTxt}</span>`;
+                    } else {
+                        gateStatusElem.innerHTML = `<span class="text-slate-300">⚪ รอการเช็กชื่อยามเช้าในระบบ</span>`;
+                    }
                 }
 
             } catch (err) {
-                console.error('Load behavior logs error:', err);
-                if (container) container.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">ยังไม่มีประวัติการบันทึกพฤติกรรม</div>`;
+                console.error('Error loadStudentAttendance from DB:', err);
+            }
+        }
+
+        // 🟢 2. ดึงครูที่ปรึกษาจากตาราง users / teachers จริงเท่านั้น
+        async function loadAdvisorTeacher(classroomId) {
+            try {
+                if (!db || !classroomId) return;
+
+                const { data: advisor, error } = await db
+                    .from('users')
+                    .select('full_name, phone, avatar_url')
+                    .eq('role', 'teacher')
+                    .eq('advisor_classroom', classroomId)
+                    .maybeSingle();
+
+                if (error) console.warn('Advisor fetch notice:', error.message);
+
+                const container = document.getElementById('advisor-container');
+                if (!container) return;
+
+                if (advisor) {
+                    container.innerHTML = `
+                        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <img src="${advisor.avatar_url || 'https://via.placeholder.com/150'}" class="w-12 h-12 rounded-full object-cover border border-slate-200">
+                            <div>
+                                <div class="font-bold text-slate-800 text-sm">${advisor.full_name}</div>
+                                <div class="text-xs text-slate-500">ครูที่ปรึกษาประจำห้อง ${classroomId} ${advisor.phone ? '| โทร: ' + advisor.phone : ''}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">ยังไม่มีการลงทะเบียนครูที่ปรึกษาสำหรับห้อง ${classroomId} ในฐานข้อมูล</div>`;
+                }
+            } catch (err) {
+                console.error('Error loadAdvisorTeacher:', err);
             }
         }
 
