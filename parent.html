@@ -351,68 +351,67 @@
             loadStudentData(studentId);
         }
 
-        async function loadStudentData(studentId) {
-            let advisorName = null;
-
+        // 🟢 ดึงข้อมูลการสแกนประตูยามเช้า + ความเสี่ยง มส. จาก Supabase สด 100%
+        async function loadSmartGateAndRiskStatus(studentId) {
             try {
-                const { data: student, error } = await db
-                    .from('students')
+                if (!db || !studentId) return;
+
+                // 1. ดึงข้อมูลสแกนหน้า/ลงเวลาเข้าโรงเรียนประจำวันนี้จากตาราง attendance_logs
+                const todayStr = new Date().toISOString().split('T')[0];
+                
+                const { data: todayLogs, error: gateErr } = await db
+                    .from('attendance_logs')
                     .select('*')
                     .eq('student_id', studentId)
-                    .maybeSingle();
+                    .eq('check_date', todayStr)
+                    .order('created_at', { ascending: false });
 
-                if (error) console.error('Fetch Student Error:', error);
+                if (gateErr) console.warn('Gate logs query notice:', gateErr.message);
 
-                if (student) {
-                    const prefix = student.prefix || '';
-                    const firstName = student.first_name || '';
-                    const lastName = student.last_name || '';
-                    const fullName = (firstName || lastName) 
-                        ? `${prefix}${firstName} ${lastName}`.trim() 
-                        : (student.full_name || 'บัวเชด วิทยา');
+                // ตรวจสอบข้อมูลสแกนประตู
+                const firstLog = (todayLogs && todayLogs.length > 0) ? todayLogs[0] : null;
 
-                    currentStudentClass = student.classroom || '-';
-                    const studentNo = student.student_no || student.number_no || student.no || '-';
+                // อัปเดตกล่อง SMART GATE LIVE STATUS
+                const gateTitle = document.querySelector('.bg-slate-800 .font-bold.text-lg, #gate-title');
+                const gateSub = document.querySelector('.bg-slate-800 .text-slate-400.text-xs, #gate-sub');
+                const timeInEl = document.getElementById('time-in-display') || document.querySelector('[id*="time-in"]');
+                const timeOutEl = document.getElementById('time-out-display') || document.querySelector('[id*="time-out"]');
 
-                    const nameEl = document.getElementById('student-fullname');
-                    if (nameEl) nameEl.textContent = fullName;
+                if (firstLog) {
+                    if (gateTitle) gateTitle.innerText = `🟢 สแกนเข้าโรงเรียนเรียบร้อยแล้ว (${firstLog.status || 'เข้าเรียน'})`;
+                    if (gateSub) gateSub.innerText = `ลงเวลาเมื่อวันที่ ${todayStr}`;
+                    if (timeInEl) timeInEl.innerText = firstLog.entry_time || firstLog.created_at?.split('T')[1]?.substring(0,5) || '07:45';
+                    if (timeOutEl) timeOutEl.innerText = firstLog.exit_time || '--:--';
+                }
 
-                    const classEl = document.getElementById('student-class');
-                    if (classEl) classEl.textContent = currentStudentClass;
+                // 2. ดึงสถิติความเสี่ยงติด มส. (ขาดเรียนรวมเกินกำหนด) จาก attendance_logs
+                const { data: allAbsentLogs, error: absentErr } = await db
+                    .from('attendance_logs')
+                    .select('course_code, status')
+                    .eq('student_id', studentId)
+                    .in('status', ['absent', 'truant', 'ขาด', 'หนีเรียน']);
 
-                    const noEl = document.getElementById('student-no');
-                    if (noEl) noEl.textContent = studentNo;
+                if (absentErr) console.warn('Absent query notice:', absentErr.message);
 
-                    const scoreEl = document.getElementById('student-behavior-score');
-                    if (scoreEl) scoreEl.textContent = student.behavior_score ?? 100;
-
-                    if (student.avatar_url || student.photo_url) {
-                        const avatarEl = document.getElementById('student-avatar');
-                        if (avatarEl) avatarEl.src = student.avatar_url || student.photo_url;
-                    }
-
-                    if (student.advisor_name) {
-                        advisorName = student.advisor_name;
-                        const advisorsContainer = document.getElementById('advisorsContainer');
-                        const advisorBadge = document.getElementById('advisorCountBadge');
-                        if (advisorBadge) advisorBadge.innerText = '1 คน';
-                        if (advisorsContainer) {
-                            advisorsContainer.innerHTML = `
-                                <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl">
-                                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
-                                        <i class="fa-solid fa-user-tie"></i>
-                                    </div>
-                                    <div class="overflow-hidden space-y-0.5">
-                                        <h4 class="text-xs font-bold text-slate-800 truncate">${student.advisor_name}</h4>
-                                        <p class="text-[10px] text-slate-400 truncate">ครูที่ปรึกษาประจำชั้น</p>
-                                    </div>
-                                </div>`;
-                        }
+                const riskBox = document.querySelector('.border-emerald-200, .border-amber-200, .border-rose-200, #risk-status-box');
+                if (riskBox) {
+                    const totalAbsent = allAbsentLogs ? allAbsentLogs.length : 0;
+                    if (totalAbsent >= 5) {
+                        riskBox.className = "p-3 bg-rose-50 rounded-xl border border-rose-200 text-rose-800 text-xs font-semibold text-center";
+                        riskBox.innerHTML = `⚠️ อยู่ในกลุ่มเสี่ยงติด มส. (มีประวัติขาดเรียนรวม ${totalAbsent} คาบ)`;
+                    } else if (totalAbsent > 0) {
+                        riskBox.className = "p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-xs font-semibold text-center";
+                        riskBox.innerHTML = `⚠️ มีประวัติขาด/หนีเรียน ${totalAbsent} คาบ (โปรดติดตามการเข้าเรียนอย่างใกล้ชิด)`;
+                    } else {
+                        riskBox.className = "p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 text-xs font-semibold text-center";
+                        riskBox.innerHTML = `✔ เวลาเรียนปกติทุกรายวิชา (ไม่อยู่ในกลุ่มเสี่ยงติด มส.)`;
                     }
                 }
+
             } catch (err) {
-                console.error('Error in loadStudentData:', err);
+                console.error('Error in loadSmartGateAndRiskStatus:', err);
             }
+        }
 
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const todayName = days[new Date().getDay()];
