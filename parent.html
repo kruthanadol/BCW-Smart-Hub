@@ -296,7 +296,7 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
 
-    <!-- JS Master Engine Single-State Lock -->
+    <!-- JS Master Engine Dual Fallback & Robust Matching -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -319,37 +319,41 @@
         }
 
         async function loadDashboard() {
-            // 1. ดึงโปรไฟล์นักเรียนหลัก
-            let st = null;
+            // 1. ดึงข้อมูลนักเรียนจากตาราง students
             try {
-                const { data: stList } = await db.from('students').select('*');
+                const { data: stList, error: stErr } = await db.from('students').select('*');
+                if (stErr) console.error("Students Query Error:", stErr);
+
                 if (stList && stList.length > 0) {
-                    st = stList.find(s => 
+                    let st = stList.find(s => 
                         String(s.student_id || '').trim() === currentStudentId || 
                         String(s.parent_password || '').trim() === currentStudentId ||
                         String(s.student_no || '').trim() === currentStudentId
                     );
+                    
                     if (!st) st = stList[0];
 
-                    currentStudentId = String(st.student_id).trim();
+                    currentStudentId = String(st.student_id || st.id || '').trim();
                     currentStudentClass = String(st.classroom || st.class_name || 'ม.1/1').trim();
 
-                    // Dropdown นักเรียน
+                    // Dropdown เลือกบุตรหลาน
                     const selector = document.getElementById('childSelector');
                     if (selector) {
                         const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                         selector.innerHTML = `<option value="${currentStudentId}">${fullName || 'นักเรียน'} (${currentStudentId})</option>`;
                     }
 
-                    // แสดงผลโปรไฟล์ล็อกค้างไว้
+                    // อัปเดตข้อมูลโปรไฟล์
                     const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                     document.getElementById('student-fullname').textContent = fullName || 'นักเรียนในปกครอง';
                     document.getElementById('student-class').textContent = currentStudentClass;
                     document.getElementById('student-no').textContent = st.student_no ?? '-';
                     document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
                     
-                    if (st.avatar_url || st.photo_url) {
-                        document.getElementById('student-avatar').src = st.avatar_url || st.photo_url;
+                    // Fallback แสดงรูปโปรไฟล์
+                    const avatarUrl = st.avatar_url || st.photo_url || st.image || st.avatar || '';
+                    if (avatarUrl) {
+                        document.getElementById('student-avatar').src = avatarUrl;
                     }
 
                     // ครูที่ปรึกษา
@@ -422,7 +426,7 @@
                         bhContainer.innerHTML = myLogs.slice(-5).reverse().map(item => {
                             const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : 'วันนี้';
                             return `
-                                <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs flex justify-between items-center">
+                                <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs flex justify-between items-center mb-1">
                                     <div>
                                         <span class="font-bold text-slate-800">${dateStr} (คาบที่ ${item.period_no || 1})</span>
                                         <p class="text-[10px] text-slate-500">สถานะ: ${item.status || 'ปกติ'}</p>
@@ -498,7 +502,7 @@
                 }
             } catch (e) { console.warn('Clinic err:', e); }
 
-            // 7. ดึงการบ้าน (ควบตาราง academic_assignments และ homework_assignments)
+            // 7. ดึงการบ้าน (ดึงทั้ง academic_assignments และ homework_assignments)
             try {
                 let combinedHw = [];
                 const { data: hw1 } = await db.from('academic_assignments').select('*');
