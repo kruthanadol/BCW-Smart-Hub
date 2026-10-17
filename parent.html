@@ -319,22 +319,22 @@
         }
 
         async function loadDashboard() {
-            // 1. ดึงโปรไฟล์นักเรียนจากตาราง students
             try {
                 const { data: students } = await db.from('students').select('*');
                 if (students && students.length > 0) {
                     
-                    // แมตช์รหัสนักเรียนแบบยืดหยุ่น (String Matching)
-                    let st = students.find(s => String(s.student_id).trim() === currentStudentId);
-                    if (!st) {
-                        st = students.find(s => String(s.parent_password || '').trim() === currentStudentId);
-                    }
-                    if (!st) st = students[0]; // fallback คนแรกกรณีไม่เจอจริงๆ
+                    // ระบบตรวจค้นแบบการันตีเจอนักเรียนคนนั้นเป๊ะๆ
+                    let st = students.find(s => 
+                        String(s.student_id).trim() === currentStudentId || 
+                        String(s.parent_password || '').trim() === currentStudentId
+                    );
+                    
+                    if (!st) st = students[0]; // fallback เฉพาะเคสหาไม่เจอจริงๆ
 
                     currentStudentId = String(st.student_id).trim();
                     currentStudentClass = st.classroom || 'ม.1/1';
 
-                    // สร้างออปชันใน Dropdown
+                    // เติมรายการนักเรียนลง Dropdown
                     const selector = document.getElementById('childSelector');
                     if (selector) {
                         selector.innerHTML = students.map(s => {
@@ -351,12 +351,11 @@
                     document.getElementById('student-no').textContent = st.student_no ?? '-';
                     document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
                     
-                    // แสดงรูปโปรไฟล์
                     if (st.avatar_url) {
                         document.getElementById('student-avatar').src = st.avatar_url;
                     }
 
-                    // ครูที่ปรึกษา
+                    // โหลดข้อมูลครูที่ปรึกษา
                     const advisorContainer = document.getElementById('advisorsContainer');
                     if (advisorContainer) {
                         if (st.advisor_name) {
@@ -377,7 +376,7 @@
                 }
             } catch (e) { console.warn('Student profile err:', e); }
 
-            // 2. ดึงสถิติเช็กชื่อและ Smart Gate
+            // ดึงสถิติเช็กชื่อและ Smart Gate
             try {
                 const { data: logs } = await db.from('attendance_logs').select('*');
                 const myLogs = logs ? logs.filter(l => String(l.student_id).trim() === currentStudentId) : [];
@@ -444,14 +443,14 @@
 
             } catch (e) { console.warn('Attendance err:', e); }
 
-            // 3. ดึงตารางเรียน schedules
+            // ดึงตารางเรียน schedules
             try {
                 const { data: sch } = await db.from('schedules').select('*');
                 globalSchedules = sch || [];
                 renderSchedule();
             } catch (e) { console.warn('Schedule err:', e); }
 
-            // 4. ดึงประวัติใบลา leave_requests
+            // ดึงประวัติใบลา leave_requests
             try {
                 const { data: reqs } = await db.from('leave_requests').select('*');
                 const myReqs = reqs ? reqs.filter(r => String(r.student_id).trim() === currentStudentId) : [];
@@ -469,7 +468,7 @@
                 }
             } catch (e) { console.warn('Leave err:', e); }
 
-            // 5. ดึงการบ้าน homework_assignments
+            // ดึงการบ้าน homework_assignments
             try {
                 const { data: hw } = await db.from('homework_assignments').select('*');
                 const myHw = hw ? hw.filter(h => h.classroom === currentStudentClass || h.class_name === currentStudentClass) : [];
@@ -488,7 +487,7 @@
                 }
             } catch (e) { console.warn('Homework err:', e); }
 
-            // 6. ดึงแจ้งเตือน teacher_notifications
+            // ดึงแจ้งเตือน teacher_notifications
             try {
                 const { data: notes } = await db.from('teacher_notifications').select('*');
                 const myNotes = notes ? notes.filter(n => String(n.student_id).trim() === currentStudentId) : [];
