@@ -296,7 +296,7 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
 
-    <!-- JS Master Engine Dual Fallback & Robust Matching -->
+    <!-- JS Master Engine Single-Target Lock -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -309,6 +309,10 @@
         async function initParentPortal() {
             const session = JSON.parse(localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session') || '{}');
             currentStudentId = session && session.student_id ? String(session.student_id).trim() : '';
+            
+            if (!currentStudentId) {
+                console.warn("ไม่พบ session ผู้ปกครอง");
+            }
             loadDashboard();
         }
 
@@ -319,44 +323,42 @@
         }
 
         async function loadDashboard() {
-            // 1. ดึงข้อมูลนักเรียนจากตาราง students
+            // 1. คิวรีเฉพาะนักเรียนที่สอดคล้องกับ currentStudentId จากตาราง students
             try {
-                const { data: stList, error: stErr } = await db.from('students').select('*');
-                if (stErr) console.error("Students Query Error:", stErr);
+                const { data: stList, error: stErr } = await db.from('students')
+                    .select('*')
+                    .or(`student_id.eq.${currentStudentId},parent_password.eq.${currentStudentId}`);
+
+                if (stErr) console.error("Error Querying Students:", stErr);
 
                 if (stList && stList.length > 0) {
-                    let st = stList.find(s => 
-                        String(s.student_id || '').trim() === currentStudentId || 
-                        String(s.parent_password || '').trim() === currentStudentId ||
-                        String(s.student_no || '').trim() === currentStudentId
-                    );
-                    
-                    if (!st) st = stList[0];
+                    const st = stList[0]; // ดึงเฉพาะคนที่สอดคล้องจริง
 
-                    currentStudentId = String(st.student_id || st.id || '').trim();
-                    currentStudentClass = String(st.classroom || st.class_name || 'ม.1/1').trim();
+                    currentStudentId = String(st.student_id).trim();
+                    currentStudentClass = String(st.classroom || 'ม.1/1').trim();
 
-                    // Dropdown เลือกบุตรหลาน
+                    // อัปเดต Dropdown
                     const selector = document.getElementById('childSelector');
                     if (selector) {
                         const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                         selector.innerHTML = `<option value="${currentStudentId}">${fullName || 'นักเรียน'} (${currentStudentId})</option>`;
                     }
 
-                    // อัปเดตข้อมูลโปรไฟล์
+                    // อัปเดตการแสดงผลโปรไฟล์จากคอลัมน์จริง
                     const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                     document.getElementById('student-fullname').textContent = fullName || 'นักเรียนในปกครอง';
                     document.getElementById('student-class').textContent = currentStudentClass;
                     document.getElementById('student-no').textContent = st.student_no ?? '-';
                     document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
                     
-                    // Fallback แสดงรูปโปรไฟล์
-                    const avatarUrl = st.avatar_url || st.photo_url || st.image || st.avatar || '';
-                    if (avatarUrl) {
-                        document.getElementById('student-avatar').src = avatarUrl;
+                    // อัปเดตรูปภาพจากคอลัมน์ avatar_url เป๊ะๆ
+                    if (st.avatar_url && st.avatar_url.trim() !== '') {
+                        document.getElementById('student-avatar').src = st.avatar_url;
+                    } else {
+                        document.getElementById('student-avatar').src = 'https://via.placeholder.com/100?text=No+Photo';
                     }
 
-                    // ครูที่ปรึกษา
+                    // แสดงครูที่ปรึกษาจาก advisor_name
                     const advisorContainer = document.getElementById('advisorsContainer');
                     if (advisorContainer) {
                         if (st.advisor_name) {
@@ -374,16 +376,17 @@
                             advisorContainer.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษา</p>`;
                         }
                     }
+                } else {
+                    document.getElementById('student-fullname').textContent = 'ไม่พบข้อมูลนักเรียน (โปรดเข้าสู่ระบบใหม่)';
                 }
-            } catch (e) { console.warn('Student profile fetch err:', e); }
+            } catch (e) { console.warn('Student profile err:', e); }
 
-            // 2. ดึงสถิติเช็กชื่อ attendance_logs
+            // 2. ดึงสถิติเช็กชื่อจาก attendance_logs
             try {
-                const { data: logs } = await db.from('attendance_logs').select('*');
-                const myLogs = logs ? logs.filter(l => String(l.student_id || '').trim() === currentStudentId) : [];
+                const { data: myLogs } = await db.from('attendance_logs').select('*').eq('student_id', currentStudentId);
 
                 let p = 0, l = 0, a = 0, t = 0;
-                if (myLogs.length > 0) {
+                if (myLogs && myLogs.length > 0) {
                     myLogs.forEach(log => {
                         const s = String(log.status || '').toLowerCase();
                         if (s === 'present' || s === 'มา') p++;
@@ -444,12 +447,11 @@
 
             } catch (e) { console.warn('Attendance err:', e); }
 
-            // 3. ดึงความเสี่ยง มส. จาก academic_attendance_summary
+            // 3. ดึงสถิติ มส.
             try {
-                const { data: risks } = await db.from('academic_attendance_summary').select('*');
-                const myRisks = risks ? risks.filter(r => String(r.student_id || '').trim() === currentStudentId) : [];
+                const { data: myRisks } = await db.from('academic_attendance_summary').select('*').eq('student_id', currentStudentId);
                 const container = document.getElementById('academicRiskContainer');
-                if (container && myRisks.length > 0) {
+                if (container && myRisks && myRisks.length > 0) {
                     container.innerHTML = myRisks.map(r => `
                         <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl flex justify-between items-center text-xs mb-1">
                             <div>
@@ -462,19 +464,18 @@
                 }
             } catch (e) { console.warn('Risk err:', e); }
 
-            // 4. ดึงตารางเรียน schedules
+            // 4. ดึงตารางเรียน
             try {
                 const { data: sch } = await db.from('schedules').select('*');
                 globalSchedules = sch || [];
                 renderSchedule();
             } catch (e) { console.warn('Schedule err:', e); }
 
-            // 5. ดึงประวัติใบลา leave_requests
+            // 5. ดึงประวัติใบลา
             try {
-                const { data: reqs } = await db.from('leave_requests').select('*');
-                const myReqs = reqs ? reqs.filter(r => String(r.student_id || '').trim() === currentStudentId) : [];
+                const { data: myReqs } = await db.from('leave_requests').select('*').eq('student_id', currentStudentId);
                 const leaveContainer = document.getElementById('leaveHistoryList');
-                if (leaveContainer && myReqs.length > 0) {
+                if (leaveContainer && myReqs && myReqs.length > 0) {
                     leaveContainer.innerHTML = myReqs.map(r => `
                         <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center mb-1">
                             <div>
@@ -487,12 +488,11 @@
                 }
             } catch (e) { console.warn('Leave err:', e); }
 
-            // 6. ดึงห้องพยาบาล clinic_records
+            // 6. ดึงประวัติห้องพยาบาล
             try {
-                const { data: clinic } = await db.from('clinic_records').select('*');
-                const myClinic = clinic ? clinic.filter(c => String(c.student_id || '').trim() === currentStudentId) : [];
+                const { data: myClinic } = await db.from('clinic_records').select('*').eq('student_id', currentStudentId);
                 const clinicContainer = document.getElementById('clinicHistoryList');
-                if (clinicContainer && myClinic.length > 0) {
+                if (clinicContainer && myClinic && myClinic.length > 0) {
                     clinicContainer.innerHTML = myClinic.map(c => `
                         <div class="p-3 bg-rose-50/50 border border-rose-100 rounded-xl text-xs space-y-1 mb-1">
                             <span class="font-bold text-rose-900">อาการ: ${c.symptom || 'ป่วย/มีไข้'}</span>
@@ -549,12 +549,11 @@
                 }
             } catch (e) { console.warn('Homework err:', e); }
 
-            // 8. ดึงแจ้งเตือน teacher_notifications
+            // 8. ดึงแจ้งเตือน
             try {
-                const { data: notes } = await db.from('teacher_notifications').select('*');
-                const myNotes = notes ? notes.filter(n => String(n.student_id || '').trim() === currentStudentId) : [];
+                const { data: myNotes } = await db.from('teacher_notifications').select('*').eq('student_id', currentStudentId);
                 const noteContainer = document.getElementById('notificationList');
-                if (noteContainer && myNotes.length > 0) {
+                if (noteContainer && myNotes && myNotes.length > 0) {
                     noteContainer.innerHTML = myNotes.slice(-3).reverse().map(n => `
                         <div class="p-3 bg-amber-50/50 border border-amber-100 rounded-xl text-xs mb-1">
                             <h5 class="font-bold text-amber-900">${n.title || 'แจ้งเตือน'}</h5>
