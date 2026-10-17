@@ -296,7 +296,7 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
 
-    <!-- JS Master Engine (Schema Verified) -->
+    <!-- JS Master Engine -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -308,37 +308,41 @@
 
         async function initParentPortal() {
             const session = JSON.parse(localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session') || '{}');
-            currentStudentId = session && session.student_id ? String(session.student_id) : '';
+            currentStudentId = session && session.student_id ? String(session.student_id).trim() : '';
             loadDashboard();
         }
 
         async function switchChild(sid) {
             if (!sid) return;
-            currentStudentId = String(sid);
+            currentStudentId = String(sid).trim();
             loadDashboard();
         }
 
         async function loadDashboard() {
-            // ดึงข้อมูลหลักจากตาราง students
+            // 1. ดึงโปรไฟล์นักเรียนจากตาราง students
             try {
                 const { data: students } = await db.from('students').select('*');
                 if (students && students.length > 0) {
+                    
+                    // แมตช์รหัสนักเรียนแบบยืดหยุ่น (String Matching)
+                    let st = students.find(s => String(s.student_id).trim() === currentStudentId);
+                    if (!st) {
+                        st = students.find(s => String(s.parent_password || '').trim() === currentStudentId);
+                    }
+                    if (!st) st = students[0]; // fallback คนแรกกรณีไม่เจอจริงๆ
+
+                    currentStudentId = String(st.student_id).trim();
+                    currentStudentClass = st.classroom || 'ม.1/1';
+
+                    // สร้างออปชันใน Dropdown
                     const selector = document.getElementById('childSelector');
                     if (selector) {
                         selector.innerHTML = students.map(s => {
-                            const sid = String(s.student_id || '');
+                            const sid = String(s.student_id || '').trim();
                             const name = `${s.prefix || ''}${s.first_name || ''} ${s.last_name || ''}`.trim();
-                            return `<option value="${sid}">${name || 'นักเรียน'} (${sid})</option>`;
+                            return `<option value="${sid}" ${sid === currentStudentId ? 'selected' : ''}>${name || 'นักเรียน'} (${sid})</option>`;
                         }).join('');
                     }
-
-                    // ค้นหานักเรียนตาม ID หรือเลือกแถวแรกถ้าไม่มี
-                    let st = students.find(s => String(s.student_id) === currentStudentId);
-                    if (!st) st = students[0];
-
-                    currentStudentId = String(st.student_id);
-                    currentStudentClass = st.classroom || 'ม.1/1';
-                    if (selector) selector.value = currentStudentId;
 
                     const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
 
@@ -346,9 +350,13 @@
                     document.getElementById('student-class').textContent = currentStudentClass;
                     document.getElementById('student-no').textContent = st.student_no ?? '-';
                     document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
-                    if (st.avatar_url) document.getElementById('student-avatar').src = st.avatar_url;
+                    
+                    // แสดงรูปโปรไฟล์
+                    if (st.avatar_url) {
+                        document.getElementById('student-avatar').src = st.avatar_url;
+                    }
 
-                    // แสดงครูที่ปรึกษาจากคอลัมน์ advisor_name ในตาราง students
+                    // ครูที่ปรึกษา
                     const advisorContainer = document.getElementById('advisorsContainer');
                     if (advisorContainer) {
                         if (st.advisor_name) {
@@ -369,10 +377,10 @@
                 }
             } catch (e) { console.warn('Student profile err:', e); }
 
-            // ดึงสถิติเช็กชื่อและ Smart Gate จาก attendance_logs
+            // 2. ดึงสถิติเช็กชื่อและ Smart Gate
             try {
                 const { data: logs } = await db.from('attendance_logs').select('*');
-                const myLogs = logs ? logs.filter(l => String(l.student_id) === currentStudentId) : [];
+                const myLogs = logs ? logs.filter(l => String(l.student_id).trim() === currentStudentId) : [];
 
                 let p = 0, l = 0, a = 0, t = 0;
                 if (myLogs.length > 0) {
@@ -436,17 +444,17 @@
 
             } catch (e) { console.warn('Attendance err:', e); }
 
-            // ดึงตารางเรียน schedules
+            // 3. ดึงตารางเรียน schedules
             try {
                 const { data: sch } = await db.from('schedules').select('*');
                 globalSchedules = sch || [];
                 renderSchedule();
             } catch (e) { console.warn('Schedule err:', e); }
 
-            // ดึงประวัติใบลา leave_requests
+            // 4. ดึงประวัติใบลา leave_requests
             try {
                 const { data: reqs } = await db.from('leave_requests').select('*');
-                const myReqs = reqs ? reqs.filter(r => String(r.student_id) === currentStudentId) : [];
+                const myReqs = reqs ? reqs.filter(r => String(r.student_id).trim() === currentStudentId) : [];
                 const leaveContainer = document.getElementById('leaveHistoryList');
                 if (leaveContainer && myReqs.length > 0) {
                     leaveContainer.innerHTML = myReqs.map(r => `
@@ -461,7 +469,7 @@
                 }
             } catch (e) { console.warn('Leave err:', e); }
 
-            // ดึงการบ้าน homework_assignments
+            // 5. ดึงการบ้าน homework_assignments
             try {
                 const { data: hw } = await db.from('homework_assignments').select('*');
                 const myHw = hw ? hw.filter(h => h.classroom === currentStudentClass || h.class_name === currentStudentClass) : [];
@@ -480,10 +488,10 @@
                 }
             } catch (e) { console.warn('Homework err:', e); }
 
-            // ดึงแจ้งเตือน teacher_notifications
+            // 6. ดึงแจ้งเตือน teacher_notifications
             try {
                 const { data: notes } = await db.from('teacher_notifications').select('*');
-                const myNotes = notes ? notes.filter(n => String(n.student_id) === currentStudentId) : [];
+                const myNotes = notes ? notes.filter(n => String(n.student_id).trim() === currentStudentId) : [];
                 const noteContainer = document.getElementById('notificationList');
                 if (noteContainer && myNotes.length > 0) {
                     noteContainer.innerHTML = myNotes.slice(-3).reverse().map(n => `
@@ -520,7 +528,6 @@
             `).join('');
         }
 
-        // ฟังก์ชันยื่นใบลาส่งข้อมูลเข้าตาราง leave_requests จริง
         async function submitLeaveRequest(e) {
             e.preventDefault();
             const reason = document.getElementById('leaveReason').value;
