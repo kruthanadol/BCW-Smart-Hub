@@ -38,18 +38,18 @@
         <!-- ตัวเลือกสลับสิทธิ์บุตรหลาน -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 flex justify-between items-center">
             <span class="text-xs font-bold text-slate-600 flex items-center gap-2">
-                <i class="fa-solid fa-children text-indigo-600"></i> เลือกข้อมูลนักเรียนในปกครอง:
+                <i class="fa-solid fa-children text-indigo-600"></i> ข้อมูลนักเรียนในปกครอง:
             </span>
             <select id="childSelector" onchange="switchChild(this.value)" class="text-xs bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl px-3 py-1.5 font-bold focus:outline-none">
                 <option value="">กำลังโหลดรายการนักเรียน...</option>
             </select>
         </div>
 
-        <!-- 1. Profile & Behavior Score (รองรับแยกรูปผู้ปกครอง / รูปนักเรียน) -->
+        <!-- 1. Profile & Behavior Score (รูปผู้ปกครอง / รูปนักเรียน) -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
                 
-                <!-- รูปโปรไฟล์ผู้ปกครอง (พร้อมปุ่มกดเปลี่ยนรูป Self-Service) -->
+                <!-- รูปโปรไฟล์ผู้ปกครอง (Self-Service Upload) -->
                 <div class="relative group cursor-pointer" onclick="document.getElementById('parentAvatarInput').click()" title="คลิกเพื่อเปลี่ยนรูปโปรไฟล์ผู้ปกครอง">
                     <img id="parent-avatar" src="https://via.placeholder.com/100?text=Parent" alt="Parent Photo" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-indigo-200 shadow border border-slate-100 transition group-hover:opacity-80">
                     <div class="absolute inset-0 bg-black/40 rounded-2xl flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition duration-200">
@@ -322,13 +322,20 @@
         let currentStudentClass = '';
         let globalSchedules = [];
 
-        // --- DATA NORMALIZERS (คลี่และสกัดข้อมูลเพื่อสยบปัญหา Data Type / String Mismatch) ---
+        // --- DATA NORMALIZERS ---
         const cleanStr = (val) => String(val || '').trim();
         const cleanLower = (val) => String(val || '').trim().toLowerCase();
 
         async function initParentPortal() {
+            // อ่านค่าจาก Session การล็อกอินจริงแบบ Dynamic
             const session = JSON.parse(localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session') || '{}');
             currentStudentId = session && session.student_id ? cleanStr(session.student_id) : '';
+            
+            if (!currentStudentId) {
+                alert('ไม่พบข้อมูลการเข้าสู่ระบบ กรุณาล็อกอินใหม่อีกครั้ง');
+                window.location.href = 'login.html';
+                return;
+            }
             loadDashboard();
         }
 
@@ -348,7 +355,6 @@
                 return;
             }
 
-            // ตรวจสอบขนาดไฟล์ (ไม่เกิน 3MB เพื่อประหยัดพื้นที่ Storage)
             if (file.size > 3 * 1024 * 1024) {
                 alert('รูปภาพมีขนาดใหญ่เกินไป กรุณาเลือกรูปที่มีขนาดไม่เกิน 3MB');
                 return;
@@ -377,7 +383,7 @@
                 const { data: urlData } = db.storage.from('avatars').getPublicUrl(filePath);
                 const publicUrl = urlData.publicUrl;
 
-                // 3. บันทึก URL ลงคอลัมน์ parent_avatar_url ในตาราง students
+                // 3. บันทึก URL ลงคอลัมน์ parent_avatar_url ในตาราง students แบบ Dynamic
                 const { error: updateErr } = await db.from('students')
                     .update({ parent_avatar_url: publicUrl })
                     .eq('student_id', currentStudentId);
@@ -401,47 +407,39 @@
         }
 
         async function loadDashboard() {
-            // 1. [กล่อง 1 & 6] โปรไฟล์ (รูปผู้ปกครอง / รูปนักเรียน) + ครูที่ปรึกษา
+
+            // 1. [กล่อง 1 & 6] โปรไฟล์ (Dynamic Direct Query) + ครูที่ปรึกษา
             try {
-                const { data: stList, error: stErr } = await db.from('students').select('*');
-                
-                if (stList && stList.length > 0) {
-                    
-                    // สกัดรหัสจาก session
-                    const targetId = cleanLower(currentStudentId);
+                const targetId = cleanStr(currentStudentId);
 
-                    // ค้นหานักเรียนที่ตรงกับรหัสล็อกอิน
-                    let st = stList.find(s => 
-                        cleanLower(s.student_id) === targetId || 
-                        cleanLower(s.parent_password) === targetId ||
-                        cleanLower(s.student_no) === targetId
-                    );
+                // คิวรีเฉพาะรหัสนักเรียนที่ล็อกอินเข้ามาตรงๆ ไม่ดึงตารางมาวนหา
+                let { data: stList } = await db.from('students').select('*').eq('student_id', targetId);
 
-                    // ถ้าค้นหาไม่พบจริงๆ ให้ลองหาจากรายการแรก แต่ใช้รหัสจริงของนักเรียนคนนั้น
-                    if (!st) {
-                        console.warn('Student match not found for ID:', currentStudentId);
-                        st = stList.find(s => cleanLower(s.first_name).includes('ภาณุพงศ์')) || stList[0];
+                // กรณีมี Space ส่วนเกินติดอยู่ใน DB
+                if (!stList || stList.length === 0) {
+                    const { data: allSt } = await db.from('students').select('*');
+                    if (allSt) {
+                        stList = allSt.filter(s => cleanLower(s.student_id) === cleanLower(targetId));
                     }
+                }
 
-                    // ล็อกรหัสนักเรียนและห้องเรียนตัวจริง
+                if (stList && stList.length > 0) {
+                    const st = stList[0];
+
                     currentStudentId = cleanStr(st.student_id);
-                    currentStudentClass = cleanStr(st.classroom || 'ม.2/2');
+                    currentStudentClass = cleanStr(st.classroom || '');
 
-                    // อัปเดต Dropdown ให้มีตัวเลือกนักเรียนทุกคนในฐานข้อมูล (เผื่อสลับดู)
+                    // Selector
                     const selector = document.getElementById('childSelector');
                     if (selector) {
-                        selector.innerHTML = stList.map(s => {
-                            const sId = cleanStr(s.student_id);
-                            const name = `${s.prefix || ''}${s.first_name || ''} ${s.last_name || ''}`.trim();
-                            const isSelected = cleanLower(sId) === cleanLower(currentStudentId) ? 'selected' : '';
-                            return `<option value="${sId}" ${isSelected}>${name} (${sId}) - ${s.classroom || ''}</option>`;
-                        }).join('');
+                        const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
+                        selector.innerHTML = `<option value="${currentStudentId}">${fullName} (${currentStudentId}) - ${currentStudentClass}</option>`;
                     }
 
-                    // แสดงชื่อและข้อมูลโปรไฟล์
+                    // Profile View
                     const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                     document.getElementById('student-fullname').textContent = fullName || 'นักเรียนในปกครอง';
-                    document.getElementById('student-class').textContent = currentStudentClass;
+                    document.getElementById('student-class').textContent = currentStudentClass || '-';
                     document.getElementById('student-no').textContent = st.student_no ?? '-';
                     document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
                     
@@ -477,6 +475,9 @@
                             advisorContainer.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษา</p>`;
                         }
                     }
+                } else {
+                    console.error('ไม่พบข้อมูลนักเรียนรหัส:', targetId);
+                    document.getElementById('student-fullname').textContent = 'ไม่พบข้อมูลนักเรียน (' + targetId + ')';
                 }
             } catch (e) { console.warn('Profile Box Error:', e); }
 
@@ -674,7 +675,7 @@
             const day = document.getElementById('dayFilter')?.value || 'Monday';
             const dayMap = {
                 'Monday': ['Monday', 'วันจันทร์', 'จันทร์', 'mon'],
-                'Tuesday': ['Tuesday', 'วันอัพังคาร', 'อังคาร', 'tue'],
+                'Tuesday': ['Tuesday', 'วันอังคาร', 'อังคาร', 'tue'],
                 'Wednesday': ['Wednesday', 'วันพุธ', 'พุธ', 'wed'],
                 'Thursday': ['Thursday', 'วันพฤหัสบดี', 'พฤหัสบดี', 'thu'],
                 'Friday': ['Friday', 'วันศุกร์', 'ศุกร์', 'fri']
