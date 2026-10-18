@@ -126,9 +126,7 @@
                 <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">ฝ่ายวิชาการ</span>
             </div>
             <div id="academicRiskContainer" class="space-y-2.5">
-                <div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold">
-                    <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา (ไม่อยู่ในกลุ่มเสี่ยงติด มส.)
-                </div>
+                <p class="text-xs text-slate-400 text-center py-2">กำลังโหลดข้อมูล...</p>
             </div>
         </div>
 
@@ -197,7 +195,7 @@
                 </button>
             </div>
             <div id="leaveHistoryList" class="space-y-2">
-                <p class="text-xs text-slate-400 text-center py-3">ไม่มีประวัติการยื่นใบลา</p>
+                <p class="text-xs text-slate-400 text-center py-3">กำลังโหลดประวัติ...</p>
             </div>
         </div>
 
@@ -209,7 +207,7 @@
                 </h3>
             </div>
             <div id="notificationList" class="space-y-2">
-                <p class="text-xs text-slate-400 text-center py-2">ยังไม่มีข้อความแจ้งเตือนใหม่</p>
+                <p class="text-xs text-slate-400 text-center py-2">กำลังโหลดข้อความ...</p>
             </div>
         </div>
 
@@ -221,7 +219,7 @@
                 </h3>
             </div>
             <div id="clinicHistoryList" class="space-y-2">
-                <p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการเข้าใช้ห้องพยาบาล</p>
+                <p class="text-xs text-slate-400 text-center py-2">กำลังโหลดประวัติ...</p>
             </div>
         </div>
 
@@ -233,7 +231,7 @@
                 </h3>
             </div>
             <div id="homeworkList" class="space-y-2">
-                <p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>
+                <p class="text-xs text-slate-400 text-center py-2">กำลังโหลดรายการการบ้าน...</p>
             </div>
         </div>
 
@@ -312,7 +310,7 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
 
-    <!-- JS Master Engine Single-Target Lock -->
+    <!-- JS Master Engine Direct Dual-Target Architecture -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -327,7 +325,6 @@
         const cleanLower = (val) => String(val || '').trim().toLowerCase();
 
         async function initParentPortal() {
-            // อ่านค่าจาก Session การล็อกอินจริงแบบ Dynamic
             const session = JSON.parse(localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session') || '{}');
             currentStudentId = session && session.student_id ? cleanStr(session.student_id) : '';
             
@@ -367,97 +364,79 @@
                 const fileExt = file.name.split('.').pop().toLowerCase();
                 const filePath = `parents/parent_${currentStudentId}_${Date.now()}.${fileExt}`;
 
-                // 1. อัปโหลดไฟล์ขึ้น Supabase Storage (Bucket: avatars)
                 const { data: uploadData, error: uploadErr } = await db.storage
                     .from('avatars')
                     .upload(filePath, file, { upsert: true });
 
                 if (uploadErr) {
-                    console.error('Storage Upload Error:', uploadErr);
                     alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + uploadErr.message);
                     if (parentImg) parentImg.style.opacity = '1';
                     return;
                 }
 
-                // 2. ดึง Public URL ของไฟล์
                 const { data: urlData } = db.storage.from('avatars').getPublicUrl(filePath);
                 const publicUrl = urlData.publicUrl;
 
-                // 3. บันทึก URL ลงคอลัมน์ parent_avatar_url ในตาราง students แบบ Dynamic
                 const { error: updateErr } = await db.from('students')
                     .update({ parent_avatar_url: publicUrl })
                     .eq('student_id', currentStudentId);
 
                 if (updateErr) {
-                    console.error('Database Update Error:', updateErr);
-                    alert('บันทึกที่อยู่รูปภาพลงฐานข้อมูลไม่สำเร็จ: ' + updateErr.message);
+                    alert('บันทึกข้อมูลไม่สำเร็จ: ' + updateErr.message);
                 } else {
                     if (parentImg) parentImg.src = publicUrl;
                     alert('อัปเดตรูปโปรไฟล์ผู้ปกครองเรียบร้อยแล้ว!');
                 }
-                
                 if (parentImg) parentImg.style.opacity = '1';
 
             } catch (e) {
                 console.error('Parent Avatar Exception:', e);
                 alert('เกิดข้อผิดพลาดในระบบการอัปโหลด');
-                const parentImg = document.getElementById('parent-avatar');
-                if (parentImg) parentImg.style.opacity = '1';
+                if (document.getElementById('parent-avatar')) document.getElementById('parent-avatar').style.opacity = '1';
             }
         }
 
         async function loadDashboard() {
+            const targetId = cleanStr(currentStudentId);
 
-            // 1. [กล่อง 1 & 6] โปรไฟล์ (Dynamic Direct Query) + ครูที่ปรึกษา
+            // 1. [กล่อง 1 & 6] โปรไฟล์ + ครูที่ปรึกษา (Direct Match)
             try {
-                const targetId = cleanStr(currentStudentId);
-
-                // คิวรีเฉพาะรหัสนักเรียนที่ล็อกอินเข้ามาตรงๆ ไม่ดึงตารางมาวนหา
                 let { data: stList } = await db.from('students').select('*').eq('student_id', targetId);
-
-                // กรณีมี Space ส่วนเกินติดอยู่ใน DB
+                
                 if (!stList || stList.length === 0) {
                     const { data: allSt } = await db.from('students').select('*');
-                    if (allSt) {
-                        stList = allSt.filter(s => cleanLower(s.student_id) === cleanLower(targetId));
-                    }
+                    if (allSt) stList = allSt.filter(s => cleanLower(s.student_id) === cleanLower(targetId));
                 }
 
                 if (stList && stList.length > 0) {
                     const st = stList[0];
-
                     currentStudentId = cleanStr(st.student_id);
                     currentStudentClass = cleanStr(st.classroom || '');
 
-                    // Selector
                     const selector = document.getElementById('childSelector');
                     if (selector) {
                         const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                         selector.innerHTML = `<option value="${currentStudentId}">${fullName} (${currentStudentId}) - ${currentStudentClass}</option>`;
                     }
 
-                    // Profile View
                     const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                     document.getElementById('student-fullname').textContent = fullName || 'นักเรียนในปกครอง';
                     document.getElementById('student-class').textContent = currentStudentClass || '-';
                     document.getElementById('student-no').textContent = st.student_no ?? '-';
                     document.getElementById('student-behavior-score').textContent = st.behavior_score ?? 100;
                     
-                    // รูปโปรไฟล์นักเรียน (avatar_url)
                     if (st.avatar_url && st.avatar_url.trim() !== '') {
                         document.getElementById('student-avatar').src = st.avatar_url;
                     } else {
                         document.getElementById('student-avatar').src = 'https://via.placeholder.com/100?text=Student';
                     }
 
-                    // รูปโปรไฟล์ผู้ปกครอง (parent_avatar_url)
                     if (st.parent_avatar_url && st.parent_avatar_url.trim() !== '') {
                         document.getElementById('parent-avatar').src = st.parent_avatar_url;
                     } else {
                         document.getElementById('parent-avatar').src = 'https://via.placeholder.com/100?text=Parent';
                     }
 
-                    // ครูที่ปรึกษา
                     const advisorContainer = document.getElementById('advisorsContainer');
                     if (advisorContainer) {
                         if (st.advisor_name) {
@@ -475,18 +454,27 @@
                             advisorContainer.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษา</p>`;
                         }
                     }
-                } else {
-                    console.error('ไม่พบข้อมูลนักเรียนรหัส:', targetId);
-                    document.getElementById('student-fullname').textContent = 'ไม่พบข้อมูลนักเรียน (' + targetId + ')';
                 }
             } catch (e) { console.warn('Profile Box Error:', e); }
 
-            // 2. [กล่อง 2, 4, 11, 12] Smart Gate + สถิติ 4 ช่อง + ประวัติพฤติกรรม
-            try {
-                const { data: logs } = await db.from('attendance_logs').select('*');
-                const myLogs = logs ? logs.filter(l => cleanLower(l.student_id) === cleanLower(currentStudentId)) : [];
+            // รันสคริปต์กล่องที่เหลือทั้งหมดพร้อมกันแบบ Parallel Direct Query
+            await Promise.allSettled([
+                loadAttendanceLogs(),
+                loadAcademicRisks(),
+                loadCourseAssignments(),
+                loadLeaveRequests(),
+                loadClinicRecords(),
+                loadHomeworkAssignments(),
+                loadNotifications()
+            ]);
+        }
 
+        // 2. [กล่อง 2, 4, 11, 12] Smart Gate + สถิติ 4 ช่อง + ประวัติพฤติกรรม
+        async function loadAttendanceLogs() {
+            try {
+                const { data: myLogs } = await db.from('attendance_logs').select('*').eq('student_id', currentStudentId);
                 let p = 0, l = 0, a = 0, t = 0;
+
                 if (myLogs && myLogs.length > 0) {
                     myLogs.forEach(log => {
                         const s = cleanLower(log.status);
@@ -562,66 +550,87 @@
                 document.getElementById('stat-truant').innerText = t;
 
             } catch (e) { console.warn('Attendance Logs Error:', e); }
+        }
 
-            // 3. [กล่อง 3] ความเสี่ยง มส.
+        // 3. [กล่อง 3] ความเสี่ยง มส.
+        async function loadAcademicRisks() {
             try {
-                const { data: myRisks } = await db.from('academic_attendance_summary').select('*');
-                const filteredRisks = myRisks ? myRisks.filter(r => cleanLower(r.student_id) === cleanLower(currentStudentId)) : [];
+                const { data: myRisks } = await db.from('academic_attendance_summary').select('*').eq('student_id', currentStudentId);
                 const container = document.getElementById('academicRiskContainer');
-                if (container && filteredRisks.length > 0) {
-                    container.innerHTML = filteredRisks.map(r => `
-                        <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl flex justify-between items-center text-xs mb-1">
-                            <div>
-                                <span class="font-bold text-slate-800">${r.subject_name || r.subject_code}</span>
-                                <p class="text-[10px] text-slate-500 mt-0.5">ขาดเรียน ${r.absent_count || 0} คาบ | เวลาเรียน ${r.attendance_percent || 100}%</p>
+                if (container) {
+                    if (myRisks && myRisks.length > 0) {
+                        container.innerHTML = myRisks.map(r => `
+                            <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl flex justify-between items-center text-xs mb-1">
+                                <div>
+                                    <span class="font-bold text-slate-800">${r.subject_name || r.subject_code}</span>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">ขาดเรียน ${r.absent_count || 0} คาบ | เวลาเรียน ${r.attendance_percent || 100}%</p>
+                                </div>
+                                <span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">${r.status || 'เสี่ยง มส.'}</span>
                             </div>
-                            <span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">${r.status || 'เสี่ยง มส.'}</span>
-                        </div>
-                    `).join('');
+                        `).join('');
+                    } else {
+                        container.innerHTML = `
+                            <div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold">
+                                <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา (ไม่อยู่ในกลุ่มเสี่ยงติด มส.)
+                            </div>`;
+                    }
                 }
             } catch (e) { console.warn('Risk Box Error:', e); }
+        }
 
-            // 4. [กล่อง 5] ตารางเรียน
+        // 4. [กล่อง 5] ตารางเรียน
+        async function loadCourseAssignments() {
             try {
                 const { data: sch } = await db.from('course_assignments').select('*');
                 globalSchedules = sch || [];
                 renderSchedule();
             } catch (e) { console.warn('Schedule Box Error:', e); }
+        }
 
-            // 5. [กล่อง 7] ประวัติใบลา
+        // 5. [กล่อง 7] ประวัติใบลา
+        async function loadLeaveRequests() {
             try {
-                const { data: reqs } = await db.from('leave_requests').select('*');
-                const myReqs = reqs ? reqs.filter(r => cleanLower(r.student_id) === cleanLower(currentStudentId)) : [];
+                const { data: myReqs } = await db.from('leave_requests').select('*').eq('student_id', currentStudentId);
                 const leaveContainer = document.getElementById('leaveHistoryList');
-                if (leaveContainer && myReqs.length > 0) {
-                    leaveContainer.innerHTML = myReqs.map(r => `
-                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center mb-1">
-                            <div>
-                                <span class="font-bold text-slate-800">🏠 ยื่นใบลา</span>
-                                <p class="text-[10px] text-slate-500 mt-0.5">เหตุผล: ${r.reason || '-'} | สถานที่: ${r.destination || '-'}</p>
+                if (leaveContainer) {
+                    if (myReqs && myReqs.length > 0) {
+                        leaveContainer.innerHTML = myReqs.map(r => `
+                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center mb-1">
+                                <div>
+                                    <span class="font-bold text-slate-800">🏠 ยื่นใบลา</span>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">เหตุผล: ${r.reason || '-'} | สถานที่: ${r.destination || '-'}</p>
+                                </div>
+                                <span class="text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">${r.status || 'รออนุมัติ'}</span>
                             </div>
-                            <span class="text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">${r.status || 'รออนุมัติ'}</span>
-                        </div>
-                    `).join('');
+                        `).join('');
+                    } else {
+                        leaveContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">ไม่มีประวัติการยื่นใบลา</p>`;
+                    }
                 }
             } catch (e) { console.warn('Leave Box Error:', e); }
+        }
 
-            // 6. [กล่อง 9] ห้องพยาบาล
+        // 6. [กล่อง 9] ห้องพยาบาล
+        async function loadClinicRecords() {
             try {
-                const { data: clinic } = await db.from('clinic_records').select('*');
-                const myClinic = clinic ? clinic.filter(c => cleanLower(c.student_id) === cleanLower(currentStudentId)) : [];
+                const { data: myClinic } = await db.from('clinic_records').select('*').eq('student_id', currentStudentId);
                 const clinicContainer = document.getElementById('clinicHistoryList');
-                if (clinicContainer && myClinic.length > 0) {
-                    clinicContainer.innerHTML = myClinic.map(c => `
-                        <div class="p-3 bg-rose-50/50 border border-rose-100 rounded-xl text-xs space-y-1 mb-1">
-                            <span class="font-bold text-rose-900">อาการ: ${c.symptom || 'ป่วย/มีไข้'}</span>
-                            <p class="text-[10px] text-slate-400">สถานะ: ${c.status || 'บันทึกแล้ว'}</p>
-                        </div>
-                    `).join('');
+                if (clinicContainer) {
+                    if (myClinic && myClinic.length > 0) {
+                        clinicContainer.innerHTML = myClinic.map(c => `
+                            <div class="p-3 bg-rose-50/50 border border-rose-100 rounded-xl text-xs space-y-1 mb-1">
+                                <span class="font-bold text-rose-900">อาการ: ${c.symptom || 'ป่วย/มีไข้'}</span>
+                                <p class="text-[10px] text-slate-400">สถานะ: ${c.status || 'บันทึกแล้ว'}</p>
+                            </div>
+                        `).join('');
+                    } else {
+                        clinicContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการเข้าใช้ห้องพยาบาล</p>`;
+                    }
                 }
             } catch (e) { console.warn('Clinic Box Error:', e); }
 
-            // 7. [กล่อง 10] การบ้าน
+        // 7. [กล่อง 10] การบ้าน
+        async function loadHomeworkAssignments() {
             try {
                 let combinedHw = [];
                 const { data: hw1 } = await db.from('academic_assignments').select('*');
@@ -641,32 +650,41 @@
                 }
 
                 const hwContainer = document.getElementById('homeworkList');
-                if (hwContainer && combinedHw.length > 0) {
-                    hwContainer.innerHTML = combinedHw.map(item => `
-                        <div class="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl text-xs flex justify-between items-center mb-2">
-                            <div>
-                                <span class="bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded text-[10px]">${item.subject_code}</span>
-                                <h5 class="font-bold text-slate-800 mt-1">${item.title}</h5>
-                                <p class="text-[10px] text-slate-500 mt-0.5">📅 กำหนดส่ง: ${item.due_date}</p>
+                if (hwContainer) {
+                    if (combinedHw.length > 0) {
+                        hwContainer.innerHTML = combinedHw.map(item => `
+                            <div class="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl text-xs flex justify-between items-center mb-2">
+                                <div>
+                                    <span class="bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded text-[10px]">${item.subject_code}</span>
+                                    <h5 class="font-bold text-slate-800 mt-1">${item.title}</h5>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">📅 กำหนดส่ง: ${item.due_date}</p>
+                                </div>
+                                <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">มอบหมายแล้ว</span>
                             </div>
-                            <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px]">มอบหมายแล้ว</span>
-                        </div>
-                    `).join('');
+                        `).join('');
+                    } else {
+                        hwContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
+                    }
                 }
             } catch (e) { console.warn('Homework Box Error:', e); }
+        }
 
-            // 8. [กล่อง 8] แจ้งเตือน
+        // 8. [กล่อง 8] แจ้งเตือน
+        async function loadNotifications() {
             try {
-                const { data: notes } = await db.from('teacher_notifications').select('*');
-                const myNotes = notes ? notes.filter(n => cleanLower(n.student_id) === cleanLower(currentStudentId)) : [];
+                const { data: myNotes } = await db.from('teacher_notifications').select('*').eq('student_id', currentStudentId);
                 const noteContainer = document.getElementById('notificationList');
-                if (noteContainer && myNotes.length > 0) {
-                    noteContainer.innerHTML = myNotes.slice(-3).reverse().map(n => `
-                        <div class="p-3 bg-amber-50/50 border border-amber-100 rounded-xl text-xs mb-1">
-                            <h5 class="font-bold text-amber-900">${n.title || 'แจ้งเตือน'}</h5>
-                            <p class="text-[11px] text-slate-600 mt-0.5">${n.message}</p>
-                        </div>
-                    `).join('');
+                if (noteContainer) {
+                    if (myNotes && myNotes.length > 0) {
+                        noteContainer.innerHTML = myNotes.slice(-3).reverse().map(n => `
+                            <div class="p-3 bg-amber-50/50 border border-amber-100 rounded-xl text-xs mb-1">
+                                <h5 class="font-bold text-amber-900">${n.title || 'แจ้งเตือน'}</h5>
+                                <p class="text-[11px] text-slate-600 mt-0.5">${n.message}</p>
+                            </div>
+                        `).join('');
+                    } else {
+                        noteContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ยังไม่มีข้อความแจ้งเตือนใหม่</p>`;
+                    }
                 }
             } catch (e) { console.warn('Notification Box Error:', e); }
         }
