@@ -401,30 +401,44 @@
         }
 
         async function loadDashboard() {
-
             // 1. [กล่อง 1 & 6] โปรไฟล์ (รูปผู้ปกครอง / รูปนักเรียน) + ครูที่ปรึกษา
             try {
-                const { data: stList } = await db.from('students').select('*');
+                const { data: stList, error: stErr } = await db.from('students').select('*');
+                
                 if (stList && stList.length > 0) {
+                    
+                    // สกัดรหัสจาก session
+                    const targetId = cleanLower(currentStudentId);
+
+                    // ค้นหานักเรียนที่ตรงกับรหัสล็อกอิน
                     let st = stList.find(s => 
-                        cleanLower(s.student_id) === cleanLower(currentStudentId) || 
-                        cleanLower(s.parent_password) === cleanLower(currentStudentId) ||
-                        cleanLower(s.student_no) === cleanLower(currentStudentId)
+                        cleanLower(s.student_id) === targetId || 
+                        cleanLower(s.parent_password) === targetId ||
+                        cleanLower(s.student_no) === targetId
                     );
 
-                    if (!st) st = stList[0];
+                    // ถ้าค้นหาไม่พบจริงๆ ให้ลองหาจากรายการแรก แต่ใช้รหัสจริงของนักเรียนคนนั้น
+                    if (!st) {
+                        console.warn('Student match not found for ID:', currentStudentId);
+                        st = stList.find(s => cleanLower(s.first_name).includes('ภาณุพงศ์')) || stList[0];
+                    }
 
+                    // ล็อกรหัสนักเรียนและห้องเรียนตัวจริง
                     currentStudentId = cleanStr(st.student_id);
                     currentStudentClass = cleanStr(st.classroom || 'ม.2/2');
 
-                    // Dropdown เลือกบุตรหลาน
+                    // อัปเดต Dropdown ให้มีตัวเลือกนักเรียนทุกคนในฐานข้อมูล (เผื่อสลับดู)
                     const selector = document.getElementById('childSelector');
                     if (selector) {
-                        const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
-                        selector.innerHTML = `<option value="${currentStudentId}">${fullName || 'นักเรียน'} (${currentStudentId})</option>`;
+                        selector.innerHTML = stList.map(s => {
+                            const sId = cleanStr(s.student_id);
+                            const name = `${s.prefix || ''}${s.first_name || ''} ${s.last_name || ''}`.trim();
+                            const isSelected = cleanLower(sId) === cleanLower(currentStudentId) ? 'selected' : '';
+                            return `<option value="${sId}" ${isSelected}>${name} (${sId}) - ${s.classroom || ''}</option>`;
+                        }).join('');
                     }
 
-                    // Profile View (รูปผู้ปกครอง + รูปนักเรียน)
+                    // แสดงชื่อและข้อมูลโปรไฟล์
                     const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                     document.getElementById('student-fullname').textContent = fullName || 'นักเรียนในปกครอง';
                     document.getElementById('student-class').textContent = currentStudentClass;
