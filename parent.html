@@ -306,39 +306,47 @@
         let currentStudentClass = '';
         let globalSchedules = [];
 
+        // --- DATA NORMALIZERS (ตัวสกัดและคลี่ข้อมูลเพื่อป้องกัน Data Type Mismatch) ---
+        const cleanStr = (val) => String(val || '').trim();
+        const cleanLower = (val) => String(val || '').trim().toLowerCase();
+
         async function initParentPortal() {
             const session = JSON.parse(localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session') || '{}');
-            currentStudentId = session && session.student_id ? String(session.student_id).trim() : '';
+            currentStudentId = session && session.student_id ? cleanStr(session.student_id) : '';
             loadDashboard();
         }
 
         async function switchChild(sid) {
             if (!sid) return;
-            currentStudentId = String(sid).trim();
+            currentStudentId = cleanStr(sid);
             loadDashboard();
         }
 
         async function loadDashboard() {
-            // 1. คิวรีเฉพาะนักเรียนที่สอดคล้องกับ currentStudentId จากตาราง students
+
+            // 1. [กล่อง 1 & 6] โปรไฟล์ + ครูที่ปรึกษา
             try {
-                const { data: stList, error: stErr } = await db.from('students')
-                    .select('*')
-                    .or(`student_id.eq.${currentStudentId},parent_password.eq.${currentStudentId}`);
-
+                const { data: stList } = await db.from('students').select('*');
                 if (stList && stList.length > 0) {
-                    const st = stList[0];
+                    let st = stList.find(s => 
+                        cleanLower(s.student_id) === cleanLower(currentStudentId) || 
+                        cleanLower(s.parent_password) === cleanLower(currentStudentId) ||
+                        cleanLower(s.student_no) === cleanLower(currentStudentId)
+                    );
 
-                    currentStudentId = String(st.student_id).trim();
-                    currentStudentClass = String(st.classroom || 'ม.1/1').trim();
+                    if (!st) st = stList[0];
 
-                    // อัปเดต Dropdown
+                    currentStudentId = cleanStr(st.student_id);
+                    currentStudentClass = cleanStr(st.classroom || 'ม.2/2');
+
+                    // Dropdown
                     const selector = document.getElementById('childSelector');
                     if (selector) {
                         const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                         selector.innerHTML = `<option value="${currentStudentId}">${fullName || 'นักเรียน'} (${currentStudentId})</option>`;
                     }
 
-                    // อัปเดตข้อมูลโปรไฟล์
+                    // Profile View
                     const fullName = `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim();
                     document.getElementById('student-fullname').textContent = fullName || 'นักเรียนในปกครอง';
                     document.getElementById('student-class').textContent = currentStudentClass;
@@ -351,7 +359,7 @@
                         document.getElementById('student-avatar').src = 'https://via.placeholder.com/100?text=No+Photo';
                     }
 
-                    // แสดงครูที่ปรึกษา
+                    // ครูที่ปรึกษา
                     const advisorContainer = document.getElementById('advisorsContainer');
                     if (advisorContainer) {
                         if (st.advisor_name) {
@@ -370,25 +378,26 @@
                         }
                     }
                 }
-            } catch (e) { console.warn('Student profile err:', e); }
+            } catch (e) { console.warn('Profile Box Error:', e); }
 
-            // 2. ดึงสถิติเช็กชื่อจาก attendance_logs (ตรวจจับสถานะ หนีเรียน / โดดเรียน เพิ่มเติม)
+            // 2. [กล่อง 2, 4, 11, 12] Smart Gate + สถิติ 4 ช่อง + ประวัติพฤติกรรม
             try {
-                const { data: myLogs } = await db.from('attendance_logs').select('*').eq('student_id', currentStudentId);
+                const { data: logs } = await db.from('attendance_logs').select('*');
+                const myLogs = logs ? logs.filter(l => cleanLower(l.student_id) === cleanLower(currentStudentId)) : [];
 
                 let p = 0, l = 0, a = 0, t = 0;
                 if (myLogs && myLogs.length > 0) {
                     myLogs.forEach(log => {
-                        const s = String(log.status || '').toLowerCase();
-                        if (s === 'present' || s === 'มา') p++;
-                        else if (s === 'late' || s === 'สาย') l++;
-                        else if (s === 'absent' || s === 'ขาด') a++;
-                        else if (s === 'leave' || s === 'ลา') a++;
-                        else if (s === 'truant' || s === 'หนีเรียน' || s === 'โดดเรียน') t++;
+                        const s = cleanLower(log.status);
+                        if (s.includes('truant') || s.includes('หนี') || s.includes('โดด')) t++;
+                        else if (s.includes('absent') || s.includes('ขาด')) a++;
+                        else if (s.includes('late') || s.includes('สาย')) l++;
+                        else if (s.includes('leave') || s.includes('ลา')) a++;
+                        else p++;
                     });
 
                     const last = myLogs[myLogs.length - 1];
-                    const stStatus = String(last.status || '').toLowerCase();
+                    const stStatus = cleanLower(last.status);
                     const card = document.getElementById('trafficCardContainer');
                     const title = document.getElementById('trafficStatusTitle');
                     const desc = document.getElementById('trafficStatusDesc');
@@ -400,19 +409,19 @@
                     if (document.getElementById('timeGateOut')) document.getElementById('timeGateOut').textContent = gateOut !== '--:--' ? `${gateOut} น.` : '--:--';
 
                     if (card && title && desc) {
-                        if (stStatus === 'truant' || stStatus === 'หนีเรียน' || stStatus === 'โดดเรียน') {
+                        if (stStatus.includes('truant') || stStatus.includes('หนี') || stStatus.includes('โดด')) {
                             card.className = "bg-purple-700 text-white rounded-2xl p-5 shadow-md animate-bounce";
                             title.textContent = "🟣 ตรวจพบการหนีเรียน / โดดเรียน";
                             desc.textContent = "ขาดเช็กชื่อในรายวิชา โปรดติดตามสอบถามบุตรหลาน";
-                        } else if (stStatus === 'absent' || stStatus === 'ขาด') {
+                        } else if (stStatus.includes('absent') || stStatus.includes('ขาด')) {
                             card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md animate-pulse";
                             title.textContent = "🔴 ขาดเรียน";
                             desc.textContent = "ครูเช็กชื่อขาดเรียน โปรดตรวจสอบกับบุตรหลาน";
-                        } else if (stStatus === 'late' || stStatus === 'สาย') {
+                        } else if (stStatus.includes('late') || stStatus.includes('สาย')) {
                             card.className = "bg-amber-600 text-white rounded-2xl p-5 shadow-md";
                             title.textContent = "🟠 เข้าเรียนสาย";
                             desc.textContent = "สแกนหรือเช็กชื่อเข้าเรียนสาย";
-                        } else if (stStatus === 'leave' || stStatus === 'ลา') {
+                        } else if (stStatus.includes('leave') || stStatus.includes('ลา')) {
                             card.className = "bg-sky-600 text-white rounded-2xl p-5 shadow-md";
                             title.textContent = "🔵 ลา / ออกนอกโรงเรียน";
                             desc.textContent = "มีประวัติการยื่นใบลาในระบบ";
@@ -428,8 +437,8 @@
                         bhContainer.innerHTML = myLogs.slice(-5).reverse().map(item => {
                             const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : 'วันนี้';
                             let badgeBg = 'bg-indigo-50 text-indigo-700';
-                            if (String(item.status).includes('หนี')) badgeBg = 'bg-purple-100 text-purple-800';
-                            else if (String(item.status).includes('ขาด')) badgeBg = 'bg-rose-100 text-rose-800';
+                            if (cleanLower(item.status).includes('หนี')) badgeBg = 'bg-purple-100 text-purple-800';
+                            else if (cleanLower(item.status).includes('ขาด')) badgeBg = 'bg-rose-100 text-rose-800';
                             
                             return `
                                 <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs flex justify-between items-center mb-1">
@@ -441,6 +450,9 @@
                                 </div>`;
                         }).join('');
                     }
+                } else {
+                    const bhContainer = document.getElementById('behaviorLogsContainer');
+                    if (bhContainer) bhContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติพฤติกรรม</p>`;
                 }
 
                 document.getElementById('stat-present').innerText = p;
@@ -448,14 +460,15 @@
                 document.getElementById('stat-absent').innerText = a;
                 document.getElementById('stat-truant').innerText = t;
 
-            } catch (e) { console.warn('Attendance err:', e); }
+            } catch (e) { console.warn('Attendance Logs Error:', e); }
 
-            // 3. ดึงสถิติ มส.
+            // 3. [กล่อง 3] ความเสี่ยง มส.
             try {
-                const { data: myRisks } = await db.from('academic_attendance_summary').select('*').eq('student_id', currentStudentId);
+                const { data: myRisks } = await db.from('academic_attendance_summary').select('*');
+                const filteredRisks = myRisks ? myRisks.filter(r => cleanLower(r.student_id) === cleanLower(currentStudentId)) : [];
                 const container = document.getElementById('academicRiskContainer');
-                if (container && myRisks && myRisks.length > 0) {
-                    container.innerHTML = myRisks.map(r => `
+                if (container && filteredRisks.length > 0) {
+                    container.innerHTML = filteredRisks.map(r => `
                         <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl flex justify-between items-center text-xs mb-1">
                             <div>
                                 <span class="font-bold text-slate-800">${r.subject_name || r.subject_code}</span>
@@ -465,20 +478,21 @@
                         </div>
                     `).join('');
                 }
-            } catch (e) { console.warn('Risk err:', e); }
+            } catch (e) { console.warn('Risk Box Error:', e); }
 
-            // 4. ดึงตารางเรียน
+            // 4. [กล่อง 5] ตารางเรียน
             try {
-                const { data: sch } = await db.from('schedules').select('*');
+                const { data: sch } = await db.from('course_assignments').select('*');
                 globalSchedules = sch || [];
                 renderSchedule();
-            } catch (e) { console.warn('Schedule err:', e); }
+            } catch (e) { console.warn('Schedule Box Error:', e); }
 
-            // 5. ดึงประวัติใบลา
+            // 5. [กล่อง 7] ประวัติใบลา
             try {
-                const { data: myReqs } = await db.from('leave_requests').select('*').eq('student_id', currentStudentId);
+                const { data: reqs } = await db.from('leave_requests').select('*');
+                const myReqs = reqs ? reqs.filter(r => cleanLower(r.student_id) === cleanLower(currentStudentId)) : [];
                 const leaveContainer = document.getElementById('leaveHistoryList');
-                if (leaveContainer && myReqs && myReqs.length > 0) {
+                if (leaveContainer && myReqs.length > 0) {
                     leaveContainer.innerHTML = myReqs.map(r => `
                         <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center mb-1">
                             <div>
@@ -489,13 +503,14 @@
                         </div>
                     `).join('');
                 }
-            } catch (e) { console.warn('Leave err:', e); }
+            } catch (e) { console.warn('Leave Box Error:', e); }
 
-            // 6. ดึงประวัติห้องพยาบาล
+            // 6. [กล่อง 9] ห้องพยาบาล
             try {
-                const { data: myClinic } = await db.from('clinic_records').select('*').eq('student_id', currentStudentId);
+                const { data: clinic } = await db.from('clinic_records').select('*');
+                const myClinic = clinic ? clinic.filter(c => cleanLower(c.student_id) === cleanLower(currentStudentId)) : [];
                 const clinicContainer = document.getElementById('clinicHistoryList');
-                if (clinicContainer && myClinic && myClinic.length > 0) {
+                if (clinicContainer && myClinic.length > 0) {
                     clinicContainer.innerHTML = myClinic.map(c => `
                         <div class="p-3 bg-rose-50/50 border border-rose-100 rounded-xl text-xs space-y-1 mb-1">
                             <span class="font-bold text-rose-900">อาการ: ${c.symptom || 'ป่วย/มีไข้'}</span>
@@ -503,34 +518,21 @@
                         </div>
                     `).join('');
                 }
-            } catch (e) { console.warn('Clinic err:', e); }
+            } catch (e) { console.warn('Clinic Box Error:', e); }
 
-            // 7. ดึงการบ้าน
+            // 7. [กล่อง 10] การบ้าน
             try {
                 let combinedHw = [];
                 const { data: hw1 } = await db.from('academic_assignments').select('*');
-                const { data: hw2 } = await db.from('homework_assignments').select('*');
 
                 if (hw1) {
                     hw1.forEach(item => {
-                        const targetClass = String(item.class_room || item.classroom || '').trim();
-                        if (!targetClass || targetClass === currentStudentClass || currentStudentClass.includes(targetClass) || targetClass.includes(currentStudentClass)) {
+                        const targetClass = cleanLower(item.class_room || item.classroom);
+                        const myClass = cleanLower(currentStudentClass);
+                        if (!targetClass || targetClass === myClass || myClass.includes(targetClass) || targetClass.includes(myClass)) {
                             combinedHw.push({
                                 title: item.task_title || item.title || 'การบ้านใหม่',
                                 subject_code: item.subject_name || item.department || 'วิชาทั่วไป',
-                                due_date: item.due_date || 'ไม่ระบุ'
-                            });
-                        }
-                    });
-                }
-
-                if (hw2) {
-                    hw2.forEach(item => {
-                        const targetClass = String(item.classroom || item.class_name || '').trim();
-                        if (!targetClass || targetClass === currentStudentClass || currentStudentClass.includes(targetClass) || targetClass.includes(currentStudentClass)) {
-                            combinedHw.push({
-                                title: item.title || 'การบ้านใหม่',
-                                subject_code: item.subject_code || 'วิชาทั่วไป',
                                 due_date: item.due_date || 'ไม่ระบุ'
                             });
                         }
@@ -550,13 +552,14 @@
                         </div>
                     `).join('');
                 }
-            } catch (e) { console.warn('Homework err:', e); }
+            } catch (e) { console.warn('Homework Box Error:', e); }
 
-            // 8. ดึงแจ้งเตือน
+            // 8. [กล่อง 8] แจ้งเตือน
             try {
-                const { data: myNotes } = await db.from('teacher_notifications').select('*').eq('student_id', currentStudentId);
+                const { data: notes } = await db.from('teacher_notifications').select('*');
+                const myNotes = notes ? notes.filter(n => cleanLower(n.student_id) === cleanLower(currentStudentId)) : [];
                 const noteContainer = document.getElementById('notificationList');
-                if (noteContainer && myNotes && myNotes.length > 0) {
+                if (noteContainer && myNotes.length > 0) {
                     noteContainer.innerHTML = myNotes.slice(-3).reverse().map(n => `
                         <div class="p-3 bg-amber-50/50 border border-amber-100 rounded-xl text-xs mb-1">
                             <h5 class="font-bold text-amber-900">${n.title || 'แจ้งเตือน'}</h5>
@@ -564,7 +567,7 @@
                         </div>
                     `).join('');
                 }
-            } catch (e) { console.warn('Notes err:', e); }
+            } catch (e) { console.warn('Notification Box Error:', e); }
         }
 
         function renderSchedule() {
@@ -579,9 +582,10 @@
             const validDays = dayMap[day] || [day];
 
             const list = globalSchedules.filter(s => {
-                const sClass = String(s.class_name || s.classroom || '').trim();
-                const matchClass = !sClass || sClass === currentStudentClass || currentStudentClass.includes(sClass) || sClass.includes(currentStudentClass);
-                const matchDay = validDays.some(d => String(s.day_of_week || s.day || '').toLowerCase().includes(d.toLowerCase()));
+                const sClass = cleanLower(s.class_name || s.classroom);
+                const myClass = cleanLower(currentStudentClass);
+                const matchClass = !sClass || sClass === myClass || myClass.includes(sClass) || sClass.includes(myClass);
+                const matchDay = validDays.some(d => cleanLower(s.day_of_week || s.day).includes(d.toLowerCase()));
                 return matchClass && matchDay;
             });
 
