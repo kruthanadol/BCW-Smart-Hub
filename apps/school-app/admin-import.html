@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ศูนย์นำเข้าข้อมูลหลัก - โรงเรียนบัวเชดวิทยา (BCW Smart School)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- PapaParse SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
+    <style>
+        body { font-family: 'Kanit', 'Plus Jakarta Sans', sans-serif; }
+        .bg-mesh {
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(249, 115, 22, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-mesh text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-50 p-2 rounded-2xl ring-1 ring-indigo-100">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 object-contain rounded-xl" onerror="this.src='https://via.placeholder.com/32'">
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-slate-900 leading-tight">BCW Admin Console &bull; นำเข้าข้อมูลระบบ</h1>
+                    <p class="text-xs font-semibold text-indigo-600">ศูนย์จัดการ Master Data และคลังรูปภาพโปรไฟล์ (Supabase Integration)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="../../landing.html" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-semibold transition border border-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left"></i> กลับหน้าหลัก
+                </a>
+                <button id="btnLogout" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-xl font-semibold transition cursor-pointer">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> ออกจากระบบ
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto w-full px-4 py-8 flex-1 space-y-6">
+
+        <div class="text-center space-y-1">
+            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">ศูนย์นำเข้าข้อมูลหลัก (Master Data & Media Center)</h2>
+            <p class="text-xs text-slate-500">อัปโหลดไฟล์ CSV และรูปภาพโปรไฟล์เข้าสู่ฐานข้อมูล Supabase Direct</p>
+        </div>
+
+        <!-- Mode Selector Tabs -->
+        <div class="flex border-b border-slate-200 justify-center gap-6 text-sm font-bold">
+            <button id="tabCsv" class="pb-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition">
+                <i class="fa-solid fa-file-csv text-base"></i> 1. นำเข้าข้อมูลตาราง (.CSV)
+            </button>
+            <button id="tabImg" class="pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-600 flex items-center gap-2 transition">
+                <i class="fa-solid fa-images text-base"></i> 2. อัปโหลดรูปภาพโปรไฟล์ (Bulk Avatars)
+            </button>
+        </div>
+
+        <!-- Section 1: CSV Import Card -->
+        <div id="sectionCsv" class="glass-card rounded-3xl border border-white/80 p-6 md:p-8 shadow-xl shadow-slate-200/50 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Select Data Type -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">1. เลือกประเภทข้อมูลที่ต้องการนำเข้า</label>
+                    <select id="importCategory" class="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-sm">
+                        <optgroup label="ผู้ใช้ & ครูที่ปรึกษา">
+                            <option value="students">👨‍🎓 รายชื่อนักเรียน (students)</option>
+                            <option value="teachers">👩‍🏫 บัญชีบุคลากร/ครู (users)</option>
+                            <option value="class_advisors">🏫 ครูที่ปรึกษาประจำห้อง [1 ห้อง : หลายครู] (class_advisors)</option>
+                        </optgroup>
+                        
+                        <optgroup label="วิชาการ & ตารางเรียน">
+                            <option value="courses">📚 รายวิชาที่เปิดสอน (courses)</option>
+                            <option value="course_assignments">👨‍🏫 มอบหมายงานสอน [1 ครู : หลายวิชา/หลายห้อง] (course_assignments)</option>
+                            <option value="schedules">🗓️ ตารางเรียนประจำวัน (schedules)</option>
+                        </optgroup>
+
+                        <optgroup label="งานปกครอง & วินัย">
+                            <option value="discipline_catalog">👮‍♂️ เกณฑ์การตัดคะแนนพฤติกรรม (discipline_catalog)</option>
+                        </optgroup>
+                        <optgroup label="จัดการสถานะนักเรียน & ครู (ย้ายเข้า / ย้ายออก)">
+                            <option value="students_transfer_out">⛔ จำหน่ายนักเรียนย้ายออก/ลาออก (mark transferred_out)</option>
+                            <option value="teachers_transfer_out">⛔ จำหน่ายครู/บุคลากรย้ายออก (mark inactive)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <!-- Choose File -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">2. เลือกไฟล์ข้อมูล (.CSV UTF-8)</label>
+                    <input type="file" id="csvFileInput" accept=".csv" class="w-full p-2 bg-white border border-slate-200 rounded-2xl text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 cursor-pointer shadow-sm">
+                </div>
+            </div>
+
+            <!-- Submit CSV -->
+            <button id="btnExecuteImportCSV" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-md shadow-indigo-100 transition text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>ประมวลผลและนำเข้าลง Supabase Database</span>
+            </button>
+        </div>
+
+        <!-- Section 2: Bulk Image Upload Card -->
+        <div id="sectionImage" class="hidden glass-card rounded-3xl border border-white/80 p-6 md:p-8 shadow-xl shadow-slate-200/50 space-y-6">
+            <div class="bg-amber-50/80 border border-amber-200/80 p-4 rounded-2xl text-xs space-y-1">
+                <p class="font-bold text-amber-800"><i class="fa-solid fa-lightbulb mr-1"></i> คำแนะนำในการอัปโหลดรูปภาพโปรไฟล์</p>
+                <p class="text-amber-700">1. ตั้งชื่อไฟล์รูปเป็น **รหัสนักเรียน** หรือ **รหัสครู** เช่น <code class="bg-white px-1.5 py-0.5 rounded text-indigo-600 border border-amber-200">45821.jpg</code> หรือ <code class="bg-white px-1.5 py-0.5 rounded text-indigo-600 border border-amber-200">T001.jpg</code></p>
+                <p class="text-amber-700">2. สามารถกดเลือกรูปภาพพร้อมกันได้หลายร้อยรูปในครั้งเดียว</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-700">เลือกไฟล์รูปภาพโปรไฟล์ (.JPG, .PNG)</label>
+                <input type="file" id="imageFilesInput" multiple accept="image/jpeg, image/png" class="w-full p-2 bg-white border border-slate-200 rounded-2xl text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer shadow-sm">
+            </div>
+
+            <div id="uploadProgress" class="hidden space-y-1.5">
+                <div class="flex justify-between text-xs font-semibold text-slate-600">
+                    <span id="progressText">กำลังอัปโหลด...</span>
+                    <span id="progressPercent" class="text-indigo-600">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-200">
+                    <div id="progressBar" class="bg-indigo-600 h-full rounded-full w-0 transition-all duration-200"></div>
+                </div>
+            </div>
+
+            <button id="btnExecuteUploadAvatars" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-md shadow-amber-100 transition text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+                <i class="fa-solid fa-images"></i>
+                <span>อัปโหลดรูปภาพเข้า Supabase Storage (Bucket: avatars)</span>
+            </button>
+        </div>
+
+        <!-- Data Overview Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                <span class="text-[11px] text-slate-400 block font-bold">นักเรียนในระบบ</span>
+                <span id="countStudents" class="text-xl font-bold text-slate-800 mt-1 block">0 คน</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                <span class="text-[11px] text-slate-400 block font-bold">บุคลากร/ครู</span>
+                <span id="countTeachers" class="text-xl font-bold text-indigo-600 mt-1 block">0 คน</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                <span class="text-[11px] text-slate-400 block font-bold">รายวิชาเปิดสอน</span>
+                <span id="countCourses" class="text-xl font-bold text-sky-600 mt-1 block">0 วิชา</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                <span class="text-[11px] text-slate-400 block font-bold">รูปโปรไฟล์ในคลัง</span>
+                <span id="countAvatars" class="text-xl font-bold text-amber-500 mt-1 block">0 รูป</span>
+            </div>
+        </div>
+
+        <!-- Class Manager Banner -->
+        <div class="glass-card rounded-3xl p-6 border border-white/80 shadow-xl space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">🏫 ระบบจัดการย้ายห้อง & จำหน่ายนักเรียนรายห้อง</h3>
+                    <p class="text-xs text-slate-500">ย้ายห้องสลับสาย, ย้ายออกต่างโรงเรียน พร้อมบันทึกประวัติรายงานผู้บริหาร</p>
+                </div>
+                <button id="btnOpenClassManagerModal" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow transition flex items-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-users-gear"></i> เปิดหน้าต่างจัดการรายห้อง
+                </button>
+            </div>
+        </div>
+
+        <!-- Pop-up Modal จัดการรายห้องเรียน -->
+        <div id="classManagerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+                
+                <!-- Header Pop-up -->
+                <div class="bg-indigo-950 text-white p-5 flex justify-between items-center border-b border-indigo-800">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-graduation-cap text-2xl text-indigo-300"></i>
+                        <div>
+                            <h3 class="font-bold text-base">ระบบจัดการย้ายห้องเรียน & จำหน่ายนักเรียน</h3>
+                            <p class="text-xs text-indigo-300">โรงเรียนบัวเชดวิทยา (BCW Real-time Student Status Engine)</p>
+                        </div>
+                    </div>
+                    <button id="btnCloseClassManagerModal" class="text-white/80 hover:text-white text-xl font-bold cursor-pointer">&times;</button>
+                </div>
+
+                <!-- Filter & Search Bar -->
+                <div class="p-4 bg-slate-50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-600 block mb-1">เลือกระดับชั้น/ห้องเรียน</label>
+                        <select id="manageClassroomSelect" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800">
+                            <option value="ม.1/1">ม.1/1</option>
+                            <option value="ม.1/2">ม.1/2</option>
+                            <option value="ม.4/1">ม.4/1</option>
+                            <option value="ม.4/2">ม.4/2</option>
+                            <option value="ม.5/1">ม.5/1</option>
+                            <option value="ม.6/1">ม.6/1</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-600 block mb-1">สถานะนักเรียน</label>
+                        <select id="manageStatusSelect" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800">
+                            <option value="active" selected>กำลังศึกษา (Active)</option>
+                            <option value="transferred_out">ย้ายออก / ลาออก (Transferred)</option>
+                            <option value="ALL">-- แสดงทั้งหมด --</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button id="btnAddStudentInfo" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-user-plus"></i> คำแนะนำเพิ่มนักเรียนใหม่
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Student List Table -->
+                <div class="p-4 overflow-y-auto flex-1">
+                    <table class="w-full text-xs text-left border-collapse border border-slate-200">
+                        <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="p-2.5 border">รหัส</th>
+                                <th class="p-2.5 border">ชื่อ-นามสกุล</th>
+                                <th class="p-2.5 border text-center">ห้องปัจจุบัน</th>
+                                <th class="p-2.5 border text-center">สถานะ</th>
+                                <th class="p-2.5 border text-center">จัดการการย้าย</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classStudentTableBody" class="divide-y divide-slate-100 font-medium">
+                            <tr><td colspan="5" class="text-center py-6 text-slate-400">กำลังโหลดรายการนักเรียน...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Modal -->
+                <div class="p-3 bg-slate-100 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500 font-medium">
+                    <span>* ทุกการสลับห้อง/ย้ายออก ระบบจะบันทึก Log ลงตาราง student_transfers อัตโนมัติ</span>
+                    <button id="btnCloseClassManagerBottom" class="px-4 py-2 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded-xl font-bold cursor-pointer">ปิดหน้าต่าง</button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3">
+        โรงเรียนบัวเชดวิทยา (BCW) &bull; Master Data Management System
+    </footer>
+
+    <!-- Module Script Logic -->
+    <script type="module">
+        import { db, supabase, SUPABASE_URL } from '../../core/supabase-client.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateDataCounts();
+            setupEventListeners();
+        });
+
+        function switchTab(mode) {
+            const secCsv = document.getElementById('sectionCsv');
+            const secImg = document.getElementById('sectionImage');
+            const tabCsv = document.getElementById('tabCsv');
+            const tabImg = document.getElementById('tabImg');
+
+            if (mode === 'csv') {
+                secCsv.classList.remove('hidden');
+                secImg.classList.add('hidden');
+                tabCsv.className = "pb-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition font-bold";
+                tabImg.className = "pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-600 flex items-center gap-2 transition font-bold";
+            } else {
+                secCsv.classList.add('hidden');
+                secImg.classList.remove('hidden');
+                tabImg.className = "pb-3 border-b-2 border-amber-500 text-amber-600 flex items-center gap-2 transition font-bold";
+                tabCsv.className = "pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-600 flex items-center gap-2 transition font-bold";
+            }
+        }
+
+        async function updateDataCounts() {
+            try {
+                const { count: cStudents } = await db.from('students').select('*', { count: 'exact', head: true });
+                const { count: cUsers } = await db.from('users').select('*', { count: 'exact', head: true });
+                const { count: cCourses } = await db.from('courses').select('*', { count: 'exact', head: true });
+                const { data: files } = await supabase.storage.from('avatars').list();
+
+                document.getElementById('countStudents').innerText = `${cStudents || 0} คน`;
+                document.getElementById('countTeachers').innerText = `${cUsers || 0} คน`;
+                document.getElementById('countCourses').innerText = `${cCourses || 0} วิชา`;
+                document.getElementById('countAvatars').innerText = `${files ? files.length : 0} รูป`;
+            } catch (err) {
+                console.warn('Update Counts Error:', err);
+            }
+        }
+
+        async function executeImportCSV() {
+            const fileInput = document.getElementById('csvFileInput');
+            const category = document.getElementById('importCategory').value;
+
+            if (!fileInput.files.length) {
+                alert('กรุณาเลือกไฟล์ CSV ก่อนครับ');
+                return;
+            }
+
+            Papa.parse(fileInput.files[0], {
+                header: true,
+                skipEmptyLines: true,
+                complete: async function(results) {
+                    const rows = results.data;
+                    try {
+                        let tableName = category;
+                        let payload = [];
+
+                        if (category === 'students') {
+                            payload = rows.map(r => ({
+                                student_id: r.student_id || r['รหัสนักเรียน'],
+                                name: r.name || `${r['คำนำหน้า']||''}${r['ชื่อ']} ${r['นามสกุล']}`,
+                                classroom: r.classroom || r.class || r['ชั้นเรียน'],
+                                no: parseInt(r.no || r['เลขที่']) || 0,
+                                behavior_score: parseInt(r.behavior_score) || 100,
+                                avatar_url: `${SUPABASE_URL}/storage/v1/object/public/avatars/${r.student_id || r['รหัสนักเรียน']}.jpg`
+                            }));
+                        } 
+                        else if (category === 'teachers') {
+                            tableName = 'users';
+                            payload = rows.map(r => ({
+                                ref_id: r.teacher_id || r['รหัสครู'],
+                                full_name: r.name || r['ชื่อ-นามสกุล'],
+                                role: 'teacher',
+                                email: r.email || `${r.teacher_id}@bcw.ac.th`
+                            }));
+                        } 
+                        else if (category === 'class_advisors') {
+                            tableName = 'class_advisors';
+                            payload = rows.map(r => ({
+                                class_name: r.class_name || r['ชั้นเรียน'],
+                                teacher_id: r.teacher_id || r['รหัสครู'],
+                                advisor_type: r.advisor_type || r['ประเภทที่ปรึกษา'] || 'main'
+                            }));
+                        } 
+                        else if (category === 'course_assignments') {
+                            tableName = 'course_assignments';
+                            payload = rows.map(r => ({
+                                course_code: r.course_code || r['รหัสวิชา'],
+                                class_name: r.class_name || r['ชั้นเรียน'],
+                                teacher_id: r.teacher_id || r['รหัสครู'],
+                                is_primary: (r.is_primary === 'true' || r['ผู้สอนหลัก'] === 'ใช่')
+                            }));
+                        }
+                        else if (category === 'schedules') {
+                            tableName = 'schedules';
+                            payload = rows.map(r => ({
+                                course_code: r.course_code || r['รหัสวิชา'],
+                                class_name: r.class_name || r['ชั้นเรียน'],
+                                day_of_week: r.day_of_week || r['วัน'],
+                                period_no: parseInt(r.period_no || r['คาบที่']) || 1,
+                                room_no: r.room_no || r['ห้องเรียน'] || ''
+                            }));
+                        }
+                        else if (category === 'courses') {
+                            tableName = 'courses';
+                            payload = rows.map(r => ({
+                                course_code: r.course_code || r['รหัสวิชา'],
+                                course_name: r.course_name || r['ชื่อวิชา']
+                            }));
+                        }
+                        else if (category === 'discipline_catalog') {
+                            tableName = 'discipline_catalog';
+                            payload = rows.map(r => ({
+                                code: r.code || r['รหัส'],
+                                title: r.title || r['ชื่อความผิด/ความดี'],
+                                points_deducted: parseInt(r.points_deducted || r['คะแนน']) || 0,
+                                category: r.category || r['หมวดหมู่'] || 'ทั่วไป'
+                            }));
+                        }
+                        else if (category === 'students_transfer_out') {
+                            tableName = 'students';
+                            payload = rows.map(r => ({
+                                student_id: r.student_id || r['รหัสนักเรียน'],
+                                status: 'transferred_out',
+                                updated_at: new Date().toISOString()
+                            }));
+                        }
+                        else if (category === 'teachers_transfer_out') {
+                            tableName = 'users';
+                            payload = rows.map(r => ({
+                                ref_id: r.teacher_id || r['รหัสครู'],
+                                status: 'inactive',
+                                updated_at: new Date().toISOString()
+                            }));
+                        }
+
+                        const { error } = await db.from(tableName).upsert(payload);
+                        if (error) throw error;
+
+                        alert(`นำเข้าข้อมูลตาราง ${tableName} สำเร็จจำนวน ${payload.length} รายการ!`);
+                        fileInput.value = '';
+                        updateDataCounts();
+
+                    } catch (err) {
+                        alert('เกิดข้อผิดพลาดในการนำเข้า: ' + err.message);
+                        console.error(err);
+                    }
+                }
+            });
+        }
+
+        async function executeUploadAvatars() {
+            const fileInput = document.getElementById('imageFilesInput');
+            const files = fileInput.files;
+
+            if (!files.length) {
+                alert('กรุณาเลือกไฟล์รูปภาพอย่างน้อย 1 รูปครับ');
+                return;
+            }
+
+            const progressContainer = document.getElementById('uploadProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressText = document.getElementById('progressText');
+
+            progressContainer.classList.remove('hidden');
+            let uploadedCount = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileName = file.name;
+
+                const { error } = await supabase.storage
+                    .from('avatars')
+                    .upload(fileName, file, { upsert: true });
+
+                if (!error) uploadedCount++;
+
+                const percent = Math.round(((i + 1) / files.length) * 100);
+                progressBar.style.width = `${percent}%`;
+                progressPercent.innerText = `${percent}%`;
+                progressText.innerText = `กำลังอัปโหลด (${i + 1}/${files.length}): ${fileName}`;
+            }
+
+            alert(`อัปโหลดรูปภาพเข้าสู่ Supabase Storage สำเร็จ ${uploadedCount} รูป!`);
+            fileInput.value = '';
+            progressContainer.classList.add('hidden');
+            updateDataCounts();
+        }
+
+        async function loadStudentsByClass() {
+            const classroom = document.getElementById('manageClassroomSelect').value;
+            const statusFilter = document.getElementById('manageStatusSelect').value;
+            const tbody = document.getElementById('classStudentTableBody');
+
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> โหลดข้อมูลนักเรียนห้อง ${classroom}...</td></tr>`;
+
+            try {
+                let query = db.from('students').select('*').eq('classroom', classroom);
+                if (statusFilter !== 'ALL') {
+                    query = query.eq('status', statusFilter);
+                }
+
+                const { data: list, error } = await query;
+                if (error) throw error;
+
+                if (!list || list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">ไม่พบรายชื่อนักเรียนตามเงื่อนไขที่เลือก</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = list.map(s => {
+                    const fullName = `${s.prefix||''}${s.first_name||''} ${s.last_name||''}`.trim() || s.name || 'ไม่ระบุชื่อ';
+                    const isActive = (s.status || 'active') === 'active';
+                    const statusBadge = isActive 
+                        ? `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold text-[10px]">กำลังศึกษา</span>`
+                        : `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full font-bold text-[10px]">จำหน่าย/ย้ายออก</span>`;
+
+                    return `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-2.5 border font-mono font-bold text-slate-700">${s.student_id}</td>
+                            <td class="p-2.5 border font-bold text-slate-900">${fullName}</td>
+                            <td class="p-2.5 border text-center font-bold text-indigo-700">${s.classroom}</td>
+                            <td class="p-2.5 border text-center">${statusBadge}</td>
+                            <td class="p-2.5 border text-center space-x-1">
+                                ${isActive ? `
+                                    <button data-action="move" data-id="${s.student_id}" data-class="${s.classroom}" data-name="${fullName}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-2 py-1 rounded-lg font-bold text-[10px] cursor-pointer">
+                                        <i class="fa-solid fa-arrow-right-arrow-left"></i> ย้ายห้อง
+                                    </button>
+                                    <button data-action="transfer" data-id="${s.student_id}" data-name="${fullName}" class="bg-rose-100 hover:bg-rose-200 text-rose-800 px-2 py-1 rounded-lg font-bold text-[10px] cursor-pointer">
+                                        <i class="fa-solid fa-user-minus"></i> จำหน่ายย้ายออก
+                                    </button>
+                                ` : `
+                                    <button data-action="reactivate" data-id="${s.student_id}" data-name="${fullName}" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-1 rounded-lg font-bold text-[10px] cursor-pointer">
+                                        <i class="fa-solid fa-user-check"></i> รับกลับเข้าเรียน
+                                    </button>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-rose-500">เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function moveStudentClass(studentId, currentClass, studentName) {
+            const newClass = prompt(`ต้องการย้ายนักเรียน: ${studentName}\nจากห้องเดิม (${currentClass}) ไปยังห้องใหม่ห้องใด? (เช่น ม.5/2):`);
+            if (!newClass || newClass.trim() === '' || newClass === currentClass) return;
+
+            try {
+                const { error: updateErr } = await db
+                    .from('students')
+                    .update({ classroom: newClass.trim(), updated_at: new Date().toISOString() })
+                    .eq('student_id', studentId);
+
+                if (updateErr) throw updateErr;
+
+                await db.from('student_transfers').insert([{
+                    student_id: studentId,
+                    student_name: studentName,
+                    transfer_type: 'move_class',
+                    old_classroom: currentClass,
+                    new_classroom: newClass.trim(),
+                    effective_date: new Date().toISOString().split('T')[0]
+                }]);
+
+                alert(`✅ ย้ายนักเรียน ${studentName} ไปยังห้อง ${newClass} เรียบร้อยแล้ว!`);
+                loadStudentsByClass();
+
+            } catch (err) {
+                alert('❌ เกิดข้อผิดพลาดในการย้ายห้อง: ' + err.message);
+            }
+        }
+
+        async function transferOutStudent(studentId, studentName) {
+            const reason = prompt(`ระบุสาเหตุการย้ายออก/พ้นสภาพ ของ ${studentName}:`, 'ย้ายสถานศึกษา');
+            if (reason === null) return;
+
+            try {
+                const { error: updateErr } = await db
+                    .from('students')
+                    .update({ status: 'transferred_out', updated_at: new Date().toISOString() })
+                    .eq('student_id', studentId);
+
+                if (updateErr) throw updateErr;
+
+                await db.from('student_transfers').insert([{
+                    student_id: studentId,
+                    student_name: studentName,
+                    transfer_type: 'transfer_out',
+                    reason: reason,
+                    effective_date: new Date().toISOString().split('T')[0]
+                }]);
+
+                alert(`⛔ จำหน่ายนักเรียน ${studentName} ออกจากระบบเรียบร้อยแล้ว`);
+                loadStudentsByClass();
+
+            } catch (err) {
+                alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+            }
+        }
+
+        async function reactivateStudent(studentId, studentName) {
+            if (!confirm(`ต้องการรับนักเรียน ${studentName} กลับเข้าเรียนใช่หรือไม่?`)) return;
+
+            try {
+                const { error: updateErr } = await db
+                    .from('students')
+                    .update({ status: 'active', updated_at: new Date().toISOString() })
+                    .eq('student_id', studentId);
+
+                if (updateErr) throw updateErr;
+
+                alert(`✅ รับนักเรียน ${studentName} กลับเข้าเรียนเรียบร้อยแล้ว`);
+                loadStudentsByClass();
+
+            } catch (err) {
+                alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('tabCsv')?.addEventListener('click', () => switchTab('csv'));
+            document.getElementById('tabImg')?.addEventListener('click', () => switchTab('image'));
+            document.getElementById('btnExecuteImportCSV')?.addEventListener('click', executeImportCSV);
+            document.getElementById('btnExecuteUploadAvatars')?.addEventListener('click', executeUploadAvatars);
+
+            const modal = document.getElementById('classManagerModal');
+            document.getElementById('btnOpenClassManagerModal')?.addEventListener('click', () => {
+                modal?.classList.remove('hidden');
+                loadStudentsByClass();
+            });
+
+            const closeModal = () => modal?.classList.add('hidden');
+            document.getElementById('btnCloseClassManagerModal')?.addEventListener('click', closeModal);
+            document.getElementById('btnCloseClassManagerBottom')?.addEventListener('click', closeModal);
+
+            document.getElementById('manageClassroomSelect')?.addEventListener('change', loadStudentsByClass);
+            document.getElementById('manageStatusSelect')?.addEventListener('change', loadStudentsByClass);
+
+            document.getElementById('btnAddStudentInfo')?.addEventListener('click', () => {
+                alert('💡 คำแนะนำ: สำหรับการเพิ่มนักเรียนใหม่จำนวนมาก กรุณาเลือกแท็บ "1. นำเข้าข้อมูลตาราง (.CSV)" ด้านบนเพื่อนำเข้าไฟล์รายชื่อครับ');
+            });
+
+            document.getElementById('btnLogout')?.addEventListener('click', () => {
+                sessionStorage.clear();
+                localStorage.clear();
+                window.location.href = '../../login.html';
+            });
+
+            document.getElementById('classStudentTableBody')?.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+
+                const action = btn.dataset.action;
+                const id = btn.dataset.id;
+                const name = btn.dataset.name;
+                const cls = btn.dataset.class;
+
+                if (action === 'move') moveStudentClass(id, cls, name);
+                else if (action === 'transfer') transferOutStudent(id, name);
+                else if (action === 'reactivate') reactivateStudent(id, name);
+            });
+        }
+    </script>
+</body>
+</html>

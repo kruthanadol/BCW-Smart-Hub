@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ศูนย์ออกรายงานและดาวน์โหลดหลักฐาน - โรงเรียนบัวเชดวิทยา (BCW)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            .print-container { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navbar -->
+    <header class="bg-indigo-950 text-white shadow-lg sticky top-0 z-50 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-1 rounded-full shadow">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-10 h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+                </div>
+                <div>
+                    <h1 class="text-base font-bold leading-tight">ศูนย์ออกรายงานและสารสนเทศหลักฐาน (Master Reports Center)</h1>
+                    <p class="text-xs text-indigo-300">โรงเรียนบัวเชดวิทยา &bull; Smart School Portal (Live Real-time Analytics 100%)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="../../landing.html" class="text-xs bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl border border-indigo-700 font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left"></i> กลับแดชบอร์ด
+                </a>
+                <button type="button" id="btnLogout" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow">
+                    ออกจากระบบ
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
+
+        <!-- Controls / Filter Card -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4 no-print">
+            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-filter text-indigo-600"></i>
+                ตัวกรองข้อมูลรายงานหลักฐาน (Data Reporting Filters)
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- 1. Academic Year & Semester Filter -->
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500">ปีการศึกษา / ภาคเรียน</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="filterYear" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                            <option value="2569" selected>2569</option>
+                            <option value="2568">2568</option>
+                            <option value="2567">2567</option>
+                        </select>
+                        <select id="filterSemester" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                            <option value="1" selected>ภาคเรียนที่ 1</option>
+                            <option value="2">ภาคเรียนที่ 2</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 2. Select Class -->
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500">ระดับชั้น / ห้องเรียน</label>
+                    <select id="filterClass" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                        <option value="ALL">-- ทุกห้องเรียนรวมกัน --</option>
+                        <option value="ม.1/1">ม.1/1</option>
+                        <option value="ม.1/2">ม.1/2</option>
+                        <option value="ม.4/1">ม.4/1</option>
+                        <option value="ม.4/2">ม.4/2</option>
+                        <option value="ม.5/1" selected>ม.5/1</option>
+                        <option value="ม.6/1">ม.6/1</option>
+                    </select>
+                </div>
+
+                <!-- 3. Select Subject -->
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500">รายวิชา</label>
+                    <select id="filterSubject" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                        <option value="ALL">-- ทุกรายวิชา --</option>
+                        <option value="คณิตศาสตร์พื้นฐาน (ค31101)" selected>คณิตศาสตร์พื้นฐาน (ค31101)</option>
+                        <option value="วิทยาศาสตร์กายภาพ (ว31101)">วิทยาศาสตร์กายภาพ (ว31101)</option>
+                        <option value="ภาษาไทย (ท31101)">ภาษาไทย (ท31101)</option>
+                        <option value="ภาษาอังกฤษ (อ31101)">ภาษาอังกฤษ (อ31101)</option>
+                    </select>
+                </div>
+
+                <!-- 4. Select Teacher Dynamic from Supabase DB -->
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-indigo-700">ครูผู้สอนประจำวิชา (จากฐานข้อมูล)</label>
+                    <select id="selectTeacher" class="w-full p-2.5 bg-indigo-50/60 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- กำลังโหลดรายชื่อครู... --</option>
+                    </select>
+                </div>
+
+                <!-- 5. Report Type Filter -->
+                <div class="space-y-1 lg:col-span-4">
+                    <label class="text-xs font-bold text-slate-500">ประเภทรายงานหลักฐาน (12 หมวดมาตรฐานสถานศึกษา)</label>
+                    <select id="filterReportType" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                        <optgroup label="🟢 กลุ่มงานวิชาการและทะเบียนวัดผล">
+                            <option value="R01">1. รายงานเวลาเรียนรายวิชาประจำห้องเรียน (Attendance Register - Real-time Logs)</option>
+                            <option value="R02">2. รายงานสรุปเปอร์เซ็นต์เวลาเรียน คัดกรองกลุ่มเสี่ยง (ติด มส. < 80% / < 60%)</option>
+                            <option value="R03">3. รายงานสรุปภาพรวมเวลาเรียนรายชั้น/รายห้อง (Class Attendance Overview)</option>
+                            <option value="R04">4. รายงานสมุดบันทึกเวลาเรียนประจำรายวิชา (ปพ.5 ส่วนบันทึกเวลาเรียน)</option>
+                        </optgroup>
+                        <optgroup label="🟣 กลุ่มงานกิจการนักเรียนและฝ่ายปกครอง">
+                            <option value="R05">5. รายงานสถิติการ "หนีเรียน" รายวิชา/รายคาบ (Truancy Audit Trail)</option>
+                            <option value="R06">6. รายงานบันทึกคะแนนความประพฤติและประวัติพฤติกรรม (Behavioral Scorecard)</option>
+                            <option value="R07">7. รายงานนักเรียนกลุ่มเสี่ยงพฤติกรรมและความประพฤติ (Discipline Risk Watchlist)</option>
+                            <option value="R08">8. รายงานสรุปการแจ้งเตือนผู้ปกครองและการรับทราบเคส (Parent Notification Audit)</option>
+                        </optgroup>
+                        <optgroup label="🔵 กลุ่มงานดูแลช่วยเหลือนักเรียนและผู้บริหาร">
+                            <option value="R09">9. รายงานประวัติสถิติสารสนเทศรายบุคคล (Individual Student Profile - 360°)</option>
+                            <option value="R10">10. รายงานสถิติการปฏิบัติงานเช็คชื่อของครูผู้สอน (Teacher Check-in Audit)</option>
+                            <option value="R11">11. รายงานสรุปแนวโน้มและข้อเสนอแนะเชิงบริหาร (Executive Strategic Analytics)</option>
+                            <option value="R12">12. รายงานสรุปสถิติประจำเดือน / ประจำภาคเรียน (Monthly & Semester Summary)</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" id="btnGenerateReport" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-rotate"></i> ประมวลผล Real-time
+                </button>
+                <button type="button" id="btnExportCSV" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer" title="ดาวน์โหลด CSV">
+                    <i class="fa-solid fa-file-excel"></i> ส่งออก CSV (Excel)
+                </button>
+                <button type="button" id="btnPrintPDF" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer" title="พิมพ์ PDF">
+                    <i class="fa-solid fa-print"></i> พิมพ์เอกสาร PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Printable Report Sheet -->
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 print-container space-y-6">
+            
+            <!-- Document Formal Header -->
+            <div class="text-center space-y-1 border-b pb-4">
+                <div class="flex justify-center mb-2">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-16 h-16 object-contain" onerror="this.src='https://via.placeholder.com/64'">
+                </div>
+                <h2 class="text-lg font-bold text-slate-900">เอกสารรายงานสารสนเทศและหลักฐานทางการศึกษา</h2>
+                <h3 id="reportTitleHeader" class="text-sm font-bold text-indigo-900">รายงานสรุปเวลาเรียนและการมาเรียนรายวิชา</h3>
+                
+                <div class="flex justify-center items-center gap-3 text-xs font-medium text-slate-600 pt-1 flex-wrap">
+                    <span>ปีการศึกษา: <strong id="displayYearText" class="text-slate-800">2569 (ภาคเรียนที่ 1)</strong></span>
+                    <span>&bull;</span>
+                    <span>ห้องเรียน: <strong id="displayClassText" class="text-slate-800">ม.5/1</strong></span>
+                    <span>&bull;</span>
+                    <span>รายวิชา: <strong id="displaySubjectText" class="text-indigo-900">คณิตศาสตร์พื้นฐาน (ค31101)</strong></span>
+                    <span>&bull;</span>
+                    <span>ครูผู้สอน: <strong id="displayTeacherText" class="text-indigo-700 font-bold">กำลังโหลด...</strong></span>
+                </div>
+
+                <p class="text-[11px] text-slate-400 pt-1">โรงเรียนบัวเชดวิทยา สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์ &bull; ประมวลผล ณ วันที่: <span id="reportPrintDate"></span></p>
+            </div>
+
+            <!-- Report Summary Badges -->
+            <div id="summaryBadges" class="grid grid-cols-2 sm:grid-cols-4 gap-3 no-print">
+                <div class="bg-slate-50 p-3 rounded-2xl border text-center">
+                    <span id="badgeLabel1" class="text-[11px] text-slate-500 font-bold block">นักเรียนทั้งหมด</span>
+                    <span id="badgeTotal" class="text-lg font-black text-slate-800">0</span>
+                </div>
+                <div class="bg-emerald-50 p-3 rounded-2xl border border-emerald-100 text-center">
+                    <span id="badgeLabel2" class="text-[11px] text-emerald-700 font-bold block">ปกติ / ผ่านเกณฑ์</span>
+                    <span id="badgePass" class="text-lg font-black text-emerald-600">0</span>
+                </div>
+                <div class="bg-amber-50 p-3 rounded-2xl border border-amber-100 text-center">
+                    <span id="badgeLabel3" class="text-[11px] text-amber-700 font-bold block">เฝ้าระวัง / สาย</span>
+                    <span id="badgeWarning" class="text-lg font-black text-amber-600">0</span>
+                </div>
+                <div class="bg-rose-50 p-3 rounded-2xl border border-rose-100 text-center">
+                    <span id="badgeLabel4" class="text-[11px] text-rose-700 font-bold block">กลุ่มเสี่ยง / ขาดเรียน</span>
+                    <span id="badgeDanger" class="text-lg font-black text-rose-600">0</span>
+                </div>
+            </div>
+
+            <!-- Main Data Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse border border-slate-300">
+                    <thead id="reportTableHead" class="bg-slate-100 text-slate-700 border-b border-slate-300">
+                    </thead>
+                    <tbody id="reportTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Official Signature Block -->
+            <div class="pt-8 grid grid-cols-3 gap-4 text-center text-[11px] font-medium text-slate-700 hidden print:grid border-t mt-6">
+                <div class="space-y-6">
+                    <p>ลงชื่อ..........................................................<br><span id="sigTeacherName">(..........................................................)</span><br>ตำแหน่ง ครูผู้สอน / ผู้รายงาน</p>
+                </div>
+                <div class="space-y-6">
+                    <p>ลงชื่อ..........................................................<br><span>(ครูที่ปรึกษาประจำชั้น)</span><br>ตำแหน่ง ครูที่ปรึกษาประจำชั้น</p>
+                </div>
+                <div class="space-y-6">
+                    <p>ลงชื่อ..........................................................<br>(..........................................................)<br>ตำแหน่ง ผู้อำนวยการโรงเรียนบัวเชดวิทยา</p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3 no-print">
+        โรงเรียนบัวเชดวิทยา (BCW) &bull; Master Reporting Engine (100% Real-time Connected)
+    </footer>
+
+    <!-- Module Integration Script -->
+    <script type="module">
+        import { getTeachersList, generateMasterReportData } from '../../modules/reports/reports.service.js';
+
+        let currentReportData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('reportPrintDate').innerText = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            initReportsCenter();
+            setupEventListeners();
+        });
+
+        async function initReportsCenter() {
+            await loadTeachers();
+            await runGenerateReport();
+        }
+
+        async function loadTeachers() {
+            const selectTeacher = document.getElementById('selectTeacher');
+            const teachers = await getTeachersList();
+
+            selectTeacher.innerHTML = '';
+            teachers.forEach(name => {
+                selectTeacher.innerHTML += `<option value="${name}">${name}</option>`;
+            });
+
+            updateTeacherDisplay();
+        }
+
+        function updateTeacherDisplay() {
+            const teacherName = document.getElementById('selectTeacher').value || 'ครูผู้สอนประจำวิชา';
+            document.getElementById('displayTeacherText').innerText = teacherName;
+            if (document.getElementById('sigTeacherName')) {
+                document.getElementById('sigTeacherName').innerText = `(${teacherName})`;
+            }
+        }
+
+        async function runGenerateReport() {
+            const year = document.getElementById('filterYear').value;
+            const semester = document.getElementById('filterSemester').value;
+            const selectedClass = document.getElementById('filterClass').value;
+            const selectedSubject = document.getElementById('filterSubject').value;
+            const reportType = document.getElementById('filterReportType').value;
+
+            document.getElementById('displayYearText').innerText = `${year} (ภาคเรียนที่ ${semester})`;
+            document.getElementById('displayClassText').innerText = selectedClass;
+            document.getElementById('displaySubjectText').innerText = selectedSubject;
+            updateTeacherDisplay();
+
+            const tbody = document.getElementById('reportTableBody');
+            const thead = document.getElementById('reportTableHead');
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังดึงและคำนวณข้อมูลจากฐานข้อมูล Supabase...</td></tr>`;
+
+            try {
+                const reportRows = await generateMasterReportData({ selectedClass });
+
+                if (reportRows.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-amber-600 font-bold">ไม่พบข้อมูลนักเรียนในห้อง ${selectedClass}</td></tr>`;
+                    updateBadges(0, 0, 0, 0);
+                    return;
+                }
+
+                renderReportData(reportType, reportRows, thead, tbody);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-rose-500">เกิดข้อผิดพลาดในการดึงข้อมูล: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderReportData(type, data, thead, tbody) {
+            currentReportData = data;
+            const titleMap = {
+                R01: "1. รายงานเวลาเรียนรายวิชาประจำห้องเรียน",
+                R02: "2. รายงานสรุปเปอร์เซ็นต์เวลาเรียน คัดกรองกลุ่มเสี่ยง (ติด มส.)",
+                R03: "3. รายงานสรุปภาพรวมเวลาเรียนรายชั้น/รายห้อง",
+                R04: "4. รายงานสมุดบันทึกเวลาเรียนประจำรายวิชา (ปพ.5)",
+                R05: "5. รายงานสถิติการหนีเรียนรายวิชา/รายคาบ",
+                R06: "6. รายงานบันทึกคะแนนความประพฤติและประวัติพฤติกรรม",
+                R07: "7. รายงานนักเรียนกลุ่มเสี่ยงพฤติกรรมและความประพฤติ",
+                R08: "8. รายงานสรุปการแจ้งเตือนผู้ปกครองและการรับทราบเคส",
+                R09: "9. รายงานประวัติสถิติสารสนเทศรายบุคคล (Individual Student Profile 360°)",
+                R10: "10. รายงานสถิติการปฏิบัติงานเช็คชื่อของครูผู้สอน",
+                R11: "11. รายงานสรุปแนวโน้มและข้อเสนอแนะเชิงบริหาร",
+                R12: "12. รายงานสรุปสถิติประจำเดือน / ประจำภาคเรียน"
+            };
+            document.getElementById('reportTitleHeader').innerText = titleMap[type] || "รายงานสารสนเทศทางการศึกษา";
+
+            let total = data.length;
+            let pass = 0, warn = 0, danger = 0;
+
+            if (['R01', 'R03', 'R04'].includes(type)) {
+                pass = data.filter(r => r.attendance_percent >= 80).length;
+                warn = data.filter(r => r.attendance_percent >= 60 && r.attendance_percent < 80).length;
+                danger = data.filter(r => r.attendance_percent < 60).length;
+
+                thead.innerHTML = `
+                    <tr>
+                        <th class="border border-slate-300 p-2 text-center w-12">ลำดับ</th>
+                        <th class="border border-slate-300 p-2">รหัสนักเรียน</th>
+                        <th class="border border-slate-300 p-2">ชื่อ-นามสกุล</th>
+                        <th class="border border-slate-300 p-2 text-center">ห้องเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">เวลามาเรียน (คาบ)</th>
+                        <th class="border border-slate-300 p-2 text-center">% เวลาเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">การประเมินผล</th>
+                    </tr>`;
+
+                tbody.innerHTML = data.map((r, i) => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="border border-slate-300 p-2 text-center">${i+1}</td>
+                        <td class="border border-slate-300 p-2 font-mono text-slate-500">${r.student_id}</td>
+                        <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
+                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center">${r.attended_periods} / ${r.total_periods}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold ${r.attendance_percent >= 80 ? 'text-emerald-600':'text-rose-600'}">${r.attendance_percent}%</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold ${r.attendance_percent >= 80 ? 'text-emerald-600': r.attendance_percent >= 60 ? 'text-amber-600':'text-rose-600'}">
+                            ${r.attendance_percent >= 80 ? 'ปกติ (ผ่านเกณฑ์)' : r.attendance_percent >= 60 ? 'เฝ้าระวัง' : 'เสี่ยงติด มส.'}
+                        </td>
+                    </tr>
+                `).join('');
+
+            } else if (type === 'R02') {
+                const riskList = data.filter(r => r.attendance_percent < 80);
+                pass = data.length - riskList.length;
+                warn = riskList.filter(r => r.attendance_percent >= 60).length;
+                danger = riskList.filter(r => r.attendance_percent < 60).length;
+
+                thead.innerHTML = `
+                    <tr>
+                        <th class="border border-slate-300 p-2 text-center w-12">ลำดับ</th>
+                        <th class="border border-slate-300 p-2">ชื่อ-นามสกุล นักเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">ห้องเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">% เวลาเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">ระดับความเสี่ยง</th>
+                        <th class="border border-slate-300 p-2">แนวทางแก้ไข/ติดตาม</th>
+                    </tr>`;
+
+                tbody.innerHTML = riskList.length ? riskList.map((r, i) => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="border border-slate-300 p-2 text-center">${i+1}</td>
+                        <td class="border border-slate-300 p-2 font-bold text-rose-900">${r.student_name}</td>
+                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-black text-rose-600">${r.attendance_percent}%</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold ${r.attendance_percent < 60 ? 'bg-rose-100 text-rose-700':'bg-amber-100 text-amber-700'}">
+                            ${r.attendance_percent < 60 ? 'เสี่ยงติด มส. (<60%)' : 'เฝ้าระวัง (<80%)'}
+                        </td>
+                        <td class="border border-slate-300 p-2">${r.attendance_percent < 60 ? 'ออกหนังสือแจ้งผู้ปกครอง + สัญญาทำกิจกรรมชดเชย' : 'แจ้งครูที่ปรึกษาตักเตือน'}</td>
+                    </tr>
+                `).join('') : `<tr><td colspan="6" class="text-center py-6 text-emerald-600 font-bold">🎉 ไม่พบน้องนักเรียนที่มีกลุ่มเสี่ยงติด มส. ในห้องนี้</td></tr>`;
+
+            } else if (type === 'R05') {
+                const truantList = data.filter(r => r.truant_count > 0);
+                pass = data.length - truantList.length;
+                danger = truantList.length;
+
+                thead.innerHTML = `
+                    <tr>
+                        <th class="border border-slate-300 p-2 text-center w-12">ลำดับ</th>
+                        <th class="border border-slate-300 p-2">ชื่อ-นามสกุล</th>
+                        <th class="border border-slate-300 p-2 text-center">ห้องเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">จำนวนครั้งที่หนีเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">สถานะฝ่ายปกครอง</th>
+                    </tr>`;
+
+                tbody.innerHTML = truantList.length ? truantList.map((r, i) => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="border border-slate-300 p-2 text-center">${i+1}</td>
+                        <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
+                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-black text-rose-600">${r.truant_count} คาบ</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold text-rose-700 bg-rose-50">แจ้งฝ่ายปกครองติดตามแล้ว</td>
+                    </tr>
+                `).join('') : `<tr><td colspan="5" class="text-center py-6 text-emerald-600 font-bold">✨ ไม่พบประวัติการหนีเรียนในห้องนี้</td></tr>`;
+
+            } else if (['R06', 'R07'].includes(type)) {
+                pass = data.filter(r => r.behavior_score >= 80).length;
+                warn = data.filter(r => r.behavior_score >= 50 && r.behavior_score < 80).length;
+                danger = data.filter(r => r.behavior_score < 50).length;
+
+                thead.innerHTML = `
+                    <tr>
+                        <th class="border border-slate-300 p-2 text-center w-12">ลำดับ</th>
+                        <th class="border border-slate-300 p-2">ชื่อ-นามสกุล</th>
+                        <th class="border border-slate-300 p-2 text-center">ห้องเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">คะแนนพฤติกรรมคงเหลือ</th>
+                        <th class="border border-slate-300 p-2 text-center">การประเมินฝ่ายปกครอง</th>
+                    </tr>`;
+
+                tbody.innerHTML = data.map((r, i) => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="border border-slate-300 p-2 text-center">${i+1}</td>
+                        <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
+                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-black ${r.behavior_score >= 80 ? 'text-emerald-600':'text-rose-600'}">${r.behavior_score} คะแนน</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold ${r.behavior_score >= 80 ? 'text-emerald-600': r.behavior_score >= 50 ? 'text-amber-600':'text-rose-600'}">
+                            ${r.behavior_score >= 80 ? 'ปกติ (ความประพฤติดี)' : r.behavior_score >= 50 ? 'เฝ้าระวังพฤติกรรม' : 'เชิญผู้ปกครอง / ทำทัณฑ์บน'}
+                        </td>
+                    </tr>
+                `).join('');
+
+            } else if (type === 'R08') {
+                pass = data.filter(r => r.notif_count > 0).length;
+                danger = data.length - pass;
+
+                thead.innerHTML = `
+                    <tr>
+                        <th class="border border-slate-300 p-2 text-center w-12">ลำดับ</th>
+                        <th class="border border-slate-300 p-2">ชื่อ-นามสกุล</th>
+                        <th class="border border-slate-300 p-2 text-center">ห้องเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">จำนวนการส่งการแจ้งเตือน</th>
+                        <th class="border border-slate-300 p-2 text-center">สถานะการรับทราบของผู้ปกครอง</th>
+                    </tr>`;
+
+                tbody.innerHTML = data.map((r, i) => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="border border-slate-300 p-2 text-center">${i+1}</td>
+                        <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
+                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold text-indigo-700">${r.notif_count} ครั้ง</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold ${r.notif_count > 0 ? 'text-emerald-600':'text-slate-400'}">
+                            ${r.notif_count > 0 ? 'ส่งแจ้งเตือนเข้าแอปแล้ว' : 'ยังไม่มีรายการแจ้งเตือน'}
+                        </td>
+                    </tr>
+                `).join('');
+
+            } else if (type === 'R09') {
+                pass = data.length;
+                thead.innerHTML = `
+                    <tr>
+                        <th class="border border-slate-300 p-2 text-center w-12">ลำดับ</th>
+                        <th class="border border-slate-300 p-2">ชื่อ-นามสกุล</th>
+                        <th class="border border-slate-300 p-2 text-center">ห้องเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">มาเรียน (%)</th>
+                        <th class="border border-slate-300 p-2 text-center">คะแนนพฤติกรรม</th>
+                        <th class="border border-slate-300 p-2 text-center">นอนห้องพยาบาล</th>
+                    </tr>`;
+
+                tbody.innerHTML = data.map((r, i) => `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="border border-slate-300 p-2 text-center">${i+1}</td>
+                        <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
+                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold text-emerald-600">${r.attendance_percent}%</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold text-indigo-600">${r.behavior_score} คะแนน</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold text-amber-600">${r.clinic_count} ครั้ง</td>
+                    </tr>
+                `).join('');
+
+            } else if (type === 'R10') {
+                pass = data.length;
+                thead.innerHTML = `
+                    <tr>
+                        <th class="border border-slate-300 p-2 text-center w-12">ลำดับ</th>
+                        <th class="border border-slate-300 p-2">ชื่อครูผู้สอน / ผู้บันทึก</th>
+                        <th class="border border-slate-300 p-2 text-center">ห้องเรียนที่บันทึก</th>
+                        <th class="border border-slate-300 p-2 text-center">จำนวนนักเรียนที่สแกน/เช็กชื่อ</th>
+                        <th class="border border-slate-300 p-2 text-center">สถานะการส่งรายงาน</th>
+                    </tr>`;
+
+                const currentTeacher = document.getElementById('selectTeacher').value || 'ครูผู้สอน';
+                tbody.innerHTML = `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="border border-slate-300 p-2 text-center">1</td>
+                        <td class="border border-slate-300 p-2 font-bold text-indigo-900">${currentTeacher}</td>
+                        <td class="border border-slate-300 p-2 text-center">${document.getElementById('filterClass').value}</td>
+                        <td class="border border-slate-300 p-2 text-center font-black text-emerald-600">${data.length} คน</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold text-emerald-600 bg-emerald-50">บันทึกรายงานสมบูรณ์</td>
+                    </tr>`;
+
+            } else { // R11, R12 (บริหาร & ภาพรวม)
+                pass = data.filter(r => r.attendance_percent >= 80).length;
+                warn = data.filter(r => r.attendance_percent >= 60 && r.attendance_percent < 80).length;
+                danger = data.filter(r => r.attendance_percent < 60).length;
+
+                thead.innerHTML = `
+                    <tr>
+                        <th class="border border-slate-300 p-2 text-center w-12">ลำดับ</th>
+                        <th class="border border-slate-300 p-2">หัวข้อดัชนีชี้วัด (KPIs)</th>
+                        <th class="border border-slate-300 p-2 text-center">จำนวนนักเรียน</th>
+                        <th class="border border-slate-300 p-2 text-center">คิดเป็นเปอร์เซ็นต์</th>
+                        <th class="border border-slate-300 p-2">ข้อเสนอแนะเชิงบริหาร</th>
+                    </tr>`;
+
+                tbody.innerHTML = `
+                    <tr class="border-b"><td class="border p-2 text-center">1</td><td class="border p-2 font-bold text-emerald-800">นักเรียนกลุ่มมาเรียนปกติ (>= 80%)</td><td class="border p-2 text-center font-bold">${pass} คน</td><td class="border p-2 text-center font-bold text-emerald-600">${Math.round((pass/total)*100 || 0)}%</td><td class="border p-2">ส่งเสริมและรักษามาตรฐานการเรียนรู้</td></tr>
+                    <tr class="border-b"><td class="border p-2 text-center">2</td><td class="border p-2 font-bold text-amber-800">นักเรียนกลุ่มเฝ้าระวัง (60-79%)</td><td class="border p-2 text-center font-bold">${warn} คน</td><td class="border p-2 text-center font-bold text-amber-600">${Math.round((warn/total)*100 || 0)}%</td><td class="border p-2">มอบหมายครูที่ปรึกษาติดตามตักเตือน</td></tr>
+                    <tr class="border-b"><td class="border p-2 text-center">3</td><td class="border p-2 font-bold text-rose-800">นักเรียนกลุ่มเสี่ยงติด มส. (< 60%)</td><td class="border p-2 text-center font-bold">${danger} คน</td><td class="border p-2 text-center font-bold text-rose-600">${Math.round((danger/total)*100 || 0)}%</td><td class="border p-2">ออกหนังสือแจ้งผู้ปกครองและทำกิจกรรมชดเชย</td></tr>
+                `;
+            }
+
+            updateBadges(total, pass, warn, danger);
+        }
+
+        function updateBadges(total, pass, warn, danger) {
+            document.getElementById('badgeTotal').innerText = total;
+            document.getElementById('badgePass').innerText = pass;
+            document.getElementById('badgeWarning').innerText = warn;
+            document.getElementById('badgeDanger').innerText = danger;
+        }
+
+        function exportReportCSV() {
+            if (!currentReportData || currentReportData.length === 0) {
+                alert('ไม่มีข้อมูลรายงานสำหรับส่งออก CSV');
+                return;
+            }
+
+            let csvContent = "\uFEFF";
+            csvContent += "ลำดับ,รหัสนักเรียน,ชื่อ-นามสกุล,ระดับชั้น,เปอร์เซ็นต์มาเรียน,คะแนนพฤติกรรม,สถิติหนีเรียน\n";
+
+            currentReportData.forEach((row, index) => {
+                csvContent += `"${index + 1}","${row.student_id || ''}","${row.student_name || ''}","${row.class || ''}","${row.attendance_percent}%","${row.behavior_score}","${row.truant_count} คาบ"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `รายงาน_บัวเชดวิทยา_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function setupEventListeners() {
+            document.getElementById('filterYear')?.addEventListener('change', runGenerateReport);
+            document.getElementById('filterSemester')?.addEventListener('change', runGenerateReport);
+            document.getElementById('filterClass')?.addEventListener('change', runGenerateReport);
+            document.getElementById('filterSubject')?.addEventListener('change', runGenerateReport);
+            document.getElementById('filterReportType')?.addEventListener('change', runGenerateReport);
+            document.getElementById('selectTeacher')?.addEventListener('change', updateTeacherDisplay);
+
+            document.getElementById('btnGenerateReport')?.addEventListener('click', runGenerateReport);
+            document.getElementById('btnExportCSV')?.addEventListener('click', exportReportCSV);
+            document.getElementById('btnPrintPDF')?.addEventListener('click', () => window.print());
+
+            document.getElementById('btnLogout')?.addEventListener('click', () => {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = '../../login.html';
+            });
+        }
+    </script>
+</body>
+</html>

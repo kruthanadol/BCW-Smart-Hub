@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบฝ่ายปกครอง - โรงเรียนบัวเชดวิทยา</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        .tab-btn.active { border-bottom: 3px solid #d97706; color: #b45309; font-weight: 700; }
+        .form-tab.active-deduct { background-color: #e11d48; color: white; }
+        .form-tab.active-repair { background-color: #10b981; color: white; }
+        .has-tooltip { position: relative; }
+        .has-tooltip .tooltip-box {
+            visibility: hidden; opacity: 0; transition: opacity 0.2s ease-in-out, visibility 0.2s;
+            position: absolute; top: 110%; z-index: 60; white-space: nowrap;
+        }
+        .has-tooltip:hover .tooltip-box { visibility: visible; opacity: 1; }
+        .tooltip-align-left { left: 0; }
+        .tooltip-align-right { right: 0; }
+        @media print {
+            body * { visibility: hidden; }
+            #printableArea, #printableArea * { visibility: visible; }
+            #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+        .report-container { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px; }
+        .summary-card { flex: 1; min-width: 320px; background: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 20px; border: 1px solid #e2e8f0; }
+        .card-header h3 { margin: 0 0 10px 0; font-size: 1.1rem; color: #1e293b; }
+        .primary-stat { font-size: 1.5rem; font-weight: bold; color: #059669; margin-bottom: 15px; }
+        .card-footer { margin-top: 15px; padding-top: 12px; border-top: 2px solid #cbd5e1; font-weight: 600; color: #0f172a; font-size: 0.95rem; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header Zone -->
+    <header class="bg-amber-900 text-white shadow-lg sticky top-0 z-50 print:hidden">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-1 rounded-full shadow">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-10 h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+                </div>
+                <div>
+                    <h1 class="text-base font-bold leading-tight">ระบบฝ่ายปกครอง &bull; Discipline & Student Care Center</h1>
+                    <p class="text-xs text-amber-200">โรงเรียนบัวเชดวิทยา (BCW Smart School v6.5)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="scanner.html" class="text-xs bg-amber-500 hover:bg-amber-400 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 border border-amber-300">
+                    <i class="fa-solid fa-camera-retro"></i> สแกนใบหน้า AI
+                </a>
+                <button id="btnOpenGatepassModal" class="text-xs bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-md border border-amber-400 cursor-pointer">
+                    <i class="fa-solid fa-door-open"></i> บันทึกขอออกนอกโรงเรียน
+                </button>
+                <a href="../../landing.html" class="text-xs bg-amber-800 hover:bg-rose-600 px-3 py-2 rounded-xl font-semibold transition border border-amber-700 flex items-center gap-1.5 text-white">
+                    <i class="fa-solid fa-house"></i> หน้าหลัก
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-1 space-y-6 print:hidden">
+        <!-- 1. Key Metrics Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 relative has-tooltip cursor-pointer">
+                <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500">เสี่ยงวิกฤต (&lt; 80 คะแนน)</p>
+                    <h3 id="kpiRiskCount" class="text-xl font-extrabold text-rose-600">0 คน</h3>
+                    <p class="text-[10px] text-slate-400">ชี้เมาส์ดูรายชื่อนักเรียน 💬</p>
+                </div>
+                <div class="tooltip-box tooltip-align-left bg-slate-900 text-white text-xs p-3 rounded-xl shadow-2xl border border-slate-700 min-w-[220px]">
+                    <p class="font-bold border-b border-slate-700 pb-1 mb-1 text-rose-400">🔴 รายชื่อเด็กติดเงื่อนไขวิกฤต:</p>
+                    <ul id="tooltipRiskUl" class="space-y-1 text-[11px] text-slate-200"><li>ไม่มีรายการข้อมูล</li></ul>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 relative has-tooltip cursor-pointer">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-door-open"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500">ขอออกนอกโรงเรียนวันนี้</p>
+                    <h3 id="kpiGatePassCount" class="text-xl font-extrabold text-amber-600">0 คน</h3>
+                    <p id="kpiGateSub" class="text-[10px] text-slate-400">ชี้เมาส์ดูรายชื่อ 💬</p>
+                </div>
+                <div class="tooltip-box tooltip-align-left bg-slate-900 text-white text-xs p-3 rounded-xl shadow-2xl border border-slate-700 min-w-[240px]">
+                    <p class="font-bold border-b border-slate-700 pb-1 mb-1 text-amber-400">🟡 รายชื่อเด็กขอออกนอกสถานศึกษา:</p>
+                    <ul id="tooltipGateUl" class="space-y-1 text-[11px] text-slate-200"><li>ไม่มีรายการข้อมูล</li></ul>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 relative has-tooltip cursor-pointer">
+                <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-bed-pulse"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500">นอนห้องพยาบาล (ณ ปัจจุบัน)</p>
+                    <h3 id="kpiInfirmaryCount" class="text-xl font-extrabold text-sky-600">0 คน</h3>
+                    <p class="text-[10px] text-sky-500 font-medium">ชี้เมาส์ดูรายชื่อเด็กป่วย 💬</p>
+                </div>
+                <div class="tooltip-box tooltip-align-right bg-slate-900 text-white text-xs p-3 rounded-xl shadow-2xl border border-slate-700 min-w-[240px]">
+                    <p class="font-bold border-b border-slate-700 pb-1 mb-1 text-sky-400">🏥 รายชื่อเด็กนอนห้องพยาบาล:</p>
+                    <ul id="tooltipInfirmaryUl" class="space-y-1 text-[11px] text-slate-200"><li>ไม่มีรายการข้อมูล</li></ul>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 relative has-tooltip cursor-pointer">
+                <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-user-ninja"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500">แจ้งเตือนหนีเรียน Real-time</p>
+                    <h3 id="kpiTruancyCount" class="text-xl font-extrabold text-purple-600">0 เคส</h3>
+                    <p class="text-[10px] text-rose-500 font-bold animate-pulse">ชี้เมาส์ดูรายชื่อ 💬</p>
+                </div>
+                <div class="tooltip-box tooltip-align-right bg-slate-900 text-white text-xs p-3 rounded-xl shadow-2xl border border-slate-700 min-w-[250px]">
+                    <p class="font-bold border-b border-slate-700 pb-1 mb-1 text-purple-300">🚨 เด็กหนีเรียนคาบปัจจุบัน:</p>
+                    <ul id="tooltipTruancyUl" class="space-y-1 text-[11px] text-slate-200"><li>ไม่มีรายการข้อมูล</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Assembly Section -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-sky-300 space-y-4">
+            <div class="flex flex-wrap justify-between items-center border-b pb-3 gap-3">
+                <div>
+                    <h2 class="text-base font-extrabold text-sky-900 flex items-center gap-2">
+                        <i class="fa-solid fa-users-rectangle text-sky-600"></i>
+                        📌 รายงานสรุปการเข้าแถวเคารพธงชาติ (ม.ต้น / ม.ปลาย)
+                    </h2>
+                    <p class="text-xs text-slate-500">จำแนกตามระดับชั้นและห้องเรียน พร้อมสถิติความตรงต่อเวลาหน้าเสาธง</p>
+                </div>
+            </div>
+            <div class="report-container">
+                <div class="summary-card">
+                    <div class="card-header">
+                        <h3>ระดับ ม.ต้น (ม.1 – ม.3)</h3>
+                        <div class="primary-stat">มาตรงเวลา <span id="percent-mton">0.0%</span></div>
+                    </div>
+                    <div class="card-footer" id="total-mton">นักเรียน ม.ต้น ทั้งหมด 0 คน</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-header">
+                        <h3>ระดับ ม.ปลาย (ม.4 – ม.6)</h3>
+                        <div class="primary-stat">มาตรงเวลา <span id="percent-mplay">0.0%</span></div>
+                    </div>
+                    <div class="card-footer" id="total-mplay">นักเรียน ม.ปลาย ทั้งหมด 0 คน</div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left">
+                    <thead class="bg-slate-100 text-slate-700 border-b">
+                        <tr>
+                            <th class="p-2.5">ระดับชั้น / ห้องเรียน</th>
+                            <th class="p-2.5 text-center">นักเรียนทั้งหมด</th>
+                            <th class="p-2.5 text-center text-emerald-700">มาแถว (คน)</th>
+                            <th class="p-2.5 text-center text-amber-700">มาสาย (คน)</th>
+                            <th class="p-2.5 text-center text-rose-700">ขาด/ไม่มา (คน)</th>
+                            <th class="p-2.5 text-center text-sky-700">ลา (คน)</th>
+                            <th class="p-2.5 text-center">% อัตราการเข้าแถว</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assemblyTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. Behavior Form & Main History Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 h-fit space-y-4">
+                <div class="border-b border-slate-100 pb-3">
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-user text-amber-600"></i> คะแนนความประพฤติ
+                    </h2>
+                </div>
+                <div class="flex rounded-xl bg-slate-100 p-1 text-xs font-bold gap-1">
+                    <button type="button" id="btnTabDeduct" class="form-tab active-deduct flex-1 py-2.5 rounded-lg text-center transition cursor-pointer shadow"><i class="fa-solid fa-minus-circle mr-1"></i> ตัดคะแนน</button>
+                    <button type="button" id="btnTabRepair" class="form-tab flex-1 py-2.5 rounded-lg text-center text-slate-600 transition cursor-pointer"><i class="fa-solid fa-star mr-1"></i> ทำความดี (+คะแนน)</button>
+                </div>
+
+                <form id="deductForm" class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">กรอกรหัสนักเรียน</label>
+                        <input type="text" id="studentCodeInput" placeholder="กรอกรหัสนักเรียน เช่น 10001" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-amber-600" required autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">ชื่อ-นามสกุล / ชั้นเรียน</label>
+                        <input type="text" id="studentNameDisplay" placeholder="ระบุรหัสนักเรียนเพื่อแสดงชื่อ..." class="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-700" readonly>
+                        <p id="studentScorePreview" class="text-[11px] font-bold mt-1 text-slate-400">คะแนนปัจจุบัน: -- / 100 คะแนน</p>
+                    </div>
+                    <div id="deductFields" class="space-y-3">
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">ฐานความผิด (พฤติกรรม)</label>
+                            <select id="reasonSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-amber-600">
+                                <option value="หนีเรียน/ออกนอกสถานศึกษา" data-points="10">หนีเรียน/ออกนอกสถานศึกษา (-10 คะแนน)</option>
+                                <option value="มาสายเกินกำหนด" data-points="5">มาสายเกินกำหนด (-5 คะแนน)</option>
+                                <option value="แต่งกายผิดระเบียบ" data-points="5">แต่งกายผิดระเบียบ (-5 คะแนน)</option>
+                                <option value="ทะเลาะวิวาท" data-points="20">ทะเลาะวิวาท (-20 คะแนน)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">จำนวนคะแนนที่หัก (-Points)</label>
+                            <input type="number" id="deductPoints" value="10" min="1" max="50" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-rose-600 focus:outline-none focus:border-amber-600">
+                        </div>
+                    </div>
+                    <div id="repairFields" class="space-y-3 hidden">
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">รายการทำความดี / จิตอาสา / บำเพ็ญประโยชน์</label>
+                            <select id="repairReasonSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-emerald-600">
+                                <option value="สร้างชื่อเสียงให้กับโรงเรียน">สร้างชื่อเสียงให้กับโรงเรียน (+20 คะแนน)</option>
+                                <option value="เก็บของตกสูญหายนำส่งคืนเจ้าของ">เก็บของตกสูญหายนำส่งคืนเจ้าของ (+10 คะแนน)</option>
+                                <option value="ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน">ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน (+10 คะแนน)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">จำนวนคะแนนที่เพิ่มให้ (+Points)</label>
+                            <input type="number" id="addPoints" value="10" min="1" max="40" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-600 focus:outline-none focus:border-emerald-600">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">หมายเหตุ / รายละเอียดเพิ่มเติม</label>
+                        <textarea id="noteInput" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติม..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-amber-600"></textarea>
+                    </div>
+                    <button type="submit" id="btnSubmitForm" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน
+                    </button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-wrap border-b gap-4 text-xs font-bold text-slate-500">
+                    <button id="tabHist" class="tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-list-check"></i> ประวัติหัก/เพิ่มคะแนน</button>
+                    <button id="tabRisk" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i> กลุ่มติดเงื่อนไข &lt; 80%</button>
+                    <button id="tabGate" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-door-open text-amber-500"></i> รายงานขอออกนอกโรงเรียน</button>
+                </div>
+
+                <div id="viewHistory" class="space-y-3">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-50 text-slate-500 border-b">
+                                <tr>
+                                    <th class="p-2.5">นักเรียน</th>
+                                    <th class="p-2.5">รายการ / กิจกรรม</th>
+                                    <th class="p-2.5 text-center">หัก/คืนคะแนน</th>
+                                    <th class="p-2.5 text-center">คะแนนคงเหลือ</th>
+                                    <th class="p-2.5">เวลาบันทึก</th>
+                                </tr>
+                            </thead>
+                            <tbody id="disciplineTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="viewRisk" class="space-y-3 hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-rose-50 text-rose-800 border-b">
+                                <tr>
+                                    <th class="p-2.5">นักเรียน / ชั้น</th>
+                                    <th class="p-2.5 text-center">คะแนนปัจจุบัน</th>
+                                    <th class="p-2.5">เป้าหมายซ่อมเพิ่ม</th>
+                                    <th class="p-2.5 text-center">สถานะสิทธิ์</th>
+                                </tr>
+                            </thead>
+                            <tbody id="riskTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="viewGatepass" class="space-y-3 hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-amber-50 text-amber-900 border-b">
+                                <tr>
+                                    <th class="p-2.5">นักเรียน / ห้อง</th>
+                                    <th class="p-2.5">เวลาออก-กลับ</th>
+                                    <th class="p-2.5">ธุระ / วัตถุประสงค์</th>
+                                    <th class="p-2.5 text-center">สถานะประตู</th>
+                                    <th class="p-2.5">ผู้อนุมัติ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gatepassTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Gatepass Modal -->
+    <div id="gatepassModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-amber-200">
+            <div class="bg-amber-800 px-5 py-3.5 text-white flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-door-open text-amber-300"></i> บันทึกขออนุญาตออกนอกบริเวณโรงเรียน</h3>
+                <button id="btnCloseGatepassModal" class="text-amber-200 hover:text-white text-xl font-bold transition cursor-pointer">&times;</button>
+            </div>
+            <form id="gatepassForm" class="p-5 space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">รหัสนักเรียน <span class="text-rose-500">*</span></label>
+                    <div class="flex gap-2">
+                        <input type="text" id="gateStudentId" placeholder="กรอกรหัสนักเรียน เช่น 12345" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none">
+                        <button type="button" id="btnSearchGateStudent" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl transition cursor-pointer">ค้นหา</button>
+                    </div>
+                </div>
+                <div id="modalStudentInfoBox" class="p-3 bg-amber-50/70 rounded-xl border border-amber-200 hidden">
+                    <p id="modalStudentName" class="font-extrabold text-slate-800 text-sm">-</p>
+                    <p id="modalStudentClass" class="text-slate-500 font-medium text-[11px]">-</p>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">เหตุผล / วัตถุประสงค์ <span class="text-rose-500">*</span></label>
+                    <textarea id="gateReason" rows="2" placeholder="ระบุเหตุผล..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl" required></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block font-bold text-slate-700 mb-1">เวลาที่ออก</label><input type="time" id="gateExitTime" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl" required></div>
+                    <div><label class="block font-bold text-slate-700 mb-1">เวลาที่กลับ</label><input type="time" id="gateReturnTime" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl"></div>
+                </div>
+                <div><label class="block font-bold text-slate-700 mb-1">ผู้อนุมัติ</label><input type="text" id="gateApprovedBy" value="ครูฝ่ายปกครอง" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl"></div>
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" id="btnCancelGatepass" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl cursor-pointer">ยกเลิก</button>
+                    <button type="submit" id="btnSubmitGatepass" disabled class="px-5 py-2 bg-amber-600 text-white font-bold rounded-xl opacity-50 cursor-not-allowed cursor-pointer">บันทึกขออนุญาต</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3 mt-6 print:hidden">
+        โรงเรียนบัวเชดวิทยา (BCW) &bull; Discipline & Student Care Management System
+    </footer>
+
+    <!-- Module Integration Script -->
+    <script type="module">
+        import { 
+            fetchDisciplineDashboardData, 
+            getStudentFullName, 
+            calculateStudentScore, 
+            saveBehaviorRecord, 
+            saveGatePassRecord 
+        } from '../../modules/student-affairs/discipline.service.js';
+
+        let appData = { students: [], behaviorLogs: [], gatePassLogs: [], attendanceLogs: [], clinicRecords: [] };
+        let currentFormMode = 'deduct';
+        let selectedStudentForGatepass = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDashboardData();
+            setupEventListeners();
+        });
+
+        async function loadDashboardData() {
+            appData = await fetchDisciplineDashboardData();
+            renderKPIs();
+            renderAssemblyTable();
+            renderDisciplineHistoryTable();
+            renderRiskTable();
+            renderGatepassFullTable();
+        }
+
+        function renderKPIs() {
+            const riskStudents = appData.students.filter(s => calculateStudentScore(getStudentFullName(s), appData.behaviorLogs) < 80);
+            document.getElementById('kpiRiskCount').innerText = `${riskStudents.length} คน`;
+            document.getElementById('kpiGatePassCount').innerText = `${appData.gatePassLogs.length} คน`;
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const activeClinic = appData.clinicRecords.filter(c => (c.created_at || '').startsWith(todayStr));
+            document.getElementById('kpiInfirmaryCount').innerText = `${activeClinic.length} คน`;
+            document.getElementById('kpiTruancyCount').innerText = `${appData.attendanceLogs.length} เคส`;
+        }
+
+        function renderAssemblyTable() {
+            const tbody = document.getElementById('assemblyTableBody');
+            if (!tbody) return;
+
+            const roomMap = {};
+            appData.students.forEach(s => {
+                const room = s.classroom || s.class_name || 'ไม่ระบุห้อง';
+                if (!roomMap[room]) roomMap[room] = { room, total: 0, absent: 0, late: 0, leave: 0 };
+                roomMap[room].total++;
+            });
+
+            const rooms = Object.values(roomMap);
+            tbody.innerHTML = rooms.map(d => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-2.5 font-bold text-slate-800">${d.room}</td>
+                    <td class="p-2.5 text-center font-semibold text-slate-600">${d.total}</td>
+                    <td class="p-2.5 text-center font-bold text-emerald-600">${d.total - d.absent - d.late}</td>
+                    <td class="p-2.5 text-center font-bold text-amber-600">${d.late}</td>
+                    <td class="p-2.5 text-center font-bold text-rose-600">${d.absent}</td>
+                    <td class="p-2.5 text-center font-bold text-sky-600">${d.leave}</td>
+                    <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">100%</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderDisciplineHistoryTable() {
+            const tbody = document.getElementById('disciplineTableBody');
+            if (!tbody) return;
+
+            if (appData.behaviorLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">✨ ยังไม่มีประวัติบันทึกคะแนนความประพฤติ</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = appData.behaviorLogs.map(r => `
+                <tr class="border-b hover:bg-slate-50 transition">
+                    <td class="p-2.5 font-bold text-slate-800">${r.student_name || r.student_id || 'ไม่ระบุชื่อ'}</td>
+                    <td class="p-2.5 text-slate-600">${r.action || r.reason || '-'}</td>
+                    <td class="p-2.5 text-center font-bold ${r.points < 0 ? 'text-rose-600' : 'text-emerald-600'}">${r.points > 0 ? '+' : ''}${r.points || 0}</td>
+                    <td class="p-2.5 text-center font-bold">${calculateStudentScore(r.student_name || '', appData.behaviorLogs)}</td>
+                    <td class="p-2.5 text-slate-400 text-xs">${r.created_at ? new Date(r.created_at).toLocaleDateString('th-TH') : '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderRiskTable() {
+            const tbody = document.getElementById('riskTableBody');
+            if (!tbody) return;
+
+            const riskStudents = appData.students.filter(s => calculateStudentScore(getStudentFullName(s), appData.behaviorLogs) < 80);
+            if (riskStudents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400">ไม่พบนักเรียนกลุ่มเสี่ยง (&lt; 80 คะแนน)</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = riskStudents.map(s => {
+                const name = getStudentFullName(s);
+                const score = calculateStudentScore(name, appData.behaviorLogs);
+                return `
+                    <tr class="border-b hover:bg-rose-50/50 transition">
+                        <td class="p-2.5 font-bold text-slate-800">${name} (${s.classroom || '-'})</td>
+                        <td class="p-2.5 text-center font-bold text-rose-600">${score} คะแนน</td>
+                        <td class="p-2.5 text-slate-600">บำเพ็ญประโยชน์เพิ่ม ${80 - score} คะแนน</td>
+                        <td class="p-2.5 text-center"><span class="bg-rose-100 text-rose-700 font-bold px-2 py-1 rounded-full text-xs">เฝ้าระวัง</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderGatepassFullTable() {
+            const tbody = document.getElementById('gatepassTableBody');
+            if (!tbody) return;
+
+            if (appData.gatePassLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-slate-400">ไม่มีประวัติการขออนุญาตออกนอกโรงเรียน</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = appData.gatePassLogs.map(g => `
+                <tr class="border-b hover:bg-slate-50 transition">
+                    <td class="p-2.5 font-bold text-slate-800">${g.student_name || g.student_id}</td>
+                    <td class="p-2.5 text-slate-700">${g.exit_time || '-'} ถึง ${g.return_time || '-'}</td>
+                    <td class="p-2.5 text-slate-600">${g.reason || '-'}</td>
+                    <td class="p-2.5 text-center">${g.status === 'returned' ? 'กลับมาแล้ว' : 'ออกนอกโรงเรียน'}</td>
+                    <td class="p-2.5 text-slate-400">${g.approved_by || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function setupEventListeners() {
+            // Tab Toggle
+            document.getElementById('tabHist')?.addEventListener('click', () => switchTableTab('hist'));
+            document.getElementById('tabRisk')?.addEventListener('click', () => switchTableTab('risk'));
+            document.getElementById('tabGate')?.addEventListener('click', () => switchTableTab('gate'));
+
+            // Mode Switch
+            document.getElementById('btnTabDeduct')?.addEventListener('click', () => switchFormMode('deduct'));
+            document.getElementById('btnTabRepair')?.addEventListener('click', () => switchFormMode('repair'));
+
+            // Code Input Search
+            document.getElementById('studentCodeInput')?.addEventListener('input', (e) => {
+                const code = e.target.value.trim();
+                const student = appData.students.find(s => (s.student_id || s.code || '').toString() === code);
+                const nameDisplay = document.getElementById('studentNameDisplay');
+                const scorePreview = document.getElementById('studentScorePreview');
+
+                if (student) {
+                    const fullName = getStudentFullName(student);
+                    const score = calculateStudentScore(fullName, appData.behaviorLogs);
+                    if (nameDisplay) nameDisplay.value = `${fullName} (${student.classroom || '-'})`;
+                    if (scorePreview) scorePreview.innerText = `คะแนนปัจจุบัน: ${score} / 100 คะแนน`;
+                } else if (nameDisplay) {
+                    nameDisplay.value = code ? '⚠️ ไม่พบข้อมูลนักเรียน' : '';
+                }
+            });
+
+            // Form Submit
+            document.getElementById('deductForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const studentCode = document.getElementById('studentCodeInput').value.trim();
+                const student = appData.students.find(s => (s.student_id || s.code || '').toString() === studentCode);
+
+                if (!student) {
+                    alert('กรุณากรอกรหัสนักเรียนให้ถูกต้อง');
+                    return;
+                }
+
+                const studentName = getStudentFullName(student);
+                let points = 0;
+                let action = '';
+
+                if (currentFormMode === 'deduct') {
+                    action = document.getElementById('reasonSelect').value;
+                    points = -Math.abs(Number(document.getElementById('deductPoints').value || 10));
+                } else {
+                    action = document.getElementById('repairReasonSelect').value;
+                    points = Math.abs(Number(document.getElementById('addPoints').value || 10));
+                }
+
+                const note = document.getElementById('noteInput').value;
+                const result = await saveBehaviorRecord({ studentId: studentCode, studentName, type: currentFormMode, action, points, note });
+
+                if (result.success) {
+                    alert('🎉 บันทึกข้อมูลเรียบร้อยแล้ว!');
+                    document.getElementById('deductForm').reset();
+                    document.getElementById('studentNameDisplay').value = '';
+                    await loadDashboardData();
+                } else {
+                    alert('เกิดข้อผิดพลาดในการบันทึก: ' + result.message);
+                }
+            });
+
+            // Gatepass Modal Controls
+            document.getElementById('btnOpenGatepassModal')?.addEventListener('click', () => toggleModal('gatepassModal', true));
+            document.getElementById('btnCloseGatepassModal')?.addEventListener('click', () => toggleModal('gatepassModal', false));
+            document.getElementById('btnCancelGatepass')?.addEventListener('click', () => toggleModal('gatepassModal', false));
+
+            document.getElementById('btnSearchGateStudent')?.addEventListener('click', () => {
+                const code = document.getElementById('gateStudentId').value.trim();
+                selectedStudentForGatepass = appData.students.find(s => (s.student_id || s.code || '').toString() === code);
+                const infoBox = document.getElementById('modalStudentInfoBox');
+                const btnSubmit = document.getElementById('btnSubmitGatepass');
+
+                if (selectedStudentForGatepass) {
+                    infoBox.classList.remove('hidden');
+                    document.getElementById('modalStudentName').innerText = getStudentFullName(selectedStudentForGatepass);
+                    document.getElementById('modalStudentClass').innerText = `ชั้น ${selectedStudentForGatepass.classroom || '-'}`;
+                    btnSubmit.disabled = false;
+                    btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    infoBox.classList.add('hidden');
+                    btnSubmit.disabled = true;
+                    btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+                    alert('ไม่พบข้อมูลนักเรียน');
+                }
+            });
+
+            document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!selectedStudentForGatepass) return;
+
+                const studentName = getStudentFullName(selectedStudentForGatepass);
+                const reason = document.getElementById('gateReason').value;
+                const exitTime = document.getElementById('gateExitTime').value;
+                const returnTime = document.getElementById('gateReturnTime').value;
+                const approvedBy = document.getElementById('gateApprovedBy').value;
+
+                const result = await saveGatePassRecord({
+                    studentId: selectedStudentForGatepass.student_id,
+                    studentName: `${studentName} (${selectedStudentForGatepass.classroom || '-'})`,
+                    reason, exitTime, returnTime, approvedBy
+                });
+
+                if (result.success) {
+                    alert('🎉 บันทึกขออนุญาตออกนอกสถานศึกษาเรียบร้อยแล้ว!');
+                    toggleModal('gatepassModal', false);
+                    document.getElementById('gatepassForm').reset();
+                    await loadDashboardData();
+                } else {
+                    alert('เกิดข้อผิดพลาดในการบันทึก: ' + result.message);
+                }
+            });
+        }
+
+        function switchTableTab(tab) {
+            document.getElementById('tabHist').className = tab === 'hist' ? "tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer" : "tab-btn pb-2 flex items-center gap-1.5 cursor-pointer";
+            document.getElementById('tabRisk').className = tab === 'risk' ? "tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer" : "tab-btn pb-2 flex items-center gap-1.5 cursor-pointer";
+            document.getElementById('tabGate').className = tab === 'gate' ? "tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer" : "tab-btn pb-2 flex items-center gap-1.5 cursor-pointer";
+
+            document.getElementById('viewHistory').classList.toggle('hidden', tab !== 'hist');
+            document.getElementById('viewRisk').classList.toggle('hidden', tab !== 'risk');
+            document.getElementById('viewGatepass').classList.toggle('hidden', tab !== 'gate');
+        }
+
+        function switchFormMode(mode) {
+            currentFormMode = mode;
+            document.getElementById('btnTabDeduct').className = mode === 'deduct' ? "form-tab active-deduct flex-1 py-2.5 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2.5 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            document.getElementById('btnTabRepair').className = mode === 'repair' ? "form-tab active-repair flex-1 py-2.5 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2.5 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            document.getElementById('deductFields').classList.toggle('hidden', mode !== 'deduct');
+            document.getElementById('repairFields').classList.toggle('hidden', mode !== 'repair');
+            
+            const btnSubmit = document.getElementById('btnSubmitForm');
+            btnSubmit.className = mode === 'deduct' ? "w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs flex items-center justify-center gap-1.5 cursor-pointer" : "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs flex items-center justify-center gap-1.5 cursor-pointer";
+            btnSubmit.innerHTML = mode === 'deduct' ? `<i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน` : `<i class="fa-solid fa-star"></i> บันทึกเพิ่มคะแนน/ทำความดี`;
+        }
+
+        function toggleModal(modalId, show) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            if (show) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+            else { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+        }
+    </script>
+</body>
+</html>

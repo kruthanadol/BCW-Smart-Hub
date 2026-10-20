@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCW Student Connect - ระบบสำหรับนักเรียน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- QRCode Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>body { font-family: 'Kanit', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-indigo-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-1 rounded-full shadow">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-10 h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+                </div>
+                <div>
+                    <h1 class="text-base font-bold leading-tight">BCW Student Portal</h1>
+                    <p class="text-[11px] text-indigo-300">ระบบติดตามการเรียน พฤติกรรม และออกนอกสถานศึกษา (โรงเรียนบัวเชดวิทยา)</p>
+                </div>
+            </div>
+            <button id="btnLogout" class="text-xs bg-indigo-800 hover:bg-rose-600 px-3 py-1.5 rounded-xl font-semibold transition border border-indigo-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto w-full px-4 py-6 flex-1 space-y-5">
+
+        <!-- 1. Student Profile Overview -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                <div class="relative">
+                    <img id="student-avatar" src="https://via.placeholder.com/100?text=Student" alt="Student Photo" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover ring-4 ring-indigo-50 shadow-md border border-slate-100">
+                    <span id="badge-status-dot" class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
+                </div>
+                <div class="space-y-0.5">
+                    <h2 id="student-fullname" class="text-base font-bold text-slate-800">กำลังเชื่อมต่อระบบ...</h2>
+                    <p class="text-xs text-slate-500">ชั้น: <span id="student-class" class="font-bold text-indigo-600">-</span> &bull; เลขที่: <span id="student-no">-</span> &bull; รหัสประจำตัว: <span id="student-id">-</span></p>
+                    <span id="student-academic-status" class="inline-block mt-1 text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">สถานะ: เชื่อมต่อสำเร็จ</span>
+                </div>
+            </div>
+            <div class="text-right bg-indigo-50/70 p-3 rounded-2xl border border-indigo-100 min-w-[120px] w-full sm:w-auto">
+                <span class="text-[10px] text-slate-500 block font-semibold text-center sm:text-right">คะแนนพฤติกรรมคงเหลือ</span>
+                <div class="text-center sm:text-right">
+                    <span id="student-behavior-score" class="text-2xl font-black text-indigo-700">--</span>
+                    <span class="text-xs text-slate-400 font-normal">/ 100</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🚪 2. ระบบยื่นขอออกนอกสถานศึกษาออนไลน์ & บัตรผ่านประตูดิจิทัล (GATEPASS SYSTEM) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Active Digital Pass Card -->
+            <div id="activePassCard" class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-indigo-700 space-y-3 hidden">
+                <div class="flex justify-between items-center border-b border-indigo-700/60 pb-2">
+                    <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved"></i> บัตรผ่านประตูดิจิทัล (Digital Gatepass)
+                    </span>
+                    <span id="passStatusBadge" class="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md">รอการอนุมัติ</span>
+                </div>
+                <div class="text-center py-2">
+                    <div class="flex justify-center my-2">
+                        <div id="qrcodeContainer" class="p-2.5 bg-white rounded-xl shadow border-2 border-indigo-400"></div>
+                    </div>
+                    <p id="passReason" class="text-xs font-bold text-white mb-0.5">เหตุผล: --</p>
+                    <p id="passTimeRange" class="text-[11px] text-indigo-200">เวลาอนุญาต: -- ถึง --</p>
+                </div>
+            </div>
+
+            <!-- Gatepass Request Form -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5 border-b pb-2">
+                    <i class="fa-solid fa-door-open text-amber-600"></i> ยื่นขออนุญาตออกนอกบริเวณโรงเรียน
+                </h3>
+                <form id="gatepassForm" class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">เหตุผลในการขอออกนอกสถานศึกษา <span class="text-rose-500">*</span></label>
+                        <select id="requestReasonSelect" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-indigo-600" required>
+                            <option value="">-- เลือกเหตุผล --</option>
+                            <option value="ผู้ปกครองมารับกลับบ้าน/ทำธุระ">ผู้ปกครองมารับกลับบ้าน / ทำธุระครอบครัว</option>
+                            <option value="ไปพบแพทย์/โรงพยาบาล">ไปพบแพทย์ / ทำหัตถการโรงพยาบาล</option>
+                            <option value="เป็นตัวแทนโรงเรียนร่วมกิจกรรมภายนอก">เป็นตัวแทนโรงเรียนร่วมกิจกรรมภายนอก</option>
+                            <option value="other">อื่นๆ (ระบุเพิ่มเติม)</option>
+                        </select>
+                    </div>
+
+                    <div id="customReasonBox" class="hidden">
+                        <input type="text" id="customReasonInput" placeholder="ระบุรายละเอียดเหตุผล..." class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-600">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">เวลาที่ขอออก <span class="text-rose-500">*</span></label>
+                            <input type="time" id="exitTimeInput" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700" required>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">เวลากลับ (ประมาณ)</label>
+                            <input type="time" id="returnTimeInput" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-paper-plane"></i> ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครอง
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 3. 📅 ตารางเรียนประจำวัน -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-sky-600"></i> ตารางเรียนประจำวัน
+                </h3>
+                <select id="dayFilter" class="text-xs bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="Monday">วันจันทร์</option>
+                    <option value="Tuesday">วันอังคาร</option>
+                    <option value="Wednesday">วันพุธ</option>
+                    <option value="Thursday">วันพฤหัสบดี</option>
+                    <option value="Friday">วันศุกร์</option>
+                </select>
+            </div>
+            <div id="scheduleContainer" class="space-y-2">
+                <p class="text-xs text-slate-400 text-center py-3">กำลังโหลดตารางเรียน...</p>
+            </div>
+        </div>
+
+        <!-- 4. 👩‍🏫 กล่องแสดงรูปครูที่ปรึกษาประจำห้อง -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user text-indigo-600"></i> ครูที่ปรึกษาประจำห้อง
+                </h3>
+                <span id="advisorCountBadge" class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold">0 คน</span>
+            </div>
+            <div id="advisorsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <p class="text-xs text-slate-400 text-center col-span-2 py-3">กำลังดึงข้อมูลครูที่ปรึกษา...</p>
+            </div>
+        </div>
+
+        <!-- 5. ⚠️ เวลาเรียนสะสมทุกวิชา & สถานะสิทธิ์สอบ (มส.) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap text-indigo-600"></i> เวลาเรียนสะสมทุกรายวิชา (ฝ่ายวิชาการ)
+                </h3>
+                <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">ข้อมูลเรียลไทม์</span>
+            </div>
+            <div id="studentAcademicContainer" class="space-y-2.5">
+                <p class="text-xs text-slate-400 text-center py-3">กำลังโหลดข้อมูลเวลาเรียน...</p>
+            </div>
+        </div>
+
+        <!-- 6. ⚖️ การ์ดประวัติคะแนนพฤติกรรม -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced text-amber-500"></i> ประวัติการหักคะแนน & การซ่อมความดี (+คะแนน)
+                </h3>
+                <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">ฝ่ายปกครอง</span>
+            </div>
+            <div id="behaviorHistoryList" class="space-y-2">
+                <p class="text-xs text-slate-400 text-center py-3">กำลังโหลดประวัติพฤติกรรม...</p>
+            </div>
+        </div>
+
+        <!-- 7. 📚 การบ้าน & 🏥 สุขภาพ -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-book text-indigo-600"></i> งานที่ได้รับมอบหมาย
+                </h3>
+                <div id="studentHomeworkList" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-heart-pulse text-rose-500"></i> บันทึกสุขภาพ / ห้องพยาบาล
+                </h3>
+                <div id="studentClinicList" class="space-y-2"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3">
+        โรงเรียนบัวเชดวิทยา (BCW) &bull; Student Portal System
+    </footer>
+
+    <!-- Module Integration Script -->
+    <script type="module">
+        import {
+            getStudentProfile,
+            submitGatepassRequest,
+            getActiveGatepass,
+            getStudentScheduleWithTeachers,
+            getClassAdvisors,
+            getStudentAcademicRisks,
+            getStudentBehaviorLogs,
+            getStudentHomeworks,
+            getStudentClinicRecords
+        } from '../../modules/student/student.service.js';
+
+        function getLoggedInStudentId() {
+            let id = localStorage.getItem('student_id') || sessionStorage.getItem('student_id') || 
+                     localStorage.getItem('ref_id') || sessionStorage.getItem('ref_id') ||
+                     localStorage.getItem('user_id') || sessionStorage.getItem('user_id');
+
+            if (!id) {
+                const userObj = localStorage.getItem('user') || sessionStorage.getItem('user');
+                if (userObj) {
+                    try {
+                        const parsed = JSON.parse(userObj);
+                        id = parsed.student_id || parsed.ref_id || parsed.id || parsed.username;
+                    } catch(e) {}
+                }
+            }
+            return id || '12345';
+        }
+
+        let CURRENT_STUDENT_ID = getLoggedInStudentId();
+        let currentStudentClass = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initStudentPortal();
+            setupEventListeners();
+        });
+
+        async function initStudentPortal() {
+            CURRENT_STUDENT_ID = getLoggedInStudentId();
+            const student = await getStudentProfile(CURRENT_STUDENT_ID);
+
+            const fullName = student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : 'บัวเชด วิทยา';
+            currentStudentClass = student?.classroom || student?.class || 'ม.1/1';
+            const studentNo = student?.number_no ?? student?.no ?? '-';
+
+            document.getElementById('student-fullname').innerText = fullName || 'นักเรียน';
+            document.getElementById('student-class').innerText = currentStudentClass;
+            document.getElementById('student-no').innerText = studentNo;
+            document.getElementById('student-id').innerText = student?.student_id || CURRENT_STUDENT_ID;
+            document.getElementById('student-behavior-score').innerText = student?.behavior_score ?? 100;
+
+            const avatarImg = document.getElementById('student-avatar');
+            if (avatarImg) {
+                avatarImg.src = student?.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            }
+
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const todayName = days[new Date().getDay()];
+            if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(todayName)) {
+                document.getElementById('dayFilter').value = todayName;
+            }
+
+            await Promise.all([
+                renderActiveGatepass(),
+                renderStudentSchedule(),
+                renderClassAdvisors(currentStudentClass),
+                renderAcademicData(CURRENT_STUDENT_ID),
+                renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
+                renderHomeworkData(currentStudentClass),
+                renderClinicData(CURRENT_STUDENT_ID)
+            ]);
+        }
+
+        async function renderActiveGatepass() {
+            const pass = await getActiveGatepass(CURRENT_STUDENT_ID);
+            const activeCard = document.getElementById('activePassCard');
+            const qrContainer = document.getElementById('qrcodeContainer');
+
+            if (pass) {
+                activeCard.classList.remove('hidden');
+                document.getElementById('passReason').innerText = `เหตุผล: ${pass.reason || '-'}`;
+                document.getElementById('passTimeRange').innerText = `เวลาอนุญาต: ${pass.exit_time} ถึง ${pass.return_time}`;
+
+                const statusBadge = document.getElementById('passStatusBadge');
+                qrContainer.innerHTML = "";
+
+                if (pass.status === 'pending') {
+                    statusBadge.className = "bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md";
+                    statusBadge.innerText = "⏳ รอครู/ฝ่ายปกครองอนุมัติ";
+                    qrContainer.innerHTML = `<p class="text-[11px] text-slate-500 p-2">เมื่อครูอนุมัติแล้ว<br>QR Code สำหรับสแกนประตูจะขึ้นตรงนี้</p>`;
+                } else if (pass.status === 'approved' || pass.status === 'out') {
+                    statusBadge.className = "bg-emerald-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md";
+                    statusBadge.innerText = pass.status === 'out' ? "🚪 อยู่นอกโรงเรียน" : "✅ อนุมัติแล้ว (สแกนผ่านประตูได้)";
+
+                    if (typeof QRCode !== 'undefined') {
+                        new QRCode(qrContainer, {
+                            text: `GATEPASS:${pass.id}:${pass.student_id}`,
+                            width: 110,
+                            height: 110
+                        });
+                    }
+                }
+            } else {
+                activeCard.classList.add('hidden');
+            }
+        }
+
+        async function renderStudentSchedule() {
+            const day = document.getElementById('dayFilter').value;
+            const container = document.getElementById('scheduleContainer');
+            const schedules = await getStudentScheduleWithTeachers(currentStudentClass, day);
+
+            if (!schedules || schedules.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้</div>`;
+                return;
+            }
+
+            container.innerHTML = schedules.map(s => {
+                const teacherAvatar = s.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+                return `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl hover:border-indigo-200 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center">
+                                <span class="text-[8px] text-indigo-500 uppercase leading-none">คาบ</span>
+                                <span class="text-sm font-extrabold leading-tight">${s.period_no || 1}</span>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-800">${s.course_name} <span class="text-slate-400 font-normal">(${s.course_code})</span></h4>
+                                <p class="text-[10px] text-slate-400"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.room_no || 'ไม่ระบุ'}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 bg-white border border-slate-200/60 px-2 py-1 rounded-lg shadow-sm">
+                            <img src="${teacherAvatar}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-6 h-6 rounded-md object-cover ring-1 ring-slate-100">
+                            <div class="text-left hidden sm:block">
+                                <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_name}</p>
+                                <p class="text-[8px] text-slate-400">ผู้สอน</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function renderClassAdvisors(className) {
+            const container = document.getElementById('advisorsContainer');
+            const badge = document.getElementById('advisorCountBadge');
+            const advisors = await getClassAdvisors(className);
+
+            if (!advisors || advisors.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษาประจำห้องนี้</p>`;
+                if (badge) badge.innerText = '0 คน';
+                return;
+            }
+
+            if (badge) badge.innerText = `${advisors.length} คน`;
+
+            container.innerHTML = advisors.map(adv => {
+                const avatarUrl = adv.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+                const isMain = adv.advisor_type === 'main';
+
+                return `
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-sm hover:border-indigo-200 transition">
+                        <img src="${avatarUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-12 h-12 rounded-xl object-cover ring-2 ring-white shadow-sm">
+                        <div class="overflow-hidden space-y-0.5">
+                            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${isMain ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}">
+                                ${isMain ? 'ที่ปรึกษาหลัก' : 'ที่ปรึกษาสมทบ'}
+                            </span>
+                            <h4 class="text-xs font-bold text-slate-800 truncate mt-1">${adv.teacher_name}</h4>
+                            <p class="text-[10px] text-slate-400 truncate"><i class="fa-regular fa-envelope mr-1"></i>${adv.email || adv.teacher_id}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function renderAcademicData(studentId) {
+            const container = document.getElementById('studentAcademicContainer');
+            const risks = await getStudentAcademicRisks(studentId);
+
+            if (!risks || risks.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">เวลาเรียนปกติทุกรายวิชา (ไม่พบความเสี่ยง มส.)</p>`;
+                return;
+            }
+
+            container.innerHTML = risks.map(item => {
+                const percent = item.attendance_percentage ?? 100;
+                let badgeStyle = 'bg-emerald-100 text-emerald-800';
+                let barColor = 'bg-emerald-500';
+                let statusText = 'ปกติ';
+
+                if (percent < 80) {
+                    badgeStyle = 'bg-rose-100 text-rose-800';
+                    barColor = 'bg-rose-500';
+                    statusText = 'ติด มส.';
+                } else if (percent < 85) {
+                    badgeStyle = 'bg-amber-100 text-amber-800';
+                    barColor = 'bg-amber-500';
+                    statusText = 'เสี่ยง มส.';
+                }
+
+                return `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+                        <div class="flex justify-between items-center gap-2">
+                            <div>
+                                <span class="font-bold text-slate-800 block">${item.subject_name || item.course_code}</span>
+                                <span class="text-[10px] text-slate-400">ขาดเรียน ${item.absent_count || 0} คาบ</span>
+                            </div>
+                            <span class="${badgeStyle} text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap">${statusText} (${percent}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                            <div class="${barColor} h-full rounded-full transition-all duration-300" style="width: ${percent}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function renderBehaviorScoreAndHistory(studentId) {
+            const container = document.getElementById('behaviorHistoryList');
+            const logs = await getStudentBehaviorLogs(studentId);
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">ไม่มีประวัติการหักคะแนนพฤติกรรม</p>`;
+                return;
+            }
+
+            container.innerHTML = logs.map(item => {
+                const isDeduction = (item.points || item.score_deducted || 0) < 0 || item.type === 'deduct';
+                const pts = Math.abs(item.points || item.score_deducted || 0);
+
+                return `
+                    <div class="p-3 ${isDeduction ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'} border rounded-xl text-xs flex justify-between items-center">
+                        <div class="space-y-0.5">
+                            <span class="font-bold ${isDeduction ? 'text-rose-900' : 'text-emerald-900'} block">
+                                <i class="fa-solid ${isDeduction ? 'fa-minus-circle' : 'fa-plus-circle'} mr-1"></i>${item.action || item.reason || 'บันทึกพฤติกรรม'}
+                            </span>
+                            <span class="text-[10px] text-slate-500">${new Date(item.created_at).toLocaleDateString('th-TH')}</span>
+                        </div>
+                        <span class="text-sm font-black ${isDeduction ? 'text-rose-600' : 'text-emerald-600'}">${isDeduction ? '-' : '+'}${pts}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function renderHomeworkData(className) {
+            const container = document.getElementById('studentHomeworkList');
+            const list = await getStudentHomeworks(className);
+
+            if (!list || list.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
+                return;
+            }
+
+            container.innerHTML = list.map(h => `
+                <div class="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-xs space-y-1">
+                    <span class="font-bold text-indigo-900 block">${h.title}</span>
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>วิชา: ${h.subject_code || '-'}</span>
+                        <span class="text-rose-600 font-bold">ส่ง: ${h.due_date || '-'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function renderClinicData(studentId) {
+            const container = document.getElementById('studentClinicList');
+            const list = await getStudentClinicRecords(studentId);
+
+            if (!list || list.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติห้องพยาบาล</p>`;
+                return;
+            }
+
+            container.innerHTML = list.map(c => `
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-0.5">
+                    <span class="font-bold text-slate-700 block">${c.symptom || 'ปฐมพยาบาล'}</span>
+                    <p class="text-[10px] text-slate-400">${c.created_at ? new Date(c.created_at).toLocaleDateString('th-TH') : '-'} &bull; รักษา: ${c.treatment || 'พักผ่อน'}</p>
+                </div>
+            `).join('');
+        }
+
+        function setupEventListeners() {
+            document.getElementById('dayFilter')?.addEventListener('change', renderStudentSchedule);
+
+            document.getElementById('requestReasonSelect')?.addEventListener('change', (e) => {
+                const customBox = document.getElementById('customReasonBox');
+                if (e.target.value === 'other') {
+                    customBox.classList.remove('hidden');
+                    document.getElementById('customReasonInput').required = true;
+                } else {
+                    customBox.classList.add('hidden');
+                    document.getElementById('customReasonInput').required = false;
+                }
+            });
+
+            document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const selectVal = document.getElementById('requestReasonSelect').value;
+                const customVal = document.getElementById('customReasonInput').value;
+                const reasonText = selectVal === 'other' ? customVal : selectVal;
+                const studentName = document.getElementById('student-fullname').innerText;
+
+                const result = await submitGatepassRequest({
+                    studentId: CURRENT_STUDENT_ID,
+                    studentName: studentName,
+                    reason: reasonText,
+                    exitTime: document.getElementById('exitTimeInput').value,
+                    returnTime: document.getElementById('returnTimeInput').value
+                });
+
+                if (result.success) {
+                    alert('🎉 ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครองเรียบร้อยแล้ว!');
+                    document.getElementById('gatepassForm').reset();
+                    await renderActiveGatepass();
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + result.message);
+                }
+            });
+
+            document.getElementById('btnLogout')?.addEventListener('click', () => {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = '../../login.html';
+            });
+        }
+    </script>
+</body>
+</html>
