@@ -94,13 +94,21 @@
             <h2 class="title">เข้าสู่ระบบ BCW Portal</h2>
             <p class="subtitle">เลือกช่องทางเข้าสู่ระบบตามประเภทผู้ใช้งาน</p>
 
-            <button id="btn-google-login" type="button" class="btn-google-sso">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
-                <div class="btn-text-group">
-                    <span class="main-text">เข้าสู่ระบบสำหรับ ครู / นักเรียน</span>
-                    <span class="sub-text">ใช้อีเมลองค์กร @buached.ac.th</span>
-                </div>
-            </button>
+            // ฟังก์ชันเมื่อกดปุ่มล็อกอิน Google สำหรับครู/นักเรียน
+        async function loginWithGoogle() {
+            // ดึง Origin และ Path ปัจจุบันเพื่อระบุหน้า landing.html ที่ถูกต้อง
+            const currentUrl = window.location.href.split('?')[0].split('#')[0];
+            const redirectTarget = currentUrl.replace('login.html', 'landing.html');
+        
+            const { data, error } = await db.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: redirectTarget
+                }
+            });
+        
+            if (error) console.error('Error logging in:', error.message);
+        }
 
             <div class="divider">
                 <span>หรือ เข้าใช้งานสำหรับผู้ปกครอง</span>
