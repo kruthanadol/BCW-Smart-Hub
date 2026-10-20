@@ -485,7 +485,42 @@
     <script type="module">
         import { db } from './core/supabase-client.js';
 
-        let chartObj = null;
+        // 🔍 ฟังก์ชันตรวจสอบ Session ของครูที่ล็อกอินผ่าน Google OAuth
+        async function checkTeacherSession() {
+            try {
+                // ดึง Session จาก Supabase (รองรับ Token ที่ส่งมาจาก URL)
+                const { data: { session }, error } = await db.auth.getSession();
+        
+                if (error) throw error;
+        
+                if (session && session.user) {
+                    console.log('✅ ครูล็อกอินสำเร็จ:', session.user.email);
+        
+                    // บันทึกสถานะผู้ใช้งานลง LocalStorage เพื่อให้หน้าอื่นๆ ดึงไปใช้ได้ง่าย
+                    localStorage.setItem('user_role', 'TEACHER');
+                    localStorage.setItem('user_email', session.user.email);
+                    localStorage.setItem('user_name', session.user.user_metadata?.full_name || 'คุณครู');
+        
+                    // เรียกฟังก์ชันดึงสถิติหรือโหลดหน้า Landing ต่อไป
+                    if (typeof loadLandingRealStats === 'function') {
+                        loadLandingRealStats();
+                    }
+                } else {
+                    // กรณีไม่มี Session และไม่มีข้อมูลผู้ปกครอง ให้ส่งกลับไปหน้า Login
+                    const parentData = localStorage.getItem('parent_student_id');
+                    if (!parentData) {
+                        console.warn('⚠️ ไม่พบข้อมูลการล็อกอิน นำกลับไปหน้า login.html');
+                        window.location.href = './login.html';
+                    }
+                }
+            } catch (err) {
+                console.error('❌ เกิดข้อผิดพลาดในการดึง Session:', err.message);
+            }
+        }
+
+        // 🚀 เรียกใช้งานฟังก์ชันทันทีเมื่อเปิดหน้า landing.html
+        checkTeacherSession();
+                let chartObj = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             loadUserProfileBadge();
