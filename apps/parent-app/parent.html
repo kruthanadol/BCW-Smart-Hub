@@ -282,17 +282,16 @@
             await loadStudentData(currentStudentId);
         }
 
-       // 2. ดึงข้อมูลนักเรียนและสถิติต่างๆ จาก Supabase โดยตรง
+        // 2. ดึงข้อมูลนักเรียนและกระจายการโหลดไปยังทุกกล่องแบบแยกอิสระ
         async function loadStudentData(studentId) {
             try {
-                // 2.1 ดึงโปรไฟล์นักเรียน ค้นหาด้วย student_id ก่อน
-                let { data: student, error } = await db
+                // 2.1 ดึงโปรไฟล์นักเรียนจากตาราง students
+                let { data: student } = await db
                     .from('students')
                     .select('*')
                     .eq('student_id', studentId)
                     .maybeSingle();
 
-                // ถ้าไม่พบใน student_id ให้ลองหาใน id
                 if (!student) {
                     const res = await db
                         .from('students')
@@ -305,7 +304,8 @@
                 if (student) {
                     const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name || student.name || 'นักเรียน';
                     currentStudentClass = student.classroom || student.class || '';
-
+                    
+                    // ดึงเลขที่แบบครอบคลุมทุกชื่อคอลัมน์
                     const studentNo = student.student_number || student.no || student.number || student.number_no || '-';
 
                     document.getElementById('student-fullname').textContent = fullName;
@@ -320,7 +320,7 @@
                     document.getElementById('student-fullname').textContent = `รหัสนักเรียน: ${studentId}`;
                 }
 
-                // 2.2 ตั้งค่าวันปัจจุบันให้ตารางเรียน
+                // 2.2 ตั้งค่าวันปัจจุบันให้ตัวเลือกตารางเรียน
                 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
                 const todayName = days[new Date().getDay()];
                 if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(todayName)) {
@@ -328,12 +328,10 @@
                     if (dayElem) dayElem.value = todayName;
                 }
 
-                // โหลดข้อมูลสถิติแยกต่างหาก (แม้จุดไหนล้มเหลว จุดอื่นก็ยังทำงานได้)
+                // 🚀 สั่งโหลดทุกกล่องแยกจากกัน (กล่องไหนมีปัญหา กล่องอื่นยังทำงานต่อได้)
                 updateTrafficCardUI(studentId);
-                if (currentStudentClass) {
-                    renderSchedule();
-                    renderAdvisors(currentStudentClass);
-                }
+                renderSchedule();
+                renderAdvisors(currentStudentClass);
                 renderLeaveHistory(studentId);
                 renderAttendanceStats(studentId);
 
@@ -342,7 +340,7 @@
             }
         }
 
-        // 🟢 3. ดึงไฟจราจรจาก attendance_logs
+        // 🟢 3. ไฟจราจร Smart Gate
         async function updateTrafficCardUI(studentId) {
             const today = new Date().toISOString().split('T')[0];
             const card = document.getElementById('trafficCardContainer');
@@ -382,10 +380,16 @@
             }
         }
 
-        // 📚 4. โหลดตารางเรียน
+        // 📚 4. ตารางเรียนประจำวัน
         async function renderSchedule() {
-            const day = document.getElementById('dayFilter').value;
+            const day = document.getElementById('dayFilter')?.value || 'Monday';
             const container = document.getElementById('scheduleContainer');
+            if (!container) return;
+
+            if (!currentStudentClass) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีข้อมูลตารางเรียน (ไม่พบระดับชั้น)</div>`;
+                return;
+            }
 
             try {
                 const { data: schedules } = await db
@@ -417,9 +421,14 @@
             }
         }
 
-        // 👨‍🏫 5. โหลดครูที่ปรึกษา
+        // 👨‍🏫 5. ครูที่ปรึกษา
         async function renderAdvisors(className) {
             const nameLabel = document.getElementById('advisor-display-name');
+            if (!className) {
+                if (nameLabel) nameLabel.textContent = 'ครูที่ปรึกษาประจำชั้น';
+                return;
+            }
+
             try {
                 const { data: advisor } = await db
                     .from('users')
@@ -438,9 +447,11 @@
             }
         }
 
-        // 📝 6. โหลดประวัติใบลา
+        // 📝 6. ประวัติใบลา
         async function renderLeaveHistory(studentId) {
             const container = document.getElementById('leaveHistoryList');
+            if (!container) return;
+
             try {
                 const { data: requests } = await db
                     .from('gatepass_requests')
@@ -468,7 +479,7 @@
             }
         }
 
-        // 📊 7. สถิติการมาเรียนรวมสะสมทุกวิชา (ปรับปรุงเงื่อนไข ค้นหาฟังก์ชั่นเดียวไม่มีซ้ำ)
+        // 📊 7. สถิติการมาเรียนรวมสะสม
         async function renderAttendanceStats(studentId) {
             try {
                 const { data: logs } = await db
@@ -492,10 +503,15 @@
                     });
                 }
 
-                document.getElementById('stat-present').innerText = present;
-                document.getElementById('stat-late').innerText = late;
-                document.getElementById('stat-absent').innerText = absent;
-                document.getElementById('stat-truant').innerText = truant;
+                const elP = document.getElementById('stat-present');
+                const elL = document.getElementById('stat-late');
+                const elA = document.getElementById('stat-absent');
+                const elT = document.getElementById('stat-truant');
+
+                if (elP) elP.innerText = present;
+                if (elL) elL.innerText = late;
+                if (elA) elA.innerText = absent;
+                if (elT) elT.innerText = truant;
             } catch (err) {
                 console.warn('Stats error:', err);
             }
@@ -517,7 +533,7 @@
                 window.location.href = '../../login.html';
             });
 
-            // บันทึกใบลาส่งเข้า Supabase ตาราง gatepass_requests
+            // บันทึกใบลา
             document.getElementById('leaveForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const leaveType = document.getElementById('leaveType').value;
