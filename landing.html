@@ -484,54 +484,40 @@
     <!-- Module Integration Script -->
     <script type="module">
         // 🔍 ฟังก์ชันตรวจสอบและแยกแยะประเภทผู้ใช้งาน (ครู / นักเรียน / ผู้ปกครอง)
-        async function checkUserSession() {
+       async function checkUserSession() {
             try {
-                // 1. เช็ก Session จาก Google OAuth (ครู / นักเรียน)
-                const { data: { session }, error } = await db.auth.getSession();
+                // 1. ตรวจสอบ Session ของครู/นักเรียน (Google OAuth)
+                const { data: { session } } = await db.auth.getSession();
         
                 if (session && session.user) {
                     const userEmail = session.user.email || '';
                     const googleName = session.user.user_metadata?.full_name || userEmail;
         
-                    // ตรวจสอบเบื้องต้นจากอีเมล หรือตารางใน Supabase
-                    // (ถ้าอีเมลมีครู/หรือดึงจากตาราง users)
-                    let role = 'STUDENT';
-                    
-                    // เช็กจากตาราง users / teachers ใน Supabase
+                    // ดึงข้อมูลโปรไฟล์เพิ่มเติมจาก Supabase (ถ้ามี)
                     const { data: profile } = await db
                         .from('users')
-                        .select('role, prefix, first_name, last_name')
+                        .select('role, prefix, first_name, last_name, user_id')
                         .eq('email', userEmail)
                         .maybeSingle();
         
-                    if (profile && profile.role) {
-                        role = profile.role.toUpperCase();
-                    } else if (userEmail.includes('teacher') || !userEmail.startsWith('s')) {
-                        // หากไม่มีตาราง ให้เช็กเบื้องต้นจากแพทเทิร์นอีเมล
-                        role = 'TEACHER';
-                    }
+                    // แยก Role (TEACHER / STUDENT)
+                    let role = profile?.role ? profile.role.toUpperCase() : (userEmail.includes('teacher') || !userEmail.startsWith('s') ? 'TEACHER' : 'STUDENT');
+                    let displayName = profile && profile.first_name ? `${profile.prefix || ''}${profile.first_name} ${profile.last_name}` : googleName;
+                    let userId = profile?.user_id || userEmail.split('@')[0];
         
-                    let displayName = profile && profile.first_name 
-                        ? `${profile.prefix || ''}${profile.first_name} ${profile.last_name}` 
-                        : googleName;
-        
-                    // บันทึกสถานะผู้ใช้
-                    localStorage.setItem('user_role', role);
-                    localStorage.setItem('user_name', displayName);
-        
-                    updateLandingUI(displayName, role);
+                    updateLandingUI(displayName, role, `รหัส: ${userId}`);
                     return;
                 }
         
-                // 2. เช็ก Session ของผู้ปกครอง (Parent Login)
+                // 2. ตรวจสอบ Session ของผู้ปกครอง (Parent Login)
                 const parentSession = localStorage.getItem('parent_session');
                 if (parentSession) {
                     const parentData = JSON.parse(parentSession);
-                    updateLandingUI(`ผู้ปกครองของ ${parentData.student_name}`, 'PARENT');
+                    updateLandingUI(`ผู้ปกครองของ ${parentData.student_name}`, 'PARENT', `นักเรียน: ${parentData.student_id}`);
                     return;
                 }
         
-                // หากไม่มีข้อมูล Session เลย ให้กลับไปหน้า Login
+                // หากไม่มี Session ให้กลับไปหน้า Login
                 window.location.href = './login.html';
         
             } catch (err) {
@@ -539,24 +525,28 @@
             }
         }
         
-        // 🎨 ฟังก์ชันอัปเดตชื่อผู้ใช้และสิทธิ์บนหน้าจอ
-        function updateLandingUI(name, role) {
-            // แสดงชื่อผู้ใช้ใน Element ที่มี id="user-display-name" (ถ้ามี)
-            const nameEl = document.getElementById('user-display-name');
+        // 🎨 อัปเดต UI ให้ตรงกับ ID ใน HTML ของคุณครู
+        function updateLandingUI(name, role, idText) {
+            const nameEl = document.getElementById('user_display_name');
+            const roleEl = document.getElementById('user_display_role');
+            const idEl = document.getElementById('user_display_id');
+        
             if (nameEl) nameEl.textContent = name;
-        
-            // แสดงตำแหน่งใน Element ที่มี id="user-display-role" (ถ้ามี)
-            const roleEl = document.getElementById('user-display-role');
             if (roleEl) {
-                if (role === 'TEACHER') roleEl.textContent = 'ตำแหน่ง: ข้าราชการครู / บุคลากร';
-                else if (role === 'PARENT') roleEl.textContent = 'สิทธิ์: ผู้ปกครองนักเรียน';
-                else roleEl.textContent = 'สิทธิ์: นักเรียน';
+                roleEl.textContent = role;
+                // ปรับสีป้าย Role ให้ต่างกันตามสิทธิ์
+                if (role === 'TEACHER') {
+                    roleEl.className = "bg-emerald-700 text-amber-200 text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
+                } else if (role === 'PARENT') {
+                    roleEl.className = "bg-sky-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
+                } else {
+                    roleEl.className = "bg-indigo-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
+                }
             }
-        
-            console.log(`✅ ผู้ใช้งานปัจจุบัน: ${name} (${role})`);
+            if (idEl) idEl.textContent = idText;
         }
         
-        // 🚀 เรียกฟังก์ชันทำงานทันทีเมื่อโหลดหน้าเว็บ
+        // เรียกใช้งานเมื่อโหลดหน้าเว็บ
         document.addEventListener('DOMContentLoaded', checkUserSession);
                
         function updateThaiClock() {
