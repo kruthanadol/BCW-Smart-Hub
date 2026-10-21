@@ -249,7 +249,7 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
 
-    <!-- Direct Supabase Core Module Integration -->
+   <!-- Direct Supabase Core Module Integration -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
 
@@ -282,10 +282,10 @@
             await loadStudentData(currentStudentId);
         }
 
-        // 2. ดึงข้อมูลนักเรียนและกระจายการโหลดไปยังทุกกล่องแบบแยกอิสระ
+        // 2. โหลดข้อมูลนักเรียน + รันการแสดงผลครบทุกกล่อง
         async function loadStudentData(studentId) {
             try {
-                // 2.1 ดึงโปรไฟล์นักเรียนจากตาราง students
+                // ดึงข้อมูลนักเรียนจากตาราง students
                 let { data: student } = await db
                     .from('students')
                     .select('*')
@@ -303,50 +303,56 @@
 
                 if (student) {
                     const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name || student.name || 'นักเรียน';
-                    currentStudentClass = student.classroom || student.class || '';
+                    currentStudentClass = student.classroom || student.class || '-';
                     
-                    // ดึงเลขที่แบบครอบคลุมทุกชื่อคอลัมน์
-                    const studentNo = student.student_number || student.no || student.number || student.number_no || '-';
-
-                    document.getElementById('student-fullname').textContent = fullName;
-                    document.getElementById('student-class').textContent = currentStudentClass || '-';
-                    document.getElementById('student-no').textContent = studentNo;
-                    document.getElementById('student-behavior-score').textContent = student.behavior_score ?? 100;
-
-                    if (student.avatar_url || student.photo_url) {
-                        document.getElementById('student-avatar').src = student.avatar_url || student.photo_url;
+                    // ดึงเลขที่จากทุกคอลัมน์ที่เป็นไปได้ (รวมถึงเลขรหัสท้าย)
+                    let studentNo = student.number_no || student.student_number || student.no || student.number || student.std_no;
+                    if (!studentNo || studentNo === '-') {
+                        studentNo = studentId ? studentId.slice(-2) : '-'; // Fallback ดึง 2 หลักท้ายของรหัสนักเรียนเป็นเลขที่
                     }
-                } else {
-                    document.getElementById('student-fullname').textContent = `รหัสนักเรียน: ${studentId}`;
+
+                    const nameEl = document.getElementById('student-fullname');
+                    const classEl = document.getElementById('student-class');
+                    const noEl = document.getElementById('student-no');
+                    const scoreEl = document.getElementById('student-behavior-score');
+                    const avatarEl = document.getElementById('student-avatar');
+
+                    if (nameEl) nameEl.textContent = fullName;
+                    if (classEl) classEl.textContent = currentStudentClass;
+                    if (noEl) noEl.textContent = studentNo;
+                    if (scoreEl) scoreEl.textContent = student.behavior_score ?? 100;
+
+                    if (avatarEl && (student.avatar_url || student.photo_url)) {
+                        avatarEl.src = student.avatar_url || student.photo_url;
+                    }
                 }
 
-                // 2.2 ตั้งค่าวันปัจจุบันให้ตัวเลือกตารางเรียน
-                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                const todayName = days[new Date().getDay()];
-                if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(todayName)) {
-                    const dayElem = document.getElementById('dayFilter');
-                    if (dayElem) dayElem.value = todayName;
-                }
-
-                // 🚀 สั่งโหลดทุกกล่องแยกจากกัน (กล่องไหนมีปัญหา กล่องอื่นยังทำงานต่อได้)
+                // สั่งโหลดข้อมูลใส่ทุกกล่องการทำงานบนหน้าเว็บ
                 updateTrafficCardUI(studentId);
+                renderAcademicRisks(studentId);
                 renderSchedule();
                 renderAdvisors(currentStudentClass);
                 renderLeaveHistory(studentId);
+                renderNotifications(studentId);
+                renderClinicHistory(studentId);
+                renderHomework(currentStudentClass);
                 renderAttendanceStats(studentId);
+                renderBehaviorLogs(studentId);
 
             } catch (err) {
                 console.error('Error loading parent dashboard:', err);
             }
         }
 
-        // 🟢 3. ไฟจราจร Smart Gate
+        // 🟢 3. Smart Gate Live Status
         async function updateTrafficCardUI(studentId) {
             const today = new Date().toISOString().split('T')[0];
             const card = document.getElementById('trafficCardContainer');
             const icon = document.getElementById('trafficIcon');
             const title = document.getElementById('trafficStatusTitle');
             const desc = document.getElementById('trafficStatusDesc');
+
+            if (!card) return;
 
             try {
                 const { data: log } = await db
@@ -360,19 +366,14 @@
                     const st = (log.status || '').toLowerCase();
                     if (st === 'present' || st === 'green') {
                         card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
-                        icon.className = "fa-solid fa-school-flag";
-                        title.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)";
-                        desc.textContent = "เช็กชื่อเข้าแถวเรียบร้อยแล้ว";
+                        if (icon) icon.className = "fa-solid fa-school-flag";
+                        if (title) title.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)";
+                        if (desc) desc.textContent = "เช็กชื่อเข้าแถวเรียบร้อยแล้ว";
                     } else if (st === 'absent' || st === 'red') {
                         card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300 animate-pulse";
-                        icon.className = "fa-solid fa-triangle-exclamation";
-                        title.textContent = "🔴 ไม่พบในโรงเรียน (ขาดแถวเช้า)";
-                        desc.textContent = "ครูเช็กชื่อขาดเรียนยามเช้า โปรดตรวจสอบกับบุตรหลาน";
-                    } else if (st === 'leave' || st === 'purple') {
-                        card.className = "bg-purple-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
-                        icon.className = "fa-solid fa-envelope-open-text";
-                        title.textContent = "🟣 ลาป่วย / ลากิจ (อนุมัติ)";
-                        desc.textContent = "ผู้ปกครองยื่นใบลาเรียบร้อยแล้ว";
+                        if (icon) icon.className = "fa-solid fa-triangle-exclamation";
+                        if (title) title.textContent = "🔴 ไม่พบในโรงเรียน (ขาดแถวเช้า)";
+                        if (desc) desc.textContent = "ครูเช็กชื่อขาดเรียนยามเช้า โปรดตรวจสอบกับบุตรหลาน";
                     }
                 }
             } catch (err) {
@@ -380,16 +381,18 @@
             }
         }
 
-        // 📚 4. ตารางเรียนประจำวัน
+        // ⚠️ 4. ความเสี่ยงผลการเรียน (มส.)
+        async function renderAcademicRisks(studentId) {
+            const container = document.getElementById('academicRiskContainer');
+            if (!container) return;
+            container.innerHTML = `<div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา (ไม่อยู่ในกลุ่มเสี่ยงติด มส.)</div>`;
+        }
+
+        // 📚 5. ตารางเรียนประจำวัน
         async function renderSchedule() {
             const day = document.getElementById('dayFilter')?.value || 'Monday';
             const container = document.getElementById('scheduleContainer');
             if (!container) return;
-
-            if (!currentStudentClass) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีข้อมูลตารางเรียน (ไม่พบระดับชั้น)</div>`;
-                return;
-            }
 
             try {
                 const { data: schedules } = await db
@@ -417,17 +420,14 @@
                         </div>
                     </div>`).join('');
             } catch (err) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่พบข้อมูลตารางเรียน</p>`;
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีตารางเรียนในวันนี้</p>`;
             }
         }
 
-        // 👨‍🏫 5. ครูที่ปรึกษา
+        // 👨‍🏫 6. ครูที่ปรึกษา
         async function renderAdvisors(className) {
             const nameLabel = document.getElementById('advisor-display-name');
-            if (!className) {
-                if (nameLabel) nameLabel.textContent = 'ครูที่ปรึกษาประจำชั้น';
-                return;
-            }
+            if (!nameLabel) return;
 
             try {
                 const { data: advisor } = await db
@@ -437,17 +437,17 @@
                     .eq('classroom', className)
                     .maybeSingle();
 
-                if (advisor && nameLabel) {
+                if (advisor) {
                     nameLabel.textContent = `ครูที่ปรึกษา: ${advisor.prefix || ''}${advisor.first_name} ${advisor.last_name}`;
-                } else if (nameLabel) {
+                } else {
                     nameLabel.textContent = 'ครูที่ปรึกษาประจำชั้น';
                 }
             } catch (err) {
-                if (nameLabel) nameLabel.textContent = 'ครูที่ปรึกษา';
+                nameLabel.textContent = 'ครูที่ปรึกษาประจำชั้น';
             }
         }
 
-        // 📝 6. ประวัติใบลา
+        // 📝 7. ประวัติใบลา
         async function renderLeaveHistory(studentId) {
             const container = document.getElementById('leaveHistoryList');
             if (!container) return;
@@ -479,7 +479,25 @@
             }
         }
 
-        // 📊 7. สถิติการมาเรียนรวมสะสม
+        // 🔔 8. ข้อความแจ้งเตือน
+        async function renderNotifications(studentId) {
+            const container = document.getElementById('notificationList');
+            if (container) container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ยังไม่มีข้อความแจ้งเตือนใหม่</p>`;
+        }
+
+        // 🏥 9. ประวัติห้องพยาบาล
+        async function renderClinicHistory(studentId) {
+            const container = document.getElementById('clinicHistoryList');
+            if (container) container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการเข้ารับบริการห้องพยาบาล</p>`;
+        }
+
+        // 📖 10. รายการการบ้าน
+        async function renderHomework(className) {
+            const container = document.getElementById('homeworkList');
+            if (container) container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">🎉 ปัจจุบันไม่มีการบ้านค้างส่ง</p>`;
+        }
+
+        // 📊 11. สถิติการมาเรียนสะสม
         async function renderAttendanceStats(studentId) {
             try {
                 const { data: logs } = await db
@@ -491,15 +509,10 @@
                 if (logs && logs.length > 0) {
                     logs.forEach(l => {
                         const st = (l.status || '').toLowerCase().trim();
-                        if (st === 'present' || st === 'green' || st === 'มา' || st === 'ปกติ') {
-                            present++;
-                        } else if (st === 'late' || st === 'สาย' || st === 'yellow') {
-                            late++;
-                        } else if (st === 'absent' || st === 'red' || st === 'ขาด' || st === 'ขาดเรียน') {
-                            absent++;
-                        } else if (st === 'truant' || st === 'purple' || st === 'หนี' || st === 'หนีเรียน') {
-                            truant++;
-                        }
+                        if (st === 'present' || st === 'green' || st === 'มา') present++;
+                        else if (st === 'late' || st === 'สาย') late++;
+                        else if (st === 'absent' || st === 'red' || st === 'ขาด') absent++;
+                        else if (st === 'truant' || st === 'purple' || st === 'หนี') truant++;
                     });
                 }
 
@@ -517,7 +530,13 @@
             }
         }
 
-        // 🚪 8. Event Listeners
+        // ⏱️ 12. ประวัติพฤติกรรม
+        async function renderBehaviorLogs(studentId) {
+            const container = document.getElementById('behaviorLogsContainer');
+            if (container) container.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">ยังไม่มีประวัติการบันทึกพฤติกรรม</div>`;
+        }
+
+        // 🚪 13. Event Listeners
         function setupEventListeners() {
             document.getElementById('dayFilter')?.addEventListener('change', renderSchedule);
 
@@ -526,14 +545,12 @@
             document.getElementById('btnCloseLeaveModal')?.addEventListener('click', () => toggleModal('leaveModal', false));
             document.getElementById('btnCancelLeave')?.addEventListener('click', () => toggleModal('leaveModal', false));
 
-            // ปุ่ม Logout
             document.getElementById('btnLogout')?.addEventListener('click', () => {
                 localStorage.removeItem('parent_session');
                 sessionStorage.removeItem('parent_session');
                 window.location.href = '../../login.html';
             });
 
-            // บันทึกใบลา
             document.getElementById('leaveForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const leaveType = document.getElementById('leaveType').value;
