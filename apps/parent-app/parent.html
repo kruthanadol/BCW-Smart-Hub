@@ -289,16 +289,19 @@
                 const { data: student } = await db
                     .from('students')
                     .select('*')
-                    .eq('student_id', studentId)
+                    .or(`student_id.eq.${studentId},id.eq.${studentId}`)
                     .maybeSingle();
 
                 if (student) {
-                    const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name;
+                    const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name || student.name;
                     currentStudentClass = student.classroom || student.class || '-';
+                    
+                    // ดึงเลขที่แบบครอบคลุมคอลัมน์ต่างๆ
+                    const studentNo = student.student_number || student.no || student.number || student.number_no || '-';
 
                     document.getElementById('student-fullname').textContent = fullName;
                     document.getElementById('student-class').textContent = currentStudentClass;
-                    document.getElementById('student-no').textContent = student.number_no || student.number || '-';
+                    document.getElementById('student-no').textContent = studentNo;
                     document.getElementById('student-behavior-score').textContent = student.behavior_score ?? 100;
 
                     if (student.avatar_url || student.photo_url) {
@@ -324,6 +327,39 @@
 
             } catch (err) {
                 console.error('Error loading parent dashboard:', err);
+            }
+        }
+
+        // 📊 7. สถิติการมาเรียนรวมสะสมทุกวิชา
+        async function renderAttendanceStats(studentId) {
+            try {
+                const { data: logs } = await db
+                    .from('attendance_logs')
+                    .select('status')
+                    .eq('student_id', studentId);
+
+                let present = 0, late = 0, absent = 0, truant = 0;
+                if (logs && logs.length > 0) {
+                    logs.forEach(l => {
+                        const st = (l.status || '').toLowerCase().trim();
+                        if (st === 'present' || st === 'green' || st === 'มา' || st === 'ปกติ') {
+                            present++;
+                        } else if (st === 'late' || st === 'สาย' || st === 'yellow') {
+                            late++;
+                        } else if (st === 'absent' || st === 'red' || st === 'ขาด' || st === 'ขาดเรียน') {
+                            absent++;
+                        } else if (st === 'truant' || st === 'purple' || st === 'หนี' || st === 'หนีเรียน') {
+                            truant++;
+                        }
+                    });
+                }
+
+                document.getElementById('stat-present').innerText = present;
+                document.getElementById('stat-late').innerText = late;
+                document.getElementById('stat-absent').innerText = absent;
+                document.getElementById('stat-truant').innerText = truant;
+            } catch (err) {
+                console.warn('Stats error:', err);
             }
         }
 
