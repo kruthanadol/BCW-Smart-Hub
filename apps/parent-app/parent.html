@@ -330,39 +330,6 @@
             }
         }
 
-        // 📊 7. สถิติการมาเรียนรวมสะสมทุกวิชา
-        async function renderAttendanceStats(studentId) {
-            try {
-                const { data: logs } = await db
-                    .from('attendance_logs')
-                    .select('status')
-                    .eq('student_id', studentId);
-
-                let present = 0, late = 0, absent = 0, truant = 0;
-                if (logs && logs.length > 0) {
-                    logs.forEach(l => {
-                        const st = (l.status || '').toLowerCase().trim();
-                        if (st === 'present' || st === 'green' || st === 'มา' || st === 'ปกติ') {
-                            present++;
-                        } else if (st === 'late' || st === 'สาย' || st === 'yellow') {
-                            late++;
-                        } else if (st === 'absent' || st === 'red' || st === 'ขาด' || st === 'ขาดเรียน') {
-                            absent++;
-                        } else if (st === 'truant' || st === 'purple' || st === 'หนี' || st === 'หนีเรียน') {
-                            truant++;
-                        }
-                    });
-                }
-
-                document.getElementById('stat-present').innerText = present;
-                document.getElementById('stat-late').innerText = late;
-                document.getElementById('stat-absent').innerText = absent;
-                document.getElementById('stat-truant').innerText = truant;
-            } catch (err) {
-                console.warn('Stats error:', err);
-            }
-        }
-
         // 🟢 3. ดึงไฟจราจรจาก attendance_logs
         async function updateTrafficCardUI(studentId) {
             const today = new Date().toISOString().split('T')[0];
@@ -489,7 +456,7 @@
             }
         }
 
-        // 📊 7. สถิติการมาเรียน
+        // 📊 7. สถิติการมาเรียนรวมสะสมทุกวิชา (ปรับปรุงเงื่อนไข ค้นหาฟังก์ชั่นเดียวไม่มีซ้ำ)
         async function renderAttendanceStats(studentId) {
             try {
                 const { data: logs } = await db
@@ -498,13 +465,18 @@
                     .eq('student_id', studentId);
 
                 let present = 0, late = 0, absent = 0, truant = 0;
-                if (logs) {
+                if (logs && logs.length > 0) {
                     logs.forEach(l => {
-                        const st = (l.status || '').toLowerCase();
-                        if (st === 'present' || st === 'green') present++;
-                        else if (st === 'late') late++;
-                        else if (st === 'absent' || st === 'red') absent++;
-                        else if (st === 'truant') truant++;
+                        const st = (l.status || '').toLowerCase().trim();
+                        if (st === 'present' || st === 'green' || st === 'มา' || st === 'ปกติ') {
+                            present++;
+                        } else if (st === 'late' || st === 'สาย' || st === 'yellow') {
+                            late++;
+                        } else if (st === 'absent' || st === 'red' || st === 'ขาด' || st === 'ขาดเรียน') {
+                            absent++;
+                        } else if (st === 'truant' || st === 'purple' || st === 'หนี' || st === 'หนีเรียน') {
+                            truant++;
+                        }
                     });
                 }
 
