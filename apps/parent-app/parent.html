@@ -249,7 +249,7 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
 
-   <!-- Direct Supabase Core Module Integration -->
+<!-- Direct Supabase Core Module Integration -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
 
@@ -282,10 +282,10 @@
             await loadStudentData(currentStudentId);
         }
 
-        // 2. โหลดข้อมูลนักเรียน + แสดงผลกล่องทั้งหมด
+        // 2. โหลดข้อมูลนักเรียนและสั่งเรนเดอร์ทุกกล่องแบบเรียงลำดับ
         async function loadStudentData(studentId) {
             try {
-                // ดึงข้อมูลนักเรียนจากตาราง students
+                // ดึงข้อมูลนักเรียน
                 let { data: student } = await db
                     .from('students')
                     .select('*')
@@ -305,7 +305,7 @@
                     const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name || student.name || 'นักเรียน';
                     currentStudentClass = student.classroom || student.class || '';
                     
-                    // ดึงเลขที่จากคอลัมน์จริงในตาราง students (ยึด no / student_no / number)
+                    // แสดงเลขที่จริง (ยึด no / student_no / number)
                     const studentNo = student.no ?? student.student_no ?? student.number ?? student.student_number ?? student.number_no ?? '-';
 
                     const nameEl = document.getElementById('student-fullname');
@@ -324,17 +324,17 @@
                     }
                 }
 
-                // สั่งโหลดข้อมูลใส่ทุกกล่องแบบแยกการทำงานถาวร
+                // สั่งโหลดกล่องข้อมูลทั้งหมด
                 updateTrafficCardUI(studentId);
-                renderAcademicRisks(studentId);
+                renderAcademicRisks();
                 renderSchedule();
-                renderAdvisors(currentStudentClass);
+                renderAdvisors();
                 renderLeaveHistory(studentId);
-                renderNotifications(studentId);
-                renderClinicHistory(studentId);
-                renderHomework(currentStudentClass);
+                renderNotifications();
+                renderClinicHistory();
+                renderHomework();
                 renderAttendanceStats(studentId);
-                renderBehaviorLogs(studentId);
+                renderBehaviorLogs();
 
             } catch (err) {
                 console.error('Error loading parent dashboard:', err);
@@ -352,15 +352,14 @@
             if (!card) return;
 
             try {
-                const { data: log } = await db
+                const { data: logs } = await db
                     .from('attendance_logs')
-                    .select('*')
-                    .eq('student_id', studentId)
-                    .gte('check_date', today)
-                    .maybeSingle();
+                    .select('status')
+                    .eq('student_id', studentId);
 
-                if (log) {
-                    const st = (log.status || '').toLowerCase();
+                if (logs && logs.length > 0) {
+                    const lastLog = logs[logs.length - 1];
+                    const st = (lastLog.status || '').toLowerCase();
                     if (st === 'present' || st === 'green') {
                         card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
                         if (icon) icon.className = "fa-solid fa-school-flag";
@@ -379,39 +378,32 @@
         }
 
         // ⚠️ 4. ความเสี่ยงผลการเรียน (มส.)
-        async function renderAcademicRisks(studentId) {
+        function renderAcademicRisks() {
             const container = document.getElementById('academicRiskContainer');
-            if (!container) return;
-            container.innerHTML = `<div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา (ไม่อยู่ในกลุ่มเสี่ยงติด มส.)</div>`;
+            if (container) {
+                container.innerHTML = `<div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา (ไม่อยู่ในกลุ่มเสี่ยงติด มส.)</div>`;
+            }
         }
 
-        // 📚 5. ตารางเรียนประจำวัน (รองรับทั้งคอลัมน์ class และ classroom)
+        // 📚 5. ตารางเรียนประจำวัน
         async function renderSchedule() {
             const day = document.getElementById('dayFilter')?.value || 'Monday';
             const container = document.getElementById('scheduleContainer');
             if (!container) return;
 
-            if (!currentStudentClass) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีข้อมูลตารางเรียน</div>`;
-                return;
-            }
-
             try {
-                let { data: schedules } = await db
+                const { data: schedules } = await db
                     .from('schedules')
-                    .select('*')
-                    .eq('day', day);
+                    .select('*');
 
-                if (schedules) {
-                    schedules = schedules.filter(s => (s.classroom || s.class) === currentStudentClass);
-                }
+                const filtered = schedules ? schedules.filter(s => (s.day === day) && (s.classroom === currentStudentClass || s.class === currentStudentClass)) : [];
 
-                if (!schedules || schedules.length === 0) {
+                if (filtered.length === 0) {
                     container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้</div>`;
                     return;
                 }
 
-                container.innerHTML = schedules.map(s => `
+                container.innerHTML = filtered.map(s => `
                     <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center">
@@ -425,31 +417,14 @@
                         </div>
                     </div>`).join('');
             } catch (err) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีตารางเรียนในวันนี้</p>`;
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้</div>`;
             }
         }
 
         // 👨‍🏫 6. ครูที่ปรึกษา
-        async function renderAdvisors(className) {
+        function renderAdvisors() {
             const nameLabel = document.getElementById('advisor-display-name');
-            if (!nameLabel) return;
-
-            try {
-                const { data: users } = await db
-                    .from('users')
-                    .select('first_name, last_name, prefix, classroom')
-                    .eq('role', 'TEACHER');
-
-                const advisor = users ? users.find(u => u.classroom === className) : null;
-
-                if (advisor) {
-                    nameLabel.textContent = `ครูที่ปรึกษา: ${advisor.prefix || ''}${advisor.first_name} ${advisor.last_name}`;
-                } else {
-                    nameLabel.textContent = 'ครูที่ปรึกษาประจำชั้น';
-                }
-            } catch (err) {
-                nameLabel.textContent = 'ครูที่ปรึกษาประจำชั้น';
-            }
+            if (nameLabel) nameLabel.textContent = 'ครูที่ปรึกษาประจำชั้น';
         }
 
         // 📝 7. ประวัติใบลา
@@ -484,19 +459,19 @@
         }
 
         // 🔔 8. ข้อความแจ้งเตือน
-        async function renderNotifications(studentId) {
+        function renderNotifications() {
             const container = document.getElementById('notificationList');
             if (container) container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ยังไม่มีข้อความแจ้งเตือนใหม่</p>`;
         }
 
         // 🏥 9. ประวัติห้องพยาบาล
-        async function renderClinicHistory(studentId) {
+        function renderClinicHistory() {
             const container = document.getElementById('clinicHistoryList');
             if (container) container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการเข้ารับบริการห้องพยาบาล</p>`;
         }
 
         // 📖 10. รายการการบ้าน
-        async function renderHomework(className) {
+        function renderHomework() {
             const container = document.getElementById('homeworkList');
             if (container) container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">🎉 ปัจจุบันไม่มีการบ้านค้างส่ง</p>`;
         }
@@ -535,7 +510,7 @@
         }
 
         // ⏱️ 12. ประวัติพฤติกรรม
-        async function renderBehaviorLogs(studentId) {
+        function renderBehaviorLogs() {
             const container = document.getElementById('behaviorLogsContainer');
             if (container) container.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">ยังไม่มีประวัติการบันทึกพฤติกรรม</div>`;
         }
