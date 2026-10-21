@@ -483,78 +483,82 @@
 
     <!-- Module Integration Script -->
     <script type="module">
-        import { db } from './core/supabase-client.js';
-
-        // 🔍 ฟังก์ชันตรวจสอบ Session ของครูที่ล็อกอินผ่าน Google OAuth
-        async function checkTeacherSession() {
+        // 🔍 ฟังก์ชันตรวจสอบและแยกแยะประเภทผู้ใช้งาน (ครู / นักเรียน / ผู้ปกครอง)
+        async function checkUserSession() {
             try {
-                // ดึง Session จาก Supabase (รองรับ Token ที่ส่งมาจาก URL)
+                // 1. เช็ก Session จาก Google OAuth (ครู / นักเรียน)
                 const { data: { session }, error } = await db.auth.getSession();
         
-                if (error) throw error;
-        
                 if (session && session.user) {
-                    console.log('✅ ครูล็อกอินสำเร็จ:', session.user.email);
+                    const userEmail = session.user.email || '';
+                    const googleName = session.user.user_metadata?.full_name || userEmail;
         
-                    // บันทึกสถานะผู้ใช้งานลง LocalStorage เพื่อให้หน้าอื่นๆ ดึงไปใช้ได้ง่าย
-                    localStorage.setItem('user_role', 'TEACHER');
-                    localStorage.setItem('user_email', session.user.email);
-                    localStorage.setItem('user_name', session.user.user_metadata?.full_name || 'คุณครู');
+                    // ตรวจสอบเบื้องต้นจากอีเมล หรือตารางใน Supabase
+                    // (ถ้าอีเมลมีครู/หรือดึงจากตาราง users)
+                    let role = 'STUDENT';
+                    
+                    // เช็กจากตาราง users / teachers ใน Supabase
+                    const { data: profile } = await db
+                        .from('users')
+                        .select('role, prefix, first_name, last_name')
+                        .eq('email', userEmail)
+                        .maybeSingle();
         
-                    // เรียกฟังก์ชันดึงสถิติหรือโหลดหน้า Landing ต่อไป
-                    if (typeof loadLandingRealStats === 'function') {
-                        loadLandingRealStats();
+                    if (profile && profile.role) {
+                        role = profile.role.toUpperCase();
+                    } else if (userEmail.includes('teacher') || !userEmail.startsWith('s')) {
+                        // หากไม่มีตาราง ให้เช็กเบื้องต้นจากแพทเทิร์นอีเมล
+                        role = 'TEACHER';
                     }
-                } else {
-                    // กรณีไม่มี Session และไม่มีข้อมูลผู้ปกครอง ให้ส่งกลับไปหน้า Login
-                    const parentData = localStorage.getItem('parent_student_id');
-                    if (!parentData) {
-                        console.warn('⚠️ ไม่พบข้อมูลการล็อกอิน นำกลับไปหน้า login.html');
-                        window.location.href = './login.html';
-                    }
+        
+                    let displayName = profile && profile.first_name 
+                        ? `${profile.prefix || ''}${profile.first_name} ${profile.last_name}` 
+                        : googleName;
+        
+                    // บันทึกสถานะผู้ใช้
+                    localStorage.setItem('user_role', role);
+                    localStorage.setItem('user_name', displayName);
+        
+                    updateLandingUI(displayName, role);
+                    return;
                 }
+        
+                // 2. เช็ก Session ของผู้ปกครอง (Parent Login)
+                const parentSession = localStorage.getItem('parent_session');
+                if (parentSession) {
+                    const parentData = JSON.parse(parentSession);
+                    updateLandingUI(`ผู้ปกครองของ ${parentData.student_name}`, 'PARENT');
+                    return;
+                }
+        
+                // หากไม่มีข้อมูล Session เลย ให้กลับไปหน้า Login
+                window.location.href = './login.html';
+        
             } catch (err) {
-                console.error('❌ เกิดข้อผิดพลาดในการดึง Session:', err.message);
+                console.error('Error checking user session:', err.message);
             }
         }
-
-        // 🚀 เรียกใช้งานฟังก์ชันทันทีเมื่อเปิดหน้า landing.html
-        checkTeacherSession();
-                let chartObj = null;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadUserProfileBadge();
-            updateThaiClock();
-            setInterval(updateThaiClock, 1000);
-            loadLandingRealStats();
-            setupEventListeners();
-        });
-
-        async function loadUserProfileBadge() {
-            try {
-                const savedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
-                const targetTeacherId = savedUser.teacher_id || savedUser.ref_id || 'T024';
-
-                const { data } = await db
-                    .from('users')
-                    .select('ref_id, full_name, role')
-                    .eq('ref_id', targetTeacherId)
-                    .maybeSingle();
-
-                if (data) {
-                    document.getElementById('user_display_name').innerText = data.full_name || 'ครูผู้สอน';
-                    document.getElementById('user_display_id').innerText = `รหัส: ${data.ref_id || targetTeacherId}`;
-                    document.getElementById('user_display_role').innerText = data.role || 'TEACHER';
-                } else if (savedUser.full_name) {
-                    document.getElementById('user_display_name').innerText = savedUser.full_name;
-                    document.getElementById('user_display_id').innerText = `รหัส: ${targetTeacherId}`;
-                    document.getElementById('user_display_role').innerText = savedUser.role || 'TEACHER';
-                }
-            } catch (err) {
-                console.warn('Profile sync warning:', err.message);
+        
+        // 🎨 ฟังก์ชันอัปเดตชื่อผู้ใช้และสิทธิ์บนหน้าจอ
+        function updateLandingUI(name, role) {
+            // แสดงชื่อผู้ใช้ใน Element ที่มี id="user-display-name" (ถ้ามี)
+            const nameEl = document.getElementById('user-display-name');
+            if (nameEl) nameEl.textContent = name;
+        
+            // แสดงตำแหน่งใน Element ที่มี id="user-display-role" (ถ้ามี)
+            const roleEl = document.getElementById('user-display-role');
+            if (roleEl) {
+                if (role === 'TEACHER') roleEl.textContent = 'ตำแหน่ง: ข้าราชการครู / บุคลากร';
+                else if (role === 'PARENT') roleEl.textContent = 'สิทธิ์: ผู้ปกครองนักเรียน';
+                else roleEl.textContent = 'สิทธิ์: นักเรียน';
             }
+        
+            console.log(`✅ ผู้ใช้งานปัจจุบัน: ${name} (${role})`);
         }
-
+        
+        // 🚀 เรียกฟังก์ชันทำงานทันทีเมื่อโหลดหน้าเว็บ
+        document.addEventListener('DOMContentLoaded', checkUserSession);
+               
         function updateThaiClock() {
             const now = new Date();
             const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
