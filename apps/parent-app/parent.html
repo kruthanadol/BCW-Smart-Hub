@@ -282,7 +282,7 @@
             await loadStudentData(currentStudentId);
         }
 
-        // 2. โหลดข้อมูลนักเรียน + รันการแสดงผลครบทุกกล่อง
+        // 2. โหลดข้อมูลนักเรียน + แสดงผลกล่องทั้งหมด
         async function loadStudentData(studentId) {
             try {
                 // ดึงข้อมูลนักเรียนจากตาราง students
@@ -303,13 +303,10 @@
 
                 if (student) {
                     const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name || student.name || 'นักเรียน';
-                    currentStudentClass = student.classroom || student.class || '-';
+                    currentStudentClass = student.classroom || student.class || '';
                     
-                    // ดึงเลขที่จากทุกคอลัมน์ที่เป็นไปได้ (รวมถึงเลขรหัสท้าย)
-                    let studentNo = student.number_no || student.student_number || student.no || student.number || student.std_no;
-                    if (!studentNo || studentNo === '-') {
-                        studentNo = studentId ? studentId.slice(-2) : '-'; // Fallback ดึง 2 หลักท้ายของรหัสนักเรียนเป็นเลขที่
-                    }
+                    // ดึงเลขที่จากคอลัมน์จริงในตาราง students (ยึด no / student_no / number)
+                    const studentNo = student.no ?? student.student_no ?? student.number ?? student.student_number ?? student.number_no ?? '-';
 
                     const nameEl = document.getElementById('student-fullname');
                     const classEl = document.getElementById('student-class');
@@ -318,7 +315,7 @@
                     const avatarEl = document.getElementById('student-avatar');
 
                     if (nameEl) nameEl.textContent = fullName;
-                    if (classEl) classEl.textContent = currentStudentClass;
+                    if (classEl) classEl.textContent = currentStudentClass || '-';
                     if (noEl) noEl.textContent = studentNo;
                     if (scoreEl) scoreEl.textContent = student.behavior_score ?? 100;
 
@@ -327,7 +324,7 @@
                     }
                 }
 
-                // สั่งโหลดข้อมูลใส่ทุกกล่องการทำงานบนหน้าเว็บ
+                // สั่งโหลดข้อมูลใส่ทุกกล่องแบบแยกการทำงานถาวร
                 updateTrafficCardUI(studentId);
                 renderAcademicRisks(studentId);
                 renderSchedule();
@@ -388,18 +385,26 @@
             container.innerHTML = `<div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา (ไม่อยู่ในกลุ่มเสี่ยงติด มส.)</div>`;
         }
 
-        // 📚 5. ตารางเรียนประจำวัน
+        // 📚 5. ตารางเรียนประจำวัน (รองรับทั้งคอลัมน์ class และ classroom)
         async function renderSchedule() {
             const day = document.getElementById('dayFilter')?.value || 'Monday';
             const container = document.getElementById('scheduleContainer');
             if (!container) return;
 
+            if (!currentStudentClass) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีข้อมูลตารางเรียน</div>`;
+                return;
+            }
+
             try {
-                const { data: schedules } = await db
+                let { data: schedules } = await db
                     .from('schedules')
                     .select('*')
-                    .eq('classroom', currentStudentClass)
                     .eq('day', day);
+
+                if (schedules) {
+                    schedules = schedules.filter(s => (s.classroom || s.class) === currentStudentClass);
+                }
 
                 if (!schedules || schedules.length === 0) {
                     container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้</div>`;
@@ -430,12 +435,12 @@
             if (!nameLabel) return;
 
             try {
-                const { data: advisor } = await db
+                const { data: users } = await db
                     .from('users')
-                    .select('first_name, last_name, prefix')
-                    .eq('role', 'TEACHER')
-                    .eq('classroom', className)
-                    .maybeSingle();
+                    .select('first_name, last_name, prefix, classroom')
+                    .eq('role', 'TEACHER');
+
+                const advisor = users ? users.find(u => u.classroom === className) : null;
 
                 if (advisor) {
                     nameLabel.textContent = `ครูที่ปรึกษา: ${advisor.prefix || ''}${advisor.first_name} ${advisor.last_name}`;
@@ -456,8 +461,7 @@
                 const { data: requests } = await db
                     .from('gatepass_requests')
                     .select('*')
-                    .eq('student_id', studentId)
-                    .order('created_at', { ascending: false });
+                    .eq('student_id', studentId);
 
                 if (!requests || requests.length === 0) {
                     container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการยื่นใบลา</p>`;
