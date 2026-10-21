@@ -282,48 +282,60 @@
             await loadStudentData(currentStudentId);
         }
 
-        // 2. ดึงข้อมูลนักเรียนและสถิติต่างๆ จาก Supabase โดยตรง
+       // 2. ดึงข้อมูลนักเรียนและสถิติต่างๆ จาก Supabase โดยตรง
         async function loadStudentData(studentId) {
             try {
-                // 2.1 ดึงโปรไฟล์นักเรียนจากตาราง students
-                const { data: student } = await db
+                // 2.1 ดึงโปรไฟล์นักเรียน ค้นหาด้วย student_id ก่อน
+                let { data: student, error } = await db
                     .from('students')
                     .select('*')
-                    .or(`student_id.eq.${studentId},id.eq.${studentId}`)
+                    .eq('student_id', studentId)
                     .maybeSingle();
 
+                // ถ้าไม่พบใน student_id ให้ลองหาใน id
+                if (!student) {
+                    const res = await db
+                        .from('students')
+                        .select('*')
+                        .eq('id', studentId)
+                        .maybeSingle();
+                    student = res.data;
+                }
+
                 if (student) {
-                    const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name || student.name;
-                    currentStudentClass = student.classroom || student.class || '-';
-                    
-                    // ดึงเลขที่แบบครอบคลุมคอลัมน์ต่างๆ
+                    const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name || student.name || 'นักเรียน';
+                    currentStudentClass = student.classroom || student.class || '';
+
                     const studentNo = student.student_number || student.no || student.number || student.number_no || '-';
 
                     document.getElementById('student-fullname').textContent = fullName;
-                    document.getElementById('student-class').textContent = currentStudentClass;
+                    document.getElementById('student-class').textContent = currentStudentClass || '-';
                     document.getElementById('student-no').textContent = studentNo;
                     document.getElementById('student-behavior-score').textContent = student.behavior_score ?? 100;
 
                     if (student.avatar_url || student.photo_url) {
                         document.getElementById('student-avatar').src = student.avatar_url || student.photo_url;
                     }
+                } else {
+                    document.getElementById('student-fullname').textContent = `รหัสนักเรียน: ${studentId}`;
                 }
 
                 // 2.2 ตั้งค่าวันปัจจุบันให้ตารางเรียน
                 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
                 const todayName = days[new Date().getDay()];
                 if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(todayName)) {
-                    document.getElementById('dayFilter').value = todayName;
+                    const dayElem = document.getElementById('dayFilter');
+                    if (dayElem) dayElem.value = todayName;
                 }
 
-                // โหลดข้อมูลสถิติพร้อมกัน
-                await Promise.all([
-                    updateTrafficCardUI(studentId),
-                    renderSchedule(),
-                    renderAdvisors(currentStudentClass),
-                    renderLeaveHistory(studentId),
-                    renderAttendanceStats(studentId)
-                ]);
+                // โหลดข้อมูลสถิติแยกต่างหาก (แม้จุดไหนล้มเหลว จุดอื่นก็ยังทำงานได้)
+                updateTrafficCardUI(studentId);
+                if (currentStudentClass) {
+                    renderSchedule();
+                    renderAdvisors(currentStudentClass);
+                }
+                renderLeaveHistory(studentId);
+                renderAttendanceStats(studentId);
 
             } catch (err) {
                 console.error('Error loading parent dashboard:', err);
