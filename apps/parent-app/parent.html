@@ -261,6 +261,7 @@
             setupEventListeners();
         });
 
+        // 1. ตรวจสอบ Session ผู้ปกครอง
         async function initParentPortal() {
             const sessionStr = localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session');
             if (!sessionStr) {
@@ -279,10 +280,12 @@
             await loadStudentData(currentStudentId);
         }
 
+        // 2. โหลดข้อมูลนักเรียนและกระจายลงกล่อง
         async function loadStudentData(studentId) {
-            // 1. ดึงโปรไฟล์นักเรียน
             try {
+                // ดึงโปรไฟล์นักเรียน
                 const { data: student } = await db.from('students').select('*').eq('student_id', studentId).maybeSingle();
+                
                 if (student) {
                     const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name;
                     currentStudentClass = student.classroom || student.class || '-';
@@ -297,18 +300,19 @@
                         document.getElementById('student-avatar').src = student.avatar_url || student.photo_url;
                     }
                 }
-            } catch (e) { console.warn('Student profile error:', e); }
+            } catch (e) {
+                console.warn('Student profile error:', e);
+            }
 
-            // 2. โหลดกล่องต่างๆ แบบแยกเซฟตี้ ไม่ให้กระทบกัน
-            renderUIElements();
+            // เรนเดอร์กล่องหน้าเว็บทั้งหมดโดยไม่ให้ขัดขวางกันเอง
+            renderAllUIComponents();
         }
 
-        function renderUIElements() {
-            // สถานะเข้าเรียน
+        function renderAllUIComponents() {
+            // ตั้งค่ากล่องคงที่ทั่วไป
             const card = document.getElementById('trafficCardContainer');
             if (card) card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md";
 
-            // ข้อความแจ้งเตือน / ความเสี่ยง / การบ้าน / พยาบาล
             const academic = document.getElementById('academicRiskContainer');
             if (academic) academic.innerHTML = `<div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา</div>`;
 
@@ -324,22 +328,32 @@
             const behavior = document.getElementById('behaviorLogsContainer');
             if (behavior) behavior.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">ยังไม่มีประวัติการบันทึกพฤติกรรม</div>`;
 
-            // ดึงตารางเรียน + ประวัติใบลา + สถิติ
-            loadSchedule();
-            loadLeaveHistory();
-            loadAttendanceStats();
+            const advisorLabel = document.getElementById('advisor-display-name');
+            if (advisorLabel) advisorLabel.textContent = 'ครูที่ปรึกษาประจำชั้น';
+
+            // โหลดข้อมูลไดนามิกจากฐานข้อมูล
+            loadScheduleSafe();
+            loadLeaveHistorySafe();
+            loadAttendanceStatsSafe();
         }
 
-        async function loadSchedule() {
+        // 📚 ดึงตารางเรียนแบบปลอดภัย 100% (Client-side Filter)
+        async function loadScheduleSafe() {
             const container = document.getElementById('scheduleContainer');
             if (!container) return;
+
             try {
                 const day = document.getElementById('dayFilter')?.value || 'Monday';
-                const { data: schedules } = await db.from('schedules').select('*').eq('day', day);
-                const list = schedules ? schedules.filter(s => (s.classroom || s.class) === currentStudentClass) : [];
+                const { data: schedules } = await db.from('schedules').select('*');
+
+                const list = schedules ? schedules.filter(s => {
+                    const matchDay = (s.day || '').toLowerCase() === day.toLowerCase();
+                    const matchClass = (s.classroom || s.class || '') === currentStudentClass;
+                    return matchDay && matchClass;
+                }) : [];
 
                 if (list.length === 0) {
-                    container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้</div>`;
+                    container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${day})</div>`;
                     return;
                 }
 
@@ -360,17 +374,21 @@
             }
         }
 
-        async function loadLeaveHistory() {
+        // 📝 ดึงประวัติการยื่นใบลาแบบปลอดภัย
+        async function loadLeaveHistorySafe() {
             const container = document.getElementById('leaveHistoryList');
             if (!container) return;
+
             try {
-                // ใช้ตาราง gatepass_requests
-                const { data: requests } = await db.from('gatepass_requests').select('*').eq('student_id', currentStudentId);
-                if (!requests || requests.length === 0) {
+                const { data: requests } = await db.from('gatepass_requests').select('*');
+                const list = requests ? requests.filter(r => String(r.student_id) === String(currentStudentId)) : [];
+
+                if (list.length === 0) {
                     container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการยื่นใบลา</p>`;
                     return;
                 }
-                container.innerHTML = requests.map(r => `
+
+                container.innerHTML = list.map(r => `
                     <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center">
                         <div>
                             <span class="font-bold text-slate-800">${r.leave_type === 'sick' ? '🤒 ลาป่วย' : '🏠 ลากิจ'}</span>
@@ -382,12 +400,15 @@
             }
         }
 
-        async function loadAttendanceStats() {
+        // 📊 ดึงสถิติการมาเรียนแบบปลอดภัย
+        async function loadAttendanceStatsSafe() {
             try {
-                const { data: logs } = await db.from('attendance_logs').select('status').eq('student_id', currentStudentId);
+                const { data: logs } = await db.from('attendance_logs').select('*');
+                const myLogs = logs ? logs.filter(l => String(l.student_id) === String(currentStudentId)) : [];
+
                 let present = 0, late = 0, absent = 0, truant = 0;
-                if (logs) {
-                    logs.forEach(l => {
+                if (myLogs.length > 0) {
+                    myLogs.forEach(l => {
                         const st = (l.status || '').toLowerCase().trim();
                         if (st === 'present' || st === 'green' || st === 'มา') present++;
                         else if (st === 'late' || st === 'สาย') late++;
@@ -395,15 +416,19 @@
                         else if (st === 'truant' || st === 'purple' || st === 'หนี') truant++;
                     });
                 }
+
                 if (document.getElementById('stat-present')) document.getElementById('stat-present').innerText = present;
                 if (document.getElementById('stat-late')) document.getElementById('stat-late').innerText = late;
                 if (document.getElementById('stat-absent')) document.getElementById('stat-absent').innerText = absent;
                 if (document.getElementById('stat-truant')) document.getElementById('stat-truant').innerText = truant;
-            } catch (e) {}
+            } catch (e) {
+                console.warn('Stats error:', e);
+            }
         }
 
+        // 🚪 Event Listeners
         function setupEventListeners() {
-            document.getElementById('dayFilter')?.addEventListener('change', loadSchedule);
+            document.getElementById('dayFilter')?.addEventListener('change', loadScheduleSafe);
 
             document.getElementById('btnLogout')?.addEventListener('click', () => {
                 localStorage.removeItem('parent_session');
