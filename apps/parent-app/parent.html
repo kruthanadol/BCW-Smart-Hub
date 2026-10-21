@@ -282,30 +282,20 @@
             await loadStudentData(currentStudentId);
         }
 
-        // 2. โหลดข้อมูลนักเรียนและสั่งเรนเดอร์ทุกกล่องแบบเรียงลำดับ
+        // 2. โหลดข้อมูลนักเรียนและเรนเดอร์ทุกกล่อง
         async function loadStudentData(studentId) {
             try {
                 // ดึงข้อมูลนักเรียน
-                let { data: student } = await db
+                let { data: students } = await db
                     .from('students')
-                    .select('*')
-                    .eq('student_id', studentId)
-                    .maybeSingle();
+                    .select('*');
 
-                if (!student) {
-                    const res = await db
-                        .from('students')
-                        .select('*')
-                        .eq('id', studentId)
-                        .maybeSingle();
-                    student = res.data;
-                }
+                const student = students ? students.find(s => String(s.student_id) === String(studentId) || String(s.id) === String(studentId)) : null;
 
                 if (student) {
                     const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name || student.name || 'นักเรียน';
                     currentStudentClass = student.classroom || student.class || '';
                     
-                    // แสดงเลขที่จริง (ยึด no / student_no / number)
                     const studentNo = student.no ?? student.student_no ?? student.number ?? student.student_number ?? student.number_no ?? '-';
 
                     const nameEl = document.getElementById('student-fullname');
@@ -324,7 +314,7 @@
                     }
                 }
 
-                // สั่งโหลดกล่องข้อมูลทั้งหมด
+                // สั่งโหลดกล่องข้อมูลทั้งหมดแบบปลอดภัย
                 updateTrafficCardUI(studentId);
                 renderAcademicRisks();
                 renderSchedule();
@@ -343,7 +333,6 @@
 
         // 🟢 3. Smart Gate Live Status
         async function updateTrafficCardUI(studentId) {
-            const today = new Date().toISOString().split('T')[0];
             const card = document.getElementById('trafficCardContainer');
             const icon = document.getElementById('trafficIcon');
             const title = document.getElementById('trafficStatusTitle');
@@ -352,20 +341,18 @@
             if (!card) return;
 
             try {
-                const { data: logs } = await db
-                    .from('attendance_logs')
-                    .select('status')
-                    .eq('student_id', studentId);
+                const { data: logs } = await db.from('attendance_logs').select('*');
+                const studentLogs = logs ? logs.filter(l => String(l.student_id) === String(studentId)) : [];
 
-                if (logs && logs.length > 0) {
-                    const lastLog = logs[logs.length - 1];
+                if (studentLogs.length > 0) {
+                    const lastLog = studentLogs[studentLogs.length - 1];
                     const st = (lastLog.status || '').toLowerCase();
-                    if (st === 'present' || st === 'green') {
+                    if (st === 'present' || st === 'green' || st === 'มา') {
                         card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300";
                         if (icon) icon.className = "fa-solid fa-school-flag";
                         if (title) title.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)";
                         if (desc) desc.textContent = "เช็กชื่อเข้าแถวเรียบร้อยแล้ว";
-                    } else if (st === 'absent' || st === 'red') {
+                    } else if (st === 'absent' || st === 'red' || st === 'ขาด') {
                         card.className = "bg-rose-600 text-white rounded-2xl p-5 shadow-md transition-all duration-300 animate-pulse";
                         if (icon) icon.className = "fa-solid fa-triangle-exclamation";
                         if (title) title.textContent = "🔴 ไม่พบในโรงเรียน (ขาดแถวเช้า)";
@@ -392,10 +379,7 @@
             if (!container) return;
 
             try {
-                const { data: schedules } = await db
-                    .from('schedules')
-                    .select('*');
-
+                const { data: schedules } = await db.from('schedules').select('*');
                 const filtered = schedules ? schedules.filter(s => (s.day === day) && (s.classroom === currentStudentClass || s.class === currentStudentClass)) : [];
 
                 if (filtered.length === 0) {
@@ -433,17 +417,15 @@
             if (!container) return;
 
             try {
-                const { data: requests } = await db
-                    .from('gatepass_requests')
-                    .select('*')
-                    .eq('student_id', studentId);
+                const { data: requests } = await db.from('gatepass_requests').select('*');
+                const myRequests = requests ? requests.filter(r => String(r.student_id) === String(studentId)) : [];
 
-                if (!requests || requests.length === 0) {
+                if (myRequests.length === 0) {
                     container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการยื่นใบลา</p>`;
                     return;
                 }
 
-                container.innerHTML = requests.map(r => `
+                container.innerHTML = myRequests.map(r => `
                     <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center">
                         <div>
                             <div class="flex items-center gap-2">
@@ -479,14 +461,12 @@
         // 📊 11. สถิติการมาเรียนสะสม
         async function renderAttendanceStats(studentId) {
             try {
-                const { data: logs } = await db
-                    .from('attendance_logs')
-                    .select('status')
-                    .eq('student_id', studentId);
+                const { data: logs } = await db.from('attendance_logs').select('*');
+                const myLogs = logs ? logs.filter(l => String(l.student_id) === String(studentId)) : [];
 
                 let present = 0, late = 0, absent = 0, truant = 0;
-                if (logs && logs.length > 0) {
-                    logs.forEach(l => {
+                if (myLogs.length > 0) {
+                    myLogs.forEach(l => {
                         const st = (l.status || '').toLowerCase().trim();
                         if (st === 'present' || st === 'green' || st === 'มา') present++;
                         else if (st === 'late' || st === 'สาย') late++;
