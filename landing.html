@@ -482,172 +482,66 @@
         © 2026 โรงเรียนบัวเชดวิทยา (BCW Smart Hub)
     </footer>
 
-    <!-- Module Integration Script -->
+   <!-- Module Integration Script -->
     <script type="module">
+        import { db } from './core/supabase-client.js';
+
+        let chartObj = null;
+
         // 🔍 1. ฟังก์ชันเช็ก Session และดึงข้อมูลผู้ใช้งาน
-    async function checkUserSession() {
-        try {
-            // เช็ก Session ของ Google OAuth (ครู / นักเรียน)
-            const { data: { session } } = await db.auth.getSession();
-
-            if (session && session.user) {
-                const userEmail = session.user.email || '';
-                const googleName = session.user.user_metadata?.full_name || userEmail;
-                // ดึง URL รูปโปรไฟล์จาก Google
-                const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
-
-                // ดึงข้อมูลโปรไฟล์เพิ่มเติมจาก Supabase
-                const { data: profile } = await db
-                    .from('users')
-                    .select('role, prefix, first_name, last_name, user_id')
-                    .eq('email', userEmail)
-                    .maybeSingle();
-
-                let role = profile?.role ? profile.role.toUpperCase() : (userEmail.includes('teacher') || !userEmail.startsWith('s') ? 'TEACHER' : 'STUDENT');
-                let displayName = profile && profile.first_name ? `${profile.prefix || ''}${profile.first_name} ${profile.last_name}` : googleName;
-                let userId = profile?.user_id || userEmail.split('@')[0];
-
-                updateLandingUI(displayName, role, `รหัส: ${userId}`, avatarUrl);
-                loadTotalStudentsCount(); // ดึงจำนวนนักเรียน
-                return;
-            }
-
-            // เช็ก Session ของผู้ปกครอง (Parent Login)
-            const parentSession = localStorage.getItem('parent_session');
-            if (parentSession) {
-                const parentData = JSON.parse(parentSession);
-                updateLandingUI(`ผู้ปกครองของ ${parentData.student_name}`, 'PARENT', `นักเรียน: ${parentData.student_id}`, null);
-                loadTotalStudentsCount();
-                return;
-            }
-
-            // หากไม่มี Session ให้เด้งกลับไปหน้า Login
-            window.location.href = './login.html';
-
-        } catch (err) {
-            console.error('Error checking user session:', err.message);
-        }
-    }
-
-    // 🎨 2. ฟังก์ชันอัปเดต UI (แสดงชื่อ, บทบาท, รูปโปรไฟล์)
-    function updateLandingUI(name, role, idText, avatarUrl) {
-        const nameEl = document.getElementById('user_display_name');
-        const roleEl = document.getElementById('user_display_role');
-        const idEl = document.getElementById('user_display_id');
-        const avatarEl = document.getElementById('user_avatar_img'); // จุดแสดงรูป
-
-        if (nameEl) nameEl.textContent = name;
-        if (idEl) idEl.textContent = idText;
-
-        if (roleEl) {
-            roleEl.textContent = role;
-            if (role === 'TEACHER') {
-                roleEl.className = "bg-emerald-700 text-amber-200 text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
-            } else if (role === 'PARENT') {
-                roleEl.className = "bg-sky-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
-            } else {
-                roleEl.className = "bg-indigo-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
-            }
-        }
-
-        // หากมีรูปโปรไฟล์ Google ให้เปลี่ยนจากไอคอน 👤 เป็นรูปถ่าย
-        if (avatarEl && avatarUrl) {
-            avatarEl.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="w-full h-full object-cover rounded-xl shadow">`;
-        }
-    }
-
-    // 📊 3. ฟังก์ชันดึงจำนวนนักเรียนทั้งหมดจากตาราง students
-    async function loadTotalStudentsCount() {
-        try {
-            const { count, error } = await db
-                .from('students')
-                .select('id', { count: 'exact', head: true });
-
-            if (error) throw error;
-
-            const countEl = document.getElementById('total_students_count');
-            if (countEl) {
-                countEl.textContent = (count || 0).toLocaleString();
-            }
-        } catch (err) {
-            console.error('Error loading total students:', err.message);
-        }
-    }
-
-    // 🚪 4. ฟังก์ชันออกจากระบบ (Logout)
-    async function handleLogout() {
-        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-            try {
-                await db.auth.signOut();
-                localStorage.clear(); // เคลียร์ Session ทั้งหมด
-                window.location.href = './login.html';
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการออกจากระบบ: ' + err.message);
-            }
-        }
-    }
-
-    // ผูกฟังก์ชันออกจากระบบเข้ากับ window และ Event Listener
-    window.handleLogout = handleLogout;
-
-    document.addEventListener('DOMContentLoaded', () => {
-        checkUserSession();
-        // ผูกปุ่ม Logout (ถ้ามีปุ่ม id="btn-logout")
-        document.getElementById('btn-logout')?.addEventListener('click', handleLogout);
-    });
-        // 🔍 ฟังก์ชันตรวจสอบและแยกแยะประเภทผู้ใช้งาน (ครู / นักเรียน / ผู้ปกครอง)
-       import { db } from './core/supabase-client.js';
         async function checkUserSession() {
             try {
-                // 1. ตรวจสอบ Session ของครู/นักเรียน (Google OAuth)
+                // เช็ก Session ของ Google OAuth (ครู / นักเรียน)
                 const { data: { session } } = await db.auth.getSession();
-        
+
                 if (session && session.user) {
                     const userEmail = session.user.email || '';
-                    const googleName = session.user.user_metadata?.full_name || userEmail;
-        
-                    // ดึงข้อมูลโปรไฟล์เพิ่มเติมจาก Supabase (ถ้ามี)
+                    const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || userEmail;
+                    const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
+
                     const { data: profile } = await db
                         .from('users')
                         .select('role, prefix, first_name, last_name, user_id')
                         .eq('email', userEmail)
                         .maybeSingle();
-        
-                    // แยก Role (TEACHER / STUDENT)
+
                     let role = profile?.role ? profile.role.toUpperCase() : (userEmail.includes('teacher') || !userEmail.startsWith('s') ? 'TEACHER' : 'STUDENT');
                     let displayName = profile && profile.first_name ? `${profile.prefix || ''}${profile.first_name} ${profile.last_name}` : googleName;
                     let userId = profile?.user_id || userEmail.split('@')[0];
-        
-                    updateLandingUI(displayName, role, `รหัส: ${userId}`);
+
+                    updateLandingUI(displayName, role, `รหัส: ${userId}`, avatarUrl);
+                    loadLandingRealStats();
                     return;
                 }
-        
-                // 2. ตรวจสอบ Session ของผู้ปกครอง (Parent Login)
+
+                // เช็ก Session ของผู้ปกครอง (Parent Login)
                 const parentSession = localStorage.getItem('parent_session');
                 if (parentSession) {
                     const parentData = JSON.parse(parentSession);
-                    updateLandingUI(`ผู้ปกครองของ ${parentData.student_name}`, 'PARENT', `นักเรียน: ${parentData.student_id}`);
+                    updateLandingUI(`ผู้ปกครองของ ${parentData.student_name}`, 'PARENT', `นักเรียน: ${parentData.student_id}`, null);
+                    loadLandingRealStats();
                     return;
                 }
-        
-                // หากไม่มี Session ให้กลับไปหน้า Login
+
                 window.location.href = './login.html';
-        
+
             } catch (err) {
                 console.error('Error checking user session:', err.message);
             }
         }
-        
-        // 🎨 อัปเดต UI ให้ตรงกับ ID ใน HTML ของคุณครู
-        function updateLandingUI(name, role, idText) {
+
+        // 🎨 2. ฟังก์ชันอัปเดต UI (แสดงชื่อ, บทบาท, รูปโปรไฟล์)
+        function updateLandingUI(name, role, idText, avatarUrl) {
             const nameEl = document.getElementById('user_display_name');
             const roleEl = document.getElementById('user_display_role');
             const idEl = document.getElementById('user_display_id');
-        
+            const avatarEl = document.getElementById('user_avatar_img');
+
             if (nameEl) nameEl.textContent = name;
+            if (idEl) idEl.textContent = idText;
+
             if (roleEl) {
                 roleEl.textContent = role;
-                // ปรับสีป้าย Role ให้ต่างกันตามสิทธิ์
                 if (role === 'TEACHER') {
                     roleEl.className = "bg-emerald-700 text-amber-200 text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
                 } else if (role === 'PARENT') {
@@ -656,75 +550,83 @@
                     roleEl.className = "bg-indigo-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
                 }
             }
-            if (idEl) idEl.textContent = idText;
-        }
-        
-        // เรียกใช้งานเมื่อโหลดหน้าเว็บ
-        document.addEventListener('DOMContentLoaded', checkUserSession);
-               
-        function updateThaiClock() {
-            const now = new Date();
-            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
 
-            const dayName = thaiDays[now.getDay()];
-            const dayNum = now.getDate();
-            const monthName = thaiMonths[now.getMonth()];
-            const yearNum = now.getFullYear() + 543;
-
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-
-            const dateElem = document.getElementById('thaiDateStr');
-            if (dateElem) dateElem.innerText = `วัน${dayName}ที่ ${dayNum} ${monthName} พ.ศ. ${yearNum}`;
-
-            const clockElem = document.getElementById('liveClock');
-            if (clockElem) clockElem.innerText = `${hours}:${minutes}:${seconds}`;
+            if (avatarEl && avatarUrl) {
+                avatarEl.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="w-full h-full object-cover rounded-xl shadow shrink-0">`;
+            }
         }
 
+        // 📊 3. ฟังก์ชันดึงสถิติจริงจาก Supabase
         async function loadLandingRealStats() {
             try {
                 const today = new Date().toISOString().split('T')[0];
 
-                const { count: studentCount } = await db.from('students').select('*', { count: 'exact', head: true });
-                const total = studentCount || 0;
-                document.getElementById('statTotalStudentsLanding').innerText = `${total.toLocaleString()} คน`;
+                // 3.1 จำนวนนักเรียนทั้งหมด
+                const { count: total } = await db.from('students').select('id', { count: 'exact', head: true });
+                const studentCount = total || 0;
+                
+                const statTotalEl1 = document.getElementById('total_students_count');
+                const statTotalEl2 = document.getElementById('statTotalStudentsLanding');
+                if (statTotalEl1) statTotalEl1.innerText = studentCount.toLocaleString();
+                if (statTotalEl2) statTotalEl2.innerText = `${studentCount.toLocaleString()} คน`;
 
+                // 3.2 มาเรียนวันนี้
                 const { count: presentCount } = await db.from('attendance_logs')
-                    .select('*', { count: 'exact', head: true })
+                    .select('id', { count: 'exact', head: true })
                     .gte('check_date', today)
                     .in('status', ['present', 'late', 'GREEN']);
 
                 const present = presentCount || 0;
-                const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
+                const percent = studentCount > 0 ? ((present / studentCount) * 100).toFixed(1) : '0.0';
 
-                document.getElementById('statPresentCountLanding').innerText = present.toLocaleString();
-                document.getElementById('statPresentPercentLanding').innerText = `(${percent}%)`;
+                const presCountEl = document.getElementById('statPresentCountLanding');
+                const presPercentEl = document.getElementById('statPresentPercentLanding');
+                if (presCountEl) presCountEl.innerText = present.toLocaleString();
+                if (presPercentEl) presPercentEl.innerText = `(${percent}%)`;
 
-                const { count: absentCount } = await db.from('attendance_logs')
-                    .select('*', { count: 'exact', head: true })
-                    .gte('check_date', today)
-                    .eq('status', 'absent');
-                if (absentCount !== null) document.getElementById('statAbsentLanding').innerText = absentCount;
+                // 3.3 ขาด / สาย / ลา
+                const { count: absentCount } = await db.from('attendance_logs').select('id', { count: 'exact', head: true }).gte('check_date', today).eq('status', 'absent');
+                const { count: lateCount } = await db.from('attendance_logs').select('id', { count: 'exact', head: true }).gte('check_date', today).eq('status', 'late');
+                const { count: leaveCount } = await db.from('attendance_logs').select('id', { count: 'exact', head: true }).gte('check_date', today).eq('status', 'leave');
 
-                const { count: lateCount } = await db.from('attendance_logs')
-                    .select('*', { count: 'exact', head: true })
-                    .gte('check_date', today)
-                    .eq('status', 'late');
-                if (lateCount !== null) document.getElementById('statLateLanding').innerText = lateCount;
-
-                const { count: leaveCount } = await db.from('attendance_logs')
-                    .select('*', { count: 'exact', head: true })
-                    .gte('check_date', today)
-                    .eq('status', 'leave');
-                if (leaveCount !== null) document.getElementById('statLeaveLanding').innerText = leaveCount;
+                if (absentCount !== null && document.getElementById('statAbsentLanding')) document.getElementById('statAbsentLanding').innerText = absentCount;
+                if (lateCount !== null && document.getElementById('statLateLanding')) document.getElementById('statLateLanding').innerText = lateCount;
+                if (leaveCount !== null && document.getElementById('statLeaveLanding')) document.getElementById('statLeaveLanding').innerText = leaveCount;
 
             } catch (err) {
                 console.warn('Load Landing Stats Warning:', err);
             }
         }
 
+        // 🚪 4. ออกจากระบบ
+        async function handleLogout() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                try {
+                    await db.auth.signOut();
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = './login.html';
+                } catch (err) {
+                    alert('เกิดข้อผิดพลาดในการออกจากระบบ: ' + err.message);
+                }
+            }
+        }
+        window.handleLogout = handleLogout;
+
+        // ⏰ 5. นาฬิกาและวันที่ไทย
+        function updateThaiClock() {
+            const now = new Date();
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+
+            const dateElem = document.getElementById('thaiDateStr');
+            if (dateElem) dateElem.innerText = `วัน${thaiDays[now.getDay()]}ที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
+
+            const clockElem = document.getElementById('liveClock');
+            if (clockElem) clockElem.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        }
+
+        // 🎨 6. กราฟวงกลมสำหรับ Executive Modal
         function renderChartSafely() {
             const canvas = document.getElementById('attendanceChartPreview');
             if (!canvas) return;
@@ -756,12 +658,24 @@
             }
         }
 
-        function setupEventListeners() {
+        function toggleModal(modalId, show) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            if (show) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+            else { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+        }
+
+        // 🚀 7. Event Listeners เมื่อโหลดหน้าเว็บ
+        document.addEventListener('DOMContentLoaded', () => {
+            checkUserSession();
+            updateThaiClock();
+            setInterval(updateThaiClock, 1000);
+
+            // Modal Listeners
             document.getElementById('btnOpenExecutive')?.addEventListener('click', () => {
                 toggleModal('execPreviewModal', true);
                 setTimeout(renderChartSafely, 150);
             });
-
             document.getElementById('btnCloseExecModal')?.addEventListener('click', () => toggleModal('execPreviewModal', false));
             document.getElementById('btnCloseExecModalBottom')?.addEventListener('click', () => toggleModal('execPreviewModal', false));
 
@@ -770,7 +684,6 @@
                 const pinInput = document.getElementById('adminPinInput');
                 if (pinInput) { pinInput.value = ''; pinInput.focus(); }
             });
-
             document.getElementById('btnCancelAdminAuth')?.addEventListener('click', () => toggleModal('adminAuthModal', false));
 
             document.getElementById('btnConfirmAdminAuth')?.addEventListener('click', async () => {
@@ -803,27 +716,9 @@
                 }
             });
 
-            document.getElementById('adminPinInput')?.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') document.getElementById('btnConfirmAdminAuth')?.click();
-            });
-
             document.getElementById('btnOpenParentStudentRouter')?.addEventListener('click', () => toggleModal('parentStudentRouterModal', true));
             document.getElementById('btnCloseRouterModal')?.addEventListener('click', () => toggleModal('parentStudentRouterModal', false));
-
-            document.getElementById('btnLogout')?.addEventListener('click', () => {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = 'login.html';
-            });
-        }
-
-        function toggleModal(modalId, show) {
-            const modal = document.getElementById(modalId);
-            if (!modal) return;
-            if (show) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-            else { modal.classList.add('hidden'); modal.classList.remove('flex'); }
-        }
-        
+        });
     </script>
 </body>
 </html>
