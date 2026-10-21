@@ -483,6 +483,117 @@
 
     <!-- Module Integration Script -->
     <script type="module">
+        // 🔍 1. ฟังก์ชันเช็ก Session และดึงข้อมูลผู้ใช้งาน
+    async function checkUserSession() {
+        try {
+            // เช็ก Session ของ Google OAuth (ครู / นักเรียน)
+            const { data: { session } } = await db.auth.getSession();
+
+            if (session && session.user) {
+                const userEmail = session.user.email || '';
+                const googleName = session.user.user_metadata?.full_name || userEmail;
+                // ดึง URL รูปโปรไฟล์จาก Google
+                const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
+
+                // ดึงข้อมูลโปรไฟล์เพิ่มเติมจาก Supabase
+                const { data: profile } = await db
+                    .from('users')
+                    .select('role, prefix, first_name, last_name, user_id')
+                    .eq('email', userEmail)
+                    .maybeSingle();
+
+                let role = profile?.role ? profile.role.toUpperCase() : (userEmail.includes('teacher') || !userEmail.startsWith('s') ? 'TEACHER' : 'STUDENT');
+                let displayName = profile && profile.first_name ? `${profile.prefix || ''}${profile.first_name} ${profile.last_name}` : googleName;
+                let userId = profile?.user_id || userEmail.split('@')[0];
+
+                updateLandingUI(displayName, role, `รหัส: ${userId}`, avatarUrl);
+                loadTotalStudentsCount(); // ดึงจำนวนนักเรียน
+                return;
+            }
+
+            // เช็ก Session ของผู้ปกครอง (Parent Login)
+            const parentSession = localStorage.getItem('parent_session');
+            if (parentSession) {
+                const parentData = JSON.parse(parentSession);
+                updateLandingUI(`ผู้ปกครองของ ${parentData.student_name}`, 'PARENT', `นักเรียน: ${parentData.student_id}`, null);
+                loadTotalStudentsCount();
+                return;
+            }
+
+            // หากไม่มี Session ให้เด้งกลับไปหน้า Login
+            window.location.href = './login.html';
+
+        } catch (err) {
+            console.error('Error checking user session:', err.message);
+        }
+    }
+
+    // 🎨 2. ฟังก์ชันอัปเดต UI (แสดงชื่อ, บทบาท, รูปโปรไฟล์)
+    function updateLandingUI(name, role, idText, avatarUrl) {
+        const nameEl = document.getElementById('user_display_name');
+        const roleEl = document.getElementById('user_display_role');
+        const idEl = document.getElementById('user_display_id');
+        const avatarEl = document.getElementById('user_avatar_img'); // จุดแสดงรูป
+
+        if (nameEl) nameEl.textContent = name;
+        if (idEl) idEl.textContent = idText;
+
+        if (roleEl) {
+            roleEl.textContent = role;
+            if (role === 'TEACHER') {
+                roleEl.className = "bg-emerald-700 text-amber-200 text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
+            } else if (role === 'PARENT') {
+                roleEl.className = "bg-sky-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
+            } else {
+                roleEl.className = "bg-indigo-700 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm";
+            }
+        }
+
+        // หากมีรูปโปรไฟล์ Google ให้เปลี่ยนจากไอคอน 👤 เป็นรูปถ่าย
+        if (avatarEl && avatarUrl) {
+            avatarEl.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="w-full h-full object-cover rounded-xl shadow">`;
+        }
+    }
+
+    // 📊 3. ฟังก์ชันดึงจำนวนนักเรียนทั้งหมดจากตาราง students
+    async function loadTotalStudentsCount() {
+        try {
+            const { count, error } = await db
+                .from('students')
+                .select('id', { count: 'exact', head: true });
+
+            if (error) throw error;
+
+            const countEl = document.getElementById('total_students_count');
+            if (countEl) {
+                countEl.textContent = (count || 0).toLocaleString();
+            }
+        } catch (err) {
+            console.error('Error loading total students:', err.message);
+        }
+    }
+
+    // 🚪 4. ฟังก์ชันออกจากระบบ (Logout)
+    async function handleLogout() {
+        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+            try {
+                await db.auth.signOut();
+                localStorage.clear(); // เคลียร์ Session ทั้งหมด
+                window.location.href = './login.html';
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการออกจากระบบ: ' + err.message);
+            }
+        }
+    }
+
+    // ผูกฟังก์ชันออกจากระบบเข้ากับ window และ Event Listener
+    window.handleLogout = handleLogout;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        checkUserSession();
+        // ผูกปุ่ม Logout (ถ้ามีปุ่ม id="btn-logout")
+        document.getElementById('btn-logout')?.addEventListener('click', handleLogout);
+    });
         // 🔍 ฟังก์ชันตรวจสอบและแยกแยะประเภทผู้ใช้งาน (ครู / นักเรียน / ผู้ปกครอง)
        import { db } from './core/supabase-client.js';
         async function checkUserSession() {
@@ -711,6 +822,7 @@
             if (show) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
             else { modal.classList.add('hidden'); modal.classList.remove('flex'); }
         }
+        
     </script>
 </body>
 </html>
