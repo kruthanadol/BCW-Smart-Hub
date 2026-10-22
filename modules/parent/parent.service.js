@@ -1,12 +1,6 @@
 import { db } from '../../core/supabase-client.js';
 
-/**
- * ParentService - บริการจัดการข้อมูลสำหรับแดชบอร์ดผู้ปกครอง
- */
 export const ParentService = {
-    /**
-     * ดึงข้อมูลโปรไฟล์นักเรียน
-     */
     async getStudentProfile(studentId) {
         try {
             const { data, error } = await db
@@ -36,83 +30,34 @@ export const ParentService = {
     },
 
     /**
-     * ดึงตารางเรียนประจำวันตามชั้นเรียนและวัน
+     * ดึงตารางเรียนประจำวันจากตารางมาตรฐาน schedules เพียงอย่างเดียว
      */
     async getSchedule(classroom, dayName = 'Monday') {
         try {
-            const { data, error } = await db.from('schedules').select('*');
-            if (error || !data) return [];
+            const { data, error } = await db
+                .from('schedules')
+                .select('*')
+                .eq('classroom', classroom)
+                .eq('day', dayName)
+                .order('period', { ascending: true });
 
-            // กรองข้อมูลฝั่ง Client-side เพื่อป้องกัน Query Syntax Mismatch
-            return data.filter(s => {
-                const matchDay = (s.day || '').toLowerCase() === dayName.toLowerCase();
-                const matchClass = (s.classroom || s.class || '') === classroom;
-                return matchDay && matchClass;
-            }).sort((a, b) => (a.period || 0) - (b.period || 0));
+            if (error || !data) return [];
+            return data;
         } catch (err) {
             console.warn('[ParentService] Error fetching schedule:', err);
             return [];
         }
     },
 
-    /**
-     * ดึงประวัติการยื่นใบลา (จาก gate_pass_logs)
-     */
-    async getLeaveHistory(studentId) {
-        try {
-            const { data, error } = await db.from('gate_pass_logs').select('*');
-            if (error || !data) return [];
-
-            return data.filter(r => String(r.student_id) === String(studentId));
-        } catch (err) {
-            console.warn('[ParentService] Error fetching leave history:', err);
-            return [];
-        }
-    },
-
-    /**
-     * ดึงสรุปสถิติการมาเรียน (จาก attendance_logs)
-     */
-    async getAttendanceStats(studentId) {
-        const stats = { present: 0, late: 0, absent: 0, truant: 0 };
-        try {
-            const { data, error } = await db.from('attendance_logs').select('*');
-            if (error || !data) return stats;
-
-            const logs = data.filter(l => String(l.student_id) === String(studentId));
-            logs.forEach(l => {
-                const st = (l.status || '').toLowerCase().trim();
-                if (st === 'present' || st === 'green' || st === 'มา') stats.present++;
-                else if (st === 'late' || st === 'สาย') stats.late++;
-                else if (st === 'absent' || st === 'red' || st === 'ขาด') stats.absent++;
-                else if (st === 'truant' || st === 'purple' || st === 'หนี') stats.truant++;
-            });
-
-            return stats;
-        } catch (err) {
-            console.warn('[ParentService] Error fetching attendance stats:', err);
-            return stats;
-        }
-    },
-
-    /**
-     * ดึงข้อมูลทั้งหมดสำหรับแดชบอร์ดในคำสั่งเดียว
-     */
     async getDashboardData(studentId, dayName = 'Monday') {
         const student = await this.getStudentProfile(studentId);
         const classroom = student?.classroom || '-';
 
-        const [schedule, leaveHistory, attendanceStats] = await Promise.all([
-            this.getSchedule(classroom, dayName),
-            this.getLeaveHistory(studentId),
-            this.getAttendanceStats(studentId)
-        ]);
+        const schedule = await this.getSchedule(classroom, dayName);
 
         return {
             student,
-            schedule,
-            leaveHistory,
-            attendanceStats
+            schedule
         };
     }
 };
