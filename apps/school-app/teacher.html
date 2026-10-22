@@ -222,36 +222,42 @@
             window.location.href = '../../login.html';
         }
 
-        async function checkAuthAndInit() {
+                async function checkAuthAndInit() {
+            // 1. อ่านรหัสครูจาก Session (ถ้าไม่มี ให้ Default เป็น T024 ของครูธนดล)
             const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
-            
-            if (storedUser && (storedUser.full_name || storedUser.name || storedUser.teacher_code)) {
-                CURRENT_TEACHER = storedUser;
-            } else {
-                CURRENT_TEACHER = { 
-                    teacher_code: 'T024', 
-                    name: 'Thanadol Kamsamer', 
-                    username: 'kruthanadol'
-                };
+            const teacherCode = storedUser.teacher_code || storedUser.username || storedUser.id || 'T024';
+        
+            // 2. ดึงข้อมูลครูตัวจริงจากตาราง users ใน Supabase โดยตรง (ตรงตามรหัสครู)
+            let teacherFullName = 'Thanadol Kamsamer';
+            let teacherAvatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
+        
+            try {
+                const { data: teacherDB, error } = await db
+                    .from('users')
+                    .select('full_name, avatar_url, photo_url')
+                    .or(`teacher_code.eq.${teacherCode},username.eq.${teacherCode}`)
+                    .maybeSingle();
+        
+                if (teacherDB) {
+                    if (teacherDB.full_name) teacherFullName = teacherDB.full_name;
+                    if (teacherDB.avatar_url || teacherDB.photo_url) {
+                        teacherAvatarUrl = teacherDB.avatar_url || teacherDB.photo_url;
+                    }
+                }
+            } catch (err) {
+                console.warn('[TeacherInit] Fetch DB Warning, falling back to Storage path:', err);
             }
-
-            const fullName = CURRENT_TEACHER.full_name || CURRENT_TEACHER.name || 'Thanadol Kamsamer';
-            const teacherCode = CURRENT_TEACHER.teacher_code || CURRENT_TEACHER.username || CURRENT_TEACHER.id || 'T024';
-
-            // 1. ดึง URL รูปภาพจาก Supabase Storage ตามรหัสครูจริง
-            const storageAvatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
-            const teacherImg = CURRENT_TEACHER.avatar || CURRENT_TEACHER.avatar_url || storageAvatarUrl;
-
-            // 2. แสดงผลข้อมูลครูบน UI
-            document.getElementById('teacherName').innerText = fullName;
-            document.getElementById('headerTeacherName').innerText = fullName;
+        
+            // 3. อัปเดตชื่อ และ รหัสครูบน UI
+            document.getElementById('teacherName').innerText = teacherFullName;
+            document.getElementById('headerTeacherName').innerText = teacherFullName;
             document.getElementById('teacherCodeDisplay').innerText = `รหัส: ${teacherCode}`;
-
-            // 3. แสดงผลรูปโปรไฟล์ (สลับ .jpg -> .png อัตโนมัติหากไม่พบ)
+        
+            // 4. แสดงผลรูปโปรไฟล์ (สลับ .jpg -> .png -> รูปไอคอนกลาง หากหาไฟล์ไม่พบ)
             const setAvatarWithFallback = (elId) => {
                 const imgEl = document.getElementById(elId);
                 if (!imgEl) return;
-                imgEl.src = teacherImg;
+                imgEl.src = teacherAvatarUrl;
                 imgEl.onerror = () => {
                     if (imgEl.src.endsWith('.jpg')) {
                         imgEl.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
@@ -260,10 +266,11 @@
                     }
                 };
             };
-
+        
             setAvatarWithFallback('headerTeacherAvatar');
             setAvatarWithFallback('teacherAvatar');
-
+        
+            // 5. โหลดข้อมูลส่วนอื่น
             await loadAssignedCourses(teacherCode);
             await loadTrafficSummary();
             await renderStudents();
