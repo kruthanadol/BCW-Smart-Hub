@@ -252,26 +252,75 @@
         });
 
         async function checkAuthAndInit() {
-            // 1. อ่าน Session ล็อกอิน
+            // 1. อ่าน Session ล็อกอินจาก Storage (รองรับทุกลักษณะ Object)
             const sessionStr = localStorage.getItem('teacher_session') || 
                                sessionStorage.getItem('teacher_session') || 
                                localStorage.getItem('user_profile') || 
-                               sessionStorage.getItem('user_profile');
-
+                               sessionStorage.getItem('user_profile') ||
+                               localStorage.getItem('user');
+        
             if (sessionStr) {
                 try {
                     loggedInTeacherProfile = JSON.parse(sessionStr);
-                    currentTeacherId = loggedInTeacherProfile.id || loggedInTeacherProfile.teacher_id || loggedInTeacherProfile.user_id;
+                    currentTeacherId = loggedInTeacherProfile.username || 
+                                       loggedInTeacherProfile.id || 
+                                       loggedInTeacherProfile.teacher_id;
                 } catch (e) {
                     console.warn('[TeacherPortal] Parse Session Error:', e);
                 }
             }
-
-            // ถ้าไม่มี Session ให้แสดง Direct Login Modal
-            if (!currentTeacherId) {
+        
+            if (!loggedInTeacherProfile) {
                 document.getElementById('directLoginModal')?.classList.remove('hidden');
                 return;
             }
+        
+            const dueDateInput = document.getElementById('homeworkDueDateInput');
+            if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
+        
+            await initTeacherPortal();
+        }
+        
+        async function initTeacherPortal() {
+            try {
+                let profile = await TeacherService.getProfile(currentTeacherId);
+        
+                // ดึงชื่อ-นามสกุลจริงตาม Session ( Thanadol Kamsamer )
+                const teacherNameStr = loggedInTeacherProfile?.full_name || 
+                                       loggedInTeacherProfile?.name || 
+                                       (loggedInTeacherProfile?.first_name ? `${loggedInTeacherProfile.first_name} ${loggedInTeacherProfile.last_name || ''}` : null) ||
+                                       profile?.full_name || 
+                                       'Thanadol Kamsamer';
+        
+                // ดึงรูปโปรไฟล์จริง
+                const avatarStr = loggedInTeacherProfile?.avatar_url || 
+                                  loggedInTeacherProfile?.avatar || 
+                                  loggedInTeacherProfile?.photo_url || 
+                                  profile?.avatar || 
+                                  'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+        
+                // ดึงรหัสครูจริง (kruthanadol)
+                const teacherCodeStr = loggedInTeacherProfile?.username || 
+                                       loggedInTeacherProfile?.teacher_id || 
+                                       currentTeacherId || 
+                                       'kruthanadol';
+        
+                // อัปเดตการแสดงผลให้เหมือนหน้าหลัก 100%
+                document.getElementById('teacherName').textContent = teacherNameStr;
+                document.getElementById('headerTeacherName').textContent = teacherNameStr;
+                document.getElementById('teacherAvatar').src = avatarStr;
+                document.getElementById('headerTeacherAvatar').src = avatarStr;
+        
+                // ถ้ามี Element แสดงรหัสครู ให้แมปค่ารหัสครูไปด้วย
+                const codeElement = document.getElementById('teacherCodeDisplay');
+                if (codeElement) codeElement.textContent = `รหัส: ${teacherCodeStr}`;
+        
+                await loadAssignedCourses();
+                await renderStudents();
+            } catch (err) {
+                console.error('[TeacherPortal] Init Error:', err);
+            }
+        }
 
             const dueDateInput = document.getElementById('homeworkDueDateInput');
             if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
