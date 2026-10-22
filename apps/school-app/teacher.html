@@ -257,11 +257,11 @@
         });
 
         async function checkAuthAndInit() {
-            // 1. อ่าน Session ล็อกอินจาก Storage
-            const sessionStr = localStorage.getItem('teacher_session') || 
-                               sessionStorage.getItem('teacher_session') || 
-                               localStorage.getItem('user_profile') || 
+            // 1. ดึง Session จากทุก Key ที่ระบบหน้า Landing และ Login เก็บบันทึกไว้
+            const sessionStr = localStorage.getItem('user_profile') || 
                                sessionStorage.getItem('user_profile') ||
+                               localStorage.getItem('teacher_session') || 
+                               sessionStorage.getItem('teacher_session') || 
                                localStorage.getItem('user');
 
             if (sessionStr) {
@@ -275,7 +275,6 @@
                 }
             }
 
-            // ถ้าไม่มี Session ให้เปิด Direct Login Modal
             if (!loggedInTeacherProfile) {
                 document.getElementById('directLoginModal')?.classList.remove('hidden');
                 return;
@@ -291,41 +290,42 @@
             try {
                 let profile = await TeacherService.getProfile(currentTeacherId);
 
-                // ดึงชื่อ-นามสกุลจริงตาม Session (Thanadol Kamsamer)
-                const teacherNameStr = loggedInTeacherProfile?.full_name || 
-                                       loggedInTeacherProfile?.name || 
-                                       (loggedInTeacherProfile?.first_name ? `${loggedInTeacherProfile.first_name} ${loggedInTeacherProfile.last_name || ''}` : null) ||
-                                       profile?.full_name || 
-                                       'Thanadol Kamsamer';
+                // ดึงชื่อ-นามสกุลจริง (Thanadol Kamsamer)
+                const fullNameStr = loggedInTeacherProfile?.full_name || 
+                                    loggedInTeacherProfile?.name || 
+                                    (loggedInTeacherProfile?.first_name ? `${loggedInTeacherProfile.first_name} ${loggedInTeacherProfile.last_name || ''}`.trim() : null) ||
+                                    profile?.full_name || 
+                                    'Thanadol Kamsamer';
 
                 // ดึงรูปโปรไฟล์จริง
-                const avatarStr = loggedInTeacherProfile?.avatar_url || 
-                                  loggedInTeacherProfile?.avatar || 
+                const avatarStr = loggedInTeacherProfile?.avatar || 
+                                  loggedInTeacherProfile?.avatar_url || 
                                   loggedInTeacherProfile?.photo_url || 
                                   profile?.avatar || 
                                   'https://cdn-icons-png.flaticon.com/512/847/847969.png';
 
-                // ดึงรหัสครูจริง (kruthanadol)
-                const teacherCodeStr = loggedInTeacherProfile?.username || 
-                                       loggedInTeacherProfile?.teacher_id || 
-                                       currentTeacherId || 
-                                       'kruthanadol';
+                // ดึงรหัสครูผู้ใช้งานจริง (kruthanadol)
+                const usernameStr = loggedInTeacherProfile?.username || 
+                                    loggedInTeacherProfile?.teacher_id || 
+                                    currentTeacherId || 
+                                    'kruthanadol';
 
-                // แสดงผลชื่อ และรูปโปรไฟล์
-                const nameEl = document.getElementById('teacherName');
-                if (nameEl) nameEl.textContent = teacherNameStr;
-
+                // 1. อัปเดตส่วน Header
                 const headerNameEl = document.getElementById('headerTeacherName');
-                if (headerNameEl) headerNameEl.textContent = teacherNameStr;
-
-                const avatarEl = document.getElementById('teacherAvatar');
-                if (avatarEl) avatarEl.src = avatarStr;
+                if (headerNameEl) headerNameEl.textContent = fullNameStr;
 
                 const headerAvatarEl = document.getElementById('headerTeacherAvatar');
                 if (headerAvatarEl) headerAvatarEl.src = avatarStr;
 
                 const codeEl = document.getElementById('teacherCodeDisplay');
-                if (codeEl) codeEl.textContent = `รหัส: ${teacherCodeStr}`;
+                if (codeEl) codeEl.textContent = `รหัส: ${usernameStr}`;
+
+                // 2. อัปเดตส่วนการ์ดครูประจำวิชา
+                const nameEl = document.getElementById('teacherName');
+                if (nameEl) nameEl.textContent = fullNameStr;
+
+                const avatarEl = document.getElementById('teacherAvatar');
+                if (avatarEl) avatarEl.src = avatarStr;
 
                 await loadAssignedCourses();
                 await renderStudents();
@@ -423,10 +423,10 @@
 
             const mockProfile = { 
                 username: user, 
-                full_name: user, 
-                avatar_url: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' 
+                full_name: 'Thanadol Kamsamer', 
+                avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' 
             };
-            localStorage.setItem('teacher_session', JSON.stringify(mockProfile));
+            localStorage.setItem('user_profile', JSON.stringify(mockProfile));
 
             document.getElementById('directLoginModal')?.classList.add('hidden');
             currentTeacherId = user;
