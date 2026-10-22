@@ -329,52 +329,82 @@
         async function renderStudents() {
             const tbody = document.getElementById('studentList');
             if (!tbody) return;
-
-            // ตัวอย่างรายชื่อนักเรียน
-            const mockStudents = [
-                { id: 'BCW001', studentNo: 1, name: 'นายกิตติศักดิ์ มีสุข', avatar: 'https://via.placeholder.com/40' },
-                { id: 'BCW002', studentNo: 2, name: 'นางสาวจินตนา รักดี', avatar: 'https://via.placeholder.com/40' },
-                { id: 'BCW003', studentNo: 3, name: 'นายชลทิตย์ เรียนดี', avatar: 'https://via.placeholder.com/40' }
-            ];
-
-            tbody.innerHTML = mockStudents.map(s => `
-                <tr class="hover:bg-slate-50 transition" data-student-id="${s.id}">
-                    <td class="p-3 text-center font-bold text-slate-500">${s.studentNo}</td>
-                    <td class="p-3">
-                        <div class="flex items-center gap-3">
-                            <img src="${s.avatar}" class="w-9 h-9 rounded-xl object-cover border border-slate-200">
-                            <div>
-                                <div class="font-bold text-slate-800">${s.name}</div>
-                                <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${s.id}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="p-3 text-center">
-                        <div class="flex items-center justify-center gap-1 font-bold text-xs">
-                            <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.id}" value="present" checked class="accent-emerald-600"> มา
-                            </label>
-                            <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.id}" value="late" class="accent-amber-600"> สาย
-                            </label>
-                            <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.id}" value="leave" class="accent-blue-600"> ลา
-                            </label>
-                            <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.id}" value="absent" class="accent-rose-600"> ขาด
-                            </label>
-                            <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.id}" value="truant" class="accent-purple-600"> หนี
-                            </label>
-                        </div>
-                    </td>
-                    <td class="p-3">
-                        <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
-                    </td>
-                </tr>
-            `).join('');
+        
+            // อ่านค่าห้องเรียนจาก Select Dropdown (เช่น ม.5/1)
+            const selectEl = document.getElementById('subjectSelect');
+            const selectedVal = selectEl?.value || '';
+            const className = selectedVal.includes('|') ? selectedVal.split('|')[1] : 'ม.5/1';
+        
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กำลังดึงข้อมูลนักเรียนจริงจากฐานข้อมูล...</td></tr>';
+        
+            try {
+                // ดึงข้อมูลนักเรียนจริงจากตาราง students ใน Supabase
+                const { data: students, error } = await db
+                    .from('students')
+                    .select('*')
+                    .eq('classroom', className)
+                    .order('student_no', { ascending: true });
+        
+                if (error || !students || students.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">ไม่พบข้อมูลนักเรียนในห้อง ${className} (หรือตาราง students ยังไม่มีข้อมูล)</td></tr>`;
+                    return;
+                }
+        
+                // แสดงผลข้อมูลนักเรียนและรูปภาพจริง
+                tbody.innerHTML = students.map((s, idx) => {
+                    const studentId = s.student_id || s.id;
+                    const studentNo = s.student_no || s.number || (idx + 1);
+                    const fullName = s.full_name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'ไม่ระบุชื่อ';
+                    
+                    // ดึง URL รูปภาพจาก DB (ถ้าไม่มีให้ใช้ รูป Avatar ตัวแทน)
+                    const avatarUrl = s.avatar_url || s.photo_url || s.image_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+        
+                    return `
+                        <tr class="hover:bg-slate-50 transition" data-student-id="${studentId}">
+                            <td class="p-3 text-center font-bold text-slate-500">${studentNo}</td>
+                            <td class="p-3">
+                                <div class="flex items-center gap-3">
+                                    <img src="${avatarUrl}" 
+                                         class="w-9 h-9 rounded-xl object-cover border border-slate-200"
+                                         onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
+                                    <div>
+                                        <div class="font-bold text-slate-800">${fullName}</div>
+                                        <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${studentId}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-3 text-center">
+                                <div class="flex items-center justify-center gap-1 font-bold text-xs">
+                                    <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                        <input type="radio" name="att_${studentId}" value="present" checked class="accent-emerald-600"> มา
+                                    </label>
+                                    <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                        <input type="radio" name="att_${studentId}" value="late" class="accent-amber-600"> สาย
+                                    </label>
+                                    <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                        <input type="radio" name="att_${studentId}" value="leave" class="accent-blue-600"> ลา
+                                    </label>
+                                    <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                        <input type="radio" name="att_${studentId}" value="absent" class="accent-rose-600"> ขาด
+                                    </label>
+                                    <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                        <input type="radio" name="att_${studentId}" value="truant" class="accent-purple-600"> หนี
+                                    </label>
+                                </div>
+                            </td>
+                            <td class="p-3">
+                                <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+        
+            } catch (err) {
+                console.error('Error fetching real students:', err);
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-rose-500">เกิดข้อผิดพลาดในการโหลดรายชื่อนักเรียนจากฐานข้อมูล</td></tr>';
+            }
         }
-
+        
         function markAll(status) {
             document.querySelectorAll(`input[type="radio"][value="${status}"]`).forEach(radio => radio.checked = true);
         }
