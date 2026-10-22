@@ -393,6 +393,94 @@
                 window.location.href = '../../login.html';
             });
         }
+        <!-- Favicon Fix -->
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+
+        import { ParentService } from '../../modules/parent/parent.service.js';
+
+        let currentStudentId = '';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initParentPortal();
+            setupEventListeners();
+        });
+
+        // 1. เริ่มต้นระบบผู้ปกครองและตรวจสอบ Session
+        async function initParentPortal() {
+            const sessionStr = localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session');
+            if (!sessionStr) {
+                window.location.href = '../../login.html';
+                return;
+            }
+
+            const parentSession = JSON.parse(sessionStr);
+            currentStudentId = parentSession.student_id;
+
+            const selector = document.getElementById('childSelector');
+            if (selector) {
+                selector.innerHTML = `<option value="${currentStudentId}">${parentSession.student_name || 'นักเรียนในปกครอง'} (${currentStudentId})</option>`;
+            }
+
+            await loadDashboardData();
+        }
+
+        // 2. ดึงข้อมูลผ่าน ParentService และแสดงผลเฉพาะจุดที่จำเป็น (ไม่ยุ่งกับ HTML กล่องรายงานเดิม)
+        async function loadDashboardData() {
+            const dayName = document.getElementById('dayFilter')?.value || 'Monday';
+            
+            // ดึงข้อมูลโปรไฟล์และตารางเรียนจาก Service
+            const data = await ParentService.getDashboardData(currentStudentId, dayName);
+
+            // แสดงผลข้อมูลโปรไฟล์นักเรียน (ถ้ามี Elements อยู่ในหน้า)
+            if (data.student) {
+                if (document.getElementById('student-fullname')) document.getElementById('student-fullname').textContent = data.student.fullName;
+                if (document.getElementById('student-class')) document.getElementById('student-class').textContent = data.student.classroom;
+                if (document.getElementById('student-no')) document.getElementById('student-no').textContent = data.student.studentNo;
+                if (document.getElementById('student-behavior-score')) document.getElementById('student-behavior-score').textContent = data.student.behaviorScore;
+
+                if (data.student.avatarUrl && document.getElementById('student-avatar')) {
+                    document.getElementById('student-avatar').src = data.student.avatarUrl;
+                }
+            }
+
+            // แสดงผลตารางเรียนประจำวัน
+            renderSchedule(data.schedule, dayName);
+        }
+
+        // 3. เรนเดอร์กล่องตารางเรียนเท่านั้น
+        function renderSchedule(scheduleList, dayName) {
+            const container = document.getElementById('scheduleContainer');
+            if (!container) return;
+
+            if (!scheduleList || scheduleList.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${dayName})</div>`;
+                return;
+            }
+
+            container.innerHTML = scheduleList.map(s => `
+                <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl mb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center">
+                            <span class="text-sm font-extrabold">${s.period || 1}</span>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
+                            <p class="text-[10px] text-slate-400">ห้องเรียน: ${s.room || 'ไม่ระบุ'}</p>
+                        </div>
+                    </div>
+                </div>`).join('');
+        }
+
+        // 4. ตั้งค่า Event Listeners
+        function setupEventListeners() {
+            document.getElementById('dayFilter')?.addEventListener('change', loadDashboardData);
+
+            document.getElementById('btnLogout')?.addEventListener('click', () => {
+                localStorage.removeItem('parent_session');
+                sessionStorage.removeItem('parent_session');
+                window.location.href = '../../login.html';
+            });
+        }
     </script>
 </body>
 </html>
