@@ -208,28 +208,49 @@
 
         let currentTeacherId = 'T024';
 
+// ในapps/teacher-app/teacher.html
         document.addEventListener('DOMContentLoaded', async () => {
+            // 1. อ่าน Session ของครูที่ล็อกอินมาจาก Storage
+            const sessionStr = localStorage.getItem('teacher_session') || 
+                               sessionStorage.getItem('teacher_session') || 
+                               localStorage.getItem('user_profile') || 
+                               sessionStorage.getItem('user_profile');
+                               
+            let currentTeacherId = null;
+            let loggedInTeacher = null;
+        
+            if (sessionStr) {
+                try {
+                    loggedInTeacher = JSON.parse(sessionStr);
+                    currentTeacherId = loggedInTeacher.id || loggedInTeacher.teacher_id || loggedInTeacher.user_id;
+                } catch (e) {
+                    console.warn('[TeacherPortal] Parse Session Error:', e);
+                }
+            }
+        
             const dueDateInput = document.getElementById('homeworkDueDateInput');
             if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
-
-            await initTeacherPortal();
+        
+            // 2. เรียก Init พร้อมส่งทั้ง Object หรือ ID ครูที่ล็อกอินเข้าไป
+            await initTeacherPortal(currentTeacherId, loggedInTeacher);
             setupEventListeners();
         });
-
-        async function initTeacherPortal() {
+        
+        async function initTeacherPortal(teacherId, teacherSession) {
             try {
-                // 1. ดึงโปรไฟล์ครู
-                const profile = await TeacherService.getProfile(currentTeacherId);
-                const teacherNameStr = profile?.full_name || profile?.name || 'นางสาวขัตติยา สุขรอบ';
-                const avatarStr = profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-
+                // หากมี Session จาก Login ให้แสดงชื่อครูที่ล็อกอินมาทันที
+                let profile = await TeacherService.getProfile(teacherId);
+                
+                // ถ้า DB คืนค่าโปรไฟล์ไม่ได้ ให้ใช้ข้อมูลจาก Login Session (เช่น ครูธนดล)
+                const teacherNameStr = profile?.full_name || teacherSession?.full_name || teacherSession?.name || 'ครูผู้สอน';
+                const avatarStr = profile?.avatar || teacherSession?.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+        
                 document.getElementById('teacherName').textContent = teacherNameStr;
                 document.getElementById('headerTeacherName').textContent = `👤 ครูผู้สอน: ${teacherNameStr}`;
                 document.getElementById('teacherAvatar').src = avatarStr;
                 document.getElementById('headerTeacherAvatar').src = avatarStr;
-
-                // 2. โหลดรายวิชาและสรุป Smart Gate
-                await loadAssignedCourses();
+        
+                await loadAssignedCourses(teacherId);
                 await renderStudents();
             } catch (err) {
                 console.error('[TeacherPortal] Init Error:', err);
