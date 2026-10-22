@@ -244,196 +244,212 @@
     </div>
 
     <!-- Modular Integration Script -->
-    <script type="module">
-        import { TeacherService } from '../../modules/teacher/teacher.service.js';
-        
-        let currentTeacherId = null;
-        let loggedInTeacherProfile = null;
-        
-        document.addEventListener('DOMContentLoaded', async () => {
-            await checkAuthAndInit();
-            setupEventListeners();
-        });
-        
-        async function checkAuthAndInit() {
-            // 1. อ่าน Session ล็อกอินจาก Storage (รองรับทุกลักษณะ Key ที่หน้า Login/Landing บันทึกไว้)
-            const sessionStr = localStorage.getItem('user_profile') || 
-                               sessionStorage.getItem('user_profile') ||
-                               localStorage.getItem('teacher_session') || 
-                               sessionStorage.getItem('teacher_session') || 
-                               localStorage.getItem('user');
-        
-            if (sessionStr) {
-                try {
-                    loggedInTeacherProfile = JSON.parse(sessionStr);
-                    currentTeacherId = loggedInTeacherProfile.id || 
-                                       loggedInTeacherProfile.teacher_id || 
-                                       loggedInTeacherProfile.username;
-                } catch (e) {
-                    console.warn('[TeacherPortal] Parse Session Error:', e);
-                }
-            }
-        
-            if (!loggedInTeacherProfile) {
-                document.getElementById('directLoginModal')?.classList.remove('hidden');
-                return;
-            }
-        
-            const dueDateInput = document.getElementById('homeworkDueDateInput');
-            if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
-        
-            await initTeacherPortal();
-        }
-        
-        async function initTeacherPortal() {
+<script type="module">
+    import { TeacherService } from '../../modules/teacher/teacher.service.js';
+
+    let currentTeacherId = null;
+    let loggedInTeacherProfile = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await checkAuthAndInit();
+        setupEventListeners();
+    });
+
+    async function checkAuthAndInit() {
+        // 1. อ่าน Session ล็อกอินจากทุก Key
+        const sessionStr = localStorage.getItem('user_profile') || 
+                           sessionStorage.getItem('user_profile') ||
+                           localStorage.getItem('teacher_session') || 
+                           sessionStorage.getItem('teacher_session') || 
+                           localStorage.getItem('user');
+
+        if (sessionStr) {
             try {
-                // 2. พยายามเรียก Profile จาก DB
-                let profile = await TeacherService.getProfile(currentTeacherId);
-        
-                // 3. กำหนดชื่อครูโดยดึงจาก Session เป็นหลัก (ตัดการดึงอีเมลมาแสดงเด็ดขาด)
-                const fullNameStr = loggedInTeacherProfile?.full_name || 
-                                    loggedInTeacherProfile?.name || 
-                                    (loggedInTeacherProfile?.first_name ? `${loggedInTeacherProfile.first_name} ${loggedInTeacherProfile.last_name || ''}`.trim() : null) ||
-                                    profile?.full_name || 
-                                    'Thanadol Kamsamer';
-        
-                // 4. ดึงรูปโปรไฟล์จริงจาก Session
-                const avatarStr = loggedInTeacherProfile?.avatar || 
-                                  loggedInTeacherProfile?.avatar_url || 
-                                  loggedInTeacherProfile?.photo_url || 
-                                  profile?.avatar || 
-                                  'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-        
-                // 5. ดึงรหัสครู (kruthanadol)
-                const usernameStr = loggedInTeacherProfile?.username || 
-                                    loggedInTeacherProfile?.teacher_id || 
-                                    'kruthanadol';
-        
-                // --- อัปเดตการแสดงผลบน UI ---
-                
-                // Header
-                const headerNameEl = document.getElementById('headerTeacherName');
-                if (headerNameEl) headerNameEl.textContent = fullNameStr;
-        
-                const headerAvatarEl = document.getElementById('headerTeacherAvatar');
-                if (headerAvatarEl) headerAvatarEl.src = avatarStr;
-        
-                const codeEl = document.getElementById('teacherCodeDisplay');
-                if (codeEl) codeEl.textContent = `รหัส: ${usernameStr}`;
-        
-                // การ์ดผู้สอนประจำวิชา
-                const nameEl = document.getElementById('teacherName');
-                if (nameEl) nameEl.textContent = fullNameStr;
-        
-                const avatarEl = document.getElementById('teacherAvatar');
-                if (avatarEl) avatarEl.src = avatarStr;
-        
-                await loadAssignedCourses();
-                await renderStudents();
-            } catch (err) {
-                console.error('[TeacherPortal] Init Error:', err);
+                loggedInTeacherProfile = JSON.parse(sessionStr);
+                currentTeacherId = loggedInTeacherProfile.username || 
+                                   loggedInTeacherProfile.id || 
+                                   loggedInTeacherProfile.teacher_id;
+            } catch (e) {
+                console.warn('[TeacherPortal] Parse Session Error:', e);
             }
         }
-        
-        async function loadAssignedCourses() {
-            const selector = document.getElementById('subjectSelect');
-            if (!selector) return;
-        
-            const courses = await TeacherService.getAssignedCourses(currentTeacherId);
-        
-            if (!courses || courses.length === 0) {
-                selector.innerHTML = '<option value="">-- ไม่พบรายวิชาที่ได้รับมอบหมาย --</option>';
-                return;
-            }
-        
-            selector.innerHTML = courses.map(c => {
-                const courseCode = c.course_code || c.subject_code || 'วิชาเรียน';
-                const courseName = c.subject_name || c.course_name || courseCode;
-                const className = c.class_name || c.classroom || 'ม.1/1';
-                
-                return `<option value="${courseCode}|${className}">${courseName} - ห้อง ${className}</option>`;
-            }).join('');
+
+        // 2. ถ้าไม่มี Session ให้แสดง Direct Login Modal
+        if (!loggedInTeacherProfile || !currentTeacherId) {
+            document.getElementById('directLoginModal')?.classList.remove('hidden');
+            return;
         }
-        
-        async function renderStudents() {
-            const selectedVal = document.getElementById('subjectSelect')?.value || '';
-            if (!selectedVal) {
-                document.getElementById('studentList').innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กรุณาเลือกรายวิชาเพื่อแสดงรายชื่อนักเรียน</td></tr>';
-                return;
-            }
-        
-            const [subject, className] = selectedVal.split('|');
-            document.getElementById('tableHeaderTitle').textContent = `รายชื่อนักเรียนประจำห้อง ${className || ''}`;
-        
-            const tbody = document.getElementById('studentList');
-            if (!tbody) return;
-        
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กำลังโหลดข้อมูลนักเรียน...</td></tr>';
-        
-            const students = await TeacherService.getStudentsByClass(className);
-        
-            if (!students || students.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">ไม่พบข้อมูลนักเรียนในห้อง ${className || ''}</td></tr>`;
-                return;
-            }
-        
-            tbody.innerHTML = students.map((s, idx) => `
-                <tr class="hover:bg-slate-50 transition" data-student-id="${s.student_id}">
-                    <td class="p-3 text-center font-bold text-slate-500">${s.studentNo || (idx + 1)}</td>
-                    <td class="p-3">
-                        <div class="flex items-center gap-3">
-                            <img src="${s.avatar_url || s.photo_url || 'https://via.placeholder.com/40'}" class="w-9 h-9 rounded-xl object-cover border border-slate-200">
-                            <div>
-                                <div class="font-bold text-slate-800">${s.fullName}</div>
-                                <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${s.student_id || '-'}</div>
-                            </div>
+
+        const dueDateInput = document.getElementById('homeworkDueDateInput');
+        if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
+
+        await initTeacherPortal();
+    }
+
+    async function initTeacherPortal() {
+        try {
+            // ดึงชื่อ-นามสกุลจริง ( Thanadol Kamsamer )
+            const fullNameStr = loggedInTeacherProfile?.full_name || 
+                                loggedInTeacherProfile?.name || 
+                                (loggedInTeacherProfile?.first_name ? `${loggedInTeacherProfile.first_name} ${loggedInTeacherProfile.last_name || ''}`.trim() : null) ||
+                                'Thanadol Kamsamer';
+
+            // ดึงรูปโปรไฟล์จริง
+            const avatarStr = loggedInTeacherProfile?.avatar || 
+                              loggedInTeacherProfile?.avatar_url || 
+                              loggedInTeacherProfile?.photo_url || 
+                              'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+
+            // ดึงรหัสครูผู้ใช้งาน (kruthanadol)
+            const usernameStr = loggedInTeacherProfile?.username || 
+                                loggedInTeacherProfile?.teacher_id || 
+                                currentTeacherId || 
+                                'kruthanadol';
+
+            // อัปเดตข้อมูลลง UI
+            const headerNameEl = document.getElementById('headerTeacherName');
+            if (headerNameEl) headerNameEl.textContent = fullNameStr;
+
+            const headerAvatarEl = document.getElementById('headerTeacherAvatar');
+            if (headerAvatarEl) headerAvatarEl.src = avatarStr;
+
+            const codeEl = document.getElementById('teacherCodeDisplay');
+            if (codeEl) codeEl.textContent = `รหัส: ${usernameStr}`;
+
+            const nameEl = document.getElementById('teacherName');
+            if (nameEl) nameEl.textContent = fullNameStr;
+
+            const avatarEl = document.getElementById('teacherAvatar');
+            if (avatarEl) avatarEl.src = avatarStr;
+
+            await loadAssignedCourses();
+            await renderStudents();
+        } catch (err) {
+            console.error('[TeacherPortal] Init Error:', err);
+        }
+    }
+
+    async function loadAssignedCourses() {
+        const selector = document.getElementById('subjectSelect');
+        if (!selector) return;
+
+        const courses = await TeacherService.getAssignedCourses(currentTeacherId);
+
+        if (!courses || courses.length === 0) {
+            selector.innerHTML = '<option value="">-- ไม่พบรายวิชาที่ได้รับมอบหมาย --</option>';
+            return;
+        }
+
+        selector.innerHTML = courses.map(c => {
+            const courseCode = c.course_code || c.subject_code || 'วิชาเรียน';
+            const courseName = c.subject_name || c.course_name || courseCode;
+            const className = c.class_name || c.classroom || 'ม.1/1';
+            
+            return `<option value="${courseCode}|${className}">${courseName} - ห้อง ${className}</option>`;
+        }).join('');
+    }
+
+    async function renderStudents() {
+        const selectedVal = document.getElementById('subjectSelect')?.value || '';
+        if (!selectedVal) {
+            document.getElementById('studentList').innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กรุณาเลือกรายวิชาเพื่อแสดงรายชื่อนักเรียน</td></tr>';
+            return;
+        }
+
+        const [subject, className] = selectedVal.split('|');
+        document.getElementById('tableHeaderTitle').textContent = `รายชื่อนักเรียนประจำห้อง ${className || ''}`;
+
+        const tbody = document.getElementById('studentList');
+        if (!tbody) return;
+
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กำลังโหลดข้อมูลนักเรียน...</td></tr>';
+
+        const students = await TeacherService.getStudentsByClass(className);
+
+        if (!students || students.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">ไม่พบข้อมูลนักเรียนในห้อง ${className || ''}</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = students.map((s, idx) => `
+            <tr class="hover:bg-slate-50 transition" data-student-id="${s.student_id}">
+                <td class="p-3 text-center font-bold text-slate-500">${s.studentNo || (idx + 1)}</td>
+                <td class="p-3">
+                    <div class="flex items-center gap-3">
+                        <img src="${s.avatar_url || s.photo_url || 'https://via.placeholder.com/40'}" class="w-9 h-9 rounded-xl object-cover border border-slate-200">
+                        <div>
+                            <div class="font-bold text-slate-800">${s.fullName}</div>
+                            <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${s.student_id || '-'}</div>
                         </div>
-                    </td>
-                    <td class="p-3 text-center">
-                        <div class="flex items-center justify-center gap-1 font-bold text-xs">
-                            <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="present" checked class="accent-emerald-600"> มา
-                            </label>
-                            <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="late" class="accent-amber-600"> สาย
-                            </label>
-                            <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="leave" class="accent-blue-600"> ลา
-                            </label>
-                            <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="absent" class="accent-rose-600"> ขาด
-                            </label>
-                            <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="truant" class="accent-purple-600"> หนี
-                            </label>
-                        </div>
-                    </td>
-                    <td class="p-3">
-                        <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
-                    </td>
-                </tr>
-            `).join('');
+                    </div>
+                </td>
+                <td class="p-3 text-center">
+                    <div class="flex items-center justify-center gap-1 font-bold text-xs">
+                        <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="present" checked class="accent-emerald-600"> มา
+                        </label>
+                        <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="late" class="accent-amber-600"> สาย
+                        </label>
+                        <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="leave" class="accent-blue-600"> ลา
+                        </label>
+                        <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="absent" class="accent-rose-600"> ขาด
+                        </label>
+                        <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="truant" class="accent-purple-600"> หนี
+                        </label>
+                    </div>
+                </td>
+                <td class="p-3">
+                    <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function handleDirectLogin() {
+        const user = document.getElementById('directUsernameInput')?.value;
+        if (!user) {
+            alert('กรุณากรอกรหัสครูหรืออีเมล');
+            return;
         }
-        
-        function setupEventListeners() {
-            document.getElementById('subjectSelect')?.addEventListener('change', renderStudents);
-        
-            // ดักจับการส่งฟอร์มเมื่อกด Enter หรือกดปุ่ม
-            document.getElementById('directLoginForm')?.addEventListener('submit', (e) => {
-                e.preventDefault(); // ป้องกันหน้าเว็บรีเฟรชแบบปกติ
-                handleDirectLogin();
-            });
-        
-            document.getElementById('btnMarkAll')?.addEventListener('click', () => {
-                document.querySelectorAll('input[type="radio"][value="present"]').forEach(radio => radio.checked = true);
-            });
-        
-            document.getElementById('btnLogout')?.addEventListener('click', () => {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.reload();
-            });
-        }
-    </script>
+
+        const mockProfile = { 
+            username: user, 
+            full_name: 'Thanadol Kamsamer', 
+            avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' 
+        };
+        localStorage.setItem('user_profile', JSON.stringify(mockProfile));
+
+        document.getElementById('directLoginModal')?.classList.add('hidden');
+        currentTeacherId = user;
+        loggedInTeacherProfile = mockProfile;
+
+        await initTeacherPortal();
+    }
+
+    function setupEventListeners() {
+        document.getElementById('subjectSelect')?.addEventListener('change', renderStudents);
+
+        // รองรับการกด Enter ส่งฟอร์ม Login
+        document.getElementById('directLoginForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleDirectLogin();
+        });
+
+        document.getElementById('btnMarkAll')?.addEventListener('click', () => {
+            document.querySelectorAll('input[type="radio"][value="present"]').forEach(radio => radio.checked = true);
+        });
+
+        // ปุ่มออกจากระบบ -> ล้างข้อมูล คืนค่า และย้ายไปหน้า login.html
+        document.getElementById('btnLogout')?.addEventListener('click', () => {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '../../login.html';
+        });
+    }
+</script>
 </body>
 </html>
