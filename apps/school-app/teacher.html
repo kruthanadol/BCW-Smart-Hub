@@ -247,18 +247,18 @@
         let loggedInTeacherProfile = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            checkAuthAndInit();
+            await checkAuthAndInit();
             setupEventListeners();
         });
 
         async function checkAuthAndInit() {
-            // 1. อ่าน Session ล็อกอินจาก Storage (รองรับทุกลักษณะ Object)
+            // 1. อ่าน Session ล็อกอินจาก Storage
             const sessionStr = localStorage.getItem('teacher_session') || 
                                sessionStorage.getItem('teacher_session') || 
                                localStorage.getItem('user_profile') || 
                                sessionStorage.getItem('user_profile') ||
                                localStorage.getItem('user');
-        
+
             if (sessionStr) {
                 try {
                     loggedInTeacherProfile = JSON.parse(sessionStr);
@@ -269,83 +269,58 @@
                     console.warn('[TeacherPortal] Parse Session Error:', e);
                 }
             }
-        
+
+            // ถ้าไม่มี Session ให้เปิด Direct Login Modal
             if (!loggedInTeacherProfile) {
                 document.getElementById('directLoginModal')?.classList.remove('hidden');
                 return;
             }
-        
+
             const dueDateInput = document.getElementById('homeworkDueDateInput');
             if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
-        
+
             await initTeacherPortal();
         }
-        
+
         async function initTeacherPortal() {
             try {
                 let profile = await TeacherService.getProfile(currentTeacherId);
-        
-                // ดึงชื่อ-นามสกุลจริงตาม Session ( Thanadol Kamsamer )
+
+                // ดึงชื่อ-นามสกุลจริงตาม Session (Thanadol Kamsamer)
                 const teacherNameStr = loggedInTeacherProfile?.full_name || 
                                        loggedInTeacherProfile?.name || 
                                        (loggedInTeacherProfile?.first_name ? `${loggedInTeacherProfile.first_name} ${loggedInTeacherProfile.last_name || ''}` : null) ||
                                        profile?.full_name || 
                                        'Thanadol Kamsamer';
-        
+
                 // ดึงรูปโปรไฟล์จริง
                 const avatarStr = loggedInTeacherProfile?.avatar_url || 
                                   loggedInTeacherProfile?.avatar || 
                                   loggedInTeacherProfile?.photo_url || 
                                   profile?.avatar || 
                                   'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-        
+
                 // ดึงรหัสครูจริง (kruthanadol)
                 const teacherCodeStr = loggedInTeacherProfile?.username || 
                                        loggedInTeacherProfile?.teacher_id || 
                                        currentTeacherId || 
                                        'kruthanadol';
-        
-                // อัปเดตการแสดงผลให้เหมือนหน้าหลัก 100%
-                document.getElementById('teacherName').textContent = teacherNameStr;
-                document.getElementById('headerTeacherName').textContent = teacherNameStr;
-                document.getElementById('teacherAvatar').src = avatarStr;
-                document.getElementById('headerTeacherAvatar').src = avatarStr;
-        
-                // ถ้ามี Element แสดงรหัสครู ให้แมปค่ารหัสครูไปด้วย
-                const codeElement = document.getElementById('teacherCodeDisplay');
-                if (codeElement) codeElement.textContent = `รหัส: ${teacherCodeStr}`;
-        
-                await loadAssignedCourses();
-                await renderStudents();
-            } catch (err) {
-                console.error('[TeacherPortal] Init Error:', err);
-            }
-        }
 
-            const dueDateInput = document.getElementById('homeworkDueDateInput');
-            if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
+                // แสดงผลชื่อ และรูปโปรไฟล์
+                const nameEl = document.getElementById('teacherName');
+                if (nameEl) nameEl.textContent = teacherNameStr;
 
-            await initTeacherPortal();
-        }
+                const headerNameEl = document.getElementById('headerTeacherName');
+                if (headerNameEl) headerNameEl.textContent = teacherNameStr;
 
-        async function initTeacherPortal() {
-            try {
-                let profile = await TeacherService.getProfile(currentTeacherId);
+                const avatarEl = document.getElementById('teacherAvatar');
+                if (avatarEl) avatarEl.src = avatarStr;
 
-                const teacherNameStr = profile?.full_name || 
-                                       profile?.name || 
-                                       loggedInTeacherProfile?.full_name || 
-                                       loggedInTeacherProfile?.name || 
-                                       'ครูผู้สอน';
+                const headerAvatarEl = document.getElementById('headerTeacherAvatar');
+                if (headerAvatarEl) headerAvatarEl.src = avatarStr;
 
-                const avatarStr = profile?.avatar || 
-                                  loggedInTeacherProfile?.avatar || 
-                                  'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-
-                document.getElementById('teacherName').textContent = teacherNameStr;
-                document.getElementById('headerTeacherName').textContent = teacherNameStr;
-                document.getElementById('teacherAvatar').src = avatarStr;
-                document.getElementById('headerTeacherAvatar').src = avatarStr;
+                const codeEl = document.getElementById('teacherCodeDisplay');
+                if (codeEl) codeEl.textContent = `รหัส: ${teacherCodeStr}`;
 
                 await loadAssignedCourses();
                 await renderStudents();
@@ -441,7 +416,11 @@
                 return;
             }
 
-            const mockProfile = { id: user, full_name: user, avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' };
+            const mockProfile = { 
+                username: user, 
+                full_name: user, 
+                avatar_url: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' 
+            };
             localStorage.setItem('teacher_session', JSON.stringify(mockProfile));
 
             document.getElementById('directLoginModal')?.classList.add('hidden');
