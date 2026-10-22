@@ -203,226 +203,240 @@
     </footer>
 
     <!-- Modular Service Integration Script -->
-    <script type="module">
-        import { TeacherService } from '../../modules/teacher/teacher.service.js';
+<script type="module">
+    import { TeacherService } from '../../modules/teacher/teacher.service.js';
 
-        let currentTeacherId = 'T024';
+    let currentTeacherId = null;
+    let loggedInTeacherProfile = null;
 
-// ในapps/teacher-app/teacher.html
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 1. อ่าน Session ของครูที่ล็อกอินมาจาก Storage
-            const sessionStr = localStorage.getItem('teacher_session') || 
-                               sessionStorage.getItem('teacher_session') || 
-                               localStorage.getItem('user_profile') || 
-                               sessionStorage.getItem('user_profile');
-                               
-            let currentTeacherId = null;
-            let loggedInTeacher = null;
-        
-            if (sessionStr) {
-                try {
-                    loggedInTeacher = JSON.parse(sessionStr);
-                    currentTeacherId = loggedInTeacher.id || loggedInTeacher.teacher_id || loggedInTeacher.user_id;
-                } catch (e) {
-                    console.warn('[TeacherPortal] Parse Session Error:', e);
-                }
-            }
-        
-            const dueDateInput = document.getElementById('homeworkDueDateInput');
-            if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
-        
-            // 2. เรียก Init พร้อมส่งทั้ง Object หรือ ID ครูที่ล็อกอินเข้าไป
-            await initTeacherPortal(currentTeacherId, loggedInTeacher);
-            setupEventListeners();
-        });
-        
-        async function initTeacherPortal(teacherId, teacherSession) {
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. ดึงข้อมูล Session จากการ Login (รองรับทุก key ที่เป็นไปได้)
+        const sessionStr = localStorage.getItem('teacher_session') || 
+                           sessionStorage.getItem('teacher_session') || 
+                           localStorage.getItem('user_profile') || 
+                           sessionStorage.getItem('user_profile') ||
+                           localStorage.getItem('user');
+
+        if (sessionStr) {
             try {
-                // หากมี Session จาก Login ให้แสดงชื่อครูที่ล็อกอินมาทันที
-                let profile = await TeacherService.getProfile(teacherId);
-                
-                // ถ้า DB คืนค่าโปรไฟล์ไม่ได้ ให้ใช้ข้อมูลจาก Login Session (เช่น ครูธนดล)
-                const teacherNameStr = profile?.full_name || teacherSession?.full_name || teacherSession?.name || 'ครูผู้สอน';
-                const avatarStr = profile?.avatar || teacherSession?.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-        
-                document.getElementById('teacherName').textContent = teacherNameStr;
-                document.getElementById('headerTeacherName').textContent = `👤 ครูผู้สอน: ${teacherNameStr}`;
-                document.getElementById('teacherAvatar').src = avatarStr;
-                document.getElementById('headerTeacherAvatar').src = avatarStr;
-        
-                await loadAssignedCourses(teacherId);
-                await renderStudents();
-            } catch (err) {
-                console.error('[TeacherPortal] Init Error:', err);
+                loggedInTeacherProfile = JSON.parse(sessionStr);
+                currentTeacherId = loggedInTeacherProfile.id || 
+                                   loggedInTeacherProfile.teacher_id || 
+                                   loggedInTeacherProfile.user_id;
+            } catch (e) {
+                console.warn('[TeacherPortal] Parse Session Error:', e);
             }
         }
 
-        async function loadAssignedCourses() {
-            const courses = await TeacherService.getAssignedCourses(currentTeacherId);
-            const selector = document.getElementById('subjectSelect');
+        const dueDateInput = document.getElementById('homeworkDueDateInput');
+        if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
 
-            if (selector) {
-                if (!courses || courses.length === 0) {
-                    selector.innerHTML = `
-                        <option value="วิชาทั่วไป|ม.1/1">วิชาทั่วไป - ห้อง ม.1/1</option>
-                        <option value="ค32201|ม.5/1">คณิตศาสตร์เพิ่มเติม (ค32201) - ห้อง ม.5/1</option>
-                    `;
-                    return;
-                }
+        await initTeacherPortal();
+        setupEventListeners();
+    });
 
-                selector.innerHTML = courses.map(c => 
-                    `<option value="${c.course_code || 'วิชา'}|${c.class_name || c.classroom}">${c.subject_name || c.course_code || 'วิชาเรียน'} - ห้อง ${c.class_name || c.classroom}</option>`
-                ).join('');
-            }
+    async function initTeacherPortal() {
+        try {
+            // 2. ดึงโปรไฟล์ครูจาก DB ถ้าไม่เจอก็ใช้ข้อมูลจาก Session ล็อกอิน
+            let profile = await TeacherService.getProfile(currentTeacherId);
+
+            const teacherNameStr = profile?.full_name || 
+                                   profile?.name || 
+                                   loggedInTeacherProfile?.full_name || 
+                                   loggedInTeacherProfile?.name || 
+                                   'ครูผู้สอน';
+
+            const avatarStr = profile?.avatar || 
+                              loggedInTeacherProfile?.avatar || 
+                              'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+
+            // แสดงชื่อครูที่ล็อกอินจริงบน Header และ Profile
+            document.getElementById('teacherName').textContent = teacherNameStr;
+            document.getElementById('headerTeacherName').textContent = `👤 ครูผู้สอน: ${teacherNameStr}`;
+            document.getElementById('teacherAvatar').src = avatarStr;
+            document.getElementById('headerTeacherAvatar').src = avatarStr;
+
+            // 3. โหลดรายวิชาเฉพาะของครูท่านนี้จาก Supabase
+            await loadAssignedCourses();
+            await renderStudents();
+        } catch (err) {
+            console.error('[TeacherPortal] Init Error:', err);
+        }
+    }
+
+    async function loadAssignedCourses() {
+        const selector = document.getElementById('subjectSelect');
+        if (!selector) return;
+
+        // เรียกดึงวิชาที่ผูกกับครูจากตาราง course_assignments
+        const courses = await TeacherService.getAssignedCourses(currentTeacherId);
+
+        if (!courses || courses.length === 0) {
+            selector.innerHTML = '<option value="">-- ไม่พบรายวิชาที่ได้รับมอบหมาย --</option>';
+            return;
         }
 
-        async function renderStudents() {
-            const selectedVal = document.getElementById('subjectSelect')?.value || 'วิชาทั่วไป|ม.1/1';
-            const [subject, className] = selectedVal.split('|');
+        // แมปข้อมูลวิชาและห้องเรียนขึ้น Dropdown
+        selector.innerHTML = courses.map(c => {
+            const courseCode = c.course_code || c.subject_code || 'วิชาเรียน';
+            const courseName = c.subject_name || c.course_name || courseCode;
+            const className = c.class_name || c.classroom || 'ม.1/1';
+            
+            return `<option value="${courseCode}|${className}">${courseName} - ห้อง ${className}</option>`;
+        }).join('');
+    }
 
-            document.getElementById('tableHeaderTitle').textContent = `รายชื่อนักเรียนประจำห้อง ${className || ''}`;
+    async function renderStudents() {
+        const selectedVal = document.getElementById('subjectSelect')?.value || '';
+        if (!selectedVal) {
+            document.getElementById('studentList').innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กรุณาเลือกรายวิชาเพื่อแสดงรายชื่อนักเรียน</td></tr>';
+            return;
+        }
 
-            const tbody = document.getElementById('studentList');
-            if (!tbody) return;
+        const [subject, className] = selectedVal.split('|');
+        document.getElementById('tableHeaderTitle').textContent = `รายชื่อนักเรียนประจำห้อง ${className || ''}`;
 
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กำลังโหลดข้อมูลนักเรียน...</td></tr>';
+        const tbody = document.getElementById('studentList');
+        if (!tbody) return;
 
-            const students = await TeacherService.getStudentsByClass(className || 'ม.1/1');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กำลังโหลดข้อมูลนักเรียน...</td></tr>';
 
-            if (!students || students.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">ไม่พบข้อมูลนักเรียนในห้อง ${className || ''}</td></tr>`;
-                return;
-            }
+        const students = await TeacherService.getStudentsByClass(className);
 
-            tbody.innerHTML = students.map((s, idx) => `
-                <tr class="hover:bg-slate-50 transition" data-student-id="${s.student_id}">
-                    <td class="p-3 text-center font-bold text-slate-500">${s.studentNo || (idx + 1)}</td>
-                    <td class="p-3">
-                        <div class="flex items-center gap-3">
-                            <img src="${s.avatar_url || s.photo_url || 'https://via.placeholder.com/40'}" class="w-9 h-9 rounded-xl object-cover border border-slate-200">
-                            <div>
-                                <div class="font-bold text-slate-800">${s.fullName}</div>
-                                <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${s.student_id || '-'}</div>
-                            </div>
+        if (!students || students.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">ไม่พบข้อมูลนักเรียนในห้อง ${className || ''}</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = students.map((s, idx) => `
+            <tr class="hover:bg-slate-50 transition" data-student-id="${s.student_id}">
+                <td class="p-3 text-center font-bold text-slate-500">${s.studentNo || (idx + 1)}</td>
+                <td class="p-3">
+                    <div class="flex items-center gap-3">
+                        <img src="${s.avatar_url || s.photo_url || 'https://via.placeholder.com/40'}" class="w-9 h-9 rounded-xl object-cover border border-slate-200">
+                        <div>
+                            <div class="font-bold text-slate-800">${s.fullName}</div>
+                            <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${s.student_id || '-'}</div>
                         </div>
-                    </td>
-                    <td class="p-3 text-center">
-                        <div class="flex items-center justify-center gap-1 font-bold text-xs">
-                            <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="present" checked class="accent-emerald-600"> มา
-                            </label>
-                            <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="late" class="accent-amber-600"> สาย
-                            </label>
-                            <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="leave" class="accent-blue-600"> ลา
-                            </label>
-                            <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="absent" class="accent-rose-600"> ขาด
-                            </label>
-                            <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                <input type="radio" name="att_${s.student_id}" value="truant" class="accent-purple-600"> หนี
-                            </label>
-                        </div>
-                    </td>
-                    <td class="p-3">
-                        <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
-                    </td>
-                </tr>
-            `).join('');
-        }
+                    </div>
+                </td>
+                <td class="p-3 text-center">
+                    <div class="flex items-center justify-center gap-1 font-bold text-xs">
+                        <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="present" checked class="accent-emerald-600"> มา
+                        </label>
+                        <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="late" class="accent-amber-600"> สาย
+                        </label>
+                        <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="leave" class="accent-blue-600"> ลา
+                        </label>
+                        <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="absent" class="accent-rose-600"> ขาด
+                        </label>
+                        <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                            <input type="radio" name="att_${s.student_id}" value="truant" class="accent-purple-600"> หนี
+                        </label>
+                    </div>
+                </td>
+                <td class="p-3">
+                    <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+                </td>
+            </tr>
+        `).join('');
+    }
 
-        async function handleSaveAttendance() {
-            const selectedVal = document.getElementById('subjectSelect')?.value || '';
-            const [subject, className] = selectedVal.split('|');
-            const date = new Date().toISOString().split('T')[0];
+    async function handleSaveAttendance() {
+        const selectedVal = document.getElementById('subjectSelect')?.value || '';
+        const [subject, className] = selectedVal.split('|');
+        const date = new Date().toISOString().split('T')[0];
 
-            const rows = document.querySelectorAll('[data-student-id]');
-            const attendanceRecords = [];
+        const rows = document.querySelectorAll('[data-student-id]');
+        const attendanceRecords = [];
 
-            rows.forEach(row => {
-                const studentId = row.getAttribute('data-student-id');
-                const selectedStatus = row.querySelector(`input[name="att_${studentId}"]:checked`)?.value || 'present';
-                const noteInput = row.querySelector('input[type="text"]')?.value || '';
+        rows.forEach(row => {
+            const studentId = row.getAttribute('data-student-id');
+            const selectedStatus = row.querySelector(`input[name="att_${studentId}"]:checked`)?.value || 'present';
+            const noteInput = row.querySelector('input[type="text"]')?.value || '';
 
-                attendanceRecords.push({
-                    student_id: studentId,
-                    classroom: className,
-                    course_code: subject,
-                    check_date: date,
-                    status: selectedStatus,
-                    remarks: noteInput,
-                    recorded_by: currentTeacherId
-                });
-            });
-
-            const res = await TeacherService.submitAttendance(attendanceRecords);
-            if (res.success) {
-                showToast('บันทึกการเช็กชื่อเข้าเรียนเรียบร้อยแล้ว!', 'success');
-            } else {
-                showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (res.message || ''), 'error');
-            }
-        }
-
-        async function handleSaveHomework() {
-            const title = document.getElementById('homeworkTitleInput')?.value;
-            const dueDate = document.getElementById('homeworkDueDateInput')?.value;
-            const selectedVal = document.getElementById('subjectSelect')?.value || '';
-            const [subject, className] = selectedVal.split('|');
-
-            if (!title) {
-                showToast('กรุณากรอกหัวข้อการบ้านก่อนกดสั่งงาน', 'error');
-                return;
-            }
-
-            const homeworkData = {
-                title,
-                due_date: dueDate,
+            attendanceRecords.push({
+                student_id: studentId,
                 classroom: className,
                 course_code: subject,
-                assigned_by: currentTeacherId
-            };
-
-            const res = await TeacherService.createHomework(homeworkData);
-            if (res.success) {
-                showToast('สั่งการบ้านประจำคาบเรียบร้อยแล้ว!', 'success');
-                document.getElementById('homeworkTitleInput').value = '';
-            } else {
-                showToast('เกิดข้อผิดพลาดในการสั่งการบ้าน: ' + (res.message || ''), 'error');
-            }
-        }
-
-        function showToast(msg, type = 'success') {
-            const toast = document.getElementById('toastNotification');
-            const toastMsg = document.getElementById('toastMessage');
-            const toastIcon = document.getElementById('toastIcon');
-
-            if (!toast || !toastMsg) return;
-
-            toastMsg.textContent = msg;
-            toastIcon.textContent = type === 'success' ? '✅' : '⚠️';
-            toast.className = `fixed top-20 right-5 z-50 p-4 rounded-2xl shadow-xl border flex items-center gap-3 transition-all duration-300 ${type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`;
-
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
-
-        function setupEventListeners() {
-            document.getElementById('subjectSelect')?.addEventListener('change', renderStudents);
-            document.getElementById('saveAttendanceBtn')?.addEventListener('click', handleSaveAttendance);
-            document.getElementById('btnSaveHomework')?.addEventListener('click', handleSaveHomework);
-
-            document.getElementById('btnMarkAll')?.addEventListener('click', () => {
-                document.querySelectorAll('input[type="radio"][value="present"]').forEach(radio => radio.checked = true);
-                showToast('เลือก "มาเรียน" สำหรับนักเรียนทุกคนแล้ว', 'success');
+                check_date: date,
+                status: selectedStatus,
+                remarks: noteInput,
+                recorded_by: currentTeacherId
             });
+        });
 
-            document.getElementById('btnLogout')?.addEventListener('click', () => {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = '../../login.html';
-            });
+        const res = await TeacherService.submitAttendance(attendanceRecords);
+        if (res.success) {
+            showToast('บันทึกการเช็กชื่อเข้าเรียนเรียบร้อยแล้ว!', 'success');
+        } else {
+            showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (res.message || ''), 'error');
         }
-    </script>
+    }
+
+    async function handleSaveHomework() {
+        const title = document.getElementById('homeworkTitleInput')?.value;
+        const dueDate = document.getElementById('homeworkDueDateInput')?.value;
+        const selectedVal = document.getElementById('subjectSelect')?.value || '';
+        const [subject, className] = selectedVal.split('|');
+
+        if (!title) {
+            showToast('กรุณากรอกหัวข้อการบ้านก่อนกดสั่งงาน', 'error');
+            return;
+        }
+
+        const homeworkData = {
+            title,
+            due_date: dueDate,
+            classroom: className,
+            course_code: subject,
+            assigned_by: currentTeacherId
+        };
+
+        const res = await TeacherService.createHomework(homeworkData);
+        if (res.success) {
+            showToast('สั่งการบ้านประจำคาบเรียบร้อยแล้ว!', 'success');
+            document.getElementById('homeworkTitleInput').value = '';
+        } else {
+            showToast('เกิดข้อผิดพลาดในการสั่งการบ้าน: ' + (res.message || ''), 'error');
+        }
+    }
+
+    function showToast(msg, type = 'success') {
+        const toast = document.getElementById('toastNotification');
+        const toastMsg = document.getElementById('toastMessage');
+        const toastIcon = document.getElementById('toastIcon');
+
+        if (!toast || !toastMsg) return;
+
+        toastMsg.textContent = msg;
+        toastIcon.textContent = type === 'success' ? '✅' : '⚠️';
+        toast.className = `fixed top-20 right-5 z-50 p-4 rounded-2xl shadow-xl border flex items-center gap-3 transition-all duration-300 ${type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`;
+
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function setupEventListeners() {
+        document.getElementById('subjectSelect')?.addEventListener('change', renderStudents);
+        document.getElementById('saveAttendanceBtn')?.addEventListener('click', handleSaveAttendance);
+        document.getElementById('btnSaveHomework')?.addEventListener('click', handleSaveHomework);
+
+        document.getElementById('btnMarkAll')?.addEventListener('click', () => {
+            document.querySelectorAll('input[type="radio"][value="present"]').forEach(radio => radio.checked = true);
+            showToast('เลือก "มาเรียน" สำหรับนักเรียนทุกคนแล้ว', 'success');
+        });
+
+        document.getElementById('btnLogout')?.addEventListener('click', () => {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '../../login.html';
+        });
+    }
+</script>
 </body>
 </html>
