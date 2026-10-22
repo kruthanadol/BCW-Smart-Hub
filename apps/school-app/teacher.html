@@ -263,11 +263,11 @@
             const teacherCode = storedUser.teacher_code || storedUser.teacher_id || storedUser.username || 'T024';
             const userEmail = storedUser.email || `${teacherCode}@buached.ac.th`;
         
-            let fullName = 'Thanadol Kamsamer';
-            // เริ่มต้นลองดึงไฟล์ .webp ก่อนเป็นอันดับแรก
+            // ค่า Default เผื่อดึง DB ไม่สำเร็จ (ใส่คำนำหน้าชื่อให้ครบถ้วน)
+            let fullName = 'นายธนดล คำเสนอ'; 
             let avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.webp`;
         
-            // 2. Query ดึงชื่อครูจากตาราง users โดยใช้คอลัมน์ teacher_id
+            // 2. Query ดึงชื่อ-นามสกุลพร้อมคำนำหน้าชื่อจากตาราง users (คอลัมน์ teacher_id)
             try {
                 let userDB = null;
         
@@ -286,6 +286,7 @@
                     userDB = res2.data;
                 }
         
+                // นำค่า full_name ซึ่งมีคำนำหน้าชื่อ (นาย/นาง/นางสาว) มาแสดงผลโดยตรง
                 if (userDB && userDB.full_name) {
                     fullName = userDB.full_name;
                 }
@@ -293,12 +294,12 @@
                 console.warn('DB Fetch warning:', e);
             }
         
-            // 3. แสดงผลชื่อและรหัสครูบน UI
+            // 3. แสดงผลชื่อพร้อมคำนำหน้า และรหัสครูบน UI
             document.getElementById('teacherName').innerText = fullName;
             document.getElementById('headerTeacherName').innerText = fullName;
             document.getElementById('teacherCodeDisplay').innerText = `รหัส: ${teacherCode}`;
         
-            // 4. Smart Avatar Fallback รองรับครบทั้ง .webp, .jpg, .png, .jpeg
+            // 4. Smart Avatar Fallback (.webp -> .jpg -> .png -> .jpeg -> ไอคอนกลาง)
             const setAvatar = (id) => {
                 const img = document.getElementById(id);
                 if (!img) return;
@@ -306,16 +307,12 @@
                 
                 img.onerror = () => {
                     if (img.src.endsWith('.webp')) {
-                        // ถ้า .webp ไม่มี ให้ลอง .jpg
                         img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
                     } else if (img.src.endsWith('.jpg')) {
-                        // ถ้า .jpg ไม่มี ให้ลอง .png
                         img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
                     } else if (img.src.endsWith('.png')) {
-                        // ถ้า .png ไม่มี ให้ลอง .jpeg
                         img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpeg`;
                     } else {
-                        // ถ้าไม่มีเลยในทุกนามสกุล ให้ใช้รูปไอคอนกลางสำรอง
                         img.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
                     }
                 };
@@ -327,7 +324,7 @@
             await loadTrafficSummary();
             await renderStudents();
         }
-
+        
         async function loadTrafficSummary() {
             try {
                 const { data: logs } = await db.from('attendance_logs').select('status');
