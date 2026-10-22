@@ -1,294 +1,118 @@
 import { db } from '../../core/supabase-client.js';
 
 /**
- * ดึงข้อมูลโปรไฟล์นักเรียน
+ * ParentService - บริการจัดการข้อมูลสำหรับแดชบอร์ดผู้ปกครอง
  */
-export async function getStudentProfile(studentId) {
-    try {
-        const { data, error } = await db
-            .from('students')
-            .select('*')
-            .eq('student_id', studentId)
-            .maybeSingle();
+export const ParentService = {
+    /**
+     * ดึงข้อมูลโปรไฟล์นักเรียน
+     */
+    async getStudentProfile(studentId) {
+        try {
+            const { data, error } = await db
+                .from('students')
+                .select('*')
+                .eq('student_id', String(studentId))
+                .maybeSingle();
 
-        if (error) throw error;
-        return data;
-    } catch (err) {
-        console.error('Error fetching student profile:', err);
-        return null;
-    }
-}
+            if (error || !data) return null;
 
-/**
- * ดึงสถานะการเข้าประตูโรงเรียนยามเช้า (Smart Gate Status)
- */
-export async function getTrafficGateStatus(studentId) {
-    try {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const { data, error } = await db
-            .from('attendance_logs')
-            .select('*')
-            .eq('student_id', studentId)
-            .gte('created_at', `${todayStr}T00:00:00`)
-            .order('created_at', { ascending: false })
-            .maybeSingle();
+            const fullName = `${data.prefix || ''}${data.first_name || ''} ${data.last_name || ''}`.trim() || data.full_name || 'นักเรียน';
+            const classroom = data.classroom || data.class || '-';
+            const studentNo = data.student_no ?? data.no ?? '-';
 
-        if (error && error.code !== 'PGRST116') throw error;
-        return data;
-    } catch (err) {
-        console.error('Error fetching gate status:', err);
-        return null;
-    }
-}
+            return {
+                ...data,
+                fullName,
+                classroom,
+                studentNo,
+                behaviorScore: data.behavior_score ?? 100,
+                avatarUrl: data.avatar_url || data.photo_url || null
+            };
+        } catch (err) {
+            console.warn('[ParentService] Error fetching student profile:', err);
+            return null;
+        }
+    },
 
-/**
- * ดึงข้อมูลเสี่ยงติด มส. (เวลาเรียนไม่ถึง 80%)
- */
-export async function getAcademicRisks(studentId) {
-    try {
-        const { data, error } = await db
-            .from('v_academic_attendance_risk')
-            .select('*')
-            .eq('student_id', studentId);
+    /**
+     * ดึงตารางเรียนประจำวันตามชั้นเรียนและวัน
+     */
+    async getSchedule(classroom, dayName = 'Monday') {
+        try {
+            const { data, error } = await db.from('schedules').select('*');
+            if (error || !data) return [];
 
-        if (error) throw error;
-        return data || [];
-    } catch (err) {
-        console.error('Error fetching academic risks:', err);
-        return [];
-    }
-}
+            // กรองข้อมูลฝั่ง Client-side เพื่อป้องกัน Query Syntax Mismatch
+            return data.filter(s => {
+                const matchDay = (s.day || '').toLowerCase() === dayName.toLowerCase();
+                const matchClass = (s.classroom || s.class || '') === classroom;
+                return matchDay && matchClass;
+            }).sort((a, b) => (a.period || 0) - (b.period || 0));
+        } catch (err) {
+            console.warn('[ParentService] Error fetching schedule:', err);
+            return [];
+        }
+    },
 
-/**
- * ดึงตารางเรียนตามชั้นเรียนและวัน
- */
-export async function getStudentSchedule(className, dayOfWeek) {
-    try {
-        const { data, error } = await db
-            .from('schedules')
-            .select('*')
-            .eq('class_name', className)
-            .eq('day_of_week', dayOfWeek)
-            .order('period_no', { ascending: true });
+    /**
+     * ดึงประวัติการยื่นใบลา (จาก gate_pass_logs)
+     */
+    async getLeaveHistory(studentId) {
+        try {
+            const { data, error } = await db.from('gate_pass_logs').select('*');
+            if (error || !data) return [];
 
-        if (error) throw error;
-        return data || [];
-    } catch (err) {
-        console.error('Error fetching schedule:', err);
-        return [];
-    }
-}
+            return data.filter(r => String(r.student_id) === String(studentId));
+        } catch (err) {
+            console.warn('[ParentService] Error fetching leave history:', err);
+            return [];
+        }
+    },
 
-/**
- * ดึงครูที่ปรึกษาประจำห้องเรียน
- */
-export async function getClassAdvisors(className) {
-    try {
-        const { data, error } = await db
-            .from('class_advisors')
-            .select('*, users(full_name, email)')
-            .eq('class_name', className);
-
-        if (error) throw error;
-        
-        return (data || []).map(a => ({
-            teacher_name: a.users ? a.users.full_name : a.teacher_id,
-            teacher_id: a.teacher_id,
-            advisor_type: a.advisor_type
-        }));
-    } catch (err) {
-        console.error('Error fetching advisors:', err);
-        return [];
-    }
-}
-
-/**
- * ดึงประวัติการยื่นใบลาออนไลน์
- */
-export async function getLeaveHistory(studentId) {
-    try {
-        const { data, error } = await db
-            .from('leave_requests')
-            .select('*')
-            .eq('student_id', studentId)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data || [];
-    } catch (err) {
-        console.error('Error fetching leave history:', err);
-        return [];
-    }
-}
-
-/**
- * ดึงข้อความแจ้งเตือนจากครู
- */
-export async function getTeacherNotifications(studentId) {
-    try {
-        const { data, error } = await db
-            .from('notifications')
-            .select('*')
-            .eq('student_id', studentId)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data || [];
-    } catch (err) {
-        console.error('Error fetching notifications:', err);
-        return [];
-    }
-}
-
-/**
- * ดึงประวัติห้องพยาบาล
- */
-export async function getClinicHistory(studentId) {
-    try {
-        const { data, error } = await db
-            .from('clinic_logs')
-            .select('*')
-            .eq('student_id', studentId)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data || [];
-    } catch (err) {
-        console.error('Error fetching clinic history:', err);
-        return [];
-    }
-}
-
-/**
- * ดึงรายการการบ้านประจำห้อง
- */
-export async function getHomeworkAssignments(className) {
-    try {
-        const { data, error } = await db
-            .from('homework_assignments')
-            .select('*')
-            .eq('class_name', className)
-            .order('due_date', { ascending: true });
-
-        if (error) throw error;
-        return data || [];
-    } catch (err) {
-        console.error('Error fetching homework:', err);
-        return [];
-    }
-}
-
-/**
- * สรุปสถิติการมาเรียน (มา/สาย/ขาด/หนี)
- */
-export async function getAttendanceStats(studentId) {
-    try {
-        const { data, error } = await db
-            .from('attendance_logs')
-            .select('status')
-            .eq('student_id', studentId);
-
-        if (error) throw error;
-
+    /**
+     * ดึงสรุปสถิติการมาเรียน (จาก attendance_logs)
+     */
+    async getAttendanceStats(studentId) {
         const stats = { present: 0, late: 0, absent: 0, truant: 0 };
-        (data || []).forEach(log => {
-            const st = (log.status || '').toUpperCase();
-            if (st === 'PRESENT') stats.present++;
-            else if (st === 'LATE') stats.late++;
-            else if (st === 'ABSENT') stats.absent++;
-            else if (st === 'TRUANT') stats.truant++;
-        });
+        try {
+            const { data, error } = await db.from('attendance_logs').select('*');
+            if (error || !data) return stats;
 
-        return stats;
-    } catch (err) {
-        console.error('Error fetching attendance stats:', err);
-        return { present: 0, late: 0, absent: 0, truant: 0 };
-    }
-}
+            const logs = data.filter(l => String(l.student_id) === String(studentId));
+            logs.forEach(l => {
+                const st = (l.status || '').toLowerCase().trim();
+                if (st === 'present' || st === 'green' || st === 'มา') stats.present++;
+                else if (st === 'late' || st === 'สาย') stats.late++;
+                else if (st === 'absent' || st === 'red' || st === 'ขาด') stats.absent++;
+                else if (st === 'truant' || st === 'purple' || st === 'หนี') stats.truant++;
+            });
 
-/**
- * ดึงประวัติคะแนนพฤติกรรม
- */
-export async function getBehaviorLogs(studentId) {
-    try {
-        const { data, error } = await db
-            .from('behavior_logs')
-            .select('*')
-            .eq('student_id', studentId)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data || [];
-    } catch (err) {
-        console.error('Error fetching behavior logs:', err);
-        return [];
-    }
-}
-
-/**
- * ยื่นใบลาออนไลน์โดยผู้ปกครอง
- */
-export async function submitParentLeaveRequest({ studentId, className, leaveType, startDate, endDate, reason, parentPhone, parentPin }) {
-    try {
-        const { data, error } = await db.from('leave_requests').insert([{
-            student_id: studentId,
-            class_name: className,
-            leave_type: leaveType,
-            start_date: startDate,
-            end_date: endDate,
-            reason: reason,
-            parent_phone: parentPhone,
-            parent_pin: parentPin,
-            status: 'pending',
-            created_at: new Date().toISOString()
-        }]);
-
-        if (error) throw error;
-        return { success: true, data };
-    } catch (err) {
-        console.error('Error submitting leave request:', err);
-        return { success: false, message: err.message };
-    }
-}
-/**
- * 🔔 ขอสิทธิ์การแจ้งเตือนจากเบราว์เซอร์
- */
-export async function requestNotificationPermission() {
-    if (!('Notification' in window)) {
-        console.warn('เบราว์เซอร์นี้ไม่รองรับ Notification');
-        return false;
-    }
-
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
-}
-
-/**
- * 🔴 ตั้งค่าตัวเลขแจ้งเตือนบนไอคอนแอป (App Badge)
- */
-export async function setAppBadgeCount(count = 1) {
-    try {
-        if ('setAppBadge' in navigator) {
-            await navigator.setAppBadge(count);
-        } else if ('setExperimentalAppBadge' in navigator) {
-            await navigator.setExperimentalAppBadge(count);
+            return stats;
+        } catch (err) {
+            console.warn('[ParentService] Error fetching attendance stats:', err);
+            return stats;
         }
-    } catch (err) {
-        console.error('Error setting App Badge:', err);
-    }
-}
+    },
 
-/**
- * 🧹 ล้างตัวเลข/จุดสีแดงบนไอคอนแอปออก (เมื่อผู้ปกครองเปิดดูแอปแล้ว)
- */
-export async function clearAppBadgeCount() {
-    try {
-        if ('clearAppBadge' in navigator) {
-            await navigator.clearAppBadge();
-        } else if ('clearExperimentalAppBadge' in navigator) {
-            await navigator.clearExperimentalAppBadge();
-        }
-    } catch (err) {
-        console.error('Error clearing App Badge:', err);
+    /**
+     * ดึงข้อมูลทั้งหมดสำหรับแดชบอร์ดในคำสั่งเดียว
+     */
+    async getDashboardData(studentId, dayName = 'Monday') {
+        const student = await this.getStudentProfile(studentId);
+        const classroom = student?.classroom || '-';
+
+        const [schedule, leaveHistory, attendanceStats] = await Promise.all([
+            this.getSchedule(classroom, dayName),
+            this.getLeaveHistory(studentId),
+            this.getAttendanceStats(studentId)
+        ]);
+
+        return {
+            student,
+            schedule,
+            leaveHistory,
+            attendanceStats
+        };
     }
-}
+};
