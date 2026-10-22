@@ -258,54 +258,53 @@
         }
 
         async function checkAuthAndInit() {
-            // 1. อ่านค่าจาก Session
             const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
-            
-            // กำหนด รหัสครู เป็น T024
             const teacherCode = storedUser.teacher_code || storedUser.username || 'T024';
-            
-            // บังคับกำหนดชื่อครูธนดล คำเสนอ (ตัดการดึงชื่อจากอีเมลทิ้ง 100%)
-            let fullName = 'Thanadol Kamsamer'; 
         
-            // 2. ดึงข้อมูลจริงจากตาราง users ใน Supabase
+            let fullName = 'Thanadol Kamsamer';
+            let avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
+        
+            // 1. ดึงข้อมูลโปรไฟล์ (แก้ไข Query ตัด id.eq ออก ป้องกัน 400)
             try {
                 const { data: userDB } = await db
                     .from('users')
-                    .select('full_name, avatar_url')
-                    .eq('teacher_code', teacherCode)
+                    .select('full_name, avatar_url, photo_url')
+                    .or(`teacher_code.eq.${teacherCode},username.eq.${teacherCode}`)
                     .maybeSingle();
         
-                if (userDB && userDB.full_name) {
-                    fullName = userDB.full_name;
+                if (userDB) {
+                    if (userDB.full_name) fullName = userDB.full_name;
+                    if (userDB.avatar_url || userDB.photo_url) {
+                        avatarUrl = userDB.avatar_url || userDB.photo_url;
+                    }
                 }
-            } catch (err) {
-                console.warn('DB Fetch warning:', err);
+            } catch (e) {
+                console.warn('DB profile fetch warning:', e);
             }
         
-            // 3. กำหนด Path รูปภาพจาก Supabase Storage โดยตรงตามรหัสครู T024
-            const storageAvatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
-        
-            // 4. แสดงผลข้อความบน UI
+            // 2. แสดงผลชื่อและรหัสครู
             document.getElementById('teacherName').innerText = fullName;
             document.getElementById('headerTeacherName').innerText = fullName;
             document.getElementById('teacherCodeDisplay').innerText = `รหัส: ${teacherCode}`;
         
-            // 5. แสดงผลรูปโปรไฟล์พร้อมสลับนามสกุลไฟล์ (.jpg -> .png) หากหาไม่พบ
-            const updateAvatar = (elementId) => {
-                const imgEl = document.getElementById(elementId);
-                if (!imgEl) return;
-                imgEl.src = storageAvatarUrl;
-                imgEl.onerror = () => {
-                    if (imgEl.src.endsWith('.jpg')) {
-                        imgEl.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
+            // 3. Smart Fallback โหลดรูปโปรไฟล์ (.jpg -> .png -> .jpeg -> ไอคอนกลาง)
+            const setAvatar = (id) => {
+                const img = document.getElementById(id);
+                if (!img) return;
+                img.src = avatarUrl;
+                img.onerror = () => {
+                    if (img.src.endsWith('.jpg')) {
+                        img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
+                    } else if (img.src.endsWith('.png')) {
+                        img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpeg`;
                     } else {
-                        imgEl.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+                        img.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
                     }
                 };
             };
         
-            updateAvatar('headerTeacherAvatar');
-            updateAvatar('teacherAvatar');
+            setAvatar('headerTeacherAvatar');
+            setAvatar('teacherAvatar');
         
             await loadTrafficSummary();
             await renderStudents();
