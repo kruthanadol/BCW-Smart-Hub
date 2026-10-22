@@ -263,43 +263,63 @@
         }
 
         async function checkAuthAndInit() {
+            // 1. อ่านข้อมูลคนที่ล็อกอินอยู่จาก Session/LocalStorage
             const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
             
-            if (storedUser && storedUser.full_name) {
+            if (storedUser && (storedUser.full_name || storedUser.name)) {
                 CURRENT_TEACHER = storedUser;
-            } else if (storedUser && storedUser.username) {
-                CURRENT_TEACHER = {
-                    id: storedUser.username,
-                    name: 'Thanadol Kamsamer',
-                    username: storedUser.username,
-                    avatar: storedUser.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'
-                };
             }
-
+        
             if (!CURRENT_TEACHER) {
-                // กำหนดค่าเริ่มต้นเป็น Thanadol Kamsamer
+                // ค่าเริ่มต้นกรณีไม่มี Session (เผื่อไว้)
                 CURRENT_TEACHER = { 
-                    id: 'kruthanadol', 
+                    teacher_code: 'T024', 
                     name: 'Thanadol Kamsamer', 
-                    username: 'kruthanadol',
-                    avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' 
+                    username: 'kruthanadol'
                 };
             }
-
-            // แสดงผลชื่อ และรูปบน UI
-            const fullName = CURRENT_TEACHER.name || CURRENT_TEACHER.full_name || 'Thanadol Kamsamer';
-            const teacherImg = CURRENT_TEACHER.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-            const teacherCode = CURRENT_TEACHER.username || CURRENT_TEACHER.id || 'kruthanadol';
-
+        
+            // 2. ดึงชื่อจริง และรหัสครูของคนที่ล็อกอินขณะนั้นอัตโนมัติ (เช่น T001, T002, T024)
+            const fullName = CURRENT_TEACHER.full_name || CURRENT_TEACHER.name || 'Thanadol Kamsamer';
+            const teacherCode = CURRENT_TEACHER.teacher_code || CURRENT_TEACHER.username || CURRENT_TEACHER.id || 'T024';
+        
+            // 3. สร้าง URL ดึงรูปภาพจาก Supabase Storage ตามรหัสครูคนที่ล็อกอินอัตโนมัติ
+            const storageAvatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
+            const teacherImg = CURRENT_TEACHER.avatar || CURRENT_TEACHER.avatar_url || storageAvatarUrl;
+        
+            // 4. อัปเดตข้อความชื่อ และรหัสครูบน UI
             document.getElementById('teacherName').innerText = fullName;
             document.getElementById('headerTeacherName').innerText = fullName;
             document.getElementById('teacherCodeDisplay').innerText = `รหัส: ${teacherCode}`;
-            document.getElementById('teacherAvatar').src = teacherImg;
-            document.getElementById('headerTeacherAvatar').src = teacherImg;
+        
+            // 5. แสดงผลรูปโปรไฟล์ (พยายามดึง .jpg ก่อน -> ถ้าไม่มีลอง .png -> ถ้าไม่มีใช้รูปไอคอนกลาง)
+            const headerImgEl = document.getElementById('headerTeacherAvatar');
+            if (headerImgEl) {
+                headerImgEl.src = teacherImg;
+                headerImgEl.onerror = () => { 
+                    if (headerImgEl.src.endsWith('.jpg')) {
+                        headerImgEl.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
+                    } else {
+                        headerImgEl.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png'; 
+                    }
+                };
+            }
 
-            await loadTrafficSummary();
-            await renderStudents();
-        }
+    const cardImgEl = document.getElementById('teacherAvatar');
+    if (cardImgEl) {
+        cardImgEl.src = teacherImg;
+        cardImgEl.onerror = () => { 
+            if (cardImgEl.src.endsWith('.jpg')) {
+                cardImgEl.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
+            } else {
+                cardImgEl.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png'; 
+            }
+        };
+    }
+
+    await loadTrafficSummary();
+    await renderStudents();
+}
 
         async function loadTrafficSummary() {
             try {
