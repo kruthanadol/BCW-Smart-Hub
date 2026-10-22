@@ -305,29 +305,39 @@
                 };
             }
 
-    const cardImgEl = document.getElementById('teacherAvatar');
-    if (cardImgEl) {
-        cardImgEl.src = teacherImg;
-        cardImgEl.onerror = () => { 
-            if (cardImgEl.src.endsWith('.jpg')) {
-                cardImgEl.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
-            } else {
-                cardImgEl.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png'; 
+            const cardImgEl = document.getElementById('teacherAvatar');
+            if (cardImgEl) {
+                cardImgEl.src = teacherImg;
+                cardImgEl.onerror = () => { 
+                    if (cardImgEl.src.endsWith('.jpg')) {
+                        cardImgEl.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
+                    } else {
+                        cardImgEl.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png'; 
+                    }
+                };
             }
-        };
-    }
 
-    await loadTrafficSummary();
-    await renderStudents();
-}
+            await loadTrafficSummary();
+            await renderStudents();
+        }
 
         async function loadTrafficSummary() {
             try {
+                // ใช้ฟอร์แมต YYYY-MM-DD แบบมาตรฐานโดยไม่ต่อเวลา
                 const today = new Date().toISOString().split('T')[0];
-                const { data: logs } = await db.from('attendance_logs').select('traffic_status, status').gte('check_date', today);
-
+                
+                const { data: logs, error } = await db
+                    .from('attendance_logs')
+                    .select('traffic_status, status')
+                    .gte('check_date', today);
+        
+                if (error) {
+                    console.warn('[TrafficSummary] Query Warning:', error.message);
+                    return; // ป้องกันไม่ให้กระทบการทำงานส่วนอื่น
+                }
+        
                 let green = 0, blue = 0, red = 0, purple = 0;
-                if (logs) {
+                if (logs && Array.isArray(logs)) {
                     logs.forEach(l => {
                         const st = l.traffic_status || (l.status === 'present' ? 'GREEN' : (l.status === 'absent' ? 'RED' : 'GREEN'));
                         if (st === 'GREEN') green++;
@@ -336,16 +346,15 @@
                         else if (st === 'PURPLE') purple++;
                     });
                 }
-
+        
                 document.getElementById('summary-green-count').innerText = `${green} คน`;
                 document.getElementById('summary-blue-count').innerText = `${blue} คน`;
                 document.getElementById('summary-red-count').innerText = `${red} คน`;
                 document.getElementById('summary-purple-count').innerText = `${purple} คน`;
             } catch (err) {
-                console.error('Error loadTrafficSummary:', err);
+                console.warn('[TrafficSummary] Skipped on error:', err);
             }
         }
-
         async function renderStudents() {
             const tbody = document.getElementById('studentList');
             if (!tbody) return;
