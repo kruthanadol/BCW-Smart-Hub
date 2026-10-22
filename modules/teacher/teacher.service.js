@@ -2,29 +2,30 @@ import { db } from '../../core/supabase-client.js';
 
 export const TeacherService = {
     // 1. ดึงโปรไฟล์ครู
-    async getProfile(teacherId) {
-        try {
-            if (!teacherId) return { teacher_id: teacherId, full_name: 'ครูผู้สอน' };
-            const { data, error } = await db
-                .from('users')
-                .select('*')
-                .eq('id', String(teacherId))
-                .maybeSingle();
+    async getProfile(teacherId) {// ใน modules/teacher/teacher.service.js
+async getProfile(teacherId) {
+    try {
+        if (!teacherId) return null;
 
-            if (error || !data) {
-                return { teacher_id: teacherId, full_name: 'นางสาวขัตติยา สุขรอบ' };
-            }
-            return {
-                ...data,
-                full_name: data.full_name || data.name || 'นางสาวขัตติยา สุขรอบ',
-                avatar: data.avatar || data.photo_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'
-            };
-        } catch (err) {
-            console.warn('[TeacherService] Error fetching profile:', err);
-            return { teacher_id: teacherId, full_name: 'นางสาวขัตติยา สุขรอบ' };
-        }
-    },
+        // ลองค้นหาจากตาราง teachers หรือ users ตามความเหมาะสมของโครงสร้าง DB
+        const { data, error } = await db
+            .from('users')
+            .select('*')
+            .or(`id.eq.${teacherId},teacher_id.eq.${teacherId}`)
+            .maybeSingle();
 
+        if (error || !data) return null;
+
+        return {
+            ...data,
+            full_name: data.full_name || data.name || 'ครูผู้สอน',
+            avatar: data.avatar || data.photo_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'
+        };
+    } catch (err) {
+        console.warn('[TeacherService] Error fetching profile:', err);
+        return null;
+    }
+}
     // 2. ดึงรายการวิชาที่มอบหมาย
     async getAssignedCourses(teacherId) {
         try {
