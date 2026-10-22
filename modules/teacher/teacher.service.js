@@ -1,44 +1,47 @@
 import { db } from '../../core/supabase-client.js';
 
 export const TeacherService = {
-    // 1. ดึงโปรไฟล์ครู
-    async getProfile(teacherId) {// ใน modules/teacher/teacher.service.js
-async getProfile(teacherId) {
-    try {
-        if (!teacherId) return null;
+    // 1. ดึงโปรไฟล์ครูผู้สอน
+    async getProfile(teacherId) {
+        try {
+            if (!teacherId) return null;
 
-        // ลองค้นหาจากตาราง teachers หรือ users ตามความเหมาะสมของโครงสร้าง DB
-        const { data, error } = await db
-            .from('users')
-            .select('*')
-            .or(`id.eq.${teacherId},teacher_id.eq.${teacherId}`)
-            .maybeSingle();
+            // ค้นหาจากตาราง users โดยเช็กทั้ง id หรือ teacher_id
+            const { data, error } = await db
+                .from('users')
+                .select('*')
+                .or(`id.eq.${teacherId},teacher_id.eq.${teacherId}`)
+                .maybeSingle();
 
-        if (error || !data) return null;
+            if (error || !data) return null;
 
-        return {
-            ...data,
-            full_name: data.full_name || data.name || 'ครูผู้สอน',
-            avatar: data.avatar || data.photo_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'
-        };
-    } catch (err) {
-        console.warn('[TeacherService] Error fetching profile:', err);
-        return null;
-    }
-}
-    // 2. ดึงรายการวิชาที่มอบหมาย
+            return {
+                ...data,
+                full_name: data.full_name || data.name || 'ครูผู้สอน',
+                avatar: data.avatar || data.photo_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'
+            };
+        } catch (err) {
+            console.warn('[TeacherService] Error fetching profile:', err);
+            return null;
+        }
+    },
+
+    // 2. ดึงรายการวิชาที่ได้รับมอบหมาย
     async getAssignedCourses(teacherId) {
         try {
-            const { data, error } = await db
-                .from('course_assignments')
-                .select('*');
+            let query = db.from('course_assignments').select('*');
+            
+            if (teacherId) {
+                query = query.or(`teacher_id.eq.${teacherId},assigned_to.eq.${teacherId}`);
+            }
+
+            const { data, error } = await query;
 
             if (error || !data || data.length === 0) {
+                // ข้อมูลสำรองเผื่อตารางใน DB ยังไม่มีข้อมูล
                 return [
-                    { course_code: 'วิชาทั่วไป', class_name: 'ม.1/1', subject_name: 'วิชาทั่วไป' },
-                    { course_code: 'ค32201', class_name: 'ม.5/1', subject_name: 'คณิตศาสตร์เพิ่มเติม (ค32201)' },
-                    { course_code: 'ค32101', class_name: 'ม.5/1', subject_name: 'คณิตศาสตร์พื้นฐาน (ค32101)' },
-                    { course_code: 'ค32101', class_name: 'ม.5/2', subject_name: 'คณิตศาสตร์พื้นฐาน (ค32101)' }
+                    { course_code: 'ค32101', classroom: 'ม.5/1', subject_name: 'คณิตศาสตร์พื้นฐาน (ค32101)' },
+                    { course_code: 'ค32201', classroom: 'ม.5/1', subject_name: 'คณิตศาสตร์เพิ่มเติม (ค32201)' }
                 ];
             }
             return data;
