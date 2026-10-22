@@ -258,46 +258,64 @@
         }
 
         async function checkAuthAndInit() {
+            // 1. อ่านรหัสครู หรือ อีเมลจาก Session
             const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
-            const teacherCode = storedUser.teacher_code || storedUser.username || 'T024';
+            const teacherCode = storedUser.teacher_code || storedUser.teacher_id || storedUser.username || 'T024';
+            const userEmail = storedUser.email || `${teacherCode}@buached.ac.th`;
         
             let fullName = 'Thanadol Kamsamer';
-            let avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
+            // เริ่มต้นลองดึงไฟล์ .webp ก่อนเป็นอันดับแรก
+            let avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.webp`;
         
-            // 1. ดึงข้อมูลโปรไฟล์ (แก้ไข Query ตัด id.eq ออก ป้องกัน 400)
+            // 2. Query ดึงชื่อครูจากตาราง users โดยใช้คอลัมน์ teacher_id
             try {
-                const { data: userDB } = await db
-                    .from('users')
-                    .select('full_name, avatar_url, photo_url')
-                    .or(`teacher_code.eq.${teacherCode},username.eq.${teacherCode}`)
+                let userDB = null;
+        
+                const res1 = await db.from('users')
+                    .select('full_name, teacher_id, email')
+                    .eq('teacher_id', teacherCode)
                     .maybeSingle();
         
-                if (userDB) {
-                    if (userDB.full_name) fullName = userDB.full_name;
-                    if (userDB.avatar_url || userDB.photo_url) {
-                        avatarUrl = userDB.avatar_url || userDB.photo_url;
-                    }
+                userDB = res1.data;
+        
+                if (!userDB && userEmail) {
+                    const res2 = await db.from('users')
+                        .select('full_name, teacher_id, email')
+                        .eq('email', userEmail)
+                        .maybeSingle();
+                    userDB = res2.data;
+                }
+        
+                if (userDB && userDB.full_name) {
+                    fullName = userDB.full_name;
                 }
             } catch (e) {
-                console.warn('DB profile fetch warning:', e);
+                console.warn('DB Fetch warning:', e);
             }
         
-            // 2. แสดงผลชื่อและรหัสครู
+            // 3. แสดงผลชื่อและรหัสครูบน UI
             document.getElementById('teacherName').innerText = fullName;
             document.getElementById('headerTeacherName').innerText = fullName;
             document.getElementById('teacherCodeDisplay').innerText = `รหัส: ${teacherCode}`;
         
-            // 3. Smart Fallback โหลดรูปโปรไฟล์ (.jpg -> .png -> .jpeg -> ไอคอนกลาง)
+            // 4. Smart Avatar Fallback รองรับครบทั้ง .webp, .jpg, .png, .jpeg
             const setAvatar = (id) => {
                 const img = document.getElementById(id);
                 if (!img) return;
                 img.src = avatarUrl;
+                
                 img.onerror = () => {
-                    if (img.src.endsWith('.jpg')) {
+                    if (img.src.endsWith('.webp')) {
+                        // ถ้า .webp ไม่มี ให้ลอง .jpg
+                        img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
+                    } else if (img.src.endsWith('.jpg')) {
+                        // ถ้า .jpg ไม่มี ให้ลอง .png
                         img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
                     } else if (img.src.endsWith('.png')) {
+                        // ถ้า .png ไม่มี ให้ลอง .jpeg
                         img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpeg`;
                     } else {
+                        // ถ้าไม่มีเลยในทุกนามสกุล ให้ใช้รูปไอคอนกลางสำรอง
                         img.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
                     }
                 };
