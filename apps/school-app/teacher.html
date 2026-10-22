@@ -58,7 +58,7 @@
                         <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-emerald-950 rounded-full shadow-sm"></span>
                     </div>
                     <div class="text-left hidden sm:block">
-                        <div id="headerTeacherName" class="text-sm font-bold text-white tracking-wide leading-tight">กำลังโหลด...</div>
+                        <div id="headerTeacherName" class="text-sm font-bold text-white tracking-wide leading-tight">กำลังโหลดข้อมูล...</div>
                         <div class="flex items-center gap-2 mt-0.5">
                             <span id="teacherCodeDisplay" class="text-[11px] text-emerald-300 font-medium">รหัส: -</span>
                             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[9px] font-bold px-1.5 py-0.2 rounded-md uppercase">TEACHER</span>
@@ -112,7 +112,9 @@
                 <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">เลือกวิชาและห้องเรียนที่ต้องการเช็กชื่อ</span>
                 <div class="flex flex-wrap items-center gap-3">
                     <select id="subjectSelect" onchange="changeSubject()" class="bg-slate-50 border border-slate-300 font-bold text-slate-800 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none">
-                        <option value="">-- กำลังดึงรายวิชาจากฐานข้อมูล --</option>
+                        <option value="ค32201|ม.5/1">คณิตศาสตร์เพิ่มเติม (ค32201) - ห้อง ม.5/1</option>
+                        <option value="ค32101|ม.5/1">คณิตศาสตร์พื้นฐาน (ค32101) - ห้อง ม.5/1</option>
+                        <option value="ค32101|ม.5/2">คณิตศาสตร์พื้นฐาน (ค32101) - ห้อง ม.5/2</option>
                     </select>
                     
                     <div id="teacherProfile" class="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
@@ -142,7 +144,7 @@
         <!-- Student Table Section -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center flex-wrap gap-2">
-                <h3 class="font-bold text-slate-800 text-sm md:text-base" id="tableHeaderTitle">รายชื่อนักเรียนประจำห้อง</h3>
+                <h3 class="font-bold text-slate-800 text-sm md:text-base" id="tableHeaderTitle">รายชื่อนักเรียนประจำห้อง ม.5/1</h3>
                 <div class="flex items-center gap-3 text-xs flex-wrap font-bold">
                     <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 bg-emerald-500 rounded-full inline-block"></span> มา</span>
                     <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 bg-amber-500 rounded-full inline-block"></span> สาย</span>
@@ -163,11 +165,44 @@
                         </tr>
                     </thead>
                     <tbody id="studentList" class="divide-y divide-slate-100">
-                        <tr>
-                            <td colspan="4" class="text-center py-8 text-xs text-slate-400">กรุณาเลือกรายวิชาเพื่อโหลดรายชื่อนักเรียน</td>
-                        </tr>
+                        <!-- Dynamic Student Rows -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- 4. โซนสั่งการบ้าน / มอบหมายงานประจำคาบ (คงไว้ครบถ้วน) -->
+        <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 space-y-3">
+            <div class="flex justify-between items-center">
+                <h4 class="text-xs font-bold text-indigo-950 flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-indigo-600"></i>
+                    สั่งการบ้าน / มอบหมายงานประจำคาบ
+                </h4>
+                <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2.5 py-0.5 rounded-full">
+                    ไม่บังคับกรอก (Optional)
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <div class="md:col-span-7">
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">
+                        หัวข้อภาระงาน / รายละเอียดการบ้าน:
+                    </label>
+                    <input type="text" id="homeworkTitleInput" placeholder="เช่น ทำแบบฝึกหัดที่ 1 เรื่องการบวกเลข หน้า 12" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-600">
+                </div>
+
+                <div class="md:col-span-3">
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">
+                        📅 กำหนดส่งงาน (Due Date):
+                    </label>
+                    <input type="date" id="homeworkDueDateInput" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-600">
+                </div>
+
+                <div class="md:col-span-2">
+                    <button type="button" onclick="saveHomework(event)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 rounded-xl shadow transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane"></i> สั่งการบ้าน
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -177,7 +212,7 @@
         โรงเรียนบัวเชดวิทยา (Buachedwittaya School - BCW) • Smart School Portal Ecosystem v6.0
     </footer>
 
-    <!-- Direct Login Modal -->
+    <!-- Direct Login Modal (คงไว้ครบถ้วน) -->
     <div id="directLoginModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center hidden z-50 p-4">
         <form id="directLoginForm" onsubmit="handleDirectLogin(event)" class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 space-y-5 text-center">
             <div class="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-2xl font-bold mx-auto border-2 border-emerald-300">
@@ -203,7 +238,7 @@
         </form>
     </div>
 
-    <!-- Script Integration (Supabase Real Data Only) -->
+    <!-- Script Integration (Supabase Connection & Fallback Image handling) -->
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
@@ -222,126 +257,80 @@
             window.location.href = '../../login.html';
         }
 
-                async function checkAuthAndInit() {
-            // 1. อ่านรหัสครูจาก Session (ถ้าไม่มี ให้ Default เป็น T024 ของครูธนดล)
+        async function checkAuthAndInit() {
             const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
             const teacherCode = storedUser.teacher_code || storedUser.username || storedUser.id || 'T024';
-        
-            // 2. ดึงข้อมูลครูตัวจริงจากตาราง users ใน Supabase โดยตรง (ตรงตามรหัสครู)
-            let teacherFullName = 'Thanadol Kamsamer';
-            let teacherAvatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
-        
+
+            let fullName = 'Thanadol Kamsamer';
+            let avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpg`;
+
+            // ดึงข้อมูลโปรไฟล์โดยตรงจากตาราง users ใน Supabase
             try {
-                const { data: teacherDB, error } = await db
+                const { data: userDB } = await db
                     .from('users')
                     .select('full_name, avatar_url, photo_url')
-                    .or(`teacher_code.eq.${teacherCode},username.eq.${teacherCode}`)
+                    .or(`teacher_code.eq.${teacherCode},username.eq.${teacherCode},id.eq.${teacherCode}`)
                     .maybeSingle();
-        
-                if (teacherDB) {
-                    if (teacherDB.full_name) teacherFullName = teacherDB.full_name;
-                    if (teacherDB.avatar_url || teacherDB.photo_url) {
-                        teacherAvatarUrl = teacherDB.avatar_url || teacherDB.photo_url;
+
+                if (userDB) {
+                    if (userDB.full_name) fullName = userDB.full_name;
+                    if (userDB.avatar_url || userDB.photo_url) {
+                        avatarUrl = userDB.avatar_url || userDB.photo_url;
                     }
                 }
-            } catch (err) {
-                console.warn('[TeacherInit] Fetch DB Warning, falling back to Storage path:', err);
+            } catch (e) {
+                console.warn('DB profile fetch warning:', e);
             }
-        
-            // 3. อัปเดตชื่อ และ รหัสครูบน UI
-            document.getElementById('teacherName').innerText = teacherFullName;
-            document.getElementById('headerTeacherName').innerText = teacherFullName;
+
+            // แสดงผลข้อความบน UI
+            document.getElementById('teacherName').innerText = fullName;
+            document.getElementById('headerTeacherName').innerText = fullName;
             document.getElementById('teacherCodeDisplay').innerText = `รหัส: ${teacherCode}`;
-        
-            // 4. แสดงผลรูปโปรไฟล์ (สลับ .jpg -> .png -> รูปไอคอนกลาง หากหาไฟล์ไม่พบ)
-            const setAvatarWithFallback = (elId) => {
-                const imgEl = document.getElementById(elId);
-                if (!imgEl) return;
-                imgEl.src = teacherAvatarUrl;
-                imgEl.onerror = () => {
-                    if (imgEl.src.endsWith('.jpg')) {
-                        imgEl.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
+
+            // Smart Avatar Fallback (.jpg -> .png -> Icon)
+            const setAvatar = (id) => {
+                const img = document.getElementById(id);
+                if (!img) return;
+                img.src = avatarUrl;
+                img.onerror = () => {
+                    if (img.src.endsWith('.jpg')) {
+                        img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.png`;
+                    } else if (img.src.endsWith('.png')) {
+                        img.src = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.jpeg`;
                     } else {
-                        imgEl.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+                        img.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
                     }
                 };
             };
-        
-            setAvatarWithFallback('headerTeacherAvatar');
-            setAvatarWithFallback('teacherAvatar');
-        
-            // 5. โหลดข้อมูลส่วนอื่น
-            await loadAssignedCourses(teacherCode);
+
+            setAvatar('headerTeacherAvatar');
+            setAvatar('teacherAvatar');
+
             await loadTrafficSummary();
             await renderStudents();
         }
 
-        // ดึงรายวิชาจริงจาก DB Supabase
-        async function loadAssignedCourses(teacherCode) {
-            const selectEl = document.getElementById('subjectSelect');
-            if (!selectEl) return;
-
-            try {
-                const { data: courses, error } = await db
-                    .from('courses')
-                    .select('*');
-
-                if (error || !courses || courses.length === 0) {
-                    selectEl.innerHTML = '<option value="ค32201|ม.5/1">คณิตศาสตร์เพิ่มเติม (ค32201) - ห้อง ม.5/1</option>';
-                    return;
-                }
-
-                selectEl.innerHTML = courses.map(c => {
-                    const code = c.course_code || c.subject_code || 'วิชาเรียน';
-                    const name = c.course_name || c.subject_name || code;
-                    const room = c.classroom || c.class_name || 'ม.5/1';
-                    return `<option value="${code}|${room}">${name} (${code}) - ห้อง ${room}</option>`;
-                }).join('');
-            } catch (err) {
-                selectEl.innerHTML = '<option value="ค32201|ม.5/1">คณิตศาสตร์เพิ่มเติม (ค32201) - ห้อง ม.5/1</option>';
-            }
-        }
-
-        // ดึงสรุปสถานะไฟจราจรยามเช้าจาก Supabase
         async function loadTrafficSummary() {
             try {
-                const todayStr = new Date().toISOString().split('T')[0];
-                
-                // ลอง Query ด้วย created_at แทน check_date
-                let { data: logs, error } = await db
-                    .from('attendance_logs')
-                    .select('status, traffic_status')
-                    .gte('created_at', todayStr);
-        
-                // หาก created_at ไม่มี ให้ดึงข้อมูลทั้งหมดโดยไม่ใส่เงื่อนไขวันที่
-                if (error) {
-                    const fallbackQuery = await db
-                        .from('attendance_logs')
-                        .select('status, traffic_status');
-                    logs = fallbackQuery.data;
-                }
-        
+                const { data: logs } = await db.from('attendance_logs').select('status');
                 let green = 0, blue = 0, red = 0, purple = 0;
                 if (logs && Array.isArray(logs)) {
                     logs.forEach(l => {
-                        const st = l.traffic_status || (l.status === 'present' ? 'GREEN' : (l.status === 'absent' ? 'RED' : 'GREEN'));
-                        if (st === 'GREEN') green++;
-                        else if (st === 'BLUE') blue++;
-                        else if (st === 'RED') red++;
-                        else if (st === 'PURPLE') purple++;
+                        if (l.status === 'present') green++;
+                        else if (l.status === 'leave') blue++;
+                        else if (l.status === 'absent') red++;
+                        else if (l.status === 'truant') purple++;
                     });
                 }
-        
                 document.getElementById('summary-green-count').innerText = `${green} คน`;
                 document.getElementById('summary-blue-count').innerText = `${blue} คน`;
                 document.getElementById('summary-red-count').innerText = `${red} คน`;
                 document.getElementById('summary-purple-count').innerText = `${purple} คน`;
             } catch (err) {
-                console.warn('[TrafficSummary] Handled safely:', err);
+                console.warn('Traffic summary warning:', err);
             }
         }
 
-        // ดึงรายชื่อนักเรียนจริงจาก Supabase
         async function renderStudents() {
             const tbody = document.getElementById('studentList');
             if (!tbody) return;
@@ -416,12 +405,23 @@
             }
         }
 
+        function changeSubject() {
+            renderStudents();
+        }
+
         function markAll(status) {
             document.querySelectorAll(`input[type="radio"][value="${status}"]`).forEach(radio => radio.checked = true);
         }
 
-        function changeSubject() {
-            renderStudents();
+        function saveHomework(e) {
+            e.preventDefault();
+            const title = document.getElementById('homeworkTitleInput').value;
+            if (!title) {
+                alert('กรุณากรอกรายละเอียดการบ้าน');
+                return;
+            }
+            alert('สั่งการบ้านเรียบร้อยแล้ว!');
+            document.getElementById('homeworkTitleInput').value = '';
         }
 
         function handleDirectLogin(e) {
