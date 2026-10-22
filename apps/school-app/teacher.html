@@ -298,27 +298,30 @@
         // ดึงสรุปสถานะไฟจราจรยามเช้าจาก Supabase
         async function loadTrafficSummary() {
             try {
-                // ใช้ Date ISO Format สั้น YYYY-MM-DD
                 const todayStr = new Date().toISOString().split('T')[0];
                 
-                const { data: logs, error } = await db
+                // ลอง Query ด้วย created_at แทน check_date
+                let { data: logs, error } = await db
                     .from('attendance_logs')
-                    .select('status')
-                    .gte('check_date', todayStr);
+                    .select('status, traffic_status')
+                    .gte('created_at', todayStr);
         
-                // หากคอลัมน์หรือตารางยังไม่มี ให้ข้ามไป ไม่ขัดขวางการทำงานส่วนอื่น
+                // หาก created_at ไม่มี ให้ดึงข้อมูลทั้งหมดโดยไม่ใส่เงื่อนไขวันที่
                 if (error) {
-                    console.warn('[TrafficSummary] Query Notice:', error.message);
-                    return;
+                    const fallbackQuery = await db
+                        .from('attendance_logs')
+                        .select('status, traffic_status');
+                    logs = fallbackQuery.data;
                 }
         
                 let green = 0, blue = 0, red = 0, purple = 0;
                 if (logs && Array.isArray(logs)) {
                     logs.forEach(l => {
-                        if (l.status === 'present') green++;
-                        else if (l.status === 'leave') blue++;
-                        else if (l.status === 'absent') red++;
-                        else if (l.status === 'truant') purple++;
+                        const st = l.traffic_status || (l.status === 'present' ? 'GREEN' : (l.status === 'absent' ? 'RED' : 'GREEN'));
+                        if (st === 'GREEN') green++;
+                        else if (st === 'BLUE') blue++;
+                        else if (st === 'RED') red++;
+                        else if (st === 'PURPLE') purple++;
                     });
                 }
         
@@ -327,7 +330,7 @@
                 document.getElementById('summary-red-count').innerText = `${red} คน`;
                 document.getElementById('summary-purple-count').innerText = `${purple} คน`;
             } catch (err) {
-                console.warn('[TrafficSummary] Ignored Exception:', err);
+                console.warn('[TrafficSummary] Handled safely:', err);
             }
         }
 
