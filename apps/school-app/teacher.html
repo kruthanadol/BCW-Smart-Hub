@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Portal - โรงเรียนบัวเชดวิทยา (BCW)</title>
-    <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS Excel Library -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         body { font-family: 'Kanit', sans-serif; }
@@ -22,11 +27,9 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <!-- Header -->
     <header class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white shadow-lg sticky top-0 z-40 border-b border-emerald-600/30">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-3">
-                <!-- ลิงก์ตรงไปหน้าหลัก Landing Page -->
                 <a href="../../landing.html" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl text-white transition text-xs font-medium flex items-center gap-1.5 border border-white/10 shadow-sm">
                     <span>←</span> หน้าหลัก
                 </a>
@@ -44,28 +47,23 @@
                     <p class="text-[11px] text-emerald-200/80">โรงเรียนบัวเชดวิทยา (BCW)</p>
                 </div>
             </div>
-
-           <!-- กล่องโปรไฟล์ครูผู้สอนสไตล์สากล (User Account Card ขยายใหญ่เหมือนหน้า Landing) -->
-            <div class="flex items-center gap-3 bg-emerald-950/90 hover:bg-emerald-950 px-4 py-2 rounded-2xl border border-emerald-500/40 shadow-md transition">
-                <div class="relative">
-                    <img id="headerTeacherAvatar" 
-                         src="https://cdn-icons-png.flaticon.com/512/847/847969.png" 
-                         class="w-11 h-11 rounded-xl object-cover border-2 border-emerald-400 shadow-md" 
-                         alt="รูปโปรไฟล์ครู">
-                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 border-2 border-emerald-950 rounded-full shadow-sm"></span>
-                </div>
-                <div class="text-left hidden sm:block">
-                    <div id="headerTeacherName" class="text-sm font-bold text-white tracking-wide leading-tight">
-                        กำลังโหลดข้อมูลครู...
+            
+            <!-- User Profile Header -->
+            <div class="flex items-center gap-3 text-xs flex-wrap justify-end">
+                <div class="flex items-center gap-3 bg-emerald-950/90 hover:bg-emerald-950 px-4 py-2 rounded-2xl border border-emerald-500/40 shadow-md transition">
+                    <div class="relative">
+                        <img id="headerTeacherAvatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-10 h-10 rounded-xl object-cover border-2 border-emerald-400 shadow-md" alt="รูปครูผู้สอน">
+                        <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-emerald-950 rounded-full shadow-sm"></span>
                     </div>
-                    <div class="flex items-center gap-2 mt-0.5">
-                        <span id="teacherCodeDisplay" class="text-[11px] text-emerald-300 font-medium">รหัส: -</span>
-                        <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[9px] font-bold px-1.5 py-0.2 rounded-md uppercase">TEACHER</span>
+                    <div class="text-left hidden sm:block">
+                        <div id="headerTeacherName" class="text-sm font-bold text-white tracking-wide leading-tight">👤 ครูผู้สอน: กำลังโหลด...</div>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span id="teacherCodeDisplay" class="text-[11px] text-emerald-300 font-medium">รหัส: kruthanadol</span>
+                            <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[9px] font-bold px-1.5 py-0.2 rounded-md uppercase">TEACHER</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-                <button id="btnLogout" class="bg-rose-600/80 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl transition text-xs font-bold border border-rose-500/50">
+                <button onclick="handleLogout()" class="bg-rose-600/80 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl transition text-xs font-bold border border-rose-500/50">
                     ออกจากระบบ
                 </button>
             </div>
@@ -117,8 +115,10 @@
             <div class="space-y-1 w-full lg:w-auto">
                 <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">เลือกวิชาและห้องเรียนที่ต้องการเช็กชื่อ</span>
                 <div class="flex flex-wrap items-center gap-3">
-                    <select id="subjectSelect" class="bg-slate-50 border border-slate-300 font-bold text-slate-800 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none">
-                        <option value="">-- กำลังโหลดรายการวิชา --</option>
+                    <select id="subjectSelect" onchange="changeSubject()" class="bg-slate-50 border border-slate-300 font-bold text-slate-800 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none">
+                        <option value="ค32201|ม.5/1">คณิตศาสตร์เพิ่มเติม (ค32201) - ห้อง ม.5/1</option>
+                        <option value="ค32101|ม.5/1">คณิตศาสตร์พื้นฐาน (ค32101) - ห้อง ม.5/1</option>
+                        <option value="ค32101|ม.5/2">คณิตศาสตร์พื้นฐาน (ค32101) - ห้อง ม.5/2</option>
                     </select>
                     
                     <div id="teacherProfile" class="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
@@ -131,14 +131,15 @@
                 </div>
             </div>
 
+            <!-- Action Buttons -->
             <div class="flex flex-wrap gap-2 w-full lg:w-auto justify-end">
-                <button type="button" id="btnExportModal" class="bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                <button type="button" onclick="openExportModal()" class="bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
                     📊 ส่งออกรายงาน ปพ.
                 </button>
-                <button type="button" id="btnMarkAll" class="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-3.5 py-2 rounded-xl text-xs font-bold transition">
+                <button type="button" onclick="markAll('present')" class="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-3.5 py-2 rounded-xl text-xs font-bold transition">
                     ✓ มาครบทุกคน
                 </button>
-                <button type="button" id="saveAttendanceBtn" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md transition">
+                <button type="button" id="saveAttendanceBtn" onclick="submitAttendance()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md transition">
                     💾 บันทึกการเช็กชื่อ
                 </button>
             </div>
@@ -147,7 +148,7 @@
         <!-- 3. Student Table Section -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center flex-wrap gap-2">
-                <h3 class="font-bold text-slate-800 text-sm md:text-base" id="tableHeaderTitle">รายชื่อนักเรียนประจำห้อง</h3>
+                <h3 class="font-bold text-slate-800 text-sm md:text-base" id="tableHeaderTitle">รายชื่อนักเรียนประจำห้อง ม.5/1</h3>
                 <div class="flex items-center gap-3 text-xs flex-wrap font-bold">
                     <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 bg-emerald-500 rounded-full inline-block"></span> มา</span>
                     <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 bg-amber-500 rounded-full inline-block"></span> สาย</span>
@@ -167,17 +168,14 @@
                             <th class="p-3">ติดต่อผู้ปกครอง / หมายเหตุพฤติกรรม</th>
                         </tr>
                     </thead>
-
                     <tbody id="studentList" class="divide-y divide-slate-100">
-                        <tr>
-                            <td colspan="4" class="text-center py-8 text-xs text-slate-400">กรุณาเลือกวิชาและห้องเรียนเพื่อโหลดรายชื่อนักเรียน</td>
-                        </tr>
+                        <!-- Dynamic Student Rows -->
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- 4. โซนสั่งการบ้านประจำคาบ -->
+        <!-- 4. โซนสั่งการบ้าน / มอบหมายงานประจำคาบ -->
         <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 space-y-3">
             <div class="flex justify-between items-center">
                 <h4 class="text-xs font-bold text-indigo-950 flex items-center gap-2">
@@ -205,7 +203,7 @@
                 </div>
 
                 <div class="md:col-span-2">
-                    <button type="button" id="btnSaveHomework" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 rounded-xl shadow transition flex items-center justify-center gap-1.5">
+                    <button type="button" onclick="saveHomework(event)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 rounded-xl shadow transition flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-paper-plane"></i> สั่งการบ้าน
                     </button>
                 </div>
@@ -215,241 +213,204 @@
     </main>
 
     <footer class="bg-white border-t border-slate-200 text-center text-slate-500 text-xs py-4">
-        โรงเรียนบัวเชดวิทยา (Buachedwittaya School - BCW) • Smart Teacher Portal Ecosystem v6.0
+        โรงเรียนบัวเชดวิทยา (Buachedwittaya School - BCW) • Smart School Portal Ecosystem v6.0
     </footer>
 
-    <!-- Direct Login Modal (กรณีเปิดเข้ามาโดยไม่ได้ล็อกอิน) -->
-       <form id="directLoginForm" class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 space-y-5 text-center">
+    <!-- Direct Login Modal (ล็อคหน้าจอตรงกลางสำหรับเข้าสู่ระบบด่วน) -->
+    <div id="directLoginModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center hidden z-50 p-4">
+        <form id="directLoginForm" onsubmit="handleDirectLogin(event)" class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 space-y-5 text-center">
             <div class="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-2xl font-bold mx-auto border-2 border-emerald-300">
                 <i class="fa-solid fa-chalkboard-user"></i>
             </div>
             <div>
                 <h3 class="text-base font-bold text-slate-800">เข้าสู่ระบบครูผู้สอน</h3>
-                <p class="text-xs text-slate-500 mt-1">กรอกรหัสประจำตัวหรืออีเมลเพื่อเริ่มบันทึกเช็กชื่อ</p>
+                <p class="text-xs text-slate-500 mt-1">กรอกรหัสประจำตัวเพื่อเริ่มบันทึกเช็กชื่อ</p>
             </div>
             <div class="space-y-3 text-left">
                 <div>
-                    <label class="text-[11px] font-bold text-slate-600 block mb-1">รหัสครู / อีเมล:</label>
-                    <input type="text" id="directUsernameInput" placeholder="เช่น kruthanadol หรือ T024" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500" required>
+                    <label class="text-[11px] font-bold text-slate-600 block mb-1">รหัสครู / ชื่อผู้ใช้งาน:</label>
+                    <input type="text" id="directUsernameInput" placeholder="เช่น kruthanadol" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500" required>
                 </div>
                 <div>
                     <label class="text-[11px] font-bold text-slate-600 block mb-1">รหัสผ่าน:</label>
                     <input type="password" id="directPasswordInput" placeholder="••••••••" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500" required>
                 </div>
             </div>
-            <button type="submit" id="btnDirectSubmitLogin" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-xl shadow transition text-xs">
+            <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-xl shadow transition text-xs">
                 เข้าสู่ระบบทันที
             </button>
         </form>
     </div>
 
-    <!-- Modular Integration Script -->
-<script type="module">
-    import { TeacherService } from '../../modules/teacher/teacher.service.js';
+    <!-- Script Integration -->
+    <script>
+        const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
+        
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let currentTeacherId = null;
-    let loggedInTeacherProfile = null;
+        let CURRENT_TEACHER = null;
+        let currentStudents = [];
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        await checkAuthAndInit();
-        setupEventListeners();
-    });
-
-    async function checkAuthAndInit() {
-        // 1. อ่าน Session ล็อกอินจากทุก Key
-        const sessionStr = localStorage.getItem('user_profile') || 
-                           sessionStorage.getItem('user_profile') ||
-                           localStorage.getItem('teacher_session') || 
-                           sessionStorage.getItem('teacher_session') || 
-                           localStorage.getItem('user');
-
-        if (sessionStr) {
-            try {
-                loggedInTeacherProfile = JSON.parse(sessionStr);
-                currentTeacherId = loggedInTeacherProfile.username || 
-                                   loggedInTeacherProfile.id || 
-                                   loggedInTeacherProfile.teacher_id;
-            } catch (e) {
-                console.warn('[TeacherPortal] Parse Session Error:', e);
-            }
-        }
-
-        // 2. ถ้าไม่มี Session ให้แสดง Direct Login Modal
-        if (!loggedInTeacherProfile || !currentTeacherId) {
-            document.getElementById('directLoginModal')?.classList.remove('hidden');
-            return;
-        }
-
-        const dueDateInput = document.getElementById('homeworkDueDateInput');
-        if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
-
-        await initTeacherPortal();
-    }
-
-    async function initTeacherPortal() {
-        try {
-            // ดึงชื่อ-นามสกุลจริง ( Thanadol Kamsamer )
-            const fullNameStr = loggedInTeacherProfile?.full_name || 
-                                loggedInTeacherProfile?.name || 
-                                (loggedInTeacherProfile?.first_name ? `${loggedInTeacherProfile.first_name} ${loggedInTeacherProfile.last_name || ''}`.trim() : null) ||
-                                'Thanadol Kamsamer';
-
-            // ดึงรูปโปรไฟล์จริง
-            const avatarStr = loggedInTeacherProfile?.avatar || 
-                              loggedInTeacherProfile?.avatar_url || 
-                              loggedInTeacherProfile?.photo_url || 
-                              'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-
-            // ดึงรหัสครูผู้ใช้งาน (kruthanadol)
-            const usernameStr = loggedInTeacherProfile?.username || 
-                                loggedInTeacherProfile?.teacher_id || 
-                                currentTeacherId || 
-                                'kruthanadol';
-
-            // อัปเดตข้อมูลลง UI
-            const headerNameEl = document.getElementById('headerTeacherName');
-            if (headerNameEl) headerNameEl.textContent = fullNameStr;
-
-            const headerAvatarEl = document.getElementById('headerTeacherAvatar');
-            if (headerAvatarEl) headerAvatarEl.src = avatarStr;
-
-            const codeEl = document.getElementById('teacherCodeDisplay');
-            if (codeEl) codeEl.textContent = `รหัส: ${usernameStr}`;
-
-            const nameEl = document.getElementById('teacherName');
-            if (nameEl) nameEl.textContent = fullNameStr;
-
-            const avatarEl = document.getElementById('teacherAvatar');
-            if (avatarEl) avatarEl.src = avatarStr;
-
-            await loadAssignedCourses();
-            await renderStudents();
-        } catch (err) {
-            console.error('[TeacherPortal] Init Error:', err);
-        }
-    }
-
-    async function loadAssignedCourses() {
-        const selector = document.getElementById('subjectSelect');
-        if (!selector) return;
-
-        const courses = await TeacherService.getAssignedCourses(currentTeacherId);
-
-        if (!courses || courses.length === 0) {
-            selector.innerHTML = '<option value="">-- ไม่พบรายวิชาที่ได้รับมอบหมาย --</option>';
-            return;
-        }
-
-        selector.innerHTML = courses.map(c => {
-            const courseCode = c.course_code || c.subject_code || 'วิชาเรียน';
-            const courseName = c.subject_name || c.course_name || courseCode;
-            const className = c.class_name || c.classroom || 'ม.1/1';
-            
-            return `<option value="${courseCode}|${className}">${courseName} - ห้อง ${className}</option>`;
-        }).join('');
-    }
-
-    async function renderStudents() {
-        const selectedVal = document.getElementById('subjectSelect')?.value || '';
-        if (!selectedVal) {
-            document.getElementById('studentList').innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กรุณาเลือกรายวิชาเพื่อแสดงรายชื่อนักเรียน</td></tr>';
-            return;
-        }
-
-        const [subject, className] = selectedVal.split('|');
-        document.getElementById('tableHeaderTitle').textContent = `รายชื่อนักเรียนประจำห้อง ${className || ''}`;
-
-        const tbody = document.getElementById('studentList');
-        if (!tbody) return;
-
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">กำลังโหลดข้อมูลนักเรียน...</td></tr>';
-
-        const students = await TeacherService.getStudentsByClass(className);
-
-        if (!students || students.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-xs text-slate-400">ไม่พบข้อมูลนักเรียนในห้อง ${className || ''}</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = students.map((s, idx) => `
-            <tr class="hover:bg-slate-50 transition" data-student-id="${s.student_id}">
-                <td class="p-3 text-center font-bold text-slate-500">${s.studentNo || (idx + 1)}</td>
-                <td class="p-3">
-                    <div class="flex items-center gap-3">
-                        <img src="${s.avatar_url || s.photo_url || 'https://via.placeholder.com/40'}" class="w-9 h-9 rounded-xl object-cover border border-slate-200">
-                        <div>
-                            <div class="font-bold text-slate-800">${s.fullName}</div>
-                            <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${s.student_id || '-'}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="p-3 text-center">
-                    <div class="flex items-center justify-center gap-1 font-bold text-xs">
-                        <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                            <input type="radio" name="att_${s.student_id}" value="present" checked class="accent-emerald-600"> มา
-                        </label>
-                        <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                            <input type="radio" name="att_${s.student_id}" value="late" class="accent-amber-600"> สาย
-                        </label>
-                        <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                            <input type="radio" name="att_${s.student_id}" value="leave" class="accent-blue-600"> ลา
-                        </label>
-                        <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                            <input type="radio" name="att_${s.student_id}" value="absent" class="accent-rose-600"> ขาด
-                        </label>
-                        <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                            <input type="radio" name="att_${s.student_id}" value="truant" class="accent-purple-600"> หนี
-                        </label>
-                    </div>
-                </td>
-                <td class="p-3">
-                    <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    async function handleDirectLogin() {
-        const user = document.getElementById('directUsernameInput')?.value;
-        if (!user) {
-            alert('กรุณากรอกรหัสครูหรืออีเมล');
-            return;
-        }
-
-        const mockProfile = { 
-            username: user, 
-            full_name: 'Thanadol Kamsamer', 
-            avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' 
-        };
-        localStorage.setItem('user_profile', JSON.stringify(mockProfile));
-
-        document.getElementById('directLoginModal')?.classList.add('hidden');
-        currentTeacherId = user;
-        loggedInTeacherProfile = mockProfile;
-
-        await initTeacherPortal();
-    }
-
-    function setupEventListeners() {
-        document.getElementById('subjectSelect')?.addEventListener('change', renderStudents);
-
-        // รองรับการกด Enter ส่งฟอร์ม Login
-        document.getElementById('directLoginForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleDirectLogin();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthAndInit();
         });
 
-        document.getElementById('btnMarkAll')?.addEventListener('click', () => {
-            document.querySelectorAll('input[type="radio"][value="present"]').forEach(radio => radio.checked = true);
-        });
-
-        // ปุ่มออกจากระบบ -> ล้างข้อมูล คืนค่า และย้ายไปหน้า login.html
-        document.getElementById('btnLogout')?.addEventListener('click', () => {
+        function handleLogout() {
             localStorage.clear();
             sessionStorage.clear();
             window.location.href = '../../login.html';
-        });
-    }
-</script>
+        }
+
+        async function checkAuthAndInit() {
+            const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
+            
+            if (storedUser && storedUser.full_name) {
+                CURRENT_TEACHER = storedUser;
+            } else if (storedUser && storedUser.username) {
+                CURRENT_TEACHER = {
+                    id: storedUser.username,
+                    name: 'Thanadol Kamsamer',
+                    username: storedUser.username,
+                    avatar: storedUser.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'
+                };
+            }
+
+            if (!CURRENT_TEACHER) {
+                // กำหนดค่าเริ่มต้นเป็น Thanadol Kamsamer
+                CURRENT_TEACHER = { 
+                    id: 'kruthanadol', 
+                    name: 'Thanadol Kamsamer', 
+                    username: 'kruthanadol',
+                    avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' 
+                };
+            }
+
+            // แสดงผลชื่อ และรูปบน UI
+            const fullName = CURRENT_TEACHER.name || CURRENT_TEACHER.full_name || 'Thanadol Kamsamer';
+            const teacherImg = CURRENT_TEACHER.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            const teacherCode = CURRENT_TEACHER.username || CURRENT_TEACHER.id || 'kruthanadol';
+
+            document.getElementById('teacherName').innerText = fullName;
+            document.getElementById('headerTeacherName').innerText = fullName;
+            document.getElementById('teacherCodeDisplay').innerText = `รหัส: ${teacherCode}`;
+            document.getElementById('teacherAvatar').src = teacherImg;
+            document.getElementById('headerTeacherAvatar').src = teacherImg;
+
+            await loadTrafficSummary();
+            await renderStudents();
+        }
+
+        async function loadTrafficSummary() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const { data: logs } = await db.from('attendance_logs').select('traffic_status, status').gte('check_date', today);
+
+                let green = 0, blue = 0, red = 0, purple = 0;
+                if (logs) {
+                    logs.forEach(l => {
+                        const st = l.traffic_status || (l.status === 'present' ? 'GREEN' : (l.status === 'absent' ? 'RED' : 'GREEN'));
+                        if (st === 'GREEN') green++;
+                        else if (st === 'BLUE') blue++;
+                        else if (st === 'RED') red++;
+                        else if (st === 'PURPLE') purple++;
+                    });
+                }
+
+                document.getElementById('summary-green-count').innerText = `${green} คน`;
+                document.getElementById('summary-blue-count').innerText = `${blue} คน`;
+                document.getElementById('summary-red-count').innerText = `${red} คน`;
+                document.getElementById('summary-purple-count').innerText = `${purple} คน`;
+            } catch (err) {
+                console.error('Error loadTrafficSummary:', err);
+            }
+        }
+
+        async function renderStudents() {
+            const tbody = document.getElementById('studentList');
+            if (!tbody) return;
+
+            // ตัวอย่างรายชื่อนักเรียน
+            const mockStudents = [
+                { id: 'BCW001', studentNo: 1, name: 'นายกิตติศักดิ์ มีสุข', avatar: 'https://via.placeholder.com/40' },
+                { id: 'BCW002', studentNo: 2, name: 'นางสาวจินตนา รักดี', avatar: 'https://via.placeholder.com/40' },
+                { id: 'BCW003', studentNo: 3, name: 'นายชลทิตย์ เรียนดี', avatar: 'https://via.placeholder.com/40' }
+            ];
+
+            tbody.innerHTML = mockStudents.map(s => `
+                <tr class="hover:bg-slate-50 transition" data-student-id="${s.id}">
+                    <td class="p-3 text-center font-bold text-slate-500">${s.studentNo}</td>
+                    <td class="p-3">
+                        <div class="flex items-center gap-3">
+                            <img src="${s.avatar}" class="w-9 h-9 rounded-xl object-cover border border-slate-200">
+                            <div>
+                                <div class="font-bold text-slate-800">${s.name}</div>
+                                <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${s.id}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center gap-1 font-bold text-xs">
+                            <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${s.id}" value="present" checked class="accent-emerald-600"> มา
+                            </label>
+                            <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${s.id}" value="late" class="accent-amber-600"> สาย
+                            </label>
+                            <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${s.id}" value="leave" class="accent-blue-600"> ลา
+                            </label>
+                            <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${s.id}" value="absent" class="accent-rose-600"> ขาด
+                            </label>
+                            <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${s.id}" value="truant" class="accent-purple-600"> หนี
+                            </label>
+                        </div>
+                    </td>
+                    <td class="p-3">
+                        <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function markAll(status) {
+            document.querySelectorAll(`input[type="radio"][value="${status}"]`).forEach(radio => radio.checked = true);
+        }
+
+        function changeSubject() {
+            const select = document.getElementById('subjectSelect');
+            const [code, room] = select.value.split('|');
+            document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${room}`;
+            renderStudents();
+        }
+
+        function saveHomework(e) {
+            e.preventDefault();
+            const title = document.getElementById('homeworkTitleInput').value;
+            if (!title) {
+                alert('กรุณากรอกรายละเอียดการบ้าน');
+                return;
+            }
+            alert('สั่งการบ้านเรียบร้อยแล้ว!');
+            document.getElementById('homeworkTitleInput').value = '';
+        }
+
+        function handleDirectLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('directUsernameInput').value;
+            if (!username) return;
+
+            const userProfile = {
+                username: username,
+                name: 'Thanadol Kamsamer',
+                avatar: 'https://cdn-icons-png.flaticon.com/512/847/847969.png'
+            };
+            localStorage.setItem('user_profile', JSON.stringify(userProfile));
+            document.getElementById('directLoginModal').classList.add('hidden');
+            checkAuthAndInit();
+        }
+    </script>
 </body>
 </html>
