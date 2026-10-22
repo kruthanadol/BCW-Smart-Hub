@@ -249,19 +249,18 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
 
-<!-- Direct Supabase Core Module Integration -->
+<!-- Integration with Modular ParentService -->
     <script type="module">
-        import { db } from '../../core/supabase-client.js';
+        import { ParentService } from '../../modules/parent/parent.service.js';
 
         let currentStudentId = '';
-        let currentStudentClass = '';
 
         document.addEventListener('DOMContentLoaded', async () => {
             await initParentPortal();
             setupEventListeners();
         });
 
-        // 1. ตรวจสอบ Session ผู้ปกครอง
+        // 1. เริ่มต้นระบบผู้ปกครองและตรวจสอบ Session
         async function initParentPortal() {
             const sessionStr = localStorage.getItem('parent_session') || sessionStorage.getItem('parent_session');
             if (!sessionStr) {
@@ -277,39 +276,91 @@
                 selector.innerHTML = `<option value="${currentStudentId}">${parentSession.student_name || 'นักเรียนในปกครอง'} (${currentStudentId})</option>`;
             }
 
-            await loadStudentData(currentStudentId);
+            await loadDashboardData();
         }
 
-        // 2. โหลดข้อมูลนักเรียนและกระจายลงกล่อง
-        async function loadStudentData(studentId) {
-            try {
-                // ดึงโปรไฟล์นักเรียน
-                const { data: student } = await db.from('students').select('*').eq('student_id', studentId).maybeSingle();
-                
-                if (student) {
-                    const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.full_name;
-                    currentStudentClass = student.classroom || student.class || '-';
-                    const studentNo = student.no ?? student.student_no ?? student.number ?? student.number_no ?? '-';
+        // 2. ดึงข้อมูลผ่าน ParentService และเรนเดอร์ UI
+        async function loadDashboardData() {
+            const dayName = document.getElementById('dayFilter')?.value || 'Monday';
+            
+            // เรียกข้อมูลจาก Service ในคำสั่งเดียว
+            const data = await ParentService.getDashboardData(currentStudentId, dayName);
 
-                    document.getElementById('student-fullname').textContent = fullName;
-                    document.getElementById('student-class').textContent = currentStudentClass;
-                    document.getElementById('student-no').textContent = studentNo;
-                    document.getElementById('student-behavior-score').textContent = student.behavior_score ?? 100;
+            // แสดงผลโปรไฟล์นักเรียน
+            if (data.student) {
+                document.getElementById('student-fullname').textContent = data.student.fullName;
+                document.getElementById('student-class').textContent = data.student.classroom;
+                document.getElementById('student-no').textContent = data.student.studentNo;
+                document.getElementById('student-behavior-score').textContent = data.student.behaviorScore;
 
-                    if (student.avatar_url || student.photo_url) {
-                        document.getElementById('student-avatar').src = student.avatar_url || student.photo_url;
-                    }
+                if (data.student.avatarUrl) {
+                    document.getElementById('student-avatar').src = data.student.avatarUrl;
                 }
-            } catch (e) {
-                console.warn('Student profile error:', e);
             }
 
-            // เรนเดอร์กล่องหน้าเว็บทั้งหมดโดยไม่ให้ขัดขวางกันเอง
-            renderAllUIComponents();
+            // แสดงผลสถิติการมาเรียน
+            if (data.attendanceStats) {
+                if (document.getElementById('stat-present')) document.getElementById('stat-present').innerText = data.attendanceStats.present;
+                if (document.getElementById('stat-late')) document.getElementById('stat-late').innerText = data.attendanceStats.late;
+                if (document.getElementById('stat-absent')) document.getElementById('stat-absent').innerText = data.attendanceStats.absent;
+                if (document.getElementById('stat-truant')) document.getElementById('stat-truant').innerText = data.attendanceStats.truant;
+            }
+
+            // แสดงผลตารางเรียน
+            renderSchedule(data.schedule, dayName);
+
+            // แสดงผลประวัติใบลา
+            renderLeaveHistory(data.leaveHistory);
+
+            // เรนเดอร์กล่องข้อความคงที่
+            renderStaticCards();
         }
 
-        function renderAllUIComponents() {
-            // ตั้งค่ากล่องคงที่ทั่วไป
+        // 3. เรนเดอร์กล่องตารางเรียน
+        function renderSchedule(scheduleList, dayName) {
+            const container = document.getElementById('scheduleContainer');
+            if (!container) return;
+
+            if (!scheduleList || scheduleList.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${dayName})</div>`;
+                return;
+            }
+
+            container.innerHTML = scheduleList.map(s => `
+                <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center">
+                            <span class="text-sm font-extrabold">${s.period || 1}</span>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
+                            <p class="text-[10px] text-slate-400">ห้องเรียน: ${s.room || 'ไม่ระบุ'}</p>
+                        </div>
+                    </div>
+                </div>`).join('');
+        }
+
+        // 4. เรนเดอร์ประวัติใบลา
+        function renderLeaveHistory(leaveList) {
+            const container = document.getElementById('leaveHistoryList');
+            if (!container) return;
+
+            if (!leaveList || leaveList.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการยื่นใบลา</p>`;
+                return;
+            }
+
+            container.innerHTML = leaveList.map(r => `
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-slate-800">${r.leave_type === 'sick' ? '🤒 ลาป่วย' : '🏠 ลากิจ'}</span>
+                        <p class="text-[10px] text-slate-500 mt-1">เหตุผล: ${r.reason || '-'}</p>
+                    </div>
+                </div>`).join('');
+        }
+
+        // 5. เรนเดอร์การ์ดสถานะอื่นๆ
+        function renderStaticCards() {
             const card = document.getElementById('trafficCardContainer');
             if (card) card.className = "bg-emerald-600 text-white rounded-2xl p-5 shadow-md";
 
@@ -330,105 +381,11 @@
 
             const advisorLabel = document.getElementById('advisor-display-name');
             if (advisorLabel) advisorLabel.textContent = 'ครูที่ปรึกษาประจำชั้น';
-
-            // โหลดข้อมูลไดนามิกจากฐานข้อมูล
-            loadScheduleSafe();
-            loadLeaveHistorySafe();
-            loadAttendanceStatsSafe();
         }
 
-        // 📚 ดึงตารางเรียนแบบปลอดภัย 100% (Client-side Filter)
-        async function loadScheduleSafe() {
-            const container = document.getElementById('scheduleContainer');
-            if (!container) return;
-
-            try {
-                const day = document.getElementById('dayFilter')?.value || 'Monday';
-                const { data: schedules } = await db.from('schedules').select('*');
-
-                const list = schedules ? schedules.filter(s => {
-                    const matchDay = (s.day || '').toLowerCase() === day.toLowerCase();
-                    const matchClass = (s.classroom || s.class || '') === currentStudentClass;
-                    return matchDay && matchClass;
-                }) : [];
-
-                if (list.length === 0) {
-                    container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${day})</div>`;
-                    return;
-                }
-
-                container.innerHTML = list.map(s => `
-                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center">
-                                <span class="text-sm font-extrabold">${s.period || 1}</span>
-                            </div>
-                            <div>
-                                <h4 class="text-xs font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
-                                <p class="text-[10px] text-slate-400">ห้องเรียน: ${s.room || 'ไม่ระบุ'}</p>
-                            </div>
-                        </div>
-                    </div>`).join('');
-            } catch (err) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้</div>`;
-            }
-        }
-
-        // 📝 ดึงประวัติการยื่นใบลาแบบปลอดภัย
-        async function loadLeaveHistorySafe() {
-            const container = document.getElementById('leaveHistoryList');
-            if (!container) return;
-
-            try {
-                const { data: requests } = await db.from('gatepass_requests').select('*');
-                const list = requests ? requests.filter(r => String(r.student_id) === String(currentStudentId)) : [];
-
-                if (list.length === 0) {
-                    container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการยื่นใบลา</p>`;
-                    return;
-                }
-
-                container.innerHTML = list.map(r => `
-                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center">
-                        <div>
-                            <span class="font-bold text-slate-800">${r.leave_type === 'sick' ? '🤒 ลาป่วย' : '🏠 ลากิจ'}</span>
-                            <p class="text-[10px] text-slate-500 mt-1">เหตุผล: ${r.reason || '-'}</p>
-                        </div>
-                    </div>`).join('');
-            } catch (err) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติการยื่นใบลา</p>`;
-            }
-        }
-
-        // 📊 ดึงสถิติการมาเรียนแบบปลอดภัย
-        async function loadAttendanceStatsSafe() {
-            try {
-                const { data: logs } = await db.from('attendance_logs').select('*');
-                const myLogs = logs ? logs.filter(l => String(l.student_id) === String(currentStudentId)) : [];
-
-                let present = 0, late = 0, absent = 0, truant = 0;
-                if (myLogs.length > 0) {
-                    myLogs.forEach(l => {
-                        const st = (l.status || '').toLowerCase().trim();
-                        if (st === 'present' || st === 'green' || st === 'มา') present++;
-                        else if (st === 'late' || st === 'สาย') late++;
-                        else if (st === 'absent' || st === 'red' || st === 'ขาด') absent++;
-                        else if (st === 'truant' || st === 'purple' || st === 'หนี') truant++;
-                    });
-                }
-
-                if (document.getElementById('stat-present')) document.getElementById('stat-present').innerText = present;
-                if (document.getElementById('stat-late')) document.getElementById('stat-late').innerText = late;
-                if (document.getElementById('stat-absent')) document.getElementById('stat-absent').innerText = absent;
-                if (document.getElementById('stat-truant')) document.getElementById('stat-truant').innerText = truant;
-            } catch (e) {
-                console.warn('Stats error:', e);
-            }
-        }
-
-        // 🚪 Event Listeners
+        // 6. ตั้งค่า Event Listeners
         function setupEventListeners() {
-            document.getElementById('dayFilter')?.addEventListener('change', loadScheduleSafe);
+            document.getElementById('dayFilter')?.addEventListener('change', loadDashboardData);
 
             document.getElementById('btnLogout')?.addEventListener('click', () => {
                 localStorage.removeItem('parent_session');
