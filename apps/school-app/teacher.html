@@ -369,51 +369,62 @@
                     return;
                 }
 
-                tbody.innerHTML = students.map((s, idx) => {
-                    const studentId = s.student_id || s.id;
-                    const studentNo = s.student_no || (idx + 1);
-                    const fullName = s.full_name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'นักเรียน';
-                    const avatarUrl = s.avatar_url || s.photo_url || `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.jpg`;
-
-                    return `
-                        <tr class="hover:bg-slate-50 transition" data-student-id="${studentId}">
-                            <td class="p-3 text-center font-bold text-slate-500">${studentNo}</td>
-                            <td class="p-3">
-                                <div class="flex items-center gap-3">
-                                    <img src="${avatarUrl}" 
-                                         class="w-9 h-9 rounded-xl object-cover border border-slate-200"
-                                         onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
-                                    <div>
-                                        <div class="font-bold text-slate-800">${fullName}</div>
-                                        <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${studentId}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="p-3 text-center">
-                                <div class="flex items-center justify-center gap-1 font-bold text-xs">
-                                    <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                        <input type="radio" name="att_${studentId}" value="present" checked class="accent-emerald-600"> มา
-                                    </label>
-                                    <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                        <input type="radio" name="att_${studentId}" value="late" class="accent-amber-600"> สาย
-                                    </label>
-                                    <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                        <input type="radio" name="att_${studentId}" value="leave" class="accent-blue-600"> ลา
-                                    </label>
-                                    <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                        <input type="radio" name="att_${studentId}" value="absent" class="accent-rose-600"> ขาด
-                                    </label>
-                                    <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                        <input type="radio" name="att_${studentId}" value="truant" class="accent-purple-600"> หนี
-                                    </label>
-                                </div>
-                            </td>
-                            <td class="p-3">
-                                <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
+        // โค้ดส่วนการประกอบชื่อและรูปภาพในฟังก์ชัน renderStudents()
+        tbody.innerHTML = students.map((s, idx) => {
+            const studentId = s.student_id || s.id;
+            const studentNo = s.student_no || (idx + 1);
+        
+            // 1. ดึงคอลัมน์ prefix, first_name, last_name ตรงจาก DB ตามรูปภาพ
+            const prefix = (s.prefix || '').trim();
+            const firstName = (s.first_name || '').trim();
+            const lastName = (s.last_name || '').trim();
+        
+            // 2. ต่อคำนำหน้า + ชื่อ + นามสกุล เข้าด้วยกัน
+            let fullName = `${prefix}${firstName} ${lastName}`.trim();
+            if (!fullName) fullName = s.full_name || 'นักเรียน';
+        
+            // 3. Path รูปโปรไฟล์นักเรียน (เรียงลำดับ .webp -> .jpg -> .png)
+            const avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.webp`;
+        
+            return `
+                <tr class="hover:bg-slate-50 transition" data-student-id="${studentId}">
+                    <td class="p-3 text-center font-bold text-slate-500">${studentNo}</td>
+                    <td class="p-3">
+                        <div class="flex items-center gap-3">
+                            <img src="${avatarUrl}" 
+                                 class="w-9 h-9 rounded-xl object-cover border border-slate-200"
+                                 onerror="if(this.src.endsWith('.webp')){this.src='${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.jpg';}else if(this.src.endsWith('.jpg')){this.src='${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.png';}else{this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png';}">
+                            <div>
+                                <div class="font-bold text-slate-800">${fullName}</div>
+                                <div class="text-[10px] text-slate-400">รหัสประจำตัว: ${studentId}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center gap-1 font-bold text-xs">
+                            <label class="cursor-pointer bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${studentId}" value="present" checked class="accent-emerald-600"> มา
+                            </label>
+                            <label class="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${studentId}" value="late" class="accent-amber-600"> สาย
+                            </label>
+                            <label class="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${studentId}" value="leave" class="accent-blue-600"> ลา
+                            </label>
+                            <label class="cursor-pointer bg-rose-100 text-rose-800 hover:bg-rose-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${studentId}" value="absent" class="accent-rose-600"> ขาด
+                            </label>
+                            <label class="cursor-pointer bg-purple-100 text-purple-800 hover:bg-purple-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                <input type="radio" name="att_${studentId}" value="truant" class="accent-purple-600"> หนี
+                            </label>
+                        </div>
+                    </td>
+                    <td class="p-3">
+                        <input type="text" placeholder="ระบุหมายเหตุ/ข้อความ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+                    </td>
+                </tr>
+            `;
+        }).join('');
 
             } catch (err) {
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-xs text-rose-500">เกิดข้อผิดพลาดในการดึงข้อมูลนักเรียน</td></tr>';
