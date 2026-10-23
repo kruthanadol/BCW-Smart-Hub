@@ -12,21 +12,23 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <!-- 1. Header (ปรับขนาดปุ่มและข้อความบนมือถือให้อ่านง่าย กะทัดรัด ไม่ดันหน้าจอล้น) -->
+    <!-- 1. Header (โลโก้ติดชื่อระบบ + ขยายฟอนต์ชื่อเว็บและผู้ปกครองออนไลน์ให้เด่น) -->
     <header class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white shadow-lg sticky top-0 z-50 border-b border-indigo-700/40">
         <div class="max-w-7xl mx-auto px-2.5 md:px-4 py-1.5 md:py-3 flex flex-col md:flex-row justify-between items-center gap-1.5 md:gap-2">
-            <div class="flex items-center justify-between w-full md:w-auto gap-1.5 md:gap-2">
+            <div class="flex items-center justify-between w-full md:w-auto gap-2">
                 <div class="flex items-center gap-1.5">
-                    <a href="../../landing.html" class="bg-white/10 hover:bg-white/20 px-1.5 py-0.5 md:px-3 md:py-1.5 rounded-lg md:rounded-xl text-white text-[8px] md:text-xs font-medium border border-white/10 shrink-0 transition">← หน้าหลัก</a>
+                    <a href="../../landing.html" class="bg-white/10 hover:bg-white/20 px-2 py-0.5 md:px-3 md:py-1.5 rounded-lg md:rounded-xl text-white text-[10px] md:text-xs font-medium border border-white/10 shrink-0 transition">← หน้าหลัก</a>
+                    <!-- โลโก้วางชิดติดกับชื่อระบบ -->
                     <div class="bg-white p-0.5 md:p-1 rounded-full shadow shrink-0">
-                        <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-5 h-5 md:w-8 md:h-8 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+                        <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-6 h-6 md:w-8 md:h-8 object-contain" onerror="this.src='https://via.placeholder.com/40'">
                     </div>
                 </div>
                 
                 <div class="flex items-center gap-1.5 min-w-0">
                     <div class="text-left">
-                        <h1 class="text-[9px] md:text-base font-bold leading-tight flex items-center gap-1">
-                            BCW Parent Connect <span class="text-[7px] md:text-[10px] font-normal text-indigo-300 bg-indigo-950/60 px-1 py-0.2 rounded border border-indigo-700/50">BCW</span>
+                        <!-- ขยายขนาดข้อความ BCW Parent Connect BCW ให้เด่นขึ้นมาก -->
+                        <h1 class="text-[13px] md:text-lg font-bold leading-tight flex items-center gap-1">
+                            BCW Parent Connect <span class="text-[10px] md:text-xs font-bold text-indigo-200 bg-indigo-950/80 px-1.5 py-0.2 rounded border border-indigo-500/50">BCW</span>
                         </h1>
                         <p class="hidden md:block text-xs text-indigo-200/80 mt-0.5">ระบบติดตามการเรียน พฤติกรรม และสุขภาวะนักเรียน</p>
                     </div>
@@ -34,8 +36,9 @@
             </div>
 
             <div class="flex items-center justify-between w-full md:w-auto gap-2 text-xs border-t border-indigo-800/60 pt-1 md:pt-0 md:border-t-0">
-                <span class="text-[8px] md:text-xs text-indigo-200 block md:hidden">ผู้ปกครองออนไลน์</span>
-                <button id="btnLogout" class="text-[8px] md:text-xs bg-indigo-800 hover:bg-rose-600 px-2 py-0.5 md:px-3.5 md:py-2 rounded-lg md:rounded-xl font-semibold transition border border-indigo-700 shadow-sm ml-auto md:ml-0">
+                <!-- ขยายตัวหนังสือผู้ปกครองออนไลน์ ให้ใหญ่เด่นชัดขึ้น -->
+                <span class="text-[11px] md:text-sm font-bold text-indigo-200 block md:hidden">🟢 ผู้ปกครองออนไลน์</span>
+                <button id="btnLogout" class="text-[10px] md:text-xs bg-indigo-800 hover:bg-rose-600 px-2.5 py-1 md:px-3.5 md:py-2 rounded-lg md:rounded-xl font-semibold transition border border-indigo-700 shadow-sm ml-auto md:ml-0">
                     <i class="fa-solid fa-right-from-bracket mr-1"></i> ออกจากระบบ
                 </button>
             </div>
@@ -43,263 +46,296 @@
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto w-full px-2 md:px-4 py-2 md:py-5 flex-1 space-y-2 md:space-y-5">
+    <main class="max-w-7xl mx-auto w-full px-2 md:px-4 py-2 md:py-4 flex-1 space-y-2 md:space-y-4">
         
-        <!-- ตัวเลือกสลับสิทธิ์บุตรหลาน -->
-        <div class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 p-2 md:p-3 flex justify-between items-center">
-            <span class="text-[8px] md:text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                <i class="fa-solid fa-children text-indigo-600"></i> เลือกข้อมูลนักเรียนในปกครอง:
+        <!-- 2. เลือกชื่อนักเรียน (เปลี่ยนเป็น Custom Dropdown Modal ไม่ใช้ Native Picker) -->
+        <div class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 p-1.5 md:p-3 flex justify-between items-center gap-2">
+            <span class="text-[10px] md:text-xs font-bold text-slate-600 flex items-center gap-1.5 shrink-0">
+                <i class="fa-solid fa-children text-indigo-600"></i> เลือกนักเรียนในปกครอง:
             </span>
-            <select id="childSelector" class="text-[8px] md:text-xs bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-lg md:rounded-xl px-2 py-1 md:px-3 md:py-1.5 font-bold focus:outline-none">
-                <option value="">กำลังโหลดรายการนักเรียน...</option>
-            </select>
+            <button type="button" onclick="toggleChildModal()" id="customChildBtn" class="bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-lg md:rounded-xl px-2.5 py-1 md:px-3 md:py-1.5 text-[10px] md:text-xs font-bold flex items-center justify-between gap-2 hover:bg-indigo-100 transition truncate">
+                <span id="customChildText" class="truncate">กำลังโหลดรายการ...</span>
+                <i class="fa-solid fa-chevron-down text-[9px] text-indigo-500 shrink-0"></i>
+            </button>
+            <input type="hidden" id="childSelector" value="">
         </div>
 
-        <!-- 1. Student Profile & Advisor Profile (ปรับให้ขนาดกะทัดรัดลงตัวบนมือถือ) -->
-        <div class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 p-2.5 md:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 md:gap-4">
-            <div class="flex flex-col sm:flex-row items-center gap-2.5 md:gap-4 text-center sm:text-left w-full sm:w-auto">
+        <!-- 3. Profile & Advisor (บีบความสูงลงกะทัดรัด เพื่อดันกล่องสรุป 4 กล่องขึ้นมาในหน้าแรก) -->
+        <div class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 p-2 md:p-4 flex flex-col sm:flex-row items-center justify-between gap-2 md:gap-4">
+            <div class="flex flex-row items-center gap-2 md:gap-4 text-left w-full sm:w-auto justify-between sm:justify-start">
                 <!-- กรอบรูปคู่ -->
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 shrink-0">
                     <div class="relative">
-                        <img id="student-avatar" src="https://via.placeholder.com/100?text=Student" alt="Student Photo" class="w-14 h-14 sm:w-22 sm:h-22 rounded-xl sm:rounded-2xl object-cover ring-2 sm:ring-4 ring-indigo-50 shadow-sm border border-slate-100">
-                        <span id="badge-status-dot" class="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
+                        <img id="student-avatar" src="https://via.placeholder.com/100?text=Student" alt="Student Photo" class="w-11 h-11 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl object-cover ring-2 ring-indigo-50 shadow-sm border border-slate-100">
+                        <span id="badge-status-dot" class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-4 sm:h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
                     </div>
 
-                    <div class="text-slate-300 text-[10px] sm:text-xs">
+                    <div class="text-slate-300 text-[9px] sm:text-xs">
                         <i class="fa-solid fa-link"></i>
                     </div>
 
                     <div class="flex flex-col items-center">
-                        <div class="relative w-10 h-10 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-indigo-400 bg-indigo-50 shadow-sm shrink-0">
+                        <div class="relative w-8 h-8 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-indigo-400 bg-indigo-50 shadow-sm shrink-0">
                             <img id="advisor-avatar" src="https://cdn-icons-png.flaticon.com/512/1995/1995531.png" alt="Advisor Photo" class="w-full h-full object-cover" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1995/1995531.png'">
                         </div>
-                        <span id="advisor-badge-name" class="text-[7.5px] sm:text-[9px] font-bold text-indigo-700 mt-0.5 max-w-[70px] sm:max-w-[80px] truncate text-center bg-indigo-50 px-1 py-0.2 rounded border border-indigo-100">ครูที่ปรึกษา</span>
+                        <span id="advisor-badge-name" class="text-[8px] sm:text-[9px] font-bold text-indigo-700 mt-0.5 max-w-[60px] sm:max-w-[80px] truncate text-center bg-indigo-50 px-1 py-0.2 rounded border border-indigo-100">ครูที่ปรึกษา</span>
                     </div>
                 </div>
 
-                <!-- รายละเอียดข้อมูลนักเรียน -->
-                <div class="space-y-0.5">
-                    <h2 id="student-fullname" class="text-xs sm:text-base font-bold text-slate-800">กำลังเชื่อมต่อฐานข้อมูล...</h2>
-                    <p class="text-[8px] sm:text-xs text-slate-500">ระดับชั้น: <span id="student-class" class="font-bold text-indigo-600">-</span> &bull; เลขที่: <span id="student-no">-</span></p>
-                    <p class="text-[8px] sm:text-[11px] text-slate-600 font-medium flex items-center justify-center sm:justify-start gap-1 mt-0.5">
+                <!-- รายละเอียดนักเรียน -->
+                <div class="space-y-0.5 min-w-0">
+                    <h2 id="student-fullname" class="text-[11px] sm:text-base font-bold text-slate-800 truncate">กำลังเชื่อมต่อฐานข้อมูล...</h2>
+                    <p class="text-[9.5px] sm:text-xs text-slate-500">ระดับชั้น: <span id="student-class" class="font-bold text-indigo-600">-</span> &bull; เลขที่: <span id="student-no">-</span></p>
+                    <p class="text-[9.5px] sm:text-[11px] text-slate-600 font-medium flex items-center gap-1 truncate">
                         <i class="fa-solid fa-user-tie text-indigo-600 text-[9px]"></i> 
-                        <span id="advisor-display-name" class="text-slate-700 font-bold">ครูที่ปรึกษาประจำชั้น</span>
+                        <span id="advisor-display-name" class="text-slate-700 font-bold truncate">ครูที่ปรึกษาประจำชั้น</span>
                     </p>
-                    <span id="student-status-badge" class="inline-block mt-0.5 text-[7.5px] sm:text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.2 rounded-full">สถานะ: กำลังศึกษา</span>
                 </div>
             </div>
 
             <!-- คะแนนพฤติกรรม -->
-            <div class="text-center sm:text-right bg-indigo-50/70 p-2 sm:p-3 rounded-xl sm:rounded-2xl border border-indigo-100 w-full sm:w-auto">
-                <span class="text-[8px] sm:text-[10px] text-slate-500 block font-semibold">คะแนนพฤติกรรมคงเหลือ</span>
+            <div class="text-center sm:text-right bg-indigo-50/70 p-1.5 sm:p-3 rounded-lg sm:rounded-2xl border border-indigo-100 w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end">
+                <span class="text-[9.5px] sm:text-[10px] text-slate-500 font-semibold">คะแนนพฤติกรรมคงเหลือ</span>
                 <div>
-                    <span id="student-behavior-score" class="text-base sm:text-2xl font-black text-indigo-700">100</span>
-                    <span class="text-[9px] sm:text-xs text-slate-400 font-normal">/ 100</span>
+                    <span id="student-behavior-score" class="text-sm sm:text-2xl font-black text-indigo-700">100</span>
+                    <span class="text-[10px] sm:text-xs text-slate-400 font-normal">/ 100</span>
                 </div>
             </div>
         </div>
 
-        <!-- 🌟 ปุ่มเมนูด่วน ยื่นใบลาออนไลน์ -->
-        <div class="bg-gradient-to-r from-amber-500 via-amber-600 to-indigo-700 text-white rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2.5">
-            <div class="flex items-center gap-2.5 text-center sm:text-left">
-                <div class="w-8 h-8 sm:w-12 sm:h-12 bg-white/20 backdrop-blur rounded-lg sm:rounded-2xl flex items-center justify-center text-base sm:text-2xl shrink-0 shadow-inner">📝</div>
+        <!-- 4. การ์ดสรุปยอดการมาเรียน 4 กล่อง (ดึงขึ้นมาเด่นในหน้าแรกโดยไม่ต้องสไลด์ลง) -->
+        <div class="bg-white rounded-xl sm:rounded-2xl p-1.5 sm:p-3 border border-slate-200 shadow-sm grid grid-cols-4 gap-1 sm:gap-3">
+            <div class="bg-emerald-50 border border-emerald-200 p-1 sm:p-3 rounded-lg sm:rounded-xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-0.5 sm:gap-3 text-center sm:text-left">
+                <div class="w-5 h-5 sm:w-10 sm:h-10 rounded-md sm:rounded-xl bg-emerald-600 text-white flex items-center justify-center text-[10px] sm:text-lg font-bold shrink-0"><i class="fa-solid fa-circle-check"></i></div>
                 <div>
-                    <h3 class="text-xs sm:text-lg font-black leading-snug">ยื่นใบลาออนไลน์ส่งถึงครู</h3>
-                    <p class="text-[8px] sm:text-xs text-amber-100 font-medium">ลาป่วย / ลากิจ ยื่นเรื่องด่วนผ่านระบบพร้อมยืนยันตัวตนผู้ปกครอง</p>
+                    <span class="text-[9.5px] sm:text-xs text-emerald-800 font-bold block leading-tight truncate">🟢 มาเรียน</span>
+                    <span id="stat-present" class="text-[11px] sm:text-xl font-black text-emerald-900 block mt-0.5">0</span>
                 </div>
             </div>
-            <button id="btnOpenLeaveQuick" class="w-full sm:w-auto bg-white text-indigo-900 hover:bg-amber-100 font-black px-3 py-1.5 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl text-[8px] sm:text-sm transition shadow-sm shrink-0 flex items-center justify-center gap-1.5 cursor-pointer">
+
+            <div class="bg-amber-50 border border-amber-200 p-1 sm:p-3 rounded-lg sm:rounded-xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-0.5 sm:gap-3 text-center sm:text-left">
+                <div class="w-5 h-5 sm:w-10 sm:h-10 rounded-md sm:rounded-xl bg-amber-600 text-white flex items-center justify-center text-[10px] sm:text-lg font-bold shrink-0"><i class="fa-solid fa-clock"></i></div>
+                <div>
+                    <span class="text-[9.5px] sm:text-xs text-amber-800 font-bold block leading-tight truncate">🔵 มาสาย</span>
+                    <span id="stat-late" class="text-[11px] sm:text-xl font-black text-amber-900 block mt-0.5">0</span>
+                </div>
+            </div>
+
+            <div class="bg-rose-50 border border-rose-200 p-1 sm:p-3 rounded-lg sm:rounded-xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-0.5 sm:gap-3 text-center sm:text-left">
+                <div class="w-5 h-5 sm:w-10 sm:h-10 rounded-md sm:rounded-xl bg-rose-600 text-white flex items-center justify-center text-[10px] sm:text-lg font-bold shrink-0"><i class="fa-solid fa-user-xmark"></i></div>
+                <div>
+                    <span class="text-[9.5px] sm:text-xs text-rose-800 font-bold block leading-tight truncate">🔴 ขาดเรียน</span>
+                    <span id="stat-absent" class="text-[11px] sm:text-xl font-black text-rose-900 block mt-0.5">0</span>
+                </div>
+            </div>
+
+            <div class="bg-purple-50 border border-purple-200 p-1 sm:p-3 rounded-lg sm:rounded-xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-0.5 sm:gap-3 text-center sm:text-left">
+                <div class="w-5 h-5 sm:w-10 sm:h-10 rounded-md sm:rounded-xl bg-purple-600 text-white flex items-center justify-center text-[10px] sm:text-lg font-bold shrink-0"><i class="fa-solid fa-person-running"></i></div>
+                <div>
+                    <span class="text-[9.5px] sm:text-xs text-purple-800 font-bold block leading-tight truncate">🟣 หนีเรียน</span>
+                    <span id="stat-truant" class="text-[11px] sm:text-xl font-black text-purple-900 block mt-0.5">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. ปุ่มเมนูด่วน ยื่นใบลาออนไลน์ -->
+        <div class="bg-gradient-to-r from-amber-500 via-amber-600 to-indigo-700 text-white rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-2 text-center sm:text-left">
+                <div class="w-8 h-8 sm:w-12 sm:h-12 bg-white/20 backdrop-blur rounded-lg sm:rounded-2xl flex items-center justify-center text-sm sm:text-2xl shrink-0 shadow-inner">📝</div>
+                <div>
+                    <h3 class="text-[11px] sm:text-lg font-black leading-snug">ยื่นใบลาออนไลน์ส่งถึงครู</h3>
+                    <p class="text-[9.5px] sm:text-xs text-amber-100 font-medium">ลาป่วย / ลากิจ ยื่นเรื่องด่วนพร้อมยืนยันตัวตนผู้ปกครอง</p>
+                </div>
+            </div>
+            <button id="btnOpenLeaveQuick" class="w-full sm:w-auto bg-white text-indigo-900 hover:bg-amber-100 font-black px-3 py-1.5 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl text-[10px] sm:text-sm transition shadow-sm shrink-0 flex items-center justify-center gap-1.5 cursor-pointer">
                 <i class="fa-solid fa-paper-plane text-amber-600"></i> ✍️ ยื่นใบลาใหม่ทันที
             </button>
         </div>
 
-        <!-- 2. Smart Gate Traffic Card -->
-        <div id="trafficCardContainer" class="bg-emerald-600 text-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm transition-all duration-300">
+        <!-- 6. Smart Gate Traffic Card -->
+        <div id="trafficCardContainer" class="bg-emerald-600 text-white rounded-xl sm:rounded-2xl p-2.5 sm:p-5 shadow-sm transition-all duration-300">
             <div class="flex items-start justify-between">
-                <div class="flex items-center gap-2.5">
-                    <div id="trafficIconBg" class="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-sm sm:text-2xl shadow-inner">
+                <div class="flex items-center gap-2">
+                    <div id="trafficIconBg" class="w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-xs sm:text-2xl shadow-inner">
                         <i id="trafficIcon" class="fa-solid fa-school"></i>
                     </div>
                     <div>
-                        <span class="text-[7px] sm:text-[10px] bg-black/20 px-2 py-0.2 rounded-full font-semibold uppercase tracking-wider">Smart Gate Live Status</span>
-                        <h3 id="trafficStatusTitle" class="text-xs sm:text-lg font-bold leading-tight mt-0.5">🟢 อยู่ในโรงเรียน (ปกติ)</h3>
-                        <p id="trafficStatusDesc" class="text-[8px] sm:text-xs opacity-90 font-light mt-0.5">เช็กชื่อเข้าแถวเรียบร้อยแล้ว</p>
+                        <span class="text-[8px] sm:text-[10px] bg-black/20 px-2 py-0.2 rounded-full font-semibold uppercase tracking-wider">Smart Gate Live Status</span>
+                        <h3 id="trafficStatusTitle" class="text-[11px] sm:text-lg font-bold leading-tight mt-0.5">🟢 อยู่ในโรงเรียน (ปกติ)</h3>
+                        <p id="trafficStatusDesc" class="text-[9.5px] sm:text-xs opacity-90 font-light mt-0.5">เช็กชื่อเข้าแถวเรียบร้อยแล้ว</p>
                     </div>
                 </div>
             </div>
-            <div class="mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-white/20 flex justify-between items-center text-[8px] sm:text-[11px] opacity-90">
+            <div class="mt-2 pt-2 border-t border-white/20 flex justify-between items-center text-[9.5px] sm:text-[11px] opacity-90">
                 <span><i class="fa-regular fa-clock mr-1"></i> เวลาเข้า: <strong id="timeGateIn">07:45 น.</strong></span>
                 <span>เวลาออก: <strong id="timeGateOut">--:--</strong></span>
             </div>
         </div>
 
-        <!-- 3. สถิติการมาเรียน (ปรับเลย์เอาต์การ์ดสถิติ 4 ช่องแบบไอคอน/ตัวเลขตรงกลางสไตล์ teacher.html) -->
-        <div class="bg-white rounded-xl sm:rounded-2xl p-1.5 sm:p-3 border border-slate-200 shadow-sm grid grid-cols-4 gap-1 sm:gap-3">
-            <div class="bg-emerald-50 border border-emerald-200 p-1 sm:p-3 rounded-lg sm:rounded-xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 text-center sm:text-left">
-                <div class="w-5 h-5 sm:w-10 sm:h-10 rounded-md sm:rounded-xl bg-emerald-600 text-white flex items-center justify-center text-[9px] sm:text-lg font-bold shrink-0"><i class="fa-solid fa-circle-check"></i></div>
-                <div>
-                    <span class="text-[7.5px] sm:text-xs text-emerald-700 font-bold block leading-tight truncate">🟢 มาเรียน</span>
-                    <span id="stat-present" class="text-[8.5px] sm:text-xl font-black text-emerald-900 block mt-0.5">0</span>
-                </div>
-            </div>
-
-            <div class="bg-amber-50 border border-amber-200 p-1 sm:p-3 rounded-lg sm:rounded-xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 text-center sm:text-left">
-                <div class="w-5 h-5 sm:w-10 sm:h-10 rounded-md sm:rounded-xl bg-amber-600 text-white flex items-center justify-center text-[9px] sm:text-lg font-bold shrink-0"><i class="fa-solid fa-clock"></i></div>
-                <div>
-                    <span class="text-[7.5px] sm:text-xs text-amber-700 font-bold block leading-tight truncate">🔵 มาสาย</span>
-                    <span id="stat-late" class="text-[8.5px] sm:text-xl font-black text-amber-900 block mt-0.5">0</span>
-                </div>
-            </div>
-
-            <div class="bg-rose-50 border border-rose-200 p-1 sm:p-3 rounded-lg sm:rounded-xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 text-center sm:text-left">
-                <div class="w-5 h-5 sm:w-10 sm:h-10 rounded-md sm:rounded-xl bg-rose-600 text-white flex items-center justify-center text-[9px] sm:text-lg font-bold shrink-0"><i class="fa-solid fa-user-xmark"></i></div>
-                <div>
-                    <span class="text-[7.5px] sm:text-xs text-rose-700 font-bold block leading-tight truncate">🔴 ขาดเรียน</span>
-                    <span id="stat-absent" class="text-[8.5px] sm:text-xl font-black text-rose-900 block mt-0.5">0</span>
-                </div>
-            </div>
-
-            <div class="bg-purple-50 border border-purple-200 p-1 sm:p-3 rounded-lg sm:rounded-xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 text-center sm:text-left">
-                <div class="w-5 h-5 sm:w-10 sm:h-10 rounded-md sm:rounded-xl bg-purple-600 text-white flex items-center justify-center text-[9px] sm:text-lg font-bold shrink-0"><i class="fa-solid fa-person-running"></i></div>
-                <div>
-                    <span class="text-[7.5px] sm:text-xs text-purple-700 font-bold block leading-tight truncate">🟣 หนีเรียน</span>
-                    <span id="stat-truant" class="text-[8.5px] sm:text-xl font-black text-purple-900 block mt-0.5">0</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- 4. ความเสี่ยงผลการเรียน (มส.) -->
-        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2 sm:space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5 sm:pb-2">
-                <h3 class="text-[9px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+        <!-- 7. ความเสี่ยงผลการเรียน (มส.) -->
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                <h3 class="text-[11px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                     <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> สถานะความเสี่ยงผลการเรียน & สิทธิ์สอบ (มส.)
                 </h3>
-                <span class="text-[7.5px] sm:text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.2 rounded-full font-bold">ฝ่ายวิชาการ</span>
+                <span class="text-[9.5px] sm:text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.2 rounded-full font-bold">ฝ่ายวิชาการ</span>
             </div>
-            <div id="academicRiskContainer" class="space-y-2">
-                <div class="p-2 sm:p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg sm:rounded-xl text-center text-[8px] sm:text-xs text-emerald-800 font-bold">
+            <div id="academicRiskContainer" class="space-y-1.5">
+                <div class="p-2 sm:p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg sm:rounded-xl text-center text-[10px] sm:text-xs text-emerald-800 font-bold">
                     <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา
                 </div>
             </div>
         </div>
 
-        <!-- 5. สถานะลงเวลา / ตำแหน่งในโรงเรียน -->
-        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2 sm:space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5 sm:pb-2">
-                <h3 class="text-[9px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                    <i class="fa-solid fa-location-dot text-emerald-600"></i> สถานะการลงเวลา / ตำแหน่งการใช้งานในโรงเรียน
+        <!-- 8. สถานะลงเวลา / ตำแหน่งในโรงเรียน -->
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                <h3 class="text-[11px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-dot text-emerald-600"></i> สถานะการลงเวลา / ตำแหน่งในโรงเรียน
                 </h3>
-                <span class="text-[7.5px] sm:text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded-full font-bold">เกตเวย์ & เช็คชื่อ</span>
+                <span class="text-[9.5px] sm:text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded-full font-bold">เกตเวย์ & เช็คชื่อ</span>
             </div>
             <div id="locationGateContainer">
-                <div class="p-2 sm:p-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl text-[8px] sm:text-xs flex justify-between items-center">
+                <div class="p-2 sm:p-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl text-[10px] sm:text-xs flex justify-between items-center">
                     <span class="text-slate-700 font-medium"><i class="fa-solid fa-door-open text-emerald-600 mr-1"></i> สแกนเข้าประตูโรงเรียน (BCW Smart Gate)</span>
-                    <span class="text-[7.5px] sm:text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.2 rounded">07:45 น.</span>
+                    <span class="text-[9.5px] sm:text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.2 rounded">07:45 น.</span>
                 </div>
             </div>
         </div>
 
-        <!-- 6. ตารางเรียนประจำวัน -->
-        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2 sm:space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5 sm:pb-2">
-                <h3 class="text-[9px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+        <!-- 9. ตารางเรียนประจำวัน (ปุ่มเลือกวันเป็น Custom Dropdown Modal) -->
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                <h3 class="text-[11px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                     <i class="fa-solid fa-calendar-days text-sky-600"></i> ตารางเรียนประจำวัน
                 </h3>
-                <select id="dayFilter" class="text-[8px] sm:text-xs bg-slate-100 border border-slate-200 rounded-lg sm:rounded-xl px-2 py-0.5 sm:py-1 font-semibold text-slate-700 focus:outline-none">
-                    <option value="Monday">วันจันทร์</option>
-                    <option value="Tuesday">วันอังคาร</option>
-                    <option value="Wednesday">วันพุธ</option>
-                    <option value="Thursday">วันพฤหัสบดี</option>
-                    <option value="Friday">วันศุกร์</option>
-                </select>
+                <button type="button" onclick="toggleDayModal()" id="customDayBtn" class="text-[10px] sm:text-xs bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-700 flex items-center gap-1">
+                    <span id="customDayText">วันจันทร์</span>
+                    <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+                </button>
+                <input type="hidden" id="dayFilter" value="Monday">
             </div>
-            <div id="scheduleContainer" class="space-y-1.5 sm:space-y-2">
-                <p class="text-[8px] sm:text-xs text-slate-400 text-center py-2 sm:py-3">กำลังโหลดตารางเรียน...</p>
+            <div id="scheduleContainer" class="space-y-1.5">
+                <p class="text-[10px] sm:text-xs text-slate-400 text-center py-2">กำลังโหลดตารางเรียน...</p>
             </div>
         </div>
 
-        <!-- 7. ประวัติยื่นใบลา -->
-        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2 sm:space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5 sm:pb-2">
-                <h3 class="text-[9px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+        <!-- 10. ประวัติยื่นใบลา -->
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                <h3 class="text-[11px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                     <i class="fa-solid fa-clock-rotate-left text-amber-500"></i> ประวัติการยื่นใบลาออนไลน์
                 </h3>
-                <button id="btnOpenLeaveModal" class="text-[8px] sm:text-xs bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl font-bold transition shadow-sm">
+                <button id="btnOpenLeaveModal" class="text-[10px] sm:text-xs bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded-lg font-bold transition shadow-sm">
                     <i class="fa-solid fa-plus mr-1"></i> ยื่นใบลาใหม่
                 </button>
             </div>
-            <div id="leaveHistoryList" class="space-y-1.5 sm:space-y-2">
-                <p class="text-[8px] sm:text-xs text-slate-400 text-center py-2">ไม่มีประวัติการยื่นใบลา</p>
+            <div id="leaveHistoryList" class="space-y-1.5">
+                <p class="text-[10px] sm:text-xs text-slate-400 text-center py-2">ไม่มีประวัติการยื่นใบลา</p>
             </div>
         </div>
 
-        <!-- 8. แจ้งเตือนล่าสุด -->
-        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2 sm:space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5 sm:pb-2">
-                <h3 class="text-[9px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+        <!-- 11. แจ้งเตือนล่าสุด -->
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                <h3 class="text-[11px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                     <i class="fa-solid fa-bell text-amber-500"></i> ข้อความแจ้งเตือนล่าสุด
                 </h3>
-                <span class="text-[7.5px] sm:text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.2 rounded-full font-bold">แจ้งเตือนผู้ปกครอง</span>
+                <span class="text-[9.5px] sm:text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.2 rounded-full font-bold">แจ้งเตือนผู้ปกครอง</span>
             </div>
-            <div id="notificationList" class="space-y-1.5 sm:space-y-2">
-                <p class="text-[8px] sm:text-xs text-slate-400 text-center py-2">ยังไม่มีข้อความแจ้งเตือนใหม่</p>
+            <div id="notificationList" class="space-y-1.5">
+                <p class="text-[10px] sm:text-xs text-slate-400 text-center py-2">ยังไม่มีข้อความแจ้งเตือนใหม่</p>
             </div>
         </div>
 
-        <!-- 9. ประวัติห้องพยาบาล -->
-        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2 sm:space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5 sm:pb-2">
-                <h3 class="text-[9px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                    <i class="fa-solid fa-notes-medical text-rose-500"></i> ประวัติการเข้าใช้ห้องพยาบาล / อาการป่วย
+        <!-- 12. ประวัติห้องพยาบาล -->
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                <h3 class="text-[11px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-notes-medical text-rose-500"></i> ประวัติห้องพยาบาล / อาการป่วย
                 </h3>
-                <span class="text-[7.5px] sm:text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.2 rounded-full font-bold">งานห้องพยาบาล</span>
+                <span class="text-[9.5px] sm:text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.2 rounded-full font-bold">งานห้องพยาบาล</span>
             </div>
-            <div id="clinicHistoryList" class="space-y-1.5 sm:space-y-2">
-                <p class="text-[8px] sm:text-xs text-slate-400 text-center py-2">ไม่มีประวัติการเข้ารับบริการห้องพยาบาล</p>
+            <div id="clinicHistoryList" class="space-y-1.5">
+                <p class="text-[10px] sm:text-xs text-slate-400 text-center py-2">ไม่มีประวัติการเข้ารับบริการห้องพยาบาล</p>
             </div>
         </div>
 
-        <!-- 10. รายการการบ้าน -->
-        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2 sm:space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5 sm:pb-2">
-                <h3 class="text-[9px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+        <!-- 13. รายการการบ้าน -->
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                <h3 class="text-[11px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                     <i class="fa-solid fa-book-bookmark text-indigo-600"></i> รายการการบ้าน / งานที่ได้รับมอบหมาย
                 </h3>
-                <span class="text-[7.5px] sm:text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded-full font-bold">อัปเดตจากครู</span>
+                <span class="text-[9.5px] sm:text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded-full font-bold">อัปเดตจากครู</span>
             </div>
-            <div id="homeworkList" class="space-y-1.5 sm:space-y-2">
-                <p class="text-[8px] sm:text-xs text-slate-400 text-center py-2">🎉 ปัจจุบันไม่มีการบ้านค้างส่ง</p>
+            <div id="homeworkList" class="space-y-1.5">
+                <p class="text-[10px] sm:text-xs text-slate-400 text-center py-2">🎉 ปัจจุบันไม่มีการบ้านค้างส่ง</p>
             </div>
         </div>
 
-        <!-- 11. ประวัติพฤติกรรม -->
-        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2 sm:space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5 sm:pb-2">
-                <h3 class="text-[9px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
+        <!-- 14. ประวัติพฤติกรรม -->
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                <h3 class="text-[11px] sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                     <i class="fa-solid fa-clock-rotate-left text-sky-600"></i> ประวัติการเข้าเรียนและแจ้งเตือนพฤติกรรม
                 </h3>
-                <span class="text-[7.5px] sm:text-[10px] bg-sky-50 text-sky-700 px-1.5 py-0.2 rounded-full font-bold">อัปเดตอัตโนมัติ</span>
+                <span class="text-[9.5px] sm:text-[10px] bg-sky-50 text-sky-700 px-1.5 py-0.2 rounded-full font-bold">อัปเดตอัตโนมัติ</span>
             </div>
-            <div id="behaviorLogsContainer" class="space-y-1.5 sm:space-y-2">
-                <div class="text-center py-2 sm:py-3 text-[8px] sm:text-xs text-slate-400">ยังไม่มีประวัติการบันทึกพฤติกรรม</div>
+            <div id="behaviorLogsContainer" class="space-y-1.5">
+                <div class="text-center py-2 text-[10px] sm:text-xs text-slate-400">ยังไม่มีประวัติการบันทึกพฤติกรรม</div>
             </div>
         </div>
     </main>
 
-    <!-- Modal ยื่นใบลา -->
+    <!-- Modal 1: เลือกนักเรียนในปกครอง -->
+    <div id="childModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-children text-indigo-600"></i> เลือกนักเรียนในปกครอง
+                </h3>
+                <button onclick="toggleChildModal()" class="text-slate-400 hover:text-slate-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="childModalList" class="p-2 space-y-1 text-xs">
+                <!-- Dynamic Child Options -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: เลือกวันตารางเรียน -->
+    <div id="dayModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden animate-in fade-in zoom-in duration-150">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-calendar-day text-sky-600"></i> เลือกวันตารางเรียน
+                </h3>
+                <button onclick="toggleDayModal()" class="text-slate-400 hover:text-slate-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-2 space-y-1 text-xs">
+                <button onclick="selectDayOption('Monday', 'วันจันทร์')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between"><span>วันจันทร์</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectDayOption('Tuesday', 'วันอังคาร')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between"><span>วันอังคาร</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectDayOption('Wednesday', 'วันพุธ')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between"><span>วันพุธ</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectDayOption('Thursday', 'วันพฤหัสบดี')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between"><span>วันพฤหัสบดี</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectDayOption('Friday', 'วันศุกร์')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between"><span>วันศุกร์</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: ยื่นใบลา -->
     <div id="leaveModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center hidden z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3 sm:space-y-4 shadow-xl border border-slate-100 animate-in fade-in zoom-in duration-150">
+        <div class="bg-white rounded-2xl max-w-md w-full p-4 space-y-3 shadow-xl border border-slate-100 animate-in fade-in zoom-in duration-150">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2">
                 <div>
                     <h3 class="text-xs sm:text-sm font-bold text-slate-800">ยื่นใบลาออนไลน์ (ยืนยันสิทธิ์ผู้ปกครอง)</h3>
-                    <p class="text-[8px] sm:text-[10px] text-slate-400">กรอกข้อมูลให้ครบถ้วนเพื่อส่งถึงครูที่ปรึกษา</p>
+                    <p class="text-[9.5px] sm:text-[10px] text-slate-400">กรอกข้อมูลให้ครบถ้วนเพื่อส่งถึงครูที่ปรึกษา</p>
                 </div>
-                <button id="btnCloseLeaveModal" class="text-slate-400 hover:text-slate-600 text-xs sm:text-sm p-1"><i class="fa-solid fa-xmark"></i></button>
+                <button id="btnCloseLeaveModal" class="text-slate-400 hover:text-slate-600 text-xs p-1"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form id="leaveForm" class="space-y-2.5 sm:space-y-3 text-[8px] sm:text-xs">
+            <form id="leaveForm" class="space-y-2.5 text-[10px] sm:text-xs">
                 <div>
                     <label class="font-bold text-slate-700 block mb-1">ประเภทการลา</label>
-                    <select id="leaveType" required class="w-full bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl p-1.5 sm:p-2 font-semibold">
+                    <select id="leaveType" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 font-semibold">
                         <option value="sick">🤒 ลาป่วย</option>
                         <option value="personal">🏠 ลากิจ</option>
                     </select>
@@ -307,41 +343,63 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">ตั้งแต่วันที่</label>
-                        <input type="date" id="startDate" required class="w-full bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl p-1.5 sm:p-2">
+                        <input type="date" id="startDate" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">ถึงวันที่</label>
-                        <input type="date" id="endDate" required class="w-full bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl p-1.5 sm:p-2">
+                        <input type="date" id="endDate" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5">
                     </div>
                 </div>
                 <div>
                     <label class="font-bold text-slate-700 block mb-1">สาเหตุการลา</label>
-                    <textarea id="leaveReason" rows="2" required placeholder="ระบุเหตุผลการลา..." class="w-full bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl p-1.5 sm:p-2"></textarea>
+                    <textarea id="leaveReason" rows="2" required placeholder="ระบุเหตุผลการลา..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5"></textarea>
                 </div>
-                <div class="bg-indigo-50/80 p-2.5 sm:p-3 rounded-lg sm:rounded-xl border border-indigo-100 space-y-2">
-                    <span class="text-[9px] sm:text-[11px] font-bold text-indigo-900 block"><i class="fa-solid fa-shield-halved mr-1 text-indigo-600"></i> ยืนยันสิทธิ์ผู้ปกครอง</span>
+                <div class="bg-indigo-50/80 p-2.5 rounded-lg border border-indigo-100 space-y-2">
+                    <span class="text-[10px] sm:text-[11px] font-bold text-indigo-900 block"><i class="fa-solid fa-shield-halved mr-1 text-indigo-600"></i> ยืนยันสิทธิ์ผู้ปกครอง</span>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[8px] sm:text-[10px] font-semibold text-slate-600 block mb-0.5">เบอร์โทรศัพท์ผู้ปกครอง</label>
-                            <input type="tel" id="parentPhone" required placeholder="08X-XXX-XXXX" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[8px] sm:text-xs">
+                            <label class="text-[9.5px] sm:text-[10px] font-semibold text-slate-600 block mb-0.5">เบอร์โทรศัพท์ผู้ปกครอง</label>
+                            <input type="tel" id="parentPhone" required placeholder="08X-XXX-XXXX" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[10px]">
                         </div>
                         <div>
-                            <label class="text-[8px] sm:text-[10px] font-semibold text-slate-600 block mb-0.5">รหัส PIN ผู้ปกครอง (4 หลัก)</label>
-                            <input type="password" id="parentPin" maxlength="6" required placeholder="****" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[8px] sm:text-xs text-center font-bold tracking-widest">
+                            <label class="text-[9.5px] sm:text-[10px] font-semibold text-slate-600 block mb-0.5">รหัส PIN ผู้ปกครอง (4 หลัก)</label>
+                            <input type="password" id="parentPin" maxlength="6" required placeholder="****" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[10px] text-center font-bold tracking-widest">
                         </div>
                     </div>
                 </div>
                 <div class="pt-1.5 flex justify-end gap-2">
-                    <button type="button" id="btnCancelLeave" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg sm:rounded-xl font-bold">ยกเลิก</button>
-                    <button type="submit" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg sm:rounded-xl font-bold hover:bg-indigo-700 shadow-sm">ส่งใบลา</button>
+                    <button type="button" id="btnCancelLeave" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg font-bold">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 shadow-sm">ส่งใบลา</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-[8px] sm:text-xs py-2 sm:py-3">
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-[9.5px] sm:text-xs py-2 sm:py-3">
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Parent Notification System
     </footer>
+
+    <!-- Global Dropdown Control Scripts -->
+    <script>
+        function toggleChildModal() {
+            const m = document.getElementById('childModal');
+            if (m) m.classList.toggle('hidden');
+        }
+
+        function toggleDayModal() {
+            const m = document.getElementById('dayModal');
+            if (m) m.classList.toggle('hidden');
+        }
+
+        function selectDayOption(val, label) {
+            document.getElementById('dayFilter').value = val;
+            document.getElementById('customDayText').innerText = label;
+            toggleDayModal();
+            // Trigger Change Event
+            const evt = new Event('change');
+            document.getElementById('dayFilter').dispatchEvent(evt);
+        }
+    </script>
 
     <!-- Integration with Modular ParentService -->
     <script type="module">
@@ -365,10 +423,26 @@
                 const parentSession = JSON.parse(sessionStr);
                 currentStudentId = parentSession.student_id;
 
-                const selector = document.getElementById('childSelector');
-                if (selector) {
-                    selector.innerHTML = `<option value="${currentStudentId}">${parentSession.student_name || 'นักเรียนในปกครอง'} (${currentStudentId})</option>`;
+                const childModalList = document.getElementById('childModalList');
+                if (childModalList) {
+                    childModalList.innerHTML = `
+                        <button onclick="window.selectChildOption('${currentStudentId}', '${parentSession.student_name || 'นักเรียนในปกครอง'}')" class="w-full text-left p-2.5 rounded-xl hover:bg-indigo-50 font-medium transition flex justify-between">
+                            <span>${parentSession.student_name || 'นักเรียนในปกครอง'} (${currentStudentId})</span>
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        </button>
+                    `;
                 }
+
+                document.getElementById('customChildText').innerText = `${parentSession.student_name || 'นักเรียน'} (${currentStudentId})`;
+                document.getElementById('childSelector').value = currentStudentId;
+
+                window.selectChildOption = (id, name) => {
+                    currentStudentId = id;
+                    document.getElementById('childSelector').value = id;
+                    document.getElementById('customChildText').innerText = `${name} (${id})`;
+                    toggleChildModal();
+                    loadDashboardData();
+                };
 
                 await loadDashboardData();
             } catch (err) {
@@ -381,7 +455,6 @@
                 const dayName = document.getElementById('dayFilter')?.value || 'Monday';
                 const data = await ParentService.getDashboardData(currentStudentId, dayName);
 
-                // เรนเดอร์ข้อมูลโปรไฟล์นักเรียน
                 if (data && data.student) {
                     if (document.getElementById('student-fullname')) document.getElementById('student-fullname').textContent = data.student.fullName;
                     if (document.getElementById('student-class')) document.getElementById('student-class').textContent = data.student.classroom;
@@ -393,7 +466,6 @@
                     }
                 }
 
-                // เรนเดอร์กล่องตารางเรียน
                 renderSchedule(data ? data.schedule : [], dayName);
 
             } catch (err) {
@@ -406,19 +478,19 @@
             if (!container) return;
 
             if (!scheduleList || scheduleList.length === 0) {
-                container.innerHTML = `<div class="p-3 text-center text-[8px] sm:text-xs text-slate-400 bg-slate-50 rounded-lg sm:rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${dayName})</div>`;
+                container.innerHTML = `<div class="p-2.5 text-center text-[10px] sm:text-xs text-slate-400 bg-slate-50 rounded-lg sm:rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${dayName})</div>`;
                 return;
             }
 
             container.innerHTML = scheduleList.map(s => `
                 <div class="flex items-center justify-between p-2 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-lg sm:rounded-xl mb-1.5 sm:mb-2">
                     <div class="flex items-center gap-2 sm:gap-3">
-                        <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-100 text-indigo-700 font-bold text-[8px] sm:text-xs flex flex-col items-center justify-center">
+                        <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-100 text-indigo-700 font-bold text-[9px] sm:text-xs flex flex-col items-center justify-center">
                             <span class="text-xs sm:text-sm font-extrabold">${s.period || 1}</span>
                         </div>
                         <div>
-                            <h4 class="text-[8px] sm:text-xs font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
-                            <p class="text-[7.5px] sm:text-[10px] text-slate-400">ห้องเรียน: ${s.room || 'ไม่ระบุ'}</p>
+                            <h4 class="text-[10px] sm:text-xs font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
+                            <p class="text-[9px] sm:text-[10px] text-slate-400">ห้องเรียน: ${s.room || 'ไม่ระบุ'}</p>
                         </div>
                     </div>
                 </div>`).join('');
