@@ -25,7 +25,8 @@
         }
     </script>
     <style>
-        html { font-size: 18px; }
+        html { font-size: 17px; }
+        @media (min-width: 768px) { html { font-size: 19px; } }
         body { font-family: 'Kanit', 'Sarabun', sans-serif; background-color: #f1f5f9; color: #0f172a; }
         .card-friendly {
             background: #ffffff;
@@ -38,88 +39,81 @@
             transform: translateY(-4px);
             box-shadow: 0 16px 28px -6px rgba(5, 150, 105, 0.2);
         }
-        .touch-btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+        .touch-btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- 2. Top Bar (ข้อ 2: BCW SMART HUB อยู่บรรทัดแรก / นาฬิกา + ปุ่มไอคอนลูกศรชี้ออกแบนลงอยู่อีกบรรทัดบนมือถือ) -->
-    <div class="bg-emerald-950 text-white py-2 px-3 sm:px-6 shadow-md border-b-2 border-emerald-800 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-1.5 md:gap-2">
+    <!-- 1. Top Bar: แสดงบรรทัดเดียว ซ่อนข้อความซ้ำบนมือถือ -->
+    <div class="bg-emerald-950 text-white py-1.5 px-3 sm:px-6 shadow-md border-b-2 border-emerald-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center text-xs sm:text-sm">
             
-            <!-- บรรทัดแรกบนมือถือ: BCW SMART HUB -->
-            <div class="flex items-center justify-between w-full md:w-auto">
-                <span class="bg-emerald-700 text-amber-200 px-3 py-1 rounded-lg shadow-sm font-black tracking-wide text-base md:text-lg">
+            <!-- บนคอมแสดงชื่อระบบ / บนมือถือแสดงเฉพาะวันที่และเวลา -->
+            <div class="flex items-center gap-2 font-medium overflow-hidden">
+                <span class="hidden md:inline-block bg-emerald-700 text-amber-200 px-2.5 py-0.5 rounded-md font-extrabold tracking-wide text-sm shrink-0">
                     🏫 BCW SMART HUB
                 </span>
-                
-                <!-- ปุ่มออกจากระบบไอคอนลูกศรชี้ออกบนมือถือ -->
-                <button type="button" onclick="handleLogout()" class="md:hidden bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded-lg font-bold text-xs shadow flex items-center gap-1 border border-rose-500">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
+                <span id="thaiDateStr" class="text-emerald-100 truncate"></span>
+                <span class="text-emerald-500">•</span>
+                <span class="font-mono text-amber-300 bg-emerald-900/90 px-2 py-0.5 rounded border border-emerald-700 shrink-0">
+                    ⏰ <span id="liveClock">00:00:00</span> น.
+                </span>
             </div>
 
-            <!-- บรรทัดที่สองบนมือถือ: วันที่ + นาฬิกา + ออกจากระบบบนคอม -->
-            <div class="flex items-center justify-between w-full md:w-auto gap-2 border-t border-emerald-800/80 md:border-t-0 pt-1 md:pt-0">
-                <div class="flex items-center gap-2 text-xs md:text-sm">
-                    <span id="thaiDateStr" class="text-emerald-100 font-medium"></span>
-                    <span class="text-emerald-400">|</span>
-                    <span class="font-mono text-amber-300 text-xs md:text-sm bg-emerald-900/90 px-2.5 py-0.5 md:px-3 md:py-1 rounded-md border border-emerald-700 shadow-inner">
-                        ⏰ <span id="liveClock">00:00:00</span> น.
-                    </span>
-                </div>
-
-                <button type="button" onclick="handleLogout()" class="hidden md:flex bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-xl font-bold text-xs md:text-sm shadow items-center gap-1.5 transition">
+            <!-- ปุ่มออกจากระบบไอคอนกระชับบนมือถือ -->
+            <div class="flex items-center gap-2 shrink-0 ml-2">
+                <button type="button" onclick="handleLogout()" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded-lg font-bold shadow flex items-center gap-1 border border-rose-500 text-xs">
                     <i class="fa-solid fa-right-from-bracket"></i>
-                    <span>ออกจากระบบ</span>
+                    <span class="hidden sm:inline">ออกจากระบบ</span>
                 </button>
             </div>
 
         </div>
     </div>
 
-    <!-- 3. Main Branding Header (ข้อ 3: โลโก้อยู่บนตามด้วยชื่อ รรร. ขยายขนาดให้ใหญ่เด่นกว่าการ์ด 8 กล่อง) -->
+    <!-- Main Branding Header -->
     <header class="bg-white border-b-2 md:border-b-4 border-emerald-600 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 md:py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
             
-            <!-- ฝั่งซ้าย: โลโก้ด้านบน + ชื่อโรงเรียนเด่นสง่า -->
-            <div class="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 md:gap-4 w-full md:w-auto">
-                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl flex items-center justify-center p-1.5 shadow-lg border-2 border-emerald-500 shrink-0">
+            <!-- โลโก้และชื่อโรงเรียน -->
+            <div class="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 w-full md:w-auto">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-2xl flex items-center justify-center p-1 shadow-md border-2 border-emerald-500 shrink-0">
                     <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="w-full h-full object-contain" onerror="this.src='https://via.placeholder.com/80?text=BCW'">
                 </div>
                 <div>
-                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+                    <h1 class="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">
                         โรงเรียนบัวเชดวิทยา
                     </h1>
-                    <!-- บรรทัดที่ 2: BCW Smart Hub เพิ่มขนาด +3px -->
-                    <div class="mt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                        <span class="text-sm sm:text-base md:text-lg font-bold bg-emerald-100 text-emerald-900 border border-emerald-400 px-3 py-0.5 rounded-full shadow-xs">
+                    <div class="mt-0.5 flex flex-wrap items-center justify-center sm:justify-start gap-1.5">
+                        <span class="text-xs sm:text-sm md:text-base font-bold bg-emerald-100 text-emerald-900 border border-emerald-400 px-2.5 py-0.2 rounded-full">
                             BCW Smart Hub App
                         </span>
-                        <span class="text-xs sm:text-sm text-slate-500 font-semibold">Buachedwittaya School Management System</span>
+                        <span class="text-[11px] sm:text-xs text-slate-500 font-semibold">Buachedwittaya School Management System</span>
                     </div>
                 </div>
             </div>
 
-            <!-- ฝั่งขวา: User Profile Badge -->
+            <!-- 2. กล่องโปรไฟล์ครูที่ปรับให้กระชับ ไม่ใหญ่เทอะทะ -->
             <div class="w-full md:w-auto flex justify-center md:justify-end">
-                <div class="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300/80 px-4 py-2.5 rounded-2xl shadow-sm">
-                    <div id="user_avatar_img" class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-600 text-white font-extrabold flex items-center justify-center text-lg md:text-xl shadow shrink-0 overflow-hidden">
-                        👤
-                    </div>
-                    <div class="text-left">
-                        <div class="flex items-center gap-2">
-                            <span id="user_display_name" class="font-black text-slate-800 text-sm md:text-base leading-tight">
-                                กำลังโหลดข้อมูล...
-                            </span>
-                            <span id="user_display_role" class="bg-emerald-700 text-amber-200 text-[10px] md:text-xs font-black px-2 py-0.5 rounded-md shadow-sm">
-                                TEACHER
-                            </span>
+                <div class="w-full sm:w-auto inline-flex items-center justify-between sm:justify-start gap-2.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300/80 px-3 py-1.5 rounded-xl shadow-xs">
+                    <div class="flex items-center gap-2.5">
+                        <div id="user_avatar_img" class="w-8 h-8 rounded-lg bg-emerald-600 text-white font-extrabold flex items-center justify-center text-sm shadow shrink-0 overflow-hidden">
+                            👤
                         </div>
-                        <div class="text-xs text-slate-500 font-bold flex items-center gap-2 mt-0.5">
-                            <span id="user_display_id">รหัส: T024</span>
-                            <span class="text-emerald-400">•</span>
-                            <span class="text-emerald-700 font-semibold">เข้าสู่ระบบแล้ว</span>
+                        <div class="text-left">
+                            <div class="flex items-center gap-1.5">
+                                <span id="user_display_name" class="font-black text-slate-800 text-xs sm:text-sm leading-tight truncate">
+                                    กำลังโหลดข้อมูล...
+                                </span>
+                                <span id="user_display_role" class="bg-emerald-700 text-amber-200 text-[9px] font-black px-1.5 py-0.2 rounded shrink-0">
+                                    TEACHER
+                                </span>
+                            </div>
+                            <div class="text-[10px] text-slate-500 font-bold flex items-center gap-1.5 mt-0.2">
+                                <span id="user_display_id">รหัส: T024</span>
+                                <span class="text-emerald-400">•</span>
+                                <span class="text-emerald-700 font-semibold">เข้าสู่ระบบแล้ว</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -129,224 +123,222 @@
     </header>
 
     <!-- Main Content Grid -->
-    <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6 my-auto">
+    <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-3 sm:py-6 space-y-3 sm:space-y-6 my-auto">
 
-        <!-- 4. Summary Bar (ข้อ 4: เพิ่มสถานะ "หนี" เข้าในสรุปเช็กชื่อวันนี้ให้ครบ 4 สถานะ และจัดสมูท) -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <!-- 2. สรุปสถิติ 4 กล่องแบบ Horizontal List แนวยาว (อ่านง่าย ไม่โดนตัดขอบ ...) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             
-            <div class="bg-white border-2 border-slate-300 rounded-2xl p-3.5 md:p-4 flex items-center gap-3 shadow-sm">
-                <div class="w-10 h-10 md:w-13 md:h-13 rounded-xl bg-emerald-100 text-emerald-900 flex items-center justify-center text-xl md:text-2xl font-bold shrink-0">👨‍🎓</div>
-                <div>
-                    <div class="text-xs md:text-sm text-slate-600 font-bold">นักเรียนทั้งหมด</div>
-                    <div id="statTotalStudentsLanding" class="text-base md:text-xl font-black text-slate-900"><span id="total_students_count">0</span> คน</div>
+            <div class="bg-white border-2 border-slate-200 rounded-xl p-3 flex items-center justify-between shadow-xs">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-900 flex items-center justify-center text-lg font-bold shrink-0">👨‍🎓</div>
+                    <span class="text-xs sm:text-sm text-slate-700 font-bold">นักเรียนทั้งหมด</span>
+                </div>
+                <div id="statTotalStudentsLanding" class="text-base sm:text-lg font-black text-slate-900"><span id="total_students_count">0</span> คน</div>
+            </div>
+
+            <div class="bg-white border-2 border-teal-200 rounded-xl p-3 flex items-center justify-between shadow-xs">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-lg bg-teal-100 text-teal-900 flex items-center justify-center text-lg shrink-0 font-bold">✅</div>
+                    <span class="text-xs sm:text-sm text-slate-700 font-bold truncate">มาเรียนวันนี้</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-right shrink-0">
+                    <span id="statPresentCountLanding" class="text-base sm:text-lg font-black text-emerald-700">0</span>
+                    <span class="text-xs text-slate-500 font-bold">คน</span>
+                    <span id="statPresentPercentLanding" class="text-xs font-extrabold text-emerald-700 bg-emerald-100/80 border border-emerald-300 px-1.5 py-0.2 rounded">
+                        (0.0%)
+                    </span>
                 </div>
             </div>
 
-            <div class="bg-white border-2 border-teal-300 rounded-2xl p-3.5 md:p-4 flex items-center gap-3 shadow-sm">
-                <div class="w-10 h-10 md:w-13 md:h-13 rounded-xl bg-teal-100 text-teal-900 flex items-center justify-center text-xl md:text-2xl shrink-0 font-bold">✅</div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-xs md:text-sm text-slate-600 font-bold truncate">มาเรียนวันนี้</div>
-                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <span id="statPresentCountLanding" class="text-base md:text-xl font-black text-emerald-700">0</span>
-                        <span class="text-xs text-slate-500 font-bold">คน</span>
-                        <span id="statPresentPercentLanding" class="text-xs font-extrabold text-emerald-700 bg-emerald-100/80 border border-emerald-300 px-1.5 py-0.2 rounded-md">
-                            (0.0%)
-                        </span>
-                    </div>
+            <div class="bg-white border-2 border-amber-200 rounded-xl p-3 flex items-center justify-between shadow-xs">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center text-lg font-bold shrink-0">🏥</div>
+                    <span class="text-xs sm:text-sm text-slate-700 font-bold">พักห้องพยาบาล</span>
                 </div>
+                <div id="statClinicLanding" class="text-base sm:text-lg font-black text-amber-800">0 คน</div>
             </div>
 
-            <div class="bg-white border-2 border-amber-300 rounded-2xl p-3.5 md:p-4 flex items-center gap-3 shadow-sm">
-                <div class="w-10 h-10 md:w-13 md:h-13 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center text-xl md:text-2xl font-bold shrink-0">🏥</div>
-                <div>
-                    <div class="text-xs md:text-sm text-slate-600 font-bold">พักห้องพยาบาล</div>
-                    <div id="statClinicLanding" class="text-base md:text-xl font-black text-amber-800">0 คน</div>
+            <div class="bg-white border-2 border-rose-200 rounded-xl p-2.5 sm:p-3 flex items-center justify-between shadow-xs">
+                <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center text-lg shrink-0 font-bold">📊</div>
+                    <span class="text-xs sm:text-sm text-slate-700 font-bold">เช็กชื่อวันนี้</span>
                 </div>
-            </div>
-
-            <!-- เพิ่มสถานะ "หนี" เข้ามาให้สมบูรณ์ครบ 4 สถิติ -->
-            <div class="bg-white border-2 border-rose-300 rounded-2xl p-3.5 md:p-4 flex items-center gap-3 shadow-sm">
-                <div class="w-10 h-10 md:w-13 md:h-13 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center text-xl md:text-2xl shrink-0 font-bold">📊</div>
-                <div class="w-full min-w-0">
-                    <div class="text-xs md:text-sm text-slate-600 font-bold mb-1 truncate">สรุปการเช็กชื่อวันนี้</div>
-                    <div class="grid grid-cols-2 gap-1 text-[11px] md:text-xs font-black">
-                        <span class="text-rose-600 bg-rose-50 border border-rose-200 px-1 py-0.2 rounded text-center truncate">ขาด <strong id="statAbsentLanding">0</strong></span>
-                        <span class="text-amber-600 bg-amber-50 border border-amber-200 px-1 py-0.2 rounded text-center truncate">สาย <strong id="statLateLanding">0</strong></span>
-                        <span class="text-sky-600 bg-sky-50 border border-sky-200 px-1 py-0.2 rounded text-center truncate">ลา <strong id="statLeaveLanding">0</strong></span>
-                        <span class="text-purple-600 bg-purple-50 border border-purple-200 px-1 py-0.2 rounded text-center truncate">หนี <strong id="statTruantLanding">0</strong></span>
-                    </div>
+                <div class="flex items-center gap-1 text-[11px] font-black">
+                    <span class="text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">ขาด <strong id="statAbsentLanding">0</strong></span>
+                    <span class="text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">สาย <strong id="statLateLanding">0</strong></span>
+                    <span class="text-sky-600 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded">ลา <strong id="statLeaveLanding">0</strong></span>
+                    <span class="text-purple-600 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded">หนี <strong id="statTruantLanding">0</strong></span>
                 </div>
             </div>
 
         </div>
 
-        <!-- 8 Core Cards Grid (ข้อ 5: เพิ่มขนาดข้อความเนื้อหาใน 8 กล่องขึ้น +3px) -->
-        <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <!-- 8 Core Cards Grid -->
+        <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-6">
 
             <!-- 1. Executive Command Center -->
-            <div class="card-item card-friendly rounded-3xl p-5 md:p-6 flex flex-col justify-between">
-                <div class="space-y-3">
+            <div class="card-item card-friendly rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between">
+                <div class="space-y-2 md:space-y-3">
                     <div class="flex justify-between items-start">
-                        <div class="w-14 h-14 md:w-16 md:h-16 bg-emerald-100 border-2 border-emerald-300 rounded-2xl flex items-center justify-center text-2xl md:text-3xl">🏛️</div>
-                        <span class="text-xs font-black bg-emerald-800 text-emerald-100 px-3 py-1 rounded-full">EXECUTIVE</span>
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-emerald-100 border border-emerald-300 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl">🏛️</div>
+                        <span class="text-[10px] md:text-xs font-black bg-emerald-800 text-emerald-100 px-2.5 py-0.5 rounded-full">EXECUTIVE</span>
                     </div>
                     <div>
-                        <div class="text-sm md:text-base font-extrabold text-emerald-800">ผู้บริหารโรงเรียน</div>
-                        <h3 class="text-xl md:text-2xl font-black text-slate-900 mt-1">Executive Command</h3>
-                        <!-- เพิ่มขนาดข้อความเนื้อหาขึ้น +3px -->
-                        <p class="text-sm md:text-base text-slate-700 font-medium mt-2 leading-relaxed">ศูนย์สั่งการพรีวิวสถิติ Real-time สรุปสารสนเทศเชิงลึกเพื่อการตัดสินใจ</p>
+                        <div class="text-xs md:text-sm font-extrabold text-emerald-800">ผู้บริหารโรงเรียน</div>
+                        <h3 class="text-lg md:text-xl font-black text-slate-900 mt-0.5">Executive Command</h3>
+                        <p class="text-xs md:text-sm text-slate-700 font-medium mt-1 leading-snug">ศูนย์สั่งการพรีวิวสถิติ Real-time สรุปสารสนเทศเชิงลึกเพื่อการตัดสินใจ</p>
                     </div>
                 </div>
-                <div class="mt-6 pt-4 border-t-2 border-slate-200 flex justify-between items-center">
+                <div class="mt-4 md:mt-6 pt-3 border-t border-slate-200 flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">สำหรับผู้บริหาร</span>
-                    <button type="button" id="btnOpenExecutive" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl text-xs md:text-sm font-black transition shadow-md touch-btn cursor-pointer">
+                    <button type="button" id="btnOpenExecutive" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-black transition shadow touch-btn cursor-pointer">
                         ดู Dashboard ➔
                     </button>
                 </div>
             </div>
 
             <!-- 2. Super Admin Control -->
-            <div class="card-item card-friendly rounded-3xl p-5 md:p-6 flex flex-col justify-between">
-                <div class="space-y-3">
+            <div class="card-item card-friendly rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between">
+                <div class="space-y-2 md:space-y-3">
                     <div class="flex justify-between items-start">
-                        <div class="w-14 h-14 md:w-16 md:h-16 bg-slate-100 border-2 border-slate-300 rounded-2xl flex items-center justify-center text-2xl md:text-3xl">⚙️</div>
-                        <span class="text-xs font-black bg-slate-800 text-slate-100 px-3 py-1 rounded-full">SUPER ADMIN</span>
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-slate-100 border border-slate-300 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl">⚙️</div>
+                        <span class="text-[10px] md:text-xs font-black bg-slate-800 text-slate-100 px-2.5 py-0.5 rounded-full">SUPER ADMIN</span>
                     </div>
                     <div>
-                        <div class="text-sm md:text-base font-extrabold text-slate-700">ผู้ดูแลระบบสารสนเทศ</div>
-                        <h3 class="text-xl md:text-2xl font-black text-slate-900 mt-1">Admin Control</h3>
-                        <p class="text-sm md:text-base text-slate-700 font-medium mt-2 leading-relaxed">ระบบจัดการสิทธิ์ผู้ใช้งาน (RBAC) และการตั้งค่าฐานข้อมูล</p>
+                        <div class="text-xs md:text-sm font-extrabold text-slate-700">ผู้ดูแลระบบสารสนเทศ</div>
+                        <h3 class="text-lg md:text-xl font-black text-slate-900 mt-0.5">Admin Control</h3>
+                        <p class="text-xs md:text-sm text-slate-700 font-medium mt-1 leading-snug">ระบบจัดการสิทธิ์ผู้ใช้งาน (RBAC) และการตั้งค่าฐานข้อมูล</p>
                     </div>
                 </div>
-                <div class="mt-6 pt-4 border-t-2 border-slate-200 flex justify-between items-center">
+                <div class="mt-4 md:mt-6 pt-3 border-t border-slate-200 flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">สำหรับแอดมิน</span>
-                    <button type="button" id="btnOpenAdminAuth" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl text-xs md:text-sm font-black transition shadow-md touch-btn cursor-pointer">
+                    <button type="button" id="btnOpenAdminAuth" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-black transition shadow touch-btn cursor-pointer">
                         เข้าสู่ระบบ 🔒
                     </button>
                 </div>
             </div>
 
             <!-- 3. Teacher Portal -->
-            <div class="card-item card-friendly rounded-3xl p-5 md:p-6 flex flex-col justify-between">
-                <div class="space-y-3">
+            <div class="card-item card-friendly rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between">
+                <div class="space-y-2 md:space-y-3">
                     <div class="flex justify-between items-start">
-                        <div class="w-14 h-14 md:w-16 md:h-16 bg-teal-100 border-2 border-teal-300 rounded-2xl flex items-center justify-center text-2xl md:text-3xl">👨‍🏫</div>
-                        <span class="text-xs font-black bg-teal-800 text-teal-100 px-3 py-1 rounded-full">TEACHER</span>
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-teal-100 border border-teal-300 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl">👨‍🏫</div>
+                        <span class="text-[10px] md:text-xs font-black bg-teal-800 text-teal-100 px-2.5 py-0.5 rounded-full">TEACHER</span>
                     </div>
                     <div>
-                        <div class="text-sm md:text-base font-extrabold text-teal-800">ครูผู้สอนประจำวิชา</div>
-                        <h3 class="text-xl md:text-2xl font-black text-slate-900 mt-1">Teacher Portal</h3>
-                        <p class="text-sm md:text-base text-slate-700 font-medium mt-2 leading-relaxed">เช็กชื่อเข้าเรียนประจำคาบ สั่งการบ้าน และ Click-to-Call</p>
+                        <div class="text-xs md:text-sm font-extrabold text-teal-800">ครูผู้สอนประจำวิชา</div>
+                        <h3 class="text-lg md:text-xl font-black text-slate-900 mt-0.5">Teacher Portal</h3>
+                        <p class="text-xs md:text-sm text-slate-700 font-medium mt-1 leading-snug">เช็กชื่อเข้าเรียนประจำคาบ สั่งการบ้าน และ Click-to-Call</p>
                     </div>
                 </div>
-                <div class="mt-6 pt-4 border-t-2 border-slate-200 flex justify-between items-center">
+                <div class="mt-4 md:mt-6 pt-3 border-t border-slate-200 flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">สำหรับครูผู้สอน</span>
-                    <a href="apps/school-app/teacher.html" class="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl text-xs md:text-sm font-black transition shadow-md touch-btn">
+                    <a href="apps/school-app/teacher.html" class="bg-teal-700 hover:bg-teal-800 text-white px-3.5 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-black transition shadow touch-btn">
                         เข้าสู่ระบบ ➔
                     </a>
                 </div>
             </div>
 
             <!-- 4. Academic Center -->
-            <div class="card-item card-friendly rounded-3xl p-5 md:p-6 flex flex-col justify-between">
-                <div class="space-y-3">
+            <div class="card-item card-friendly rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between">
+                <div class="space-y-2 md:space-y-3">
                     <div class="flex justify-between items-start">
-                        <div class="w-14 h-14 md:w-16 md:h-16 bg-sky-100 border-2 border-sky-300 rounded-2xl flex items-center justify-center text-2xl md:text-3xl">📚</div>
-                        <span class="text-xs font-black bg-sky-800 text-sky-100 px-3 py-1 rounded-full">ACADEMIC</span>
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-sky-100 border border-sky-300 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl">📚</div>
+                        <span class="text-[10px] md:text-xs font-black bg-sky-800 text-sky-100 px-2.5 py-0.5 rounded-full">ACADEMIC</span>
                     </div>
                     <div>
-                        <div class="text-sm md:text-base font-extrabold text-sky-800">ฝ่ายวิชาการ</div>
-                        <h3 class="text-xl md:text-2xl font-black text-slate-900 mt-1">Academic Center</h3>
-                        <p class="text-sm md:text-base text-slate-700 font-medium mt-2 leading-relaxed">ตรวจสอบและคำนวณนักเรียนเสี่ยงหมดสิทธิ์สอบ (ติด มส.)</p>
+                        <div class="text-xs md:text-sm font-extrabold text-sky-800">ฝ่ายวิชาการ</div>
+                        <h3 class="text-lg md:text-xl font-black text-slate-900 mt-0.5">Academic Center</h3>
+                        <p class="text-xs md:text-sm text-slate-700 font-medium mt-1 leading-snug">ตรวจสอบและคำนวณนักเรียนเสี่ยงหมดสิทธิ์สอบ (ติด มส.)</p>
                     </div>
                 </div>
-                <div class="mt-6 pt-4 border-t-2 border-slate-200 flex justify-between items-center">
+                <div class="mt-4 md:mt-6 pt-3 border-t border-slate-200 flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">ฝ่ายวิชาการ</span>
-                    <a href="apps/school-app/academic.html" class="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl text-xs md:text-sm font-black transition shadow-md touch-btn">
+                    <a href="apps/school-app/academic.html" class="bg-sky-700 hover:bg-sky-800 text-white px-3.5 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-black transition shadow touch-btn">
                         เข้าสู่ระบบ ➔
                     </a>
                 </div>
             </div>
 
             <!-- 5. Discipline & Safety -->
-            <div class="card-item card-friendly rounded-3xl p-5 md:p-6 flex flex-col justify-between">
-                <div class="space-y-3">
+            <div class="card-item card-friendly rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between">
+                <div class="space-y-2 md:space-y-3">
                     <div class="flex justify-between items-start">
-                        <div class="w-14 h-14 md:w-16 md:h-16 bg-indigo-100 border-2 border-indigo-300 rounded-2xl flex items-center justify-center text-2xl md:text-3xl">🛡️</div>
-                        <span class="text-xs font-black bg-indigo-800 text-indigo-100 px-3 py-1 rounded-full">DISCIPLINE</span>
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-indigo-100 border border-indigo-300 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl">🛡️</div>
+                        <span class="text-[10px] md:text-xs font-black bg-indigo-800 text-indigo-100 px-2.5 py-0.5 rounded-full">DISCIPLINE</span>
                     </div>
                     <div>
-                        <div class="text-sm md:text-base font-extrabold text-indigo-800">ฝ่ายปกครอง & กิจการนักเรียน</div>
-                        <h3 class="text-xl md:text-2xl font-black text-slate-900 mt-1">Discipline & Safety</h3>
-                        <p class="text-sm md:text-base text-slate-700 font-medium mt-2 leading-relaxed">คะแนนความประพฤติ อนุมัติใบผ่านประตู (Gatepass)</p>
+                        <div class="text-xs md:text-sm font-extrabold text-indigo-800">ฝ่ายปกครอง & กิจการนักเรียน</div>
+                        <h3 class="text-lg md:text-xl font-black text-slate-900 mt-0.5">Discipline & Safety</h3>
+                        <p class="text-xs md:text-sm text-slate-700 font-medium mt-1 leading-snug">คะแนนความประพฤติ อนุมัติใบผ่านประตู (Gatepass)</p>
                     </div>
                 </div>
-                <div class="mt-6 pt-4 border-t-2 border-slate-200 flex justify-between items-center">
+                <div class="mt-4 md:mt-6 pt-3 border-t border-slate-200 flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">ฝ่ายปกครอง</span>
-                    <a href="apps/school-app/student-affairs.html" class="bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl text-xs md:text-sm font-black transition shadow-md touch-btn">
+                    <a href="apps/school-app/student-affairs.html" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3.5 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-black transition shadow touch-btn">
                         เข้าสู่ระบบ ➔
                     </a>
                 </div>
             </div>
 
             <!-- 6. School Clinic Hub -->
-            <div class="card-item card-friendly rounded-3xl p-5 md:p-6 flex flex-col justify-between">
-                <div class="space-y-3">
+            <div class="card-item card-friendly rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between">
+                <div class="space-y-2 md:space-y-3">
                     <div class="flex justify-between items-start">
-                        <div class="w-14 h-14 md:w-16 md:h-16 bg-amber-100 border-2 border-amber-300 rounded-2xl flex items-center justify-center text-2xl md:text-3xl">🏥</div>
-                        <span class="text-xs font-black bg-amber-800 text-amber-100 px-3 py-1 rounded-full">CLINIC</span>
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-amber-100 border border-amber-300 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl">🏥</div>
+                        <span class="text-[10px] md:text-xs font-black bg-amber-800 text-amber-100 px-2.5 py-0.5 rounded-full">CLINIC</span>
                     </div>
                     <div>
-                        <div class="text-sm md:text-base font-extrabold text-amber-800">ห้องพยาบาล & สุขภาพ</div>
-                        <h3 class="text-xl md:text-2xl font-black text-slate-900 mt-1">School Clinic Hub</h3>
-                        <p class="text-sm md:text-base text-slate-700 font-medium mt-2 leading-relaxed">บันทึกการนอนห้องพยาบาล จ่ายยา และติดตามอาการป่วย</p>
+                        <div class="text-xs md:text-sm font-extrabold text-amber-800">ห้องพยาบาล & สุขภาพ</div>
+                        <h3 class="text-lg md:text-xl font-black text-slate-900 mt-0.5">School Clinic Hub</h3>
+                        <p class="text-xs md:text-sm text-slate-700 font-medium mt-1 leading-snug">บันทึกการนอนห้องพยาบาล จ่ายยา และติดตามอาการป่วย</p>
                     </div>
                 </div>
-                <div class="mt-6 pt-4 border-t-2 border-slate-200 flex justify-between items-center">
+                <div class="mt-4 md:mt-6 pt-3 border-t border-slate-200 flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">ห้องพยาบาล</span>
-                    <a href="apps/school-app/clinic.html" class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl text-xs md:text-sm font-black transition shadow-md touch-btn">
+                    <a href="apps/school-app/clinic.html" class="bg-amber-700 hover:bg-amber-800 text-white px-3.5 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-black transition shadow touch-btn">
                         เข้าสู่ระบบ ➔
                     </a>
                 </div>
             </div>
 
             <!-- 7. Central Reports Hub -->
-            <div class="card-item card-friendly rounded-3xl p-5 md:p-6 flex flex-col justify-between">
-                <div class="space-y-3">
+            <div class="card-item card-friendly rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between">
+                <div class="space-y-2 md:space-y-3">
                     <div class="flex justify-between items-start">
-                        <div class="w-14 h-14 md:w-16 md:h-16 bg-rose-100 border-2 border-rose-300 rounded-2xl flex items-center justify-center text-2xl md:text-3xl">📊</div>
-                        <span class="text-xs font-black bg-rose-800 text-rose-100 px-3 py-1 rounded-full">REPORTS HUB</span>
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-rose-100 border border-rose-300 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl">📊</div>
+                        <span class="text-[10px] md:text-xs font-black bg-rose-800 text-rose-100 px-2.5 py-0.5 rounded-full">REPORTS HUB</span>
                     </div>
                     <div>
-                        <div class="text-sm md:text-base font-extrabold text-rose-800">ศูนย์รวมรายงานโรงเรียน</div>
-                        <h3 class="text-xl md:text-2xl font-black text-slate-900 mt-1">Central Reports Hub</h3>
-                        <p class="text-sm md:text-base text-slate-700 font-medium mt-2 leading-relaxed">ดาวน์โหลดและพิมพ์รายงาน ปพ.1 - ปพ.9 ทั้ง PDF และ Excel</p>
+                        <div class="text-xs md:text-sm font-extrabold text-rose-800">ศูนย์รวมรายงานโรงเรียน</div>
+                        <h3 class="text-lg md:text-xl font-black text-slate-900 mt-0.5">Central Reports Hub</h3>
+                        <p class="text-xs md:text-sm text-slate-700 font-medium mt-1 leading-snug">ดาวน์โหลดและพิมพ์รายงาน ปพ.1 - ปพ.9 ทั้ง PDF และ Excel</p>
                     </div>
                 </div>
-                <div class="mt-6 pt-4 border-t-2 border-slate-200 flex justify-between items-center">
+                <div class="mt-4 md:mt-6 pt-3 border-t border-slate-200 flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">รายงาน ปพ.</span>
-                    <a href="apps/school-app/reports.html" class="bg-rose-700 hover:bg-rose-800 text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl text-xs md:text-sm font-black transition shadow-md touch-btn">
+                    <a href="apps/school-app/reports.html" class="bg-rose-700 hover:bg-rose-800 text-white px-3.5 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-black transition shadow touch-btn">
                         เข้าสู่ระบบ ➔
                     </a>
                 </div>
             </div>
 
             <!-- 8. Parent & Student Router Portal -->
-            <div class="card-item card-friendly rounded-3xl p-5 md:p-6 flex flex-col justify-between">
-                <div class="space-y-3">
+            <div class="card-item card-friendly rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between">
+                <div class="space-y-2 md:space-y-3">
                     <div class="flex justify-between items-start">
-                        <div class="w-14 h-14 md:w-16 md:h-16 bg-purple-100 border-2 border-purple-300 rounded-2xl flex items-center justify-center text-2xl md:text-3xl">👨‍👩‍👧‍👦</div>
-                        <span class="text-xs font-black bg-purple-800 text-purple-100 px-3 py-1 rounded-full">PORTAL ROUTER</span>
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-purple-100 border border-purple-300 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl">👨‍👩‍👧‍👦</div>
+                        <span class="text-[10px] md:text-xs font-black bg-purple-800 text-purple-100 px-2.5 py-0.5 rounded-full">PORTAL ROUTER</span>
                     </div>
                     <div>
-                        <div class="text-sm md:text-base font-extrabold text-purple-800">ผู้ปกครอง & นักเรียน</div>
-                        <h3 class="text-xl md:text-2xl font-black text-slate-900 mt-1">Parent & Student</h3>
-                        <p class="text-sm md:text-base text-slate-700 font-medium mt-2 leading-relaxed">เข้าใช้งานมุมมองผู้ปกครอง (ไฟจราจร/ใบลา) หรือนักเรียน (ตารางเรียน)</p>
+                        <div class="text-xs md:text-sm font-extrabold text-purple-800">ผู้ปกครอง & นักเรียน</div>
+                        <h3 class="text-lg md:text-xl font-black text-slate-900 mt-0.5">Parent & Student</h3>
+                        <p class="text-xs md:text-sm text-slate-700 font-medium mt-1 leading-snug">เข้าใช้งานมุมมองผู้ปกครอง (ไฟจราจร/ใบลา) หรือนักเรียน (ตารางเรียน)</p>
                     </div>
                 </div>
-                <div class="mt-6 pt-4 border-t-2 border-slate-200 flex justify-between items-center">
+                <div class="mt-4 md:mt-6 pt-3 border-t border-slate-200 flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-600">ผู้ปกครอง/นักเรียน</span>
-                    <button type="button" id="btnOpenParentStudentRouter" class="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl text-xs md:text-sm font-black transition shadow-md touch-btn cursor-pointer">
+                    <button type="button" id="btnOpenParentStudentRouter" class="bg-purple-700 hover:bg-purple-800 text-white px-3.5 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-black transition shadow touch-btn cursor-pointer">
                         เลือกแอป ➔
                     </button>
                 </div>
@@ -356,11 +348,10 @@
 
     </main>
 
-    <!-- 1. MODAL 1: Executive Data-Driven Dashboard (ข้อ 1: ปรับหัวข้อกระชับ ขยายเนื้อหา 4 กล่องให้ใหญ่สมระดับผู้บริหาร และสเกลปุ่มล่างสวยงาม) -->
+    <!-- MODAL 1: Executive Data-Driven Dashboard -->
     <div id="execPreviewModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center hidden z-50 p-3 sm:p-6 overflow-y-auto">
         <div class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-slate-300 max-w-5xl w-full my-auto overflow-hidden flex flex-col max-h-[92vh]">
             
-            <!-- หัวข้อ Modal ขนาดกะทัดรัดขึ้น ไม่ใหญ่บดบังเนื้อหา -->
             <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-3.5 sm:p-4 flex justify-between items-center shrink-0 border-b border-emerald-700">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-xl flex items-center justify-center text-lg sm:text-2xl shadow-inner border border-white/20">🏛️</div>
@@ -372,7 +363,6 @@
                 <button type="button" id="btnCloseExecModal" class="bg-white/10 hover:bg-white/20 text-white w-8 h-8 rounded-xl font-bold flex items-center justify-center transition border border-white/20 text-base">✕</button>
             </div>
 
-            <!-- เนื้อหา Modal: ขยายตัวอักษรกล่องสถิติ 4 กล่องให้อ่านชัดเจน -->
             <div class="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 text-slate-800 flex-1">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                     
@@ -394,7 +384,6 @@
                         <span class="text-xs text-amber-800 font-semibold block">🔴 &lt;50 คะแนน: 0 คน</span>
                     </div>
 
-                    <!-- กล่องที่ 4: จัดเรียง ⏳ รอ ขึ้นบรรทัดใหม่สวยงาม -->
                     <div class="bg-indigo-50 border-2 border-indigo-200 p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between">
                         <span class="text-sm sm:text-base font-bold text-indigo-950 block leading-tight">ขอออกนอก รร. (Gatepass)</span>
                         <div id="exec_gatepass_total" class="text-2xl sm:text-4xl font-black text-indigo-700 my-1">0 <span class="text-sm font-normal">รายการ</span></div>
@@ -441,7 +430,6 @@
                 </div>
             </div>
 
-            <!-- กล่องปิดหน้าต่างด้านล่าง: ปรับขนาดพอเหมาะ สมดุล ตัวอักษรสวยงามพอดี -->
             <div class="bg-slate-100 border-t border-slate-200 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 shrink-0">
                 <span class="text-xs text-slate-600 font-semibold">💡 ข้อมูลอัปเดตแบบ Real-time จากฐานข้อมูล Supabase</span>
                 <div class="flex gap-2 w-full sm:w-auto">
@@ -473,30 +461,38 @@
         </div>
     </div>
 
-    <!-- MODAL 3: Parent & Student Router (ข้อ 6: ขยายตัวอักษรบรรยายมุมมองผู้ปกครอง/นักเรียนให้อ่านพอดีชัดเจน) -->
+    <!-- 3. MODAL 3: Parent & Student Router (ปรับเป็นการ์ดสี่เหลี่ยมสมดุล สวยงาม น่าใช้งาน) -->
     <div id="parentStudentRouterModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center hidden z-50 p-4">
-        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-slate-300 max-w-lg w-full p-5 sm:p-6 space-y-4 sm:space-y-5 text-center animate-in fade-in zoom-in duration-150">
+        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-slate-300 max-w-md w-full p-5 sm:p-6 space-y-4 sm:space-y-5 text-center animate-in fade-in zoom-in duration-150">
             <div class="space-y-1">
                 <h3 class="text-lg sm:text-xl font-black text-slate-900">เลือกมุมมองแอปพลิเคชัน</h3>
                 <p class="text-xs text-slate-500">คลิกเลือกประเภทผู้ใช้งานที่ต้องการสลับเข้าหน้าต่างระบบ</p>
             </div>
-            <div class="grid grid-cols-2 gap-3 sm:gap-4">
-                <a href="apps/parent-app/parent.html" class="p-4 sm:p-5 border-2 border-teal-200 bg-teal-50/50 hover:bg-teal-100 rounded-xl sm:rounded-2xl text-center space-y-2 transition">
-                    <div class="text-3xl sm:text-4xl">🟢</div>
-                    <div class="font-bold text-base sm:text-lg text-teal-900">แอปผู้ปกครอง</div>
-                    <p class="text-xs sm:text-sm text-teal-800 font-medium leading-relaxed">ดูไฟจราจร 🟢🔵🔴🟣 & ยื่นลาด้วย PIN</p>
+            
+            <!-- ปรับเป็น Grid สมดุลแนวสี่เหลี่ยมจัตุรัส พรีเมียม สวยงาม -->
+            <div class="grid grid-cols-2 gap-3.5">
+                <a href="apps/parent-app/parent.html" class="p-4 border-2 border-teal-300 bg-teal-50/60 hover:bg-teal-100 rounded-2xl text-center space-y-2 transition shadow-sm flex flex-col justify-between items-center group">
+                    <div class="w-14 h-14 bg-teal-100 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition shrink-0 border border-teal-200">🟢</div>
+                    <div>
+                        <div class="font-black text-sm sm:text-base text-teal-950">แอปผู้ปกครอง</div>
+                        <p class="text-[11px] text-teal-700 font-medium mt-1 leading-snug">ดูไฟจราจร 🟢🔵🔴🟣 & ยื่นลาด้วย PIN</p>
+                    </div>
                 </a>
-                <a href="apps/student-app/student.html" class="p-4 sm:p-5 border-2 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 rounded-xl sm:rounded-2xl text-center space-y-2 transition">
-                    <div class="text-3xl sm:text-4xl">🎒</div>
-                    <div class="font-bold text-base sm:text-lg text-indigo-900">แอปนักเรียน</div>
-                    <p class="text-xs sm:text-sm text-indigo-800 font-medium leading-relaxed">ดูตารางเรียน คะแนน & ขอออกนอกโรงเรียน</p>
+                
+                <a href="apps/student-app/student.html" class="p-4 border-2 border-indigo-300 bg-indigo-50/60 hover:bg-indigo-100 rounded-2xl text-center space-y-2 transition shadow-sm flex flex-col justify-between items-center group">
+                    <div class="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition shrink-0 border border-indigo-200">🎒</div>
+                    <div>
+                        <div class="font-black text-sm sm:text-base text-indigo-950">แอปนักเรียน</div>
+                        <p class="text-[11px] text-indigo-700 font-medium mt-1 leading-snug">ดูตารางเรียน คะแนน & ขอออกนอก รรร.</p>
+                    </div>
                 </a>
             </div>
-            <button type="button" id="btnCloseRouterModal" class="w-full bg-slate-200 text-slate-700 py-2.5 rounded-xl text-xs font-bold">ปิดหน้าต่าง</button>
+
+            <button type="button" id="btnCloseRouterModal" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition">ปิดหน้าต่าง</button>
         </div>
     </div>
 
-    <footer class="bg-slate-950 text-slate-300 text-center text-xs py-3.5 border-t border-slate-800">
+    <footer class="bg-slate-950 text-slate-300 text-center text-xs py-3 border-t border-slate-800">
         © 2026 โรงเรียนบัวเชดวิทยา (BCW Smart Hub)
     </footer>
 
@@ -585,16 +581,16 @@
             if (roleEl) {
                 roleEl.textContent = role;
                 if (role === 'TEACHER') {
-                    roleEl.className = "bg-emerald-700 text-amber-200 text-[10px] md:text-xs font-black px-2 py-0.5 rounded shadow-sm shrink-0";
+                    roleEl.className = "bg-emerald-700 text-amber-200 text-[9px] font-black px-1.5 py-0.2 rounded shrink-0";
                 } else if (role === 'PARENT') {
-                    roleEl.className = "bg-sky-700 text-white text-[10px] md:text-xs font-black px-2 py-0.5 rounded shadow-sm shrink-0";
+                    roleEl.className = "bg-sky-700 text-white text-[9px] font-black px-1.5 py-0.2 rounded shrink-0";
                 } else {
-                    roleEl.className = "bg-indigo-700 text-white text-[10px] md:text-xs font-black px-2 py-0.5 rounded shadow-sm shrink-0";
+                    roleEl.className = "bg-indigo-700 text-white text-[9px] font-black px-1.5 py-0.2 rounded shrink-0";
                 }
             }
 
             if (avatarEl && avatarUrl) {
-                avatarEl.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="w-full h-full object-cover rounded-xl shadow shrink-0">`;
+                avatarEl.innerHTML = `<img src="${avatarUrl}" alt="Avatar" class="w-full h-full object-cover rounded-lg shadow shrink-0">`;
             }
         }
 
