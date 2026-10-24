@@ -67,7 +67,7 @@ export function processAcademicRiskData(records) {
         }
     });
 
-    const overallAttendance = validCount > 0 ? (totalAttendance / validCount).toFixed(1) : '95.4';
+    const overallAttendance = validCount > 0 ? (totalAttendance / validCount).toFixed(1) : '0.0';
 
     return {
         overallAttendance,
