@@ -1,49 +1,64 @@
-// modules/clinic/clinic.service.js
-import { db, cleanStr } from '../../core/supabase-client.js';
+import { db } from '../../core/supabase-client.js';
 
 /**
- * 1. ดึงประวัติการเข้าใช้ห้องพยาบาลทั้งหมด พร้อมข้อมูลนักเรียน
+ * 1. ดึงรายการบันทึกห้องพยาบาลล่าสุดพร้อมข้อมูลนักเรียน
  */
-export async function fetchClinicRecords() {
+export async function fetchClinicRecords(limit = 20) {
     try {
         const { data, error } = await db
             .from('clinic_records')
-            .select('*, students(prefix, first_name, last_name, classroom)')
-            .order('check_in', { ascending: false });
+            .select(`
+                id,
+                student_id,
+                symptom,
+                action_taken,
+                status,
+                check_in,
+                created_at,
+                students (
+                    student_id,
+                    prefix,
+                    first_name,
+                    last_name,
+                    classroom
+                )
+            `)
+            .order('check_in', { ascending: false })
+            .limit(limit);
 
         if (error) throw error;
         return data || [];
     } catch (err) {
-        console.error('Error in fetchClinicRecords:', err);
+        console.error('Error fetching clinic records:', err.message);
         return [];
     }
 }
 
 /**
- * 2. ค้นหาข้อมูลนักเรียนจากรหัสนักเรียน (สำหรับค้นหาแบบ Real-time)
+ * 2. ค้นหาข้อมูลนักเรียนแบบ Real-time ด้วย Student ID
  */
 export async function searchStudentById(studentId) {
     if (!studentId) return null;
     try {
         const { data, error } = await db
             .from('students')
-            .select('prefix, first_name, last_name, classroom')
-            .eq('student_id', cleanStr(studentId))
+            .select('student_id, prefix, first_name, last_name, classroom')
+            .eq('student_id', studentId.trim())
             .maybeSingle();
 
-        if (error) throw error;
-        if (!data) return null;
+        if (error || !data) return null;
 
         const p = data.prefix || '';
         const f = data.first_name || '';
         const l = data.last_name || '';
 
         return {
+            student_id: data.student_id,
             name: `${p}${f} ${l}`.trim(),
             classroom: data.classroom || '-'
         };
     } catch (err) {
-        console.error('Error in searchStudentById:', err);
+        console.error('Search student error:', err.message);
         return null;
     }
 }
@@ -53,48 +68,66 @@ export async function searchStudentById(studentId) {
  */
 export async function saveClinicRecord({ studentId, eventType, symptomDetail }) {
     try {
-        const cleanedId = cleanStr(studentId);
-        const fullSymptom = symptomDetail ? `${eventType}: ${symptomDetail}` : eventType;
-
-        const { data, error } = await db.from('clinic_records').insert([{
-            student_id: cleanedId,
-            symptom: fullSymptom,
-            status: 'in_clinic',
-            check_in: new Date().toISOString()
-        }]).select();
+        const combinedSymptom = symptomDetail ? `[${eventType}] ${symptomDetail}` : `[${eventType}]`;
+        
+        const { data, error } = await db
+            .from('clinic_records')
+            .insert([
+                {
+                    student_id: studentId.trim(),
+                    symptom: combinedSymptom,
+                    action_taken: 'พักผ่อนห้องพยาบาล',
+                    status: 'resting',
+                    check_in: new Date().toISOString()
+                }
+            ])
+            .select();
 
         if (error) throw error;
         return { success: true, data };
     } catch (err) {
-        console.error('Error in saveClinicRecord:', err);
+        console.error('Save clinic record error:', err.message);
         return { success: false, message: err.message };
     }
 }
 
 /**
- * 4. ประมวลผลสถิติและเตรียมข้อมูลสำหรับ Dashboard & Charts
+ * 4. คำนวณสรุปสถิติสำหรับนำไปแสดงบน Key Metrics & Charts
  */
 export function processClinicStats(records) {
+    const todayStr = new Date().toISOString().split('T')[0];
+
     let todayCount = 0;
     let accidentCount = 0;
     let activeCount = 0;
-    let typeCounts = { 'ไม่สบาย': 0, 'ปัญหาสุขภาพ': 0, 'อุบัติเหตุ': 0 };
 
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const typeCounts = {
+        'ไม่สบาย': 0,
+        'ปัญหาสุขภาพ': 0,
+        'อุบัติเหตุ': 0
+    };
 
     records.forEach(rec => {
-        const recDate = rec.check_in ? new Date(rec.check_in) : (rec.created_at ? new Date(rec.created_at) : null);
-        const dateStr = recDate ? `${recDate.getFullYear()}-${String(recDate.getMonth() + 1).padStart(2, '0')}-${String(recDate.getDate()).padStart(2, '0')}` : '';
+        const checkInDate = rec.check_in ? rec.check_in.split('T')[0] : (rec.created_at ? rec.created_at.split('T')[0] : '');
         
-        if (dateStr === todayStr) todayCount++;
-        if (rec.symptom && (rec.symptom.includes('อุบัติเหตุ') || rec.symptom.includes('เกิดอุบัติเหตุ'))) accidentCount++;
-        if (rec.status === 'in_clinic' || rec.status === 'resting') activeCount++;
+        // เช็กเคสวันนี้
+        if (checkInDate === todayStr) {
+            todayCount++;
+        }
 
-        if (rec.symptom) {
-            if (rec.symptom.includes('อุบัติเหตุ')) typeCounts['อุบัติเหตุ']++;
-            else if (rec.symptom.includes('ปัญหาสุขภาพ')) typeCounts['ปัญหาสุขภาพ']++;
-            else typeCounts['ไม่สบาย']++;
+        // เช็กเคสอุบัติเหตุ
+        if (rec.symptom && rec.symptom.includes('อุบัติเหตุ')) {
+            accidentCount++;
+            typeCounts['อุบัติเหตุ']++;
+        } else if (rec.symptom && rec.symptom.includes('สุขภาพ')) {
+            typeCounts['ปัญหาสุขภาพ']++;
+        } else {
+            typeCounts['ไม่สบาย']++;
+        }
+
+        // เช็กกำลังพัก
+        if (rec.status === 'resting' || !rec.status) {
+            activeCount++;
         }
     });
 
