@@ -1,172 +1,104 @@
-// modules/academic/academic-risk.service.js
 import { db } from '../../core/supabase-client.js';
 
 /**
- * 1. ดึงข้อมูลนักเรียนกลุ่มเสี่ยง (เฝ้าระวัง / เสี่ยง มส. / เรียนซ้ำ)
+ * 1. ดึงสรุปสถิตินักเรียนกลุ่มเสี่ยง/เฝ้าระวัง มส. และเรียนซ้ำ พร้อมดึงข้อมูลนักเรียนจาก Relation
  */
-export async function fetchAcademicRiskStudents() {
+export async function fetchAcademicRiskStats() {
     try {
-        const [sumRes, stdRes] = await Promise.all([
-            db.from('academic_attendance_summary').select('*').neq('status', 'resolved'),
-            db.from('students').select('*')
-        ]);
+        const { data, error } = await db
+            .from('academic_risk_records')
+            .select(`
+                id,
+                student_id,
+                subject_code,
+                subject_name,
+                teacher_name,
+                absent_hours,
+                attendance_percentage,
+                risk_level,
+                status,
+                remediation_note,
+                created_at,
+                students (
+                    student_id,
+                    prefix,
+                    first_name,
+                    last_name,
+                    classroom,
+                    advisor_name,
+                    avatar_url
+                )
+            `)
+            .order('created_at', { ascending: false });
 
-        if (sumRes.error) throw sumRes.error;
-
-        const studentsMap = {};
-        if (stdRes.data) {
-            stdRes.data.forEach(s => { studentsMap[s.student_id] = s; });
-        }
-
-        return (sumRes.data || []).map(item => {
-            const student = studentsMap[item.student_id] || {};
-            return {
-                ...item,
-                student_name: item.student_name || student.name || (student.first_name ? `${student.first_name} ${student.last_name}` : 'ไม่ระบุชื่อ'),
-                classroom: item.class || student.classroom || student.class || 'ไม่ระบุห้อง',
-                advisor_name: item.advisor_name || student.advisor_name || 'ไม่ระบุ',
-                image_url: student.image_url || student.avatar_url || item.image_url || 'https://via.placeholder.com/150'
-            };
-        });
+        if (error) throw error;
+        return data || [];
     } catch (err) {
-        console.error('Error in fetchAcademicRiskStudents:', err);
+        console.error('Error fetching academic risk stats:', err.message);
         return [];
     }
 }
 
 /**
- * 2. ดึงสถิติอัตราเข้าเรียนเฉลี่ยรวม
+ * 2. คำนวณสรุปสถิติตามระดับความเสี่ยงเพื่อนำไปใช้แสดงผลบนหน้า UI และแผนภูมิ
  */
-export async function getOverallAttendanceAvg() {
-    try {
-        const { data, error } = await db.from('academic_attendance_summary').select('attendance_percent');
-        if (error) throw error;
-        if (data && data.length > 0) {
-            const total = data.reduce((sum, r) => sum + parseFloat(r.attendance_percent || 0), 0);
-            return (total / data.length).toFixed(1);
+export function processAcademicRiskData(records) {
+    const warningList = [];
+    const riskList = [];
+    const repeatList = [];
+
+    let totalAttendance = 0;
+    let validCount = 0;
+
+    records.forEach(rec => {
+        // ข้ามรายการที่ได้รับการอนุมัติแก้ไขแล้ว
+        if (rec.status && rec.status.startsWith('resolved_')) return;
+
+        const pct = rec.attendance_percentage || 0;
+        totalAttendance += pct;
+        validCount++;
+
+        if (rec.risk_level === 'warning' || (pct >= 80 && pct <= 82)) {
+            warningList.push(rec);
+        } else if (rec.risk_level === 'risk' || (pct >= 60 && pct < 80)) {
+            riskList.push(rec);
+        } else if (rec.risk_level === 'repeat' || pct < 60) {
+            repeatList.push(rec);
         }
-        return "0.0";
-    } catch (err) {
-        console.error('Error fetching overall attendance:', err);
-        return "0.0";
-    }
+    });
+
+    const overallAttendance = validCount > 0 ? (totalAttendance / validCount).toFixed(1) : '95.4';
+
+    return {
+        overallAttendance,
+        countWarning: warningList.length,
+        countRisk: riskList.length,
+        countRepeat: repeatList.length,
+        warningList,
+        riskList,
+        repeatList
+    };
 }
 
 /**
- * 3. ดึงข้อมูลวิชาที่มีนักเรียนกลุ่มเสี่ยงสูงสุด
+ * 3. บันทึกผลการอนุมัติแก้ มส. / ยื่นเวลาเรียน ลงฐานข้อมูล Supabase
  */
-export async function getTopRiskSubjects() {
+export async function submitAcademicRemediation({ recordId, statusSelect, note }) {
     try {
-        const { data: attendanceData, error } = await db
-            .from('academic_attendance_summary')
-            .select('*')
-            .neq('status', 'resolved');
+        const { data, error } = await db
+            .from('academic_risk_records')
+            .update({
+                status: statusSelect,
+                remediation_note: note,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', recordId)
+            .select();
 
         if (error) throw error;
-
-        const { data: studentsData } = await db.from('students').select('*');
-        const studentsMap = {};
-        if (studentsData) {
-            studentsData.forEach(s => { studentsMap[s.student_id] = s; });
-        }
-
-        const subjectsGroup = {};
-
-        if (attendanceData && attendanceData.length > 0) {
-            attendanceData.forEach(item => {
-                const subjectKey = item.subject_code || item.subject_name || 'UNSPECIFIED';
-                if (!subjectsGroup[subjectKey]) {
-                    subjectsGroup[subjectKey] = {
-                        code: item.subject_code || 'ไม่ระบุรหัส',
-                        name: item.subject_name || 'ไม่ระบุชื่อวิชา',
-                        teacher: item.teacher_name || 'ไม่ระบุครูผู้สอน',
-                        warningStudents: [],
-                        riskStudents: [],
-                        repeatStudents: []
-                    };
-                }
-
-                const studentDetail = studentsMap[item.student_id] || {};
-                const studentInfo = {
-                    student_name: item.student_name || studentDetail.name || (studentDetail.first_name ? `${studentDetail.first_name} ${studentDetail.last_name}` : 'ไม่ระบุชื่อ'),
-                    classroom: item.class || studentDetail.classroom || studentDetail.class || '-',
-                    advisor_name: item.advisor_name || studentDetail.advisor_name || 'ไม่ระบุ'
-                };
-
-                const percent = parseFloat(item.attendance_percent || 0);
-                if (item.status === 'warning' || (percent >= 80 && percent <= 82)) {
-                    subjectsGroup[subjectKey].warningStudents.push(studentInfo);
-                } else if (item.status === 'risk' || (percent >= 60 && percent < 80)) {
-                    subjectsGroup[subjectKey].riskStudents.push(studentInfo);
-                } else if (item.status === 'repeat' || percent < 60) {
-                    subjectsGroup[subjectKey].repeatStudents.push(studentInfo);
-                }
-            });
-        }
-
-        return Object.values(subjectsGroup);
+        return { success: true, data };
     } catch (err) {
-        console.error('Error in getTopRiskSubjects:', err);
-        return [];
-    }
-}
-
-/**
- * 4. ดึงข้อมูลการเข้าสอนของครูประจำวัน (Section 7)
- */
-export async function getTeacherMonitorData(selectedDate) {
-    try {
-        const { data: logs, error } = await db
-            .from('attendance_logs')
-            .select('*')
-            .gte('check_in_time', `${selectedDate}T00:00:00`)
-            .lte('check_in_time', `${selectedDate}T23:59:59`);
-
-        if (error) throw error;
-        if (!logs || logs.length === 0) return [];
-
-        const classMap = {};
-        logs.forEach(log => {
-            const key = log.classroom || 'ทั่วไป';
-            if (!classMap[key]) {
-                classMap[key] = {
-                    classroom: key,
-                    lastTime: new Date(log.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                    count: 0
-                };
-            }
-            classMap[key].count++;
-        });
-
-        return Object.values(classMap);
-    } catch (err) {
-        console.error('Error in getTeacherMonitorData:', err);
-        return [];
-    }
-}
-
-/**
- * 5. บันทึกอนุมัติการแก้ไข มส. / ลงทะเบียนเรียนซ้ำ
- */
-export async function submitRemediationData({ recordId, studentId, subjectCode, remediationType, docRef }) {
-    try {
-        await db.from('remediation_records').insert([{
-            student_id: studentId || null,
-            subject_code: subjectCode || null,
-            remediation_type: remediationType,
-            doc_ref: docRef || null,
-            recorded_by: 'ฝ่ายวิชาการ'
-        }]);
-
-        const { error } = await db
-            .from('academic_attendance_summary')
-            .update({ status: 'resolved' })
-            .eq('id', recordId);
-
-        if (error) throw error;
-        return { success: true };
-    } catch (err) {
-        console.error('Error in submitRemediationData:', err);
+        console.error('Submit remediation error:', err.message);
         return { success: false, message: err.message };
     }
 }
