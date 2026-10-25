@@ -14,36 +14,50 @@
 
     <!-- 1. Header มาตรฐาน BCW SMART HUB -->
     <header class="bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md sticky top-0 z-50 border-b-2 border-indigo-600">
+        
+        <!-- แถบบน: โลโก้, BCW SMART HUB, BCW Parent Connect และ ปุ่มออกจากระบบ -->
         <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex justify-between items-center gap-2">
             
-            <!-- ฝั่งซ้าย: โลโก้ + BCW SMART HUB + BCW Parent Connect -->
+            <!-- ฝั่งซ้าย: โลโก้ + BCW SMART HUB (ตัวใหญ่) + BCW Parent Connect -->
             <div class="flex items-center gap-2.5 min-w-0">
                 <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-indigo-300/50">
-                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 sm:w-10 sm:h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 sm:w-11 sm:h-11 object-contain" onerror="this.src='https://via.placeholder.com/40'">
                 </div>
                 <div class="min-w-0">
-                    <h1 class="text-[11px] sm:text-xs font-black text-amber-400 tracking-wider leading-none uppercase">
+                    <!-- ขยาย BCW SMART HUB ให้ใหญ่ เด่น ชัดเจน -->
+                    <h1 class="text-sm sm:text-base font-black text-amber-400 tracking-wider leading-none uppercase">
                         BCW SMART HUB
                     </h1>
-                    <div class="text-sm sm:text-base font-extrabold text-white leading-tight truncate mt-0.5">
+                    <div class="text-xs sm:text-sm font-extrabold text-indigo-100 leading-tight truncate mt-1">
                         BCW Parent Connect
                     </div>
                 </div>
             </div>
 
-            <!-- ฝั่งขวา: สถานะผู้ปกครองออนไลน์ (ตัวหนังสือใหญ่) + ปุ่มไอคอนออกจากระบบ -->
-            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                <span class="text-xs sm:text-sm font-black text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-500/50 flex items-center gap-1.5 shadow-xs">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>ผู้ปกครองออนไลน์</span>
-                </span>
-                
-                <button id="btnLogout" title="ออกจากระบบ" class="w-8 h-8 sm:w-9 sm:h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-500 active:scale-95 shrink-0">
+            <!-- ฝั่งขวาบน: ปุ่มไอคอนออกจากระบบ -->
+            <div class="shrink-0">
+                <button id="btnLogout" title="ออกจากระบบ" class="w-8 h-8 sm:w-9 sm:h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-500 active:scale-95">
                     <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
                 </button>
             </div>
-
         </div>
+
+        <!-- แถวล่าง (แถวที่ 3): แสดงสถานะผู้ปกครองออนไลน์ + วันที่และเวลา Real-time -->
+        <div class="bg-indigo-950/90 border-t border-indigo-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-xs">
+            <!-- ผู้ปกครองออนไลน์ -->
+            <span class="font-extrabold text-emerald-400 flex items-center gap-1.5">
+                <span class="w-2.2 h-2.2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>🟢 ผู้ปกครองออนไลน์</span>
+            </span>
+
+            <!-- วันที่และนาฬิกาเดินตามจริง -->
+            <div class="flex items-center gap-1.5 text-amber-200 font-bold text-[11px] sm:text-xs">
+                <i class="fa-regular fa-clock text-amber-400"></i>
+                <span id="header-date-display">กำลังโหลด...</span>
+                <span id="header-clock-display" class="bg-indigo-900 px-1.5 py-0.5 rounded border border-indigo-700 font-mono text-white">00:00:00</span>
+            </div>
+        </div>
+
     </header>
 
     <!-- Main Content -->
@@ -383,10 +397,34 @@
 
     <!-- Global Dropdown Control Scripts -->
     <script>
-        function toggleChildModal() {
-            const m = document.getElementById('childModal');
-            if (m) m.classList.toggle('hidden');
+        // ฟังก์ชันแสดงวันที่และอัปเดตนาฬิกา Real-time
+        function updateHeaderClock() {
+            const now = new Date();
+            
+            // รูปแบบวันที่ภาษาไทย
+            const optionsDate = { day: 'numeric', month: 'short', year: '2-digit' };
+            const dateStr = now.toLocaleDateString('th-TH', optionsDate);
+            
+            // รูปแบบเวลา HH:mm:ss
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes}:${seconds}`;
+        
+            const dateElem = document.getElementById('header-date-display');
+            const clockElem = document.getElementById('header-clock-display');
+        
+            if (dateElem) dateElem.textContent = dateStr;
+            if (clockElem) clockElem.textContent = timeStr;
         }
+        
+        // เริ่มทำงานนาฬิกาและอัปเดตทุกๆ 1 วินาที
+        setInterval(updateHeaderClock, 1000);
+        updateHeaderClock();
+                function toggleChildModal() {
+                    const m = document.getElementById('childModal');
+                    if (m) m.classList.toggle('hidden');
+                }
 
         function toggleDayModal() {
             const m = document.getElementById('dayModal');
