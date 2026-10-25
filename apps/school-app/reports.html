@@ -25,13 +25,13 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- 1. Header มาตรฐาน BCW SMART HUB (พกพานาฬิกา Real-time + วันที่ไทย) -->
+    <!-- 1. Header มาตรฐาน BCW SMART HUB -->
     <header class="bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md sticky top-0 z-50 border-b-2 border-indigo-600 no-print">
         
         <!-- แถบบน: โลโก้, BCW SMART HUB, ชื่อระบบ และ ปุ่มออกจากระบบ -->
         <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex justify-between items-center gap-2">
             
-            <!-- ฝั่งซ้าย: โลโก้ + BCW SMART HUB (ตัวใหญ่) + ชื่อระบบ -->
+            <!-- ฝั่งซ้าย: โลโก้ + BCW SMART HUB + ชื่อระบบ -->
             <div class="flex items-center gap-2.5 min-w-0">
                 <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-indigo-300/50">
                     <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 sm:w-11 sm:h-11 object-contain" onerror="this.src='https://via.placeholder.com/40'">
@@ -41,7 +41,7 @@
                         BCW SMART HUB
                     </h1>
                     <div class="text-xs sm:text-sm font-extrabold text-indigo-100 leading-tight truncate mt-1">
-                        📊 ศูนย์ออกรายงานสารสนเทศหลักฐาน (Master Reports Center)
+                        📊 ศูนย์ออกรายงานสารสนเทศหลักฐาน
                     </div>
                 </div>
             </div>
@@ -57,18 +57,17 @@
             </div>
         </div>
 
-        <!-- แถวล่าง (แถวที่ 3): แสดงสถานะ + วันที่และเวลา Real-time -->
-        <div class="bg-indigo-950/90 border-t border-indigo-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-xs">
-            <!-- สถานะระบบ -->
-            <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 text-xs sm:text-sm">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>เชื่อมต่อฐานข้อมูลสารสนเทศ Real-time 100%</span>
+        <!-- แถวล่าง (แถวที่ 3): แสดงวันที่ภาษาไทย (ตัวหนังสือเล็กลง) + นาฬิกา Real-time -->
+        <div class="bg-indigo-950/90 border-t border-indigo-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-[10.5px] sm:text-xs">
+            <!-- ซ่อนคำว่าเชื่อมต่อฐานข้อมูล แล้วแสดงวันที่ภาษาไทยขนาดเล็กแทน -->
+            <span class="font-bold text-indigo-200 flex items-center gap-1.5">
+                <i class="fa-regular fa-calendar-days text-amber-400"></i>
+                <span id="header-date-display">กำลังโหลดวันที่...</span>
             </span>
 
-            <!-- วันที่และนาฬิกา Real-time -->
-            <div class="flex items-center gap-1.5 text-amber-200 font-bold text-xs">
+            <!-- นาฬิกา Real-time -->
+            <div class="flex items-center gap-1.5 text-amber-200 font-bold">
                 <i class="fa-regular fa-clock text-amber-400"></i>
-                <span id="header-date-display" class="hidden sm:inline">กำลังโหลด...</span>
                 <span id="liveClock" class="bg-indigo-900 px-1.5 py-0.5 rounded border border-indigo-700 font-mono text-white">00:00:00</span>
             </div>
         </div>
@@ -77,7 +76,7 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-6 flex-1 space-y-4 sm:space-y-6">
 
-        <!-- Controls / Filter Card -->
+        <!-- Controls / Filter Card (เปลี่ยนเป็นระบบ Pop-up Modal ทั้งหมด) -->
         <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200 space-y-4 no-print">
             <h2 class="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
                 <i class="fa-solid fa-filter text-indigo-600"></i>
@@ -90,75 +89,63 @@
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-slate-600">ปีการศึกษา / ภาคเรียน</label>
                     <div class="grid grid-cols-2 gap-2">
-                        <select id="filterYear" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <option value="2569" selected>2569</option>
-                            <option value="2568">2568</option>
-                            <option value="2567">2567</option>
-                        </select>
-                        <select id="filterSemester" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <option value="1" selected>ภาคเรียนที่ 1</option>
-                            <option value="2">ภาคเรียนที่ 2</option>
-                        </select>
+                        <!-- ปุ่มเปิด Modal ปีการศึกษา -->
+                        <button type="button" onclick="openFilterModal('yearModal')" class="bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between gap-1 hover:bg-slate-100 transition truncate active:scale-95">
+                            <span id="btnYearText" class="truncate">2569</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 shrink-0"></i>
+                        </button>
+                        <input type="hidden" id="filterYear" value="2569">
+
+                        <!-- ปุ่มเปิด Modal ภาคเรียน -->
+                        <button type="button" onclick="openFilterModal('semesterModal')" class="bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between gap-1 hover:bg-slate-100 transition truncate active:scale-95">
+                            <span id="btnSemesterText" class="truncate">ภาคเรียนที่ 1</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 shrink-0"></i>
+                        </button>
+                        <input type="hidden" id="filterSemester" value="1">
                     </div>
                 </div>
 
                 <!-- 2. Select Class -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-slate-600">ระดับชั้น / ห้องเรียน</label>
-                    <select id="filterClass" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <option value="ALL">-- ทุกห้องเรียนรวมกัน --</option>
-                        <option value="ม.1/1">ม.1/1</option>
-                        <option value="ม.1/2">ม.1/2</option>
-                        <option value="ม.4/1">ม.4/1</option>
-                        <option value="ม.4/2">ม.4/2</option>
-                        <option value="ม.5/1" selected>ม.5/1</option>
-                        <option value="ม.6/1">ม.6/1</option>
-                    </select>
+                    <!-- ปุ่มเปิด Modal ห้องเรียน -->
+                    <button type="button" onclick="openFilterModal('classModal')" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between gap-1 hover:bg-slate-100 transition truncate active:scale-95">
+                        <span id="btnClassText" class="truncate">ม.5/1</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 shrink-0"></i>
+                    </button>
+                    <input type="hidden" id="filterClass" value="ม.5/1">
                 </div>
 
                 <!-- 3. Select Subject -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-slate-600">รายวิชา</label>
-                    <select id="filterSubject" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <option value="ALL">-- ทุกรายวิชา --</option>
-                        <option value="คณิตศาสตร์พื้นฐาน (ค31101)" selected>คณิตศาสตร์พื้นฐาน (ค31101)</option>
-                        <option value="วิทยาศาสตร์กายภาพ (ว31101)">วิทยาศาสตร์กายภาพ (ว31101)</option>
-                        <option value="ภาษาไทย (ท31101)">ภาษาไทย (ท31101)</option>
-                        <option value="ภาษาอังกฤษ (อ31101)">ภาษาอังกฤษ (อ31101)</option>
-                    </select>
+                    <!-- ปุ่มเปิด Modal รายวิชา -->
+                    <button type="button" onclick="openFilterModal('subjectModal')" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between gap-1 hover:bg-slate-100 transition truncate active:scale-95">
+                        <span id="btnSubjectText" class="truncate">คณิตศาสตร์พื้นฐาน (ค31101)</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 shrink-0"></i>
+                    </button>
+                    <input type="hidden" id="filterSubject" value="คณิตศาสตร์พื้นฐาน (ค31101)">
                 </div>
 
                 <!-- 4. Select Teacher Dynamic from Supabase DB -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-indigo-700">ครูผู้สอนประจำวิชา (จากฐานข้อมูล)</label>
-                    <select id="selectTeacher" class="w-full p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-950 focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <option value="">-- กำลังโหลดรายชื่อครู... --</option>
-                    </select>
+                    <button type="button" onclick="openFilterModal('teacherModal')" class="w-full bg-indigo-50/70 border border-indigo-200 text-indigo-950 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between gap-1 hover:bg-indigo-100 transition truncate active:scale-95">
+                        <span id="btnTeacherText" class="truncate">กำลังโหลดรายชื่อครู...</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-indigo-500 shrink-0"></i>
+                    </button>
+                    <input type="hidden" id="selectTeacher" value="">
                 </div>
 
                 <!-- 5. Report Type Filter -->
                 <div class="space-y-1 lg:col-span-4">
                     <label class="text-xs font-bold text-slate-600">ประเภทรายงานหลักฐาน (12 หมวดมาตรฐานสถานศึกษา)</label>
-                    <select id="filterReportType" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <optgroup label="🟢 กลุ่มงานวิชาการและทะเบียนวัดผล">
-                            <option value="R01">1. รายงานเวลาเรียนรายวิชาประจำห้องเรียน (Attendance Register - Real-time Logs)</option>
-                            <option value="R02">2. รายงานสรุปเปอร์เซ็นต์เวลาเรียน คัดกรองกลุ่มเสี่ยง (ติด มส. < 80% / < 60%)</option>
-                            <option value="R03">3. รายงานสรุปภาพรวมเวลาเรียนรายชั้น/รายห้อง (Class Attendance Overview)</option>
-                            <option value="R04">4. รายงานสมุดบันทึกเวลาเรียนประจำรายวิชา (ปพ.5 ส่วนบันทึกเวลาเรียน)</option>
-                        </optgroup>
-                        <optgroup label="🟣 กลุ่มงานกิจการนักเรียนและฝ่ายปกครอง">
-                            <option value="R05">5. รายงานสถิติการ "หนีเรียน" รายวิชา/รายคาบ (Truancy Audit Trail)</option>
-                            <option value="R06">6. รายงานบันทึกคะแนนความประพฤติและประวัติพฤติกรรม (Behavioral Scorecard)</option>
-                            <option value="R07">7. รายงานนักเรียนกลุ่มเสี่ยงพฤติกรรมและความประพฤติ (Discipline Risk Watchlist)</option>
-                            <option value="R08">8. รายงานสรุปการแจ้งเตือนผู้ปกครองและการรับทราบเคส (Parent Notification Audit)</option>
-                        </optgroup>
-                        <optgroup label="🔵 กลุ่มงานดูแลช่วยเหลือนักเรียนและผู้บริหาร">
-                            <option value="R09">9. รายงานประวัติสถิติสารสนเทศรายบุคคล (Individual Student Profile - 360°)</option>
-                            <option value="R10">10. รายงานสถิติการปฏิบัติงานเช็คชื่อของครูผู้สอน (Teacher Check-in Audit)</option>
-                            <option value="R11">11. รายงานสรุปแนวโน้มและข้อเสนอแนะเชิงบริหาร (Executive Strategic Analytics)</option>
-                            <option value="R12">12. รายงานสรุปสถิติประจำเดือน / ประจำภาคเรียน (Monthly & Semester Summary)</option>
-                        </optgroup>
-                    </select>
+                    <!-- ปุ่มเปิด Modal ประเภทรายงาน -->
+                    <button type="button" onclick="openFilterModal('reportTypeModal')" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-3 py-2.5 text-xs font-bold flex items-center justify-between gap-2 hover:bg-slate-100 transition truncate active:scale-95">
+                        <span id="btnReportTypeText" class="truncate">1. รายงานเวลาเรียนรายวิชาประจำห้องเรียน (Attendance Register)</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 shrink-0"></i>
+                    </button>
+                    <input type="hidden" id="filterReportType" value="R01">
                 </div>
             </div>
 
@@ -252,6 +239,138 @@
         © 2026 โรงเรียนบัวเชดวิทยา (BCW Smart Hub) • Master Reporting Engine
     </footer>
 
+    <!-- ==================== POP-UP MODALS FOR FILTERS ==================== -->
+
+    <!-- Modal 1: ปีการศึกษา -->
+    <div id="yearModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-xs sm:text-sm">เลือกปีการศึกษา</h3>
+                <button onclick="closeFilterModal('yearModal')" class="text-slate-400 hover:text-slate-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-2 space-y-1 text-xs font-bold">
+                <button onclick="selectOption('filterYear', 'btnYearText', '2569', '2569', 'yearModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>2569</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterYear', 'btnYearText', '2568', '2568', 'yearModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>2568</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterYear', 'btnYearText', '2567', '2567', 'yearModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>2567</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: ภาคเรียน -->
+    <div id="semesterModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-xs sm:text-sm">เลือกภาคเรียน</h3>
+                <button onclick="closeFilterModal('semesterModal')" class="text-slate-400 hover:text-slate-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-2 space-y-1 text-xs font-bold">
+                <button onclick="selectOption('filterSemester', 'btnSemesterText', '1', 'ภาคเรียนที่ 1', 'semesterModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>ภาคเรียนที่ 1</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterSemester', 'btnSemesterText', '2', 'ภาคเรียนที่ 2', 'semesterModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>ภาคเรียนที่ 2</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: ห้องเรียน -->
+    <div id="classModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-xs sm:text-sm">เลือกระดับชั้น / ห้องเรียน</h3>
+                <button onclick="closeFilterModal('classModal')" class="text-slate-400 hover:text-slate-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-2 space-y-1 text-xs font-bold max-h-60 overflow-y-auto">
+                <button onclick="selectOption('filterClass', 'btnClassText', 'ALL', '-- ทุกห้องเรียนรวมกัน --', 'classModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center text-indigo-700"><span>-- ทุกห้องเรียนรวมกัน --</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterClass', 'btnClassText', 'ม.1/1', 'ม.1/1', 'classModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>ม.1/1</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterClass', 'btnClassText', 'ม.1/2', 'ม.1/2', 'classModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>ม.1/2</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterClass', 'btnClassText', 'ม.4/1', 'ม.4/1', 'classModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>ม.4/1</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterClass', 'btnClassText', 'ม.4/2', 'ม.4/2', 'classModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>ม.4/2</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterClass', 'btnClassText', 'ม.5/1', 'ม.5/1', 'classModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center text-indigo-700 font-black"><span>ม.5/1</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterClass', 'btnClassText', 'ม.6/1', 'ม.6/1', 'classModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>ม.6/1</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 4: รายวิชา -->
+    <div id="subjectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-xs sm:text-sm">เลือกรายวิชา</h3>
+                <button onclick="closeFilterModal('subjectModal')" class="text-slate-400 hover:text-slate-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-2 space-y-1 text-xs font-bold">
+                <button onclick="selectOption('filterSubject', 'btnSubjectText', 'ALL', '-- ทุกรายวิชา --', 'subjectModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center text-indigo-700"><span>-- ทุกรายวิชา --</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterSubject', 'btnSubjectText', 'คณิตศาสตร์พื้นฐาน (ค31101)', 'คณิตศาสตร์พื้นฐาน (ค31101)', 'subjectModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>คณิตศาสตร์พื้นฐาน (ค31101)</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterSubject', 'btnSubjectText', 'วิทยาศาสตร์กายภาพ (ว31101)', 'วิทยาศาสตร์กายภาพ (ว31101)', 'subjectModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>วิทยาศาสตร์กายภาพ (ว31101)</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterSubject', 'btnSubjectText', 'ภาษาไทย (ท31101)', 'ภาษาไทย (ท31101)', 'subjectModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>ภาษาไทย (ท31101)</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+                <button onclick="selectOption('filterSubject', 'btnSubjectText', 'ภาษาอังกฤษ (อ31101)', 'ภาษาอังกฤษ (อ31101)', 'subjectModal')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center"><span>ภาษาอังกฤษ (อ31101)</span><i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 5: ครูผู้สอน (ดึงไดนามิกจากฐานข้อมูล) -->
+    <div id="teacherModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden">
+            <div class="p-3 bg-indigo-50 border-b border-indigo-100 flex justify-between items-center">
+                <h3 class="font-bold text-indigo-900 text-xs sm:text-sm">เลือกครูผู้สอนประจำวิชา</h3>
+                <button onclick="closeFilterModal('teacherModal')" class="text-slate-400 hover:text-slate-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="teacherModalList" class="p-2 space-y-1 text-xs font-bold max-h-60 overflow-y-auto">
+                <!-- Dynamic Teachers Options -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 6: ประเภทรายงาน 12 หมวด -->
+    <div id="reportTypeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-xs sm:text-sm">เลือกประเภทรายงานหลักฐาน (12 หมวดมาตรฐาน)</h3>
+                <button onclick="closeFilterModal('reportTypeModal')" class="text-slate-400 hover:text-slate-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-3 space-y-2 text-xs font-bold max-h-80 overflow-y-auto">
+                <div class="text-[10px] text-emerald-700 uppercase tracking-wider font-extrabold border-b pb-1">🟢 กลุ่มงานวิชาการและทะเบียนวัดผล</div>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R01', '1. รายงานเวลาเรียนรายวิชาประจำห้องเรียน (Attendance Register)', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 transition">1. รายงานเวลาเรียนรายวิชาประจำห้องเรียน</button>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R02', '2. รายงานสรุปเปอร์เซ็นต์เวลาเรียน คัดกรองกลุ่มเสี่ยง (ติด มส.)', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 transition">2. รายงานสรุปเปอร์เซ็นต์เวลาเรียน คัดกรองกลุ่มเสี่ยง (ติด มส.)</button>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R03', '3. รายงานสรุปภาพรวมเวลาเรียนรายชั้น/รายห้อง', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 transition">3. รายงานสรุปภาพรวมเวลาเรียนรายชั้น/รายห้อง</button>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R04', '4. รายงานสมุดบันทึกเวลาเรียนประจำรายวิชา (ปพ.5)', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 transition">4. รายงานสมุดบันทึกเวลาเรียนประจำรายวิชา (ปพ.5)</button>
+                
+                <div class="text-[10px] text-purple-700 uppercase tracking-wider font-extrabold border-b pb-1 pt-1">🟣 กลุ่มงานกิจการนักเรียนและฝ่ายปกครอง</div>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R05', '5. รายงานสถิติการหนีเรียนรายวิชา/รายคาบ', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-purple-50 transition">5. รายงานสถิติการ "หนีเรียน" รายวิชา/รายคาบ</button>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R06', '6. รายงานบันทึกคะแนนความประพฤติและประวัติพฤติกรรม', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-purple-50 transition">6. รายงานบันทึกคะแนนความประพฤติและประวัติพฤติกรรม</button>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R07', '7. รายงานนักเรียนกลุ่มเสี่ยงพฤติกรรมและความประพฤติ', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-purple-50 transition">7. รายงานนักเรียนกลุ่มเสี่ยงพฤติกรรมและความประพฤติ</button>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R08', '8. รายงานสรุปการแจ้งเตือนผู้ปกครองและการรับทราบเคส', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-purple-50 transition">8. รายงานสรุปการแจ้งเตือนผู้ปกครองและการรับทราบเคส</button>
+
+                <div class="text-[10px] text-sky-700 uppercase tracking-wider font-extrabold border-b pb-1 pt-1">🔵 กลุ่มงานดูแลช่วยเหลือนักเรียนและผู้บริหาร</div>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R09', '9. รายงานประวัติสถิติสารสนเทศรายบุคคล (Individual Profile 360°)', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 transition">9. รายงานประวัติสถิติสารสนเทศรายบุคคล (Profile 360°)</button>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R10', '10. รายงานสถิติการปฏิบัติงานเช็คชื่อของครูผู้สอน', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 transition">10. รายงานสถิติการปฏิบัติงานเช็คชื่อของครูผู้สอน</button>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R11', '11. รายงานสรุปแนวโน้มและข้อเสนอแนะเชิงบริหาร', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 transition">11. รายงานสรุปแนวโน้มและข้อเสนอแนะเชิงบริหาร</button>
+                <button onclick="selectOption('filterReportType', 'btnReportTypeText', 'R12', '12. รายงานสรุปสถิติประจำเดือน / ประจำภาคเรียน', 'reportTypeModal')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 transition">12. รายงานสรุปสถิติประจำเดือน / ประจำภาคเรียน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Modal Control Scripts -->
+    <script>
+        function openFilterModal(modalId) {
+            const m = document.getElementById(modalId);
+            if (m) m.classList.remove('hidden');
+        }
+
+        function closeFilterModal(modalId) {
+            const m = document.getElementById(modalId);
+            if (m) m.classList.add('hidden');
+        }
+
+        function selectOption(hiddenId, textId, val, label, modalId) {
+            document.getElementById(hiddenId).value = val;
+            document.getElementById(textId).innerText = label;
+            closeFilterModal(modalId);
+            
+            // Trigger automatic report generation upon selection change
+            const btn = document.getElementById('btnGenerateReport');
+            if (btn) btn.click();
+        }
+    </script>
+
     <!-- Module Integration Script -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
@@ -259,7 +378,7 @@
 
         let currentReportData = [];
 
-        // ⏰ นาฬิกาไทย Real-time
+        // ⏰ นาฬิกา Real-time & วันที่ไทย
         function updateClock() {
             const now = new Date();
             const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
@@ -301,18 +420,38 @@
         }
 
         async function loadTeachers() {
-            const selectTeacher = document.getElementById('selectTeacher');
-            if (!selectTeacher) return;
+            const teacherModalList = document.getElementById('teacherModalList');
             const teachers = await getTeachersList();
 
-            selectTeacher.innerHTML = '';
-            if (teachers.length === 0) {
-                selectTeacher.innerHTML = `<option value="ครูผู้สอนประจำวิชา">ครูผู้สอนประจำวิชา</option>`;
-            } else {
-                teachers.forEach(name => {
-                    selectTeacher.innerHTML += `<option value="${name}">${name}</option>`;
-                });
+            if (!teachers || teachers.length === 0) {
+                document.getElementById('selectTeacher').value = 'ครูผู้สอนประจำวิชา';
+                document.getElementById('btnTeacherText').innerText = 'ครูผู้สอนประจำวิชา';
+                if (teacherModalList) {
+                    teacherModalList.innerHTML = `<div class="p-3 text-center text-slate-400">ไม่พบข้อมูลรายชื่อครู</div>`;
+                }
+                return;
             }
+
+            // ตั้งค่าครูคนแรกเป็น default
+            document.getElementById('selectTeacher').value = teachers[0];
+            document.getElementById('btnTeacherText').innerText = teachers[0];
+
+            if (teacherModalList) {
+                teacherModalList.innerHTML = teachers.map(name => `
+                    <button onclick="window.selectTeacherOption('${name}')" class="w-full text-left p-3 rounded-xl hover:bg-indigo-50 transition flex justify-between items-center">
+                        <span>${name}</span>
+                        <i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i>
+                    </button>
+                `).join('');
+            }
+
+            window.selectTeacherOption = (name) => {
+                document.getElementById('selectTeacher').value = name;
+                document.getElementById('btnTeacherText').innerText = name;
+                closeFilterModal('teacherModal');
+                updateTeacherDisplay();
+                runGenerateReport();
+            };
 
             updateTeacherDisplay();
         }
@@ -611,13 +750,6 @@
         }
 
         function setupEventListeners() {
-            document.getElementById('filterYear')?.addEventListener('change', runGenerateReport);
-            document.getElementById('filterSemester')?.addEventListener('change', runGenerateReport);
-            document.getElementById('filterClass')?.addEventListener('change', runGenerateReport);
-            document.getElementById('filterSubject')?.addEventListener('change', runGenerateReport);
-            document.getElementById('filterReportType')?.addEventListener('change', runGenerateReport);
-            document.getElementById('selectTeacher')?.addEventListener('change', updateTeacherDisplay);
-
             document.getElementById('btnGenerateReport')?.addEventListener('click', runGenerateReport);
             document.getElementById('btnExportCSV')?.addEventListener('click', exportReportCSV);
             document.getElementById('btnPrintPDF')?.addEventListener('click', () => window.print());
