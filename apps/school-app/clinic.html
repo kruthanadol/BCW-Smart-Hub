@@ -30,93 +30,91 @@
         html { font-size: 16px; }
         @media (min-width: 768px) { html { font-size: 18px; } }
         body { font-family: 'Kanit', 'Sarabun', sans-serif; background-color: #f1f5f9; color: #0f172a; }
-        .touch-btn { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; }
+        .touch-btn { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Top Nav Bar -->
-    <div class="bg-sky-950 text-white py-1 px-2.5 sm:px-6 shadow-md border-b-2 border-sky-800 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto flex justify-between items-center text-[10px] sm:text-xs gap-1.5">
-            <div class="flex items-center gap-1.5 font-medium overflow-hidden shrink min-w-0">
-                <a href="../../landing.html" title="หน้าหลัก" class="bg-sky-800 hover:bg-sky-700 text-amber-200 px-2 py-0.5 rounded font-extrabold text-[11px] sm:text-xs shrink-0 flex items-center gap-1 transition">
-                    <i class="fa-solid fa-house"></i>
-                    <span class="hidden sm:inline">หน้าหลัก</span>
-                </a>
-                <span id="thaiDateStr" class="text-sky-100 truncate text-[10px] sm:text-xs"></span>
+    <!-- Header มาตรฐาน BCW SMART HUB -->
+    <header class="bg-gradient-to-r from-sky-950 via-sky-900 to-slate-950 text-white shadow-md sticky top-0 z-50 border-b-2 border-sky-600">
+        
+        <!-- แถบบน: โลโก้, BCW SMART HUB, ชื่อระบบ และ ปุ่มออกจากระบบ -->
+        <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex justify-between items-center gap-2">
+            
+            <!-- ฝั่งซ้าย: โลโก้ + BCW SMART HUB (ตัวใหญ่) + ชื่อระบบ -->
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-sky-300/50">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 sm:w-11 sm:h-11 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-sm sm:text-base font-black text-amber-400 tracking-wider leading-none uppercase">
+                        BCW SMART HUB
+                    </h1>
+                    <div class="text-xs sm:text-sm font-extrabold text-sky-100 leading-tight truncate mt-1">
+                        🏥 ระบบห้องพยาบาล (School Clinic)
+                    </div>
+                </div>
             </div>
 
+            <!-- ฝั่งขวาบน: ปุ่มหน้าหลัก & ปุ่มออกจากระบบ -->
             <div class="flex items-center gap-1.5 shrink-0">
-                <span class="font-mono text-amber-300 bg-sky-900 px-1.5 py-0.5 rounded border border-sky-700 text-[10px] sm:text-xs whitespace-nowrap">
-                    ⏰ <span id="liveClock">00:00:00</span> น.
-                </span>
-                <button type="button" onclick="handleLogout()" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-0.5 rounded-lg font-bold shadow flex items-center gap-1 border border-rose-500 text-[10px] sm:text-xs">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <span class="hidden sm:inline">ออกจากระบบ</span>
+                <a href="../../landing.html" title="หน้าหลัก" class="w-8 h-8 sm:w-9 sm:h-9 bg-sky-800 hover:bg-sky-700 text-amber-300 rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-sky-600 active:scale-95">
+                    <i class="fa-solid fa-house text-xs sm:text-sm"></i>
+                </a>
+                <button id="btnLogout" onclick="handleLogout()" title="ออกจากระบบ" class="w-8 h-8 sm:w-9 sm:h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-500 active:scale-95">
+                    <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- แถวล่าง (แถวที่ 3): แสดงสถานะ + วันที่และเวลา Real-time -->
+        <div class="bg-sky-950/90 border-t border-sky-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-xs">
+            <!-- สถานะระบบ -->
+            <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 text-xs sm:text-sm">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>ห้องพยาบาลเปิดทำการ</span>
+            </span>
+
+            <!-- วันที่และนาฬิกา Real-time -->
+            <div class="flex items-center gap-1.5 text-amber-200 font-bold text-xs">
+                <i class="fa-regular fa-clock text-amber-400"></i>
+                <span id="header-date-display" class="hidden sm:inline">กำลังโหลด...</span>
+                <span id="liveClock" class="bg-sky-900 px-1.5 py-0.5 rounded border border-sky-700 font-mono text-white">00:00:00</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sub-Header / Mobile Action Bar -->
+    <div class="bg-white border-b border-slate-200 px-3 py-2 sm:py-3 shadow-xs">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            <h2 class="text-sm sm:text-lg font-black text-slate-800 flex items-center gap-2 truncate">
+                <i class="fa-solid fa-hospital-user text-sky-600"></i>
+                <span class="truncate">การดูแลสุขภาพและห้องพยาบาล</span>
+            </h2>
+            <div class="flex items-center gap-2 shrink-0">
+                <button id="btnOpenRecordModal" class="bg-sky-700 active:bg-sky-800 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold shadow transition flex items-center justify-center gap-1.5 touch-btn">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>บันทึกการรักษา</span>
+                </button>
+                <button id="btnOpenReportModal" class="bg-slate-800 active:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold shadow transition flex items-center justify-center gap-1.5 touch-btn">
+                    <i class="fa-solid fa-print"></i>
+                    <span class="hidden sm:inline">พิมพ์รายงาน</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Header Branding -->
-    <header class="bg-white border-b-2 md:border-b-4 border-sky-600 shadow-sm">
-        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex flex-col md:flex-row justify-between items-center gap-2.5">
-            
-            <div class="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
-                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-sky-50 rounded-2xl flex items-center justify-center p-1 shadow-xs border-2 border-sky-500 shrink-0">
-                    <img src="../../assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="w-full h-full object-contain" onerror="this.src='https://via.placeholder.com/80?text=BCW'">
-                </div>
-                <div>
-                    <h1 class="text-[25px] sm:text-3xl font-black text-amber-500 drop-shadow-xs tracking-tight leading-none flex items-center gap-2">
-                        BCW SMART HUB
-                    </h1>
-                    <div class="mt-1 flex flex-col items-start gap-0.5">
-                        <span class="text-xs sm:text-sm font-extrabold text-sky-900 bg-sky-100 border border-sky-300 px-2.5 py-0.5 rounded-full">
-                            🏥 ระบบห้องพยาบาล (School Clinic Center)
-                        </span>
-                        <span class="text-xs sm:text-sm text-slate-700 font-extrabold leading-tight mt-0.5">โรงเรียนบัวเชดวิทยา</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ปุ่มแสดงบนคอมพิวเตอร์ -->
-            <div class="hidden md:flex items-center gap-2">
-                <button id="btnOpenRecordModal" class="bg-sky-700 hover:bg-sky-800 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold shadow transition flex items-center justify-center gap-1.5 touch-btn">
-                    <i class="fa-solid fa-plus-circle"></i>
-                    <span>บันทึกการรักษา/พักพยาบาล</span>
-                </button>
-                <button id="btnOpenReportModal" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold shadow transition flex items-center justify-center gap-1.5 touch-btn">
-                    <i class="fa-solid fa-print"></i>
-                    <span>พิมพ์รายงาน</span>
-                </button>
-            </div>
-
-        </div>
-
-        <!-- แถบปุ่มบนมือถือ (ขนาดพอดีคำ) -->
-        <div class="md:hidden bg-slate-100 border-t border-slate-200 px-3 py-2 flex items-center justify-center gap-2">
-            <button id="btnOpenRecordModalMobile" class="bg-sky-700 active:bg-sky-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold shadow transition flex items-center justify-center gap-1.5 touch-btn border border-sky-800">
-                <i class="fa-solid fa-plus-circle text-xs"></i>
-                <span>บันทึกการรักษา</span>
-            </button>
-            <button id="btnOpenReportModalMobile" class="bg-slate-800 active:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold shadow transition flex items-center justify-center gap-1.5 touch-btn border border-slate-900">
-                <i class="fa-solid fa-print text-xs"></i>
-                <span>พิมพ์รายงาน</span>
-            </button>
-        </div>
-    </header>
-
     <!-- Main Content Grid -->
     <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-3 sm:py-6 space-y-4 sm:space-y-6 my-auto">
         
-        <!-- กล่องสถิติ 3 กล่อง (คืนขนาดมาตรฐานเดิม) -->
+        <!-- กล่องสถิติ 3 กล่อง -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div class="bg-white p-4 sm:p-5 rounded-2xl border-2 border-sky-200 shadow-xs flex items-center justify-between">
                 <div>
                     <p class="text-xs sm:text-sm font-bold text-slate-600">🤒 เข้าพักพยาบาลวันนี้</p>
                     <h3 id="statToday" class="text-2xl sm:text-3xl font-black text-sky-700 mt-1">0 คน</h3>
                 </div>
-                <div class="w-12 h-12 bg-sky-100 text-sky-700 rounded-2xl flex items-center justify-center text-2xl font-bold border border-sky-200">🏥</div>
+                <div class="w-12 h-12 bg-sky-100 text-sky-700 rounded-2xl flex items-center justify-center text-2xl font-bold border border-sky-200 shrink-0">🏥</div>
             </div>
 
             <div class="bg-white p-4 sm:p-5 rounded-2xl border-2 border-rose-200 shadow-xs flex items-center justify-between">
@@ -124,7 +122,7 @@
                     <p class="text-xs sm:text-sm font-bold text-slate-600">🩹 อุบัติเหตุในโรงเรียน</p>
                     <h3 id="statAccident" class="text-2xl sm:text-3xl font-black text-rose-700 mt-1">0 เคส</h3>
                 </div>
-                <div class="w-12 h-12 bg-rose-100 text-rose-700 rounded-2xl flex items-center justify-center text-2xl font-bold border border-rose-200">🩹</div>
+                <div class="w-12 h-12 bg-rose-100 text-rose-700 rounded-2xl flex items-center justify-center text-2xl font-bold border border-rose-200 shrink-0">🩹</div>
             </div>
 
             <div class="bg-white p-4 sm:p-5 rounded-2xl border-2 border-emerald-200 shadow-xs flex items-center justify-between">
@@ -132,34 +130,33 @@
                     <p class="text-xs sm:text-sm font-bold text-slate-600">🛌 กำลังพักในห้องพยาบาล</p>
                     <h3 id="statActive" class="text-2xl sm:text-3xl font-black text-emerald-700 mt-1">0 คน</h3>
                 </div>
-                <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-2xl font-bold border border-emerald-200">🛏️</div>
+                <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-2xl font-bold border border-emerald-200 shrink-0">🛏️</div>
             </div>
         </div>
 
-        <!-- Analytics Charts (หัวข้อขยายใหญ่ขึ้นอีก 3px) -->
+        <!-- Analytics Charts -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
             <div class="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-200 shadow-xs space-y-3">
-                <!-- ขยายหัวข้อขึ้นอีก 3px (จาก 14px เป็น 17px / มือถือ) -->
-                <h3 class="text-[17px] sm:text-xl font-black text-slate-900 flex items-center gap-2">
+                <h3 class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">
                     <i class="fa-solid fa-chart-column text-sky-600"></i>
-                    <span>สถิติการเข้าใช้บริการห้องพยาบาลประจำสัปดาห์</span>
+                    <span>สถิติการใช้ห้องพยาบาลประจำสัปดาห์</span>
                 </h3>
                 <div class="h-48 sm:h-64 relative"><canvas id="barChart"></canvas></div>
             </div>
 
             <div class="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-200 shadow-xs space-y-3">
-                <h3 class="text-[17px] sm:text-xl font-black text-slate-900 flex items-center gap-2">
+                <h3 class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">
                     <i class="fa-solid fa-chart-pie text-sky-600"></i>
-                    <span>สัดส่วนประเภทอาการป่วย / อุบัติเหตุ</span>
+                    <span>สัดส่วนอาการป่วย / อุบัติเหตุ</span>
                 </h3>
                 <div class="h-48 sm:h-64 relative flex justify-center"><canvas id="doughnutChart"></canvas></div>
             </div>
         </div>
 
-        <!-- Student Table (หัวข้อตารางขยายใหญ่ขึ้นอีก 3px) -->
+        <!-- Student Table -->
         <div class="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-200 shadow-xs space-y-3.5">
             <div class="flex justify-between items-center border-b border-slate-200 pb-3">
-                <h3 class="text-[17px] sm:text-xl font-black text-slate-900 flex items-center gap-2">
+                <h3 class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">
                     <i class="fa-solid fa-list-check text-sky-600"></i>
                     <span>รายชื่อนักเรียนเข้าใช้ห้องพยาบาลล่าสุด</span>
                 </h3>
@@ -170,7 +167,7 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs sm:text-sm border-collapse">
+                <table class="w-full text-left text-xs sm:text-sm border-collapse min-w-[650px]">
                     <thead>
                         <tr class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
                             <th class="p-2.5">รหัสนักเรียน</th>
@@ -189,14 +186,14 @@
         </div>
     </main>
 
-    <!-- Modal 1: บันทึกข้อมูลพยาบาล (หัวข้อเพิ่ม 3px) -->
+    <!-- Modal 1: บันทึกข้อมูลพยาบาล -->
     <div id="recordModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-3 sm:p-6 overflow-y-auto">
         <div class="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border-2 border-slate-300 space-y-3.5 my-auto">
             <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
-                <h3 class="text-lg sm:text-2xl font-black text-slate-900 flex items-center gap-1.5">
+                <h3 class="text-base sm:text-2xl font-black text-slate-900 flex items-center gap-1.5">
                     📝 บันทึกข้อมูลนักเรียนเข้าห้องพยาบาล
                 </h3>
-                <button id="btnCloseRecordModal" class="text-slate-400 hover:text-slate-600 font-extrabold text-xl">✕</button>
+                <button id="btnCloseRecordModal" class="text-slate-400 hover:text-slate-600 font-extrabold text-xl p-1">✕</button>
             </div>
 
             <form id="clinicForm" class="space-y-3">
@@ -230,10 +227,10 @@
                 <div>
                     <label class="block text-xs sm:text-sm font-extrabold text-slate-800 mb-1">⚡ เลือกอาการด่วน (Quick Tags)</label>
                     <div class="flex flex-wrap gap-1">
-                        <button type="button" class="btn-tag text-[11px] sm:text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold border border-sky-300 px-2 py-0.5 rounded-lg transition" data-tag="ปวดท้องประจำเดือน">+ ปวดท้องประจำเดือน</button>
-                        <button type="button" class="btn-tag text-[11px] sm:text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold border border-sky-300 px-2 py-0.5 rounded-lg transition" data-tag="ปวดศีรษะ/ตัวร้อน">+ ปวดศีรษะ/ตัวร้อน</button>
-                        <button type="button" class="btn-tag text-[11px] sm:text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold border border-sky-300 px-2 py-0.5 rounded-lg transition" data-tag="เวียนหัว/คลื่นไส้">+ เวียนหัว/คลื่นไส้</button>
-                        <button type="button" class="btn-tag text-[11px] sm:text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold border border-sky-300 px-2 py-0.5 rounded-lg transition" data-tag="หกล้ม/แผลถลอก">+ หกล้ม/แผลถลอก</button>
+                        <button type="button" class="btn-tag text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold border border-sky-300 px-2 py-1 rounded-lg transition" data-tag="ปวดท้องประจำเดือน">+ ปวดท้องประจำเดือน</button>
+                        <button type="button" class="btn-tag text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold border border-sky-300 px-2 py-1 rounded-lg transition" data-tag="ปวดศีรษะ/ตัวร้อน">+ ปวดศีรษะ/ตัวร้อน</button>
+                        <button type="button" class="btn-tag text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold border border-sky-300 px-2 py-1 rounded-lg transition" data-tag="เวียนหัว/คลื่นไส้">+ เวียนหัว/คลื่นไส้</button>
+                        <button type="button" class="btn-tag text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold border border-sky-300 px-2 py-1 rounded-lg transition" data-tag="หกล้ม/แผลถลอก">+ หกล้ม/แผลถลอก</button>
                     </div>
                 </div>
 
@@ -243,21 +240,21 @@
                 </div>
 
                 <div class="flex gap-2 pt-1">
-                    <button type="button" id="btnCancelRecord" class="w-1/2 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-xl text-xs sm:text-sm transition">ยกเลิก</button>
-                    <button type="submit" id="saveBtn" class="w-1/2 py-2 bg-sky-700 hover:bg-sky-800 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow transition">💾 บันทึกข้อมูล</button>
+                    <button type="button" id="btnCancelRecord" class="w-1/2 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-xl text-xs sm:text-sm transition">ยกเลิก</button>
+                    <button type="submit" id="saveBtn" class="w-1/2 py-2.5 bg-sky-700 hover:bg-sky-800 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow transition">💾 บันทึกข้อมูล</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal 2: พิมพ์รายงานสรุป (หัวข้อเพิ่ม 3px) -->
+    <!-- Modal 2: พิมพ์รายงานสรุป -->
     <div id="reportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-3 sm:p-6">
         <div class="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl border-2 border-slate-300 space-y-3.5">
             <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
-                <h3 class="text-lg sm:text-2xl font-black text-slate-900 flex items-center gap-1.5">
+                <h3 class="text-base sm:text-2xl font-black text-slate-900 flex items-center gap-1.5">
                     🖨️ เลือกเงื่อนไขรายงานสรุป
                 </h3>
-                <button id="btnCloseReportModal" class="text-slate-400 hover:text-slate-600 font-extrabold text-xl">✕</button>
+                <button id="btnCloseReportModal" class="text-slate-400 hover:text-slate-600 font-extrabold text-xl p-1">✕</button>
             </div>
 
             <div class="space-y-3">
@@ -280,8 +277,8 @@
             </div>
 
             <div class="flex gap-2 pt-1">
-                <button id="btnCancelReport" class="w-1/2 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-xl text-xs sm:text-sm transition">ยกเลิก</button>
-                <button id="btnPrintReport" class="w-1/2 py-2 bg-sky-700 hover:bg-sky-800 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow transition">🖨️ พิมพ์เอกสาร</button>
+                <button id="btnCancelReport" class="w-1/2 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-xl text-xs sm:text-sm transition">ยกเลิก</button>
+                <button id="btnPrintReport" class="w-1/2 py-2.5 bg-sky-700 hover:bg-sky-800 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow transition">🖨️ พิมพ์เอกสาร</button>
             </div>
         </div>
     </div>
@@ -299,14 +296,14 @@
         let doughnutChartInst = null;
         let searchTimeout = null;
 
-        // ⏰ นาฬิกาไทย
-        function updateThaiClock() {
+        // ⏰ นาฬิกาไทย & วันที่
+        function updateClock() {
             const now = new Date();
-            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
             const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
 
-            const dateElem = document.getElementById('thaiDateStr');
-            if (dateElem) dateElem.innerText = `วัน${thaiDays[now.getDay()]}ที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
+            const dateElem = document.getElementById('header-date-display');
+            if (dateElem) dateElem.innerText = `วัน${thaiDays[now.getDay()]}ที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
 
             const clockElem = document.getElementById('liveClock');
             if (clockElem) clockElem.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
@@ -328,8 +325,8 @@
         window.handleLogout = handleLogout;
 
         document.addEventListener('DOMContentLoaded', () => {
-            updateThaiClock();
-            setInterval(updateThaiClock, 1000);
+            updateClock();
+            setInterval(updateClock, 1000);
             initCharts();
             loadDashboard();
             setupEventListeners();
@@ -363,7 +360,7 @@
                     options: { 
                         responsive: true, 
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: 'right', labels: { font: { family: 'Kanit', size: 12 } } } }
+                        plugins: { legend: { position: 'bottom', labels: { font: { family: 'Kanit', size: 12 } } } }
                     }
                 });
             }
@@ -432,17 +429,15 @@
         function setupEventListeners() {
             document.getElementById('btnRefresh')?.addEventListener('click', loadDashboard);
             
-            // Modal Toggles Desktop & Mobile
+            // Modal Toggles
             const openRecord = () => toggleModal('recordModal', true);
             const openReport = () => toggleModal('reportModal', true);
 
             document.getElementById('btnOpenRecordModal')?.addEventListener('click', openRecord);
-            document.getElementById('btnOpenRecordModalMobile')?.addEventListener('click', openRecord);
             document.getElementById('btnCloseRecordModal')?.addEventListener('click', () => toggleModal('recordModal', false));
             document.getElementById('btnCancelRecord')?.addEventListener('click', () => toggleModal('recordModal', false));
 
             document.getElementById('btnOpenReportModal')?.addEventListener('click', openReport);
-            document.getElementById('btnOpenReportModalMobile')?.addEventListener('click', openReport);
             document.getElementById('btnCloseReportModal')?.addEventListener('click', () => toggleModal('reportModal', false));
             document.getElementById('btnCancelReport')?.addEventListener('click', () => toggleModal('reportModal', false));
 
