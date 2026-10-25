@@ -2,67 +2,100 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>ศูนย์ออกรายงานและดาวน์โหลดหลักฐาน - โรงเรียนบัวเชดวิทยา (BCW)</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../../assets/images/logo_bcw.png">
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body { font-family: 'Kanit', sans-serif; }
+        body { font-family: 'Kanit', sans-serif; background-color: #f1f5f9; color: #0f172a; }
+        .touch-btn { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
         @media print {
             .no-print { display: none !important; }
             body { background: white !important; color: black !important; padding: 0 !important; }
-            .print-container { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; }
+            .print-container { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+<body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Header Navbar -->
-    <header class="bg-indigo-950 text-white shadow-lg sticky top-0 z-50 no-print">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-white p-1 rounded-full shadow">
-                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-10 h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+    <!-- 1. Header มาตรฐาน BCW SMART HUB (พกพานาฬิกา Real-time + วันที่ไทย) -->
+    <header class="bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md sticky top-0 z-50 border-b-2 border-indigo-600 no-print">
+        
+        <!-- แถบบน: โลโก้, BCW SMART HUB, ชื่อระบบ และ ปุ่มออกจากระบบ -->
+        <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex justify-between items-center gap-2">
+            
+            <!-- ฝั่งซ้าย: โลโก้ + BCW SMART HUB (ตัวใหญ่) + ชื่อระบบ -->
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-indigo-300/50">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 sm:w-11 sm:h-11 object-contain" onerror="this.src='https://via.placeholder.com/40'">
                 </div>
-                <div>
-                    <h1 class="text-base font-bold leading-tight">ศูนย์ออกรายงานและสารสนเทศหลักฐาน (Master Reports Center)</h1>
-                    <p class="text-xs text-indigo-300">โรงเรียนบัวเชดวิทยา &bull; Smart School Portal (Live Real-time Analytics 100%)</p>
+                <div class="min-w-0">
+                    <h1 class="text-sm sm:text-base font-black text-amber-400 tracking-wider leading-none uppercase">
+                        BCW SMART HUB
+                    </h1>
+                    <div class="text-xs sm:text-sm font-extrabold text-indigo-100 leading-tight truncate mt-1">
+                        📊 ศูนย์ออกรายงานสารสนเทศหลักฐาน (Master Reports Center)
+                    </div>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
-                <a href="../../landing.html" class="text-xs bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl border border-indigo-700 font-semibold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-arrow-left"></i> กลับแดชบอร์ด
+
+            <!-- ฝั่งขวาบน: ปุ่มหน้าหลัก & ปุ่มออกจากระบบ -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                <a href="../../landing.html" title="กลับแดชบอร์ด" class="w-8 h-8 sm:w-9 sm:h-9 bg-indigo-800 hover:bg-indigo-700 text-amber-300 rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-indigo-600 active:scale-95">
+                    <i class="fa-solid fa-house text-xs sm:text-sm"></i>
                 </a>
-                <button type="button" id="btnLogout" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow">
-                    ออกจากระบบ
+                <button id="btnLogout" onclick="handleLogout()" title="ออกจากระบบ" class="w-8 h-8 sm:w-9 sm:h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-500 active:scale-95">
+                    <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
                 </button>
+            </div>
+        </div>
+
+        <!-- แถวล่าง (แถวที่ 3): แสดงสถานะ + วันที่และเวลา Real-time -->
+        <div class="bg-indigo-950/90 border-t border-indigo-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-xs">
+            <!-- สถานะระบบ -->
+            <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 text-xs sm:text-sm">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>เชื่อมต่อฐานข้อมูลสารสนเทศ Real-time 100%</span>
+            </span>
+
+            <!-- วันที่และนาฬิกา Real-time -->
+            <div class="flex items-center gap-1.5 text-amber-200 font-bold text-xs">
+                <i class="fa-regular fa-clock text-amber-400"></i>
+                <span id="header-date-display" class="hidden sm:inline">กำลังโหลด...</span>
+                <span id="liveClock" class="bg-indigo-900 px-1.5 py-0.5 rounded border border-indigo-700 font-mono text-white">00:00:00</span>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
+    <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-6 flex-1 space-y-4 sm:space-y-6">
 
         <!-- Controls / Filter Card -->
-        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4 no-print">
-            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+        <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200 space-y-4 no-print">
+            <h2 class="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
                 <i class="fa-solid fa-filter text-indigo-600"></i>
                 ตัวกรองข้อมูลรายงานหลักฐาน (Data Reporting Filters)
             </h2>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 
                 <!-- 1. Academic Year & Semester Filter -->
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-500">ปีการศึกษา / ภาคเรียน</label>
+                    <label class="text-xs font-bold text-slate-600">ปีการศึกษา / ภาคเรียน</label>
                     <div class="grid grid-cols-2 gap-2">
-                        <select id="filterYear" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                        <select id="filterYear" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
                             <option value="2569" selected>2569</option>
                             <option value="2568">2568</option>
                             <option value="2567">2567</option>
                         </select>
-                        <select id="filterSemester" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                        <select id="filterSemester" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
                             <option value="1" selected>ภาคเรียนที่ 1</option>
                             <option value="2">ภาคเรียนที่ 2</option>
                         </select>
@@ -71,8 +104,8 @@
 
                 <!-- 2. Select Class -->
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-500">ระดับชั้น / ห้องเรียน</label>
-                    <select id="filterClass" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                    <label class="text-xs font-bold text-slate-600">ระดับชั้น / ห้องเรียน</label>
+                    <select id="filterClass" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
                         <option value="ALL">-- ทุกห้องเรียนรวมกัน --</option>
                         <option value="ม.1/1">ม.1/1</option>
                         <option value="ม.1/2">ม.1/2</option>
@@ -85,8 +118,8 @@
 
                 <!-- 3. Select Subject -->
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-500">รายวิชา</label>
-                    <select id="filterSubject" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                    <label class="text-xs font-bold text-slate-600">รายวิชา</label>
+                    <select id="filterSubject" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
                         <option value="ALL">-- ทุกรายวิชา --</option>
                         <option value="คณิตศาสตร์พื้นฐาน (ค31101)" selected>คณิตศาสตร์พื้นฐาน (ค31101)</option>
                         <option value="วิทยาศาสตร์กายภาพ (ว31101)">วิทยาศาสตร์กายภาพ (ว31101)</option>
@@ -98,15 +131,15 @@
                 <!-- 4. Select Teacher Dynamic from Supabase DB -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-indigo-700">ครูผู้สอนประจำวิชา (จากฐานข้อมูล)</label>
-                    <select id="selectTeacher" class="w-full p-2.5 bg-indigo-50/60 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500">
+                    <select id="selectTeacher" class="w-full p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-950 focus:ring-2 focus:ring-indigo-500 outline-none">
                         <option value="">-- กำลังโหลดรายชื่อครู... --</option>
                     </select>
                 </div>
 
                 <!-- 5. Report Type Filter -->
                 <div class="space-y-1 lg:col-span-4">
-                    <label class="text-xs font-bold text-slate-500">ประเภทรายงานหลักฐาน (12 หมวดมาตรฐานสถานศึกษา)</label>
-                    <select id="filterReportType" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500">
+                    <label class="text-xs font-bold text-slate-600">ประเภทรายงานหลักฐาน (12 หมวดมาตรฐานสถานศึกษา)</label>
+                    <select id="filterReportType" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
                         <optgroup label="🟢 กลุ่มงานวิชาการและทะเบียนวัดผล">
                             <option value="R01">1. รายงานเวลาเรียนรายวิชาประจำห้องเรียน (Attendance Register - Real-time Logs)</option>
                             <option value="R02">2. รายงานสรุปเปอร์เซ็นต์เวลาเรียน คัดกรองกลุ่มเสี่ยง (ติด มส. < 80% / < 60%)</option>
@@ -129,76 +162,76 @@
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex justify-end gap-2 pt-2">
-                <button type="button" id="btnGenerateReport" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer">
+            <!-- Action Buttons Responsive -->
+            <div class="flex flex-col sm:flex-row justify-end gap-2 pt-2">
+                <button type="button" id="btnGenerateReport" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-1.5 touch-btn active:scale-95">
                     <i class="fa-solid fa-rotate"></i> ประมวลผล Real-time
                 </button>
-                <button type="button" id="btnExportCSV" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer" title="ดาวน์โหลด CSV">
+                <button type="button" id="btnExportCSV" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-1.5 touch-btn active:scale-95" title="ดาวน์โหลด CSV">
                     <i class="fa-solid fa-file-excel"></i> ส่งออก CSV (Excel)
                 </button>
-                <button type="button" id="btnPrintPDF" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer" title="พิมพ์ PDF">
+                <button type="button" id="btnPrintPDF" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-900 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-1.5 touch-btn active:scale-95" title="พิมพ์ PDF">
                     <i class="fa-solid fa-print"></i> พิมพ์เอกสาร PDF
                 </button>
             </div>
         </div>
 
         <!-- Printable Report Sheet -->
-        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 print-container space-y-6">
+        <div class="bg-white p-4 sm:p-8 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200 print-container space-y-6">
             
             <!-- Document Formal Header -->
-            <div class="text-center space-y-1 border-b pb-4">
+            <div class="text-center space-y-1.5 border-b pb-4">
                 <div class="flex justify-center mb-2">
-                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-16 h-16 object-contain" onerror="this.src='https://via.placeholder.com/64'">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-14 h-14 sm:w-16 sm:h-16 object-contain" onerror="this.src='https://via.placeholder.com/64'">
                 </div>
-                <h2 class="text-lg font-bold text-slate-900">เอกสารรายงานสารสนเทศและหลักฐานทางการศึกษา</h2>
-                <h3 id="reportTitleHeader" class="text-sm font-bold text-indigo-900">รายงานสรุปเวลาเรียนและการมาเรียนรายวิชา</h3>
+                <h2 class="text-base sm:text-lg font-black text-slate-900">เอกสารรายงานสารสนเทศและหลักฐานทางการศึกษา</h2>
+                <h3 id="reportTitleHeader" class="text-xs sm:text-sm font-extrabold text-indigo-900">รายงานสรุปเวลาเรียนและการมาเรียนรายวิชา</h3>
                 
-                <div class="flex justify-center items-center gap-3 text-xs font-medium text-slate-600 pt-1 flex-wrap">
-                    <span>ปีการศึกษา: <strong id="displayYearText" class="text-slate-800">2569 (ภาคเรียนที่ 1)</strong></span>
-                    <span>&bull;</span>
-                    <span>ห้องเรียน: <strong id="displayClassText" class="text-slate-800">ม.5/1</strong></span>
-                    <span>&bull;</span>
-                    <span>รายวิชา: <strong id="displaySubjectText" class="text-indigo-900">คณิตศาสตร์พื้นฐาน (ค31101)</strong></span>
-                    <span>&bull;</span>
-                    <span>ครูผู้สอน: <strong id="displayTeacherText" class="text-indigo-700 font-bold">กำลังโหลด...</strong></span>
+                <div class="flex justify-center items-center gap-2 sm:gap-3 text-xs font-bold text-slate-700 pt-1 flex-wrap">
+                    <span>ปีการศึกษา: <strong id="displayYearText" class="text-slate-900">2569 (ภาคเรียนที่ 1)</strong></span>
+                    <span class="hidden sm:inline">&bull;</span>
+                    <span>ห้องเรียน: <strong id="displayClassText" class="text-slate-900">ม.5/1</strong></span>
+                    <span class="hidden sm:inline">&bull;</span>
+                    <span>รายวิชา: <strong id="displaySubjectText" class="text-indigo-950">คณิตศาสตร์พื้นฐาน (ค31101)</strong></span>
+                    <span class="hidden sm:inline">&bull;</span>
+                    <span>ครูผู้สอน: <strong id="displayTeacherText" class="text-indigo-700 font-extrabold">กำลังโหลด...</strong></span>
                 </div>
 
-                <p class="text-[11px] text-slate-400 pt-1">โรงเรียนบัวเชดวิทยา สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์ &bull; ประมวลผล ณ วันที่: <span id="reportPrintDate"></span></p>
+                <p class="text-[10px] sm:text-xs text-slate-500 pt-1 font-medium">โรงเรียนบัวเชดวิทยา สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์ &bull; ประมวลผล ณ วันที่: <span id="reportPrintDate"></span></p>
             </div>
 
             <!-- Report Summary Badges -->
-            <div id="summaryBadges" class="grid grid-cols-2 sm:grid-cols-4 gap-3 no-print">
-                <div class="bg-slate-50 p-3 rounded-2xl border text-center">
-                    <span id="badgeLabel1" class="text-[11px] text-slate-500 font-bold block">นักเรียนทั้งหมด</span>
-                    <span id="badgeTotal" class="text-lg font-black text-slate-800">0</span>
+            <div id="summaryBadges" class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 no-print">
+                <div class="bg-slate-50 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-center">
+                    <span id="badgeLabel1" class="text-[10px] sm:text-[11px] text-slate-600 font-bold block">นักเรียนทั้งหมด</span>
+                    <span id="badgeTotal" class="text-base sm:text-lg font-black text-slate-900">0</span>
                 </div>
-                <div class="bg-emerald-50 p-3 rounded-2xl border border-emerald-100 text-center">
-                    <span id="badgeLabel2" class="text-[11px] text-emerald-700 font-bold block">ปกติ / ผ่านเกณฑ์</span>
-                    <span id="badgePass" class="text-lg font-black text-emerald-600">0</span>
+                <div class="bg-emerald-50 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-emerald-100 text-center">
+                    <span id="badgeLabel2" class="text-[10px] sm:text-[11px] text-emerald-800 font-bold block">ปกติ / ผ่านเกณฑ์</span>
+                    <span id="badgePass" class="text-base sm:text-lg font-black text-emerald-700">0</span>
                 </div>
-                <div class="bg-amber-50 p-3 rounded-2xl border border-amber-100 text-center">
-                    <span id="badgeLabel3" class="text-[11px] text-amber-700 font-bold block">เฝ้าระวัง / สาย</span>
-                    <span id="badgeWarning" class="text-lg font-black text-amber-600">0</span>
+                <div class="bg-amber-50 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-amber-100 text-center">
+                    <span id="badgeLabel3" class="text-[10px] sm:text-[11px] text-amber-800 font-bold block">เฝ้าระวัง / สาย</span>
+                    <span id="badgeWarning" class="text-base sm:text-lg font-black text-amber-700">0</span>
                 </div>
-                <div class="bg-rose-50 p-3 rounded-2xl border border-rose-100 text-center">
-                    <span id="badgeLabel4" class="text-[11px] text-rose-700 font-bold block">กลุ่มเสี่ยง / ขาดเรียน</span>
-                    <span id="badgeDanger" class="text-lg font-black text-rose-600">0</span>
+                <div class="bg-rose-50 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-rose-100 text-center">
+                    <span id="badgeLabel4" class="text-[10px] sm:text-[11px] text-rose-800 font-bold block">กลุ่มเสี่ยง / ขาดเรียน</span>
+                    <span id="badgeDanger" class="text-base sm:text-lg font-black text-rose-700">0</span>
                 </div>
             </div>
 
-            <!-- Main Data Table -->
+            <!-- Main Data Table Responsive -->
             <div class="overflow-x-auto">
-                <table class="w-full text-xs text-left border-collapse border border-slate-300">
-                    <thead id="reportTableHead" class="bg-slate-100 text-slate-700 border-b border-slate-300">
+                <table class="w-full text-xs text-left border-collapse border border-slate-300 min-w-[700px]">
+                    <thead id="reportTableHead" class="bg-slate-100 text-slate-800 border-b border-slate-300 font-extrabold">
                     </thead>
-                    <tbody id="reportTableBody">
+                    <tbody id="reportTableBody" class="font-medium">
                     </tbody>
                 </table>
             </div>
 
             <!-- Official Signature Block -->
-            <div class="pt-8 grid grid-cols-3 gap-4 text-center text-[11px] font-medium text-slate-700 hidden print:grid border-t mt-6">
+            <div class="pt-8 grid grid-cols-3 gap-4 text-center text-xs font-bold text-slate-800 hidden print:grid border-t mt-6">
                 <div class="space-y-6">
                     <p>ลงชื่อ..........................................................<br><span id="sigTeacherName">(..........................................................)</span><br>ตำแหน่ง ครูผู้สอน / ผู้รายงาน</p>
                 </div>
@@ -215,17 +248,48 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3 no-print">
-        โรงเรียนบัวเชดวิทยา (BCW) &bull; Master Reporting Engine (100% Real-time Connected)
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-500 text-xs py-3 no-print">
+        © 2026 โรงเรียนบัวเชดวิทยา (BCW Smart Hub) • Master Reporting Engine
     </footer>
 
     <!-- Module Integration Script -->
     <script type="module">
+        import { db } from '../../core/supabase-client.js';
         import { getTeachersList, generateMasterReportData } from '../../modules/reports/reports.service.js';
 
         let currentReportData = [];
 
+        // ⏰ นาฬิกาไทย Real-time
+        function updateClock() {
+            const now = new Date();
+            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+
+            const dateElem = document.getElementById('header-date-display');
+            if (dateElem) dateElem.innerText = `วัน${thaiDays[now.getDay()]}ที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
+
+            const clockElem = document.getElementById('liveClock');
+            if (clockElem) clockElem.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        }
+
+        // 🚪 ออกจากระบบ
+        async function handleLogout() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                try {
+                    await db.auth.signOut();
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = '../../login.html';
+                } catch (err) {
+                    alert('เกิดข้อผิดพลาดในการออกจากระบบ: ' + err.message);
+                }
+            }
+        }
+        window.handleLogout = handleLogout;
+
         document.addEventListener('DOMContentLoaded', () => {
+            updateClock();
+            setInterval(updateClock, 1000);
             document.getElementById('reportPrintDate').innerText = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
             initReportsCenter();
             setupEventListeners();
@@ -238,22 +302,28 @@
 
         async function loadTeachers() {
             const selectTeacher = document.getElementById('selectTeacher');
+            if (!selectTeacher) return;
             const teachers = await getTeachersList();
 
             selectTeacher.innerHTML = '';
-            teachers.forEach(name => {
-                selectTeacher.innerHTML += `<option value="${name}">${name}</option>`;
-            });
+            if (teachers.length === 0) {
+                selectTeacher.innerHTML = `<option value="ครูผู้สอนประจำวิชา">ครูผู้สอนประจำวิชา</option>`;
+            } else {
+                teachers.forEach(name => {
+                    selectTeacher.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+            }
 
             updateTeacherDisplay();
         }
 
         function updateTeacherDisplay() {
-            const teacherName = document.getElementById('selectTeacher').value || 'ครูผู้สอนประจำวิชา';
-            document.getElementById('displayTeacherText').innerText = teacherName;
-            if (document.getElementById('sigTeacherName')) {
-                document.getElementById('sigTeacherName').innerText = `(${teacherName})`;
-            }
+            const teacherName = document.getElementById('selectTeacher')?.value || 'ครูผู้สอนประจำวิชา';
+            const displayTeacher = document.getElementById('displayTeacherText');
+            if (displayTeacher) displayTeacher.innerText = teacherName;
+            
+            const sigTeacher = document.getElementById('sigTeacherName');
+            if (sigTeacher) sigTeacher.innerText = `(${teacherName})`;
         }
 
         async function runGenerateReport() {
@@ -270,7 +340,7 @@
 
             const tbody = document.getElementById('reportTableBody');
             const thead = document.getElementById('reportTableHead');
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังดึงและคำนวณข้อมูลจากฐานข้อมูล Supabase...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังดึงและประมวลผลข้อมูล Real-time จากฐานข้อมูล Supabase...</td></tr>`;
 
             try {
                 const reportRows = await generateMasterReportData({ selectedClass });
@@ -283,7 +353,7 @@
 
                 renderReportData(reportType, reportRows, thead, tbody);
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-rose-500">เกิดข้อผิดพลาดในการดึงข้อมูล: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-rose-500 font-bold">เกิดข้อผิดพลาดในการดึงข้อมูล: ${err.message}</td></tr>`;
             }
         }
 
@@ -327,9 +397,9 @@
                 tbody.innerHTML = data.map((r, i) => `
                     <tr class="border-b hover:bg-slate-50">
                         <td class="border border-slate-300 p-2 text-center">${i+1}</td>
-                        <td class="border border-slate-300 p-2 font-mono text-slate-500">${r.student_id}</td>
+                        <td class="border border-slate-300 p-2 font-mono text-slate-600 font-bold">${r.student_id}</td>
                         <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
-                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold">${r.class}</td>
                         <td class="border border-slate-300 p-2 text-center">${r.attended_periods} / ${r.total_periods}</td>
                         <td class="border border-slate-300 p-2 text-center font-bold ${r.attendance_percent >= 80 ? 'text-emerald-600':'text-rose-600'}">${r.attendance_percent}%</td>
                         <td class="border border-slate-300 p-2 text-center font-bold ${r.attendance_percent >= 80 ? 'text-emerald-600': r.attendance_percent >= 60 ? 'text-amber-600':'text-rose-600'}">
@@ -358,7 +428,7 @@
                     <tr class="border-b hover:bg-slate-50">
                         <td class="border border-slate-300 p-2 text-center">${i+1}</td>
                         <td class="border border-slate-300 p-2 font-bold text-rose-900">${r.student_name}</td>
-                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold">${r.class}</td>
                         <td class="border border-slate-300 p-2 text-center font-black text-rose-600">${r.attendance_percent}%</td>
                         <td class="border border-slate-300 p-2 text-center font-bold ${r.attendance_percent < 60 ? 'bg-rose-100 text-rose-700':'bg-amber-100 text-amber-700'}">
                             ${r.attendance_percent < 60 ? 'เสี่ยงติด มส. (<60%)' : 'เฝ้าระวัง (<80%)'}
@@ -385,7 +455,7 @@
                     <tr class="border-b hover:bg-slate-50">
                         <td class="border border-slate-300 p-2 text-center">${i+1}</td>
                         <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
-                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold">${r.class}</td>
                         <td class="border border-slate-300 p-2 text-center font-black text-rose-600">${r.truant_count} คาบ</td>
                         <td class="border border-slate-300 p-2 text-center font-bold text-rose-700 bg-rose-50">แจ้งฝ่ายปกครองติดตามแล้ว</td>
                     </tr>
@@ -409,7 +479,7 @@
                     <tr class="border-b hover:bg-slate-50">
                         <td class="border border-slate-300 p-2 text-center">${i+1}</td>
                         <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
-                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold">${r.class}</td>
                         <td class="border border-slate-300 p-2 text-center font-black ${r.behavior_score >= 80 ? 'text-emerald-600':'text-rose-600'}">${r.behavior_score} คะแนน</td>
                         <td class="border border-slate-300 p-2 text-center font-bold ${r.behavior_score >= 80 ? 'text-emerald-600': r.behavior_score >= 50 ? 'text-amber-600':'text-rose-600'}">
                             ${r.behavior_score >= 80 ? 'ปกติ (ความประพฤติดี)' : r.behavior_score >= 50 ? 'เฝ้าระวังพฤติกรรม' : 'เชิญผู้ปกครอง / ทำทัณฑ์บน'}
@@ -434,7 +504,7 @@
                     <tr class="border-b hover:bg-slate-50">
                         <td class="border border-slate-300 p-2 text-center">${i+1}</td>
                         <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
-                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold">${r.class}</td>
                         <td class="border border-slate-300 p-2 text-center font-bold text-indigo-700">${r.notif_count} ครั้ง</td>
                         <td class="border border-slate-300 p-2 text-center font-bold ${r.notif_count > 0 ? 'text-emerald-600':'text-slate-400'}">
                             ${r.notif_count > 0 ? 'ส่งแจ้งเตือนเข้าแอปแล้ว' : 'ยังไม่มีรายการแจ้งเตือน'}
@@ -458,7 +528,7 @@
                     <tr class="border-b hover:bg-slate-50">
                         <td class="border border-slate-300 p-2 text-center">${i+1}</td>
                         <td class="border border-slate-300 p-2 font-bold text-slate-800">${r.student_name}</td>
-                        <td class="border border-slate-300 p-2 text-center">${r.class}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold">${r.class}</td>
                         <td class="border border-slate-300 p-2 text-center font-bold text-emerald-600">${r.attendance_percent}%</td>
                         <td class="border border-slate-300 p-2 text-center font-bold text-indigo-600">${r.behavior_score} คะแนน</td>
                         <td class="border border-slate-300 p-2 text-center font-bold text-amber-600">${r.clinic_count} ครั้ง</td>
@@ -481,7 +551,7 @@
                     <tr class="border-b hover:bg-slate-50">
                         <td class="border border-slate-300 p-2 text-center">1</td>
                         <td class="border border-slate-300 p-2 font-bold text-indigo-900">${currentTeacher}</td>
-                        <td class="border border-slate-300 p-2 text-center">${document.getElementById('filterClass').value}</td>
+                        <td class="border border-slate-300 p-2 text-center font-bold">${document.getElementById('filterClass').value}</td>
                         <td class="border border-slate-300 p-2 text-center font-black text-emerald-600">${data.length} คน</td>
                         <td class="border border-slate-300 p-2 text-center font-bold text-emerald-600 bg-emerald-50">บันทึกรายงานสมบูรณ์</td>
                     </tr>`;
@@ -551,12 +621,6 @@
             document.getElementById('btnGenerateReport')?.addEventListener('click', runGenerateReport);
             document.getElementById('btnExportCSV')?.addEventListener('click', exportReportCSV);
             document.getElementById('btnPrintPDF')?.addEventListener('click', () => window.print());
-
-            document.getElementById('btnLogout')?.addEventListener('click', () => {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = '../../login.html';
-            });
         }
     </script>
 </body>
