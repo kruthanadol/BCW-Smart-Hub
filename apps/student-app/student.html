@@ -1,59 +1,76 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="th" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>BCW Student Connect - ระบบสำหรับนักเรียน</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../../assets/images/logo_bcw.png">
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- QRCode Generator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
-    <style>body { font-family: 'Kanit', sans-serif; }</style>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #f1f5f9; color: #1e293b; overflow-x: hidden; }
+        .table-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+<body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Header -->
-    <header class="bg-indigo-900 text-white shadow-lg sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-white p-1 rounded-full shadow">
-                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-10 h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+    <!-- Header Zone (Responsive Mobile/PC) -->
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-50 border-b border-indigo-700">
+        <div class="max-w-4xl mx-auto px-3 sm:px-4 py-2.5 flex justify-between items-center gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="bg-white p-1 rounded-xl shadow shrink-0">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 sm:w-9 sm:h-9 object-contain" onerror="this.src='https://via.placeholder.com/40'">
                 </div>
-                <div>
-                    <h1 class="text-base font-bold leading-tight">BCW Student Portal</h1>
-                    <p class="text-[11px] text-indigo-300">ระบบติดตามการเรียน พฤติกรรม และออกนอกสถานศึกษา (โรงเรียนบัวเชดวิทยา)</p>
+                <div class="min-w-0">
+                    <h1 class="text-xs sm:text-base font-bold leading-tight truncate">BCW Student Portal</h1>
+                    <p class="text-[10px] sm:text-[11px] text-indigo-300 truncate">โรงเรียนบัวเชดวิทยา (BCW Smart School)</p>
                 </div>
             </div>
-            <button id="btnLogout" class="text-xs bg-indigo-800 hover:bg-rose-600 px-3 py-1.5 rounded-xl font-semibold transition border border-indigo-700 flex items-center gap-1.5">
-                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            <button id="btnLogout" class="text-xs bg-indigo-800 hover:bg-rose-600 text-white px-2.5 py-1.5 rounded-xl font-bold transition border border-indigo-700 flex items-center gap-1.5 shrink-0 cursor-pointer">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="hidden sm:inline">ออกจากระบบ</span>
             </button>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-4xl mx-auto w-full px-4 py-6 flex-1 space-y-5">
+    <main class="max-w-4xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 flex-1 space-y-4 sm:space-y-5">
 
-        <!-- 1. Student Profile Overview -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                <div class="relative">
-                    <img id="student-avatar" src="https://via.placeholder.com/100?text=Student" alt="Student Photo" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover ring-4 ring-indigo-50 shadow-md border border-slate-100">
+        <!-- 1. Student Profile Overview (ปรับ Flex สวยงามบนมือถือ) -->
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex flex-col sm:flex-row items-center gap-3.5 text-center sm:text-left w-full sm:w-auto">
+                <div class="relative shrink-0">
+                    <img id="student-avatar" src="https://via.placeholder.com/100?text=Student" alt="Student Photo" class="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl object-cover ring-4 ring-indigo-50 shadow-sm border border-slate-100">
                     <span id="badge-status-dot" class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
                 </div>
-                <div class="space-y-0.5">
-                    <h2 id="student-fullname" class="text-base font-bold text-slate-800">กำลังเชื่อมต่อระบบ...</h2>
-                    <p class="text-xs text-slate-500">ชั้น: <span id="student-class" class="font-bold text-indigo-600">-</span> &bull; เลขที่: <span id="student-no">-</span> &bull; รหัสประจำตัว: <span id="student-id">-</span></p>
-                    <span id="student-academic-status" class="inline-block mt-1 text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">สถานะ: เชื่อมต่อสำเร็จ</span>
+                <div class="space-y-0.5 min-w-0">
+                    <h2 id="student-fullname" class="text-base sm:text-lg font-extrabold text-slate-800 leading-tight">กำลังเชื่อมต่อระบบ...</h2>
+                    <p class="text-xs text-slate-500 font-medium">
+                        ชั้น: <span id="student-class" class="font-bold text-indigo-600">-</span> &bull; 
+                        เลขที่: <span id="student-no" class="font-bold text-slate-700">-</span> &bull; 
+                        รหัสประจำตัว: <span id="student-id" class="font-bold text-slate-700">-</span>
+                    </p>
+                    <span id="student-academic-status" class="inline-block mt-1 text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full">
+                        🟢 สถานะ: เชื่อมต่อสำเร็จ
+                    </span>
                 </div>
             </div>
-            <div class="text-right bg-indigo-50/70 p-3 rounded-2xl border border-indigo-100 min-w-[120px] w-full sm:w-auto">
-                <span class="text-[10px] text-slate-500 block font-semibold text-center sm:text-right">คะแนนพฤติกรรมคงเหลือ</span>
-                <div class="text-center sm:text-right">
-                    <span id="student-behavior-score" class="text-2xl font-black text-indigo-700">--</span>
-                    <span class="text-xs text-slate-400 font-normal">/ 100</span>
+            
+            <div class="bg-indigo-50/80 p-3 rounded-2xl border border-indigo-100 w-full sm:w-auto text-center sm:text-right shrink-0">
+                <span class="text-[10px] text-indigo-900 block font-bold">คะแนนพฤติกรรมคงเหลือ</span>
+                <div class="flex sm:block justify-center items-baseline gap-1 mt-0.5">
+                    <span id="student-behavior-score" class="text-2xl sm:text-3xl font-black text-indigo-700">--</span>
+                    <span class="text-xs text-slate-400 font-semibold">/ 100 คะแนน</span>
                 </div>
             </div>
         </div>
@@ -61,31 +78,31 @@
         <!-- 🚪 2. ระบบยื่นขอออกนอกสถานศึกษาออนไลน์ & บัตรผ่านประตูดิจิทัล (GATEPASS SYSTEM) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Active Digital Pass Card -->
-            <div id="activePassCard" class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-indigo-700 space-y-3 hidden">
+            <div id="activePassCard" class="bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-indigo-700 space-y-3 hidden">
                 <div class="flex justify-between items-center border-b border-indigo-700/60 pb-2">
                     <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-shield-halved"></i> บัตรผ่านประตูดิจิทัล (Digital Gatepass)
+                        <i class="fa-solid fa-shield-halved"></i> บัตรผ่านประตูดิจิทัล
                     </span>
                     <span id="passStatusBadge" class="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md">รอการอนุมัติ</span>
                 </div>
-                <div class="text-center py-2">
-                    <div class="flex justify-center my-2">
-                        <div id="qrcodeContainer" class="p-2.5 bg-white rounded-xl shadow border-2 border-indigo-400"></div>
+                <div class="text-center py-1 space-y-2">
+                    <div class="flex justify-center my-1">
+                        <div id="qrcodeContainer" class="p-2 bg-white rounded-xl shadow border border-indigo-300 min-w-[120px] min-h-[120px] flex items-center justify-center"></div>
                     </div>
-                    <p id="passReason" class="text-xs font-bold text-white mb-0.5">เหตุผล: --</p>
-                    <p id="passTimeRange" class="text-[11px] text-indigo-200">เวลาอนุญาต: -- ถึง --</p>
+                    <p id="passReason" class="text-xs font-bold text-white">เหตุผล: --</p>
+                    <p id="passTimeRange" class="text-[11px] text-indigo-200 font-medium">เวลาอนุญาต: -- ถึง --</p>
                 </div>
             </div>
 
             <!-- Gatepass Request Form -->
-            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
-                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5 border-b pb-2">
+            <div class="bg-white rounded-2xl p-4 shadow-xs border border-slate-200 space-y-3">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5 border-b pb-2">
                     <i class="fa-solid fa-door-open text-amber-600"></i> ยื่นขออนุญาตออกนอกบริเวณโรงเรียน
                 </h3>
-                <form id="gatepassForm" class="space-y-3 text-xs">
+                <form id="gatepassForm" class="space-y-2.5 text-xs">
                     <div>
                         <label class="block font-bold text-slate-600 mb-1">เหตุผลในการขอออกนอกสถานศึกษา <span class="text-rose-500">*</span></label>
-                        <select id="requestReasonSelect" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-indigo-600" required>
+                        <select id="requestReasonSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-indigo-600" required>
                             <option value="">-- เลือกเหตุผล --</option>
                             <option value="ผู้ปกครองมารับกลับบ้าน/ทำธุระ">ผู้ปกครองมารับกลับบ้าน / ทำธุระครอบครัว</option>
                             <option value="ไปพบแพทย์/โรงพยาบาล">ไปพบแพทย์ / ทำหัตถการโรงพยาบาล</option>
@@ -95,7 +112,7 @@
                     </div>
 
                     <div id="customReasonBox" class="hidden">
-                        <input type="text" id="customReasonInput" placeholder="ระบุรายละเอียดเหตุผล..." class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-600">
+                        <input type="text" id="customReasonInput" placeholder="ระบุรายละเอียดเหตุผล..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-600">
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -109,7 +126,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-extrabold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
                         <i class="fa-solid fa-paper-plane"></i> ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครอง
                     </button>
                 </form>
@@ -117,12 +134,12 @@
         </div>
 
         <!-- 3. 📅 ตารางเรียนประจำวัน -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-calendar-days text-sky-600"></i> ตารางเรียนประจำวัน
                 </h3>
-                <select id="dayFilter" class="text-xs bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select id="dayFilter" class="text-xs bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 font-bold text-slate-700 focus:outline-none">
                     <option value="Monday">วันจันทร์</option>
                     <option value="Tuesday">วันอังคาร</option>
                     <option value="Wednesday">วันพุธ</option>
@@ -136,9 +153,9 @@
         </div>
 
         <!-- 4. 👩‍🏫 กล่องแสดงรูปครูที่ปรึกษาประจำห้อง -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-chalkboard-user text-indigo-600"></i> ครูที่ปรึกษาประจำห้อง
                 </h3>
                 <span id="advisorCountBadge" class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold">0 คน</span>
@@ -149,12 +166,12 @@
         </div>
 
         <!-- 5. ⚠️ เวลาเรียนสะสมทุกวิชา & สถานะสิทธิ์สอบ (มส.) -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-graduation-cap text-indigo-600"></i> เวลาเรียนสะสมทุกรายวิชา (ฝ่ายวิชาการ)
                 </h3>
-                <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">ข้อมูลเรียลไทม์</span>
+                <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold">ข้อมูล Real-time</span>
             </div>
             <div id="studentAcademicContainer" class="space-y-2.5">
                 <p class="text-xs text-slate-400 text-center py-3">กำลังโหลดข้อมูลเวลาเรียน...</p>
@@ -162,9 +179,9 @@
         </div>
 
         <!-- 6. ⚖️ การ์ดประวัติคะแนนพฤติกรรม -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-scale-balanced text-amber-500"></i> ประวัติการหักคะแนน & การซ่อมความดี (+คะแนน)
                 </h3>
                 <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">ฝ่ายปกครอง</span>
@@ -176,24 +193,29 @@
 
         <!-- 7. 📚 การบ้าน & 🏥 สุขภาพ -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3">
-                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <i class="fa-solid fa-book text-indigo-600"></i> งานที่ได้รับมอบหมาย
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 space-y-3">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5 border-b pb-2">
+                    <i class="fa-solid fa-book text-indigo-600"></i> งานที่ได้รับมอบหมาย / การบ้าน
                 </h3>
-                <div id="studentHomeworkList" class="space-y-2"></div>
+                <div id="studentHomeworkList" class="space-y-2">
+                    <p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>
+                </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3">
-                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 space-y-3">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5 border-b pb-2">
                     <i class="fa-solid fa-heart-pulse text-rose-500"></i> บันทึกสุขภาพ / ห้องพยาบาล
                 </h3>
-                <div id="studentClinicList" class="space-y-2"></div>
+                <div id="studentClinicList" class="space-y-2">
+                    <p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติห้องพยาบาล</p>
+                </div>
             </div>
         </div>
 
     </main>
 
-    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3">
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3 mt-4">
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Student Portal System
     </footer>
 
@@ -211,6 +233,7 @@
             getStudentClinicRecords
         } from '../../modules/student/student.service.js';
 
+        // ตรวจสอบข้อมูลการล็อกอินอย่างรัดกุม
         function getLoggedInStudentId() {
             let id = localStorage.getItem('student_id') || sessionStorage.getItem('student_id') || 
                      localStorage.getItem('ref_id') || sessionStorage.getItem('ref_id') ||
@@ -225,26 +248,30 @@
                     } catch(e) {}
                 }
             }
-            return id || '12345';
+            return id || null;
         }
 
         let CURRENT_STUDENT_ID = getLoggedInStudentId();
         let currentStudentClass = '';
 
         document.addEventListener('DOMContentLoaded', () => {
+            if (!CURRENT_STUDENT_ID) {
+                alert('⚠️ ไม่พบข้อมูลการเข้าสู่ระบบ กรุณาล็อกอินใหม่อีกครั้ง');
+                window.location.href = '../../login.html';
+                return;
+            }
             initStudentPortal();
             setupEventListeners();
         });
 
         async function initStudentPortal() {
-            CURRENT_STUDENT_ID = getLoggedInStudentId();
             const student = await getStudentProfile(CURRENT_STUDENT_ID);
 
-            const fullName = student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : 'บัวเชด วิทยา';
+            const fullName = student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : 'นักเรียน บัวเชดวิทยา';
             currentStudentClass = student?.classroom || student?.class || 'ม.1/1';
             const studentNo = student?.number_no ?? student?.no ?? '-';
 
-            document.getElementById('student-fullname').innerText = fullName || 'นักเรียน';
+            document.getElementById('student-fullname').innerText = fullName;
             document.getElementById('student-class').innerText = currentStudentClass;
             document.getElementById('student-no').innerText = studentNo;
             document.getElementById('student-id').innerText = student?.student_id || CURRENT_STUDENT_ID;
@@ -288,7 +315,7 @@
                 if (pass.status === 'pending') {
                     statusBadge.className = "bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md";
                     statusBadge.innerText = "⏳ รอครู/ฝ่ายปกครองอนุมัติ";
-                    qrContainer.innerHTML = `<p class="text-[11px] text-slate-500 p-2">เมื่อครูอนุมัติแล้ว<br>QR Code สำหรับสแกนประตูจะขึ้นตรงนี้</p>`;
+                    qrContainer.innerHTML = `<p class="text-[11px] text-slate-500 p-2 text-center">เมื่อครูอนุมัติแล้ว<br>QR Code จะแสดงที่นี่</p>`;
                 } else if (pass.status === 'approved' || pass.status === 'out') {
                     statusBadge.className = "bg-emerald-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md";
                     statusBadge.innerText = pass.status === 'out' ? "🚪 อยู่นอกโรงเรียน" : "✅ อนุมัติแล้ว (สแกนผ่านประตูได้)";
@@ -296,8 +323,8 @@
                     if (typeof QRCode !== 'undefined') {
                         new QRCode(qrContainer, {
                             text: `GATEPASS:${pass.id}:${pass.student_id}`,
-                            width: 110,
-                            height: 110
+                            width: 100,
+                            height: 100
                         });
                     }
                 }
@@ -319,20 +346,20 @@
             container.innerHTML = schedules.map(s => {
                 const teacherAvatar = s.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
                 return `
-                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl hover:border-indigo-200 transition">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center">
+                    <div class="flex items-center justify-between p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl hover:border-indigo-200 transition">
+                        <div class="flex items-center gap-2.5 sm:gap-3">
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
                                 <span class="text-[8px] text-indigo-500 uppercase leading-none">คาบ</span>
-                                <span class="text-sm font-extrabold leading-tight">${s.period_no || 1}</span>
+                                <span class="text-xs sm:text-sm font-extrabold leading-tight">${s.period_no || 1}</span>
                             </div>
-                            <div>
-                                <h4 class="text-xs font-bold text-slate-800">${s.course_name} <span class="text-slate-400 font-normal">(${s.course_code})</span></h4>
-                                <p class="text-[10px] text-slate-400"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.room_no || 'ไม่ระบุ'}</p>
+                            <div class="min-w-0">
+                                <h4 class="text-xs font-bold text-slate-800 truncate">${s.course_name} <span class="text-slate-400 font-normal">(${s.course_code})</span></h4>
+                                <p class="text-[10px] text-slate-400 truncate"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.room_no || 'ไม่ระบุ'}</p>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2 bg-white border border-slate-200/60 px-2 py-1 rounded-lg shadow-sm">
-                            <img src="${teacherAvatar}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-6 h-6 rounded-md object-cover ring-1 ring-slate-100">
+                        <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shadow-xs shrink-0">
+                            <img src="${teacherAvatar}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-5 h-5 sm:w-6 sm:h-6 rounded-md object-cover">
                             <div class="text-left hidden sm:block">
                                 <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_name}</p>
                                 <p class="text-[8px] text-slate-400">ผู้สอน</p>
@@ -361,9 +388,9 @@
                 const isMain = adv.advisor_type === 'main';
 
                 return `
-                    <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-sm hover:border-indigo-200 transition">
-                        <img src="${avatarUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-12 h-12 rounded-xl object-cover ring-2 ring-white shadow-sm">
-                        <div class="overflow-hidden space-y-0.5">
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-xs hover:border-indigo-200 transition">
+                        <img src="${avatarUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover ring-2 ring-white shadow-xs shrink-0">
+                        <div class="overflow-hidden space-y-0.5 min-w-0">
                             <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${isMain ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}">
                                 ${isMain ? 'ที่ปรึกษาหลัก' : 'ที่ปรึกษาสมทบ'}
                             </span>
@@ -431,14 +458,14 @@
                 const pts = Math.abs(item.points || item.score_deducted || 0);
 
                 return `
-                    <div class="p-3 ${isDeduction ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'} border rounded-xl text-xs flex justify-between items-center">
-                        <div class="space-y-0.5">
-                            <span class="font-bold ${isDeduction ? 'text-rose-900' : 'text-emerald-900'} block">
+                    <div class="p-2.5 sm:p-3 ${isDeduction ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'} border rounded-xl text-xs flex justify-between items-center">
+                        <div class="space-y-0.5 min-w-0">
+                            <span class="font-bold ${isDeduction ? 'text-rose-900' : 'text-emerald-900'} block truncate">
                                 <i class="fa-solid ${isDeduction ? 'fa-minus-circle' : 'fa-plus-circle'} mr-1"></i>${item.action || item.reason || 'บันทึกพฤติกรรม'}
                             </span>
                             <span class="text-[10px] text-slate-500">${new Date(item.created_at).toLocaleDateString('th-TH')}</span>
                         </div>
-                        <span class="text-sm font-black ${isDeduction ? 'text-rose-600' : 'text-emerald-600'}">${isDeduction ? '-' : '+'}${pts}</span>
+                        <span class="text-xs sm:text-sm font-black ${isDeduction ? 'text-rose-600' : 'text-emerald-600'} shrink-0 ml-2">${isDeduction ? '-' : '+'}${pts}</span>
                     </div>
                 `;
             }).join('');
