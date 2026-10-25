@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Kanit', 'Sarabun', sans-serif; background-color: #f1f5f9; color: #1e293b; }
+        body { font-family: 'Kanit', 'Sarabun', sans-serif; background-color: #f8fafc; color: #0f172a; overflow-x: hidden; }
         .tab-btn.active { border-bottom: 3px solid #d97706; color: #b45309; font-weight: 700; }
         .form-tab.active-deduct { background-color: #e11d48; color: white; }
         .form-tab.active-repair { background-color: #10b981; color: white; }
@@ -30,11 +30,9 @@
         .tooltip-align-left { left: 0; }
         .tooltip-align-right { right: 0; }
 
-        .report-container { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px; }
-        .summary-card { flex: 1; min-width: 280px; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 20px; border: 1px solid #e2e8f0; }
-        .card-header h3 { margin: 0 0 10px 0; font-size: 1rem; color: #1e293b; font-weight: 700; }
-        .primary-stat { font-size: 1.5rem; font-weight: 800; color: #059669; margin-bottom: 15px; }
-        .card-footer { margin-top: 15px; padding-top: 12px; border-top: 2px solid #e2e8f0; font-weight: 600; color: #0f172a; font-size: 0.9rem; }
+        .table-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .table-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
         @media print {
             .no-print { display: none !important; }
@@ -44,305 +42,231 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Header Zone (ตรงตามภาพต้นฉบับ 100%) -->
-    <header class="bg-[#5c2406] text-white shadow-lg sticky top-0 z-50 border-b-2 border-amber-600 no-print">
-        <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap justify-between items-center gap-2">
-            <div class="flex items-center gap-2.5 min-w-0">
-                <div class="bg-white p-1 rounded-full shadow shrink-0">
-                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 sm:w-10 sm:h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+    <!-- Header Zone (Responsive ไม่ดันล้นจอมือถือ) -->
+    <header class="bg-[#5c2406] text-white shadow-md sticky top-0 z-40 border-b-2 border-amber-600 no-print">
+        <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex justify-between items-center gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="bg-white p-1 rounded-xl shadow shrink-0">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 sm:w-10 sm:h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
                 </div>
                 <div class="min-w-0">
-                    <h1 class="text-sm sm:text-base font-bold leading-tight truncate">ระบบฝ่ายปกครอง &bull; Discipline & Student Care Center</h1>
-                    <p class="text-[11px] text-amber-200 truncate">โรงเรียนบัวเชดวิทยา (BCW Smart School v6.5)</p>
+                    <h1 class="text-xs sm:text-sm md:text-base font-extrabold leading-tight truncate">ระบบฝ่ายปกครอง &bull; Discipline Center</h1>
+                    <p class="text-[10px] text-amber-200 truncate">โรงเรียนบัวเชดวิทยา (BCW Smart School v6.5)</p>
                 </div>
             </div>
             
-            <div class="flex flex-wrap items-center gap-2 shrink-0">
-                <a href="scanner.html" title="สแกนใบหน้า AI" class="text-xs bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 border border-amber-400 shadow-sm">
-                    <i class="fa-solid fa-camera-retro"></i> สแกนใบหน้า AI
+            <div class="flex items-center gap-1.5 shrink-0">
+                <a href="scanner.html" title="สแกนใบหน้า AI" class="text-xs bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 border border-amber-400">
+                    <i class="fa-solid fa-camera-retro"></i>
+                    <span class="hidden md:inline">สแกนใบหน้า AI</span>
                 </a>
-                <button id="btnOpenGatepassModal" title="บันทึกขอออกนอกโรงเรียน" class="text-xs bg-amber-700 hover:bg-amber-600 text-white px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm border border-amber-500 cursor-pointer">
-                    <i class="fa-solid fa-door-open"></i> บันทึกขอออกนอกโรงเรียน
+                <button id="btnOpenGatepassModal" title="ขอออกนอกโรงเรียน" class="text-xs bg-amber-700 hover:bg-amber-600 text-white px-2.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 border border-amber-500 cursor-pointer">
+                    <i class="fa-solid fa-door-open"></i>
+                    <span class="hidden md:inline">ขอออกนอก รร.</span>
                 </button>
-                <a href="#section-12-reports" class="text-xs bg-amber-800 hover:bg-amber-700 text-amber-100 px-3 py-2 rounded-xl font-bold transition border border-amber-600 flex items-center gap-1.5">
-                    <i class="fa-solid fa-book"></i> ศูนย์รายงาน 12 รายการ
+                <a href="#section-12-reports" title="ศูนย์รายงาน 12 รายการ" class="text-xs bg-amber-800 hover:bg-amber-700 text-white px-2.5 py-1.5 rounded-xl font-bold transition border border-amber-600 flex items-center gap-1">
+                    <i class="fa-solid fa-book"></i>
+                    <span class="hidden lg:inline">ศูนย์รายงาน 12 รายการ</span>
                 </a>
-                <button onclick="handleLogout()" class="text-xs bg-amber-900 hover:bg-rose-700 text-white px-3 py-2 rounded-xl font-bold transition border border-amber-700 flex items-center gap-1.5 cursor-pointer">
-                    <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+                <button onclick="handleLogout()" title="ออกจากระบบ" class="text-xs bg-amber-900 hover:bg-rose-700 text-white px-2 py-1.5 rounded-xl font-bold transition border border-amber-700">
+                    <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-6 flex-1 space-y-6">
+    <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 flex-1 space-y-4 sm:space-y-6">
         
-        <!-- 1. Key Metrics Cards (4 การ์ดหลักดั้งเดิม) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3 relative has-tooltip cursor-pointer">
-                <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl font-bold shrink-0">
+        <!-- 1. Key Metrics Cards (4 การ์ดหลัก) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            <div class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border border-slate-200 flex items-center gap-2.5 relative has-tooltip cursor-pointer">
+                <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-base sm:text-xl font-bold shrink-0">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-xs font-semibold text-slate-500 truncate">เสี่ยงวิกฤต (&lt; 80 คะแนน)</p>
-                    <h3 id="kpiRiskCount" class="text-xl font-extrabold text-rose-600">0 คน</h3>
-                    <p class="text-[10px] text-slate-400 font-medium truncate">ชี้เมาส์ดูรายชื่อนักเรียน 💬</p>
-                </div>
-                <div class="tooltip-box tooltip-align-left bg-slate-900 text-white text-xs p-3 rounded-xl shadow-2xl border border-slate-700 min-w-[220px]">
-                    <p class="font-bold border-b border-slate-700 pb-1 mb-1 text-rose-400">🔴 รายชื่อเด็กติดเงื่อนไขวิกฤต:</p>
-                    <ul id="tooltipRiskUl" class="space-y-1 text-[11px] text-slate-200"><li>ไม่มีรายการข้อมูล</li></ul>
+                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">เสี่ยงวิกฤต (&lt;80)</p>
+                    <h3 id="kpiRiskCount" class="text-base sm:text-xl font-black text-rose-600">0 คน</h3>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3 relative has-tooltip cursor-pointer">
-                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl font-bold shrink-0">
+            <div class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border border-slate-200 flex items-center gap-2.5 relative has-tooltip cursor-pointer">
+                <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-base sm:text-xl font-bold shrink-0">
                     <i class="fa-solid fa-door-open"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-xs font-semibold text-slate-500 truncate">ขอออกนอกโรงเรียนวันนี้</p>
-                    <h3 id="kpiGatePassCount" class="text-xl font-extrabold text-amber-600">0 คน</h3>
-                    <p id="kpiGateSub" class="text-[10px] text-slate-400 font-medium truncate">อยู่ใน รร. 0 | กลับบ้านแล้ว 0</p>
-                </div>
-                <div class="tooltip-box tooltip-align-left bg-slate-900 text-white text-xs p-3 rounded-xl shadow-2xl border border-slate-700 min-w-[240px]">
-                    <p class="font-bold border-b border-slate-700 pb-1 mb-1 text-amber-400">🟡 รายชื่อเด็กขอออกนอกสถานศึกษา:</p>
-                    <ul id="tooltipGateUl" class="space-y-1 text-[11px] text-slate-200"><li>ไม่มีรายการข้อมูล</li></ul>
+                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">ขอออกนอก รร.</p>
+                    <h3 id="kpiGatePassCount" class="text-base sm:text-xl font-black text-amber-600">0 คน</h3>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3 relative has-tooltip cursor-pointer">
-                <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center text-xl font-bold shrink-0">
+            <div class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border border-slate-200 flex items-center gap-2.5 relative has-tooltip cursor-pointer">
+                <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center text-base sm:text-xl font-bold shrink-0">
                     <i class="fa-solid fa-bed-pulse"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-xs font-semibold text-slate-500 truncate">นอนห้องพยาบาล (ณ ปัจจุบัน)</p>
-                    <h3 id="kpiInfirmaryCount" class="text-xl font-extrabold text-sky-600">0 คน</h3>
-                    <p class="text-[10px] text-sky-500 font-medium truncate">ชี้เมาส์ดูรายชื่อเด็กป่วย 💬</p>
-                </div>
-                <div class="tooltip-box tooltip-align-right bg-slate-900 text-white text-xs p-3 rounded-xl shadow-2xl border border-slate-700 min-w-[240px]">
-                    <p class="font-bold border-b border-slate-700 pb-1 mb-1 text-sky-400">🏥 รายชื่อเด็กนอนห้องพยาบาล:</p>
-                    <ul id="tooltipInfirmaryUl" class="space-y-1 text-[11px] text-slate-200"><li>ไม่มีรายการข้อมูล</li></ul>
+                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">ห้องพยาบาล</p>
+                    <h3 id="kpiInfirmaryCount" class="text-base sm:text-xl font-black text-sky-600">0 คน</h3>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3 relative has-tooltip cursor-pointer">
-                <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl font-bold shrink-0">
+            <div class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border border-slate-200 flex items-center gap-2.5 relative has-tooltip cursor-pointer">
+                <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-base sm:text-xl font-bold shrink-0">
                     <i class="fa-solid fa-user-ninja"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-xs font-semibold text-slate-500 truncate">แจ้งเตือนหนีเรียน Real-time</p>
-                    <h3 id="kpiTruancyCount" class="text-xl font-extrabold text-purple-600">0 เคส</h3>
-                    <p class="text-[10px] text-rose-500 font-bold animate-pulse truncate">ชี้เมาส์ดูรายชื่อ 💬</p>
-                </div>
-                <div class="tooltip-box tooltip-align-right bg-slate-900 text-white text-xs p-3 rounded-xl shadow-2xl border border-slate-700 min-w-[250px]">
-                    <p class="font-bold border-b border-slate-700 pb-1 mb-1 text-purple-300">🚨 เด็กหนีเรียนคาบปัจจุบัน:</p>
-                    <ul id="tooltipTruancyUl" class="space-y-1 text-[11px] text-slate-200"><li>ไม่มีรายการข้อมูล</li></ul>
+                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">หนีเรียนวันนี้</p>
+                    <h3 id="kpiTruancyCount" class="text-base sm:text-xl font-black text-purple-600">0 เคส</h3>
                 </div>
             </div>
         </div>
 
-        <!-- 2. Assembly Section (ตรงตามภาพ image_096321.png 100%) -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-sky-300 space-y-4">
-            <div class="flex flex-wrap justify-between items-center border-b pb-3 gap-3">
+        <!-- 2. SECTION: ASSEMBLY & DAILY ATTENDANCE REPORT (สลับโหมดเข้าแถว/มาเรียนประจำวัน + Off-Canvas มือถือ) -->
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-xs border border-sky-300 space-y-3.5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-3 gap-2.5">
                 <div>
-                    <h2 class="text-base font-extrabold text-sky-900 flex items-center gap-2">
+                    <h2 class="text-xs sm:text-sm font-black text-sky-950 flex items-center gap-2">
                         <i class="fa-solid fa-users-rectangle text-sky-600"></i>
-                        📌 รายงานสรุปการเข้าแถวเคารพธงชาติ (ม.ต้น / ม.ปลาย)
+                        <span id="reportTitleText">📌 รายงานสรุปการเข้าแถวเคารพธงชาติ (ม.ต้น / ม.ปลาย)</span>
                     </h2>
-                    <p class="text-xs text-slate-500">จำแนกตามระดับชั้นและห้องเรียน พร้อมสถิติความตรงต่อเวลาหน้าเสาธง</p>
+                    <p class="text-[11px] text-slate-500">จำแนกตามระดับชั้น ม.ต้น - ม.ปลาย และรายห้องเรียนทุกห้อง</p>
                 </div>
-                <div class="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
-                    <button class="px-2.5 py-1 rounded-lg bg-white shadow-xs text-slate-800">ช่วงเวลา</button>
-                    <button class="px-2.5 py-1 rounded-lg hover:text-slate-900">รายวัน</button>
-                    <button class="px-2.5 py-1 rounded-lg hover:text-slate-900">รายสัปดาห์</button>
-                    <button class="px-2.5 py-1 rounded-lg hover:text-slate-900">รายเดือน</button>
-                    <button class="px-2.5 py-1 rounded-lg bg-sky-600 text-white">รายเทอม</button>
+
+                <!-- Toggle Switcher (เข้าแถว VS มาเรียนประจำวัน) -->
+                <div class="flex bg-slate-100 p-1 rounded-xl text-[11px] font-extrabold text-slate-600 border border-slate-200 self-start sm:self-auto">
+                    <button type="button" id="btnModeAssembly" onclick="switchReportMode('assembly')" class="px-3 py-1.5 rounded-lg bg-sky-700 text-white shadow-xs transition flex items-center gap-1 cursor-pointer">
+                        <i class="fa-solid fa-flag"></i> การเข้าแถว
+                    </button>
+                    <button type="button" id="btnModeDaily" onclick="switchReportMode('daily')" class="px-3 py-1.5 rounded-lg hover:text-slate-900 transition flex items-center gap-1 cursor-pointer">
+                        <i class="fa-solid fa-school"></i> การมาเรียนประจำวัน
+                    </button>
                 </div>
             </div>
 
-            <div class="report-container">
-                <div class="summary-card">
-                    <div class="card-header">
-                        <h3>ระดับ ม.ต้น (ม.1 – ม.3)</h3>
-                        <div class="primary-stat">มาตรงเวลา <span id="percent-mton">100.0%</span></div>
+            <!-- การ์ด ม.ต้น & ม.ปลาย (จำแนก 5 สถานะ: มา, สาย, ขาด, ลา, หนี) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-sky-200 space-y-2.5">
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <h3 class="font-bold text-xs sm:text-sm text-sky-950">ระดับ ม.ต้น (ม.1 – ม.3)</h3>
+                        <span id="badgeMtonPercent" class="bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full">ตรงเวลา 100.0%</span>
                     </div>
-                    <div class="card-footer" id="total-mton">นักเรียน ม.ต้น ทั้งหมด 996 คน</div>
+                    
+                    <div class="grid grid-cols-5 gap-1 text-center font-bold">
+                        <div class="bg-white p-1.5 rounded-lg border border-emerald-200"><span class="block text-[9px] text-emerald-700">มา</span><span id="mton-present" class="text-xs text-emerald-800 font-black">996</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border border-amber-200"><span class="block text-[9px] text-amber-700">สาย</span><span id="mton-late" class="text-xs text-amber-800 font-black">0</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border border-rose-200"><span class="block text-[9px] text-rose-700">ขาด</span><span id="mton-absent" class="text-xs text-rose-800 font-black">0</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border border-sky-200"><span class="block text-[9px] text-sky-700">ลา</span><span id="mton-leave" class="text-xs text-sky-800 font-black">0</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border border-purple-200"><span class="block text-[9px] text-purple-700">หนี</span><span id="mton-truant" class="text-xs text-purple-800 font-black">0</span></div>
+                    </div>
+                    <p id="total-mton-text" class="text-[10px] text-slate-500 font-semibold text-right">นักเรียน ม.ต้น ทั้งหมด 996 คน</p>
                 </div>
-                <div class="summary-card">
-                    <div class="card-header">
-                        <h3>ระดับ ม.ปลาย (ม.4 – ม.6)</h3>
-                        <div class="primary-stat">มาตรงเวลา <span id="percent-mplay">100.0%</span></div>
+
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-indigo-200 space-y-2.5">
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <h3 class="font-bold text-xs sm:text-sm text-indigo-950">ระดับ ม.ปลาย (ม.4 – ม.6)</h3>
+                        <span id="badgeMplayPercent" class="bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full">ตรงเวลา 100.0%</span>
                     </div>
-                    <div class="card-footer" id="total-mplay">นักเรียน ม.ปลาย ทั้งหมด 4 คน</div>
+                    
+                    <div class="grid grid-cols-5 gap-1 text-center font-bold">
+                        <div class="bg-white p-1.5 rounded-lg border border-emerald-200"><span class="block text-[9px] text-emerald-700">มา</span><span id="mplay-present" class="text-xs text-emerald-800 font-black">4</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border border-amber-200"><span class="block text-[9px] text-amber-700">สาย</span><span id="mplay-late" class="text-xs text-amber-800 font-black">0</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border border-rose-200"><span class="block text-[9px] text-rose-700">ขาด</span><span id="mplay-absent" class="text-xs text-rose-800 font-black">0</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border border-sky-200"><span class="block text-[9px] text-sky-700">ลา</span><span id="mplay-leave" class="text-xs text-sky-800 font-black">0</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border border-purple-200"><span class="block text-[9px] text-purple-700">หนี</span><span id="mplay-truant" class="text-xs text-purple-800 font-black">0</span></div>
+                    </div>
+                    <p id="total-mplay-text" class="text-[10px] text-slate-500 font-semibold text-right">นักเรียน ม.ปลาย ทั้งหมด 4 คน</p>
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-xs text-left min-w-[700px]">
-                    <thead class="bg-slate-50 text-slate-700 border-b font-bold">
-                        <tr>
-                            <th class="p-2.5">ระดับชั้น / ห้องเรียน</th>
-                            <th class="p-2.5 text-center">นักเรียนทั้งหมด</th>
-                            <th class="p-2.5 text-center text-emerald-700">มาแถว (คน)</th>
-                            <th class="p-2.5 text-center text-amber-700">มาสาย (คน)</th>
-                            <th class="p-2.5 text-center text-rose-700">ขาด/ไม่มา (คน)</th>
-                            <th class="p-2.5 text-center text-sky-700">ลา (คน)</th>
-                            <th class="p-2.5 text-center">% อัตราการเข้าแถว</th>
-                        </tr>
-                    </thead>
-                    <tbody id="assemblyTableBody" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody>
-                </table>
+            <!-- ตารางแจงรายห้องล็อกความสูง Scrollable -->
+            <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                <div class="max-h-[380px] overflow-y-auto table-scroll">
+                    <table class="w-full text-xs text-left min-w-[550px]">
+                        <thead class="bg-slate-100 text-slate-700 border-b border-slate-200 sticky top-0 z-10 font-extrabold">
+                            <tr>
+                                <th class="p-2.5">ห้องเรียน</th>
+                                <th class="p-2.5 text-center">ทั้งหมด</th>
+                                <th class="p-2.5 text-center text-emerald-700">มา</th>
+                                <th class="p-2.5 text-center text-amber-700">สาย</th>
+                                <th class="p-2.5 text-center text-rose-700">ขาด</th>
+                                <th class="p-2.5 text-center text-sky-700">ลา</th>
+                                <th class="p-2.5 text-center text-purple-700">หนี</th>
+                                <th class="p-2.5 text-center">% เข้าเรียน</th>
+                                <th class="p-2.5 text-center">รายชื่อ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assemblyTableBody" class="divide-y divide-slate-100 font-medium text-slate-800">
+                            <!-- แสดงรายการห้องเรียน -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- 3. Executive Behavioral Report Section (ตรงตามภาพ image_096375.png 100%) -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-amber-300 space-y-4">
+        <!-- 3. Executive Report Section (รายงานสถิติเชิงลึกผู้บริหาร) -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-amber-300 space-y-4">
             <div class="flex flex-wrap justify-between items-center border-b pb-3 gap-3">
                 <div>
-                    <h2 class="text-base font-extrabold text-amber-900 flex items-center gap-2">
+                    <h2 class="text-xs sm:text-sm font-black text-amber-900 flex items-center gap-2">
                         <i class="fa-solid fa-chart-line text-amber-600"></i>
                         📈 รายงานสถิติพฤติกรรมเชิงลึกสำหรับผู้บริหาร (Executive Report)
                     </h2>
-                    <p class="text-xs text-slate-500">สรุปแนวโน้มและสถิติภาพรวมเพื่อการวางแผนเชิงนโยบายและการกำกับติดตาม</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
-                    <button class="px-2.5 py-1 rounded-lg">▼ ช่วงเวลา</button>
-                    <button class="px-2.5 py-1 rounded-lg">รายวัน</button>
-                    <button class="px-2.5 py-1 rounded-lg bg-amber-600 text-white">รายเดือน</button>
-                    <button class="px-2.5 py-1 rounded-lg">รายเทอม (ภาคเรียน)</button>
+                    <p class="text-[11px] text-slate-500">สรุปแนวโน้มและสถิติภาพรวมเพื่อการวางแผนเชิงนโยบายและการกำกับติดตาม</p>
                 </div>
             </div>
 
-            <!-- 4 การ์ดสรุปผู้บริหาร -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                    <p class="text-xs font-bold text-slate-500">เคสทำผิดระเบียบรวม</p>
-                    <h3 class="text-xl font-black text-slate-800 mt-1">0 ครั้ง</h3>
-                    <p class="text-[10px] text-slate-400">คำนวณจาก Supabase</p>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                    <p class="text-[11px] font-bold text-slate-500">เคสทำผิดระเบียบรวม</p>
+                    <h3 class="text-base sm:text-lg font-black text-slate-800 mt-0.5">0 ครั้ง</h3>
                 </div>
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                    <p class="text-xs font-bold text-slate-500">คะแนนเฉลี่ยทั้งโรงเรียน</p>
-                    <h3 class="text-xl font-black text-emerald-600 mt-1">100.0 / 100</h3>
-                    <p class="text-[10px] text-emerald-600 font-bold">อยู่ในเกณฑ์ดีเยี่ยม</p>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                    <p class="text-[11px] font-bold text-slate-500">คะแนนเฉลี่ยทั้งโรงเรียน</p>
+                    <h3 class="text-base sm:text-lg font-black text-emerald-600 mt-0.5">100.0 / 100</h3>
                 </div>
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                    <p class="text-xs font-bold text-slate-500">อัตราเข้าซ่อม/ทำความดี</p>
-                    <h3 class="text-xl font-black text-sky-600 mt-1">0%</h3>
-                    <p class="text-[10px] text-slate-400">ของเด็กกลุ่มเสี่ยงทั้งหมด</p>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                    <p class="text-[11px] font-bold text-slate-500">อัตราเข้าซ่อม/ทำความดี</p>
+                    <h3 class="text-base sm:text-lg font-black text-sky-600 mt-0.5">0%</h3>
                 </div>
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                    <p class="text-xs font-bold text-slate-500">ใบขอออกนอกสถานศึกษา</p>
-                    <h3 class="text-xl font-black text-purple-600 mt-1">0 ฉบับ</h3>
-                    <p class="text-[10px] text-slate-400">ได้รับอนุมัติถูกต้อง</p>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                    <p class="text-[11px] font-bold text-slate-500">ใบขอออกนอกสถานศึกษา</p>
+                    <h3 class="text-base sm:text-lg font-black text-purple-600 mt-0.5">0 ฉบับ</h3>
                 </div>
             </div>
 
-            <!-- กราฟ + Top 3 -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-                <div class="lg:col-span-2 bg-slate-50/50 p-4 rounded-xl border border-slate-200">
-                    <div class="flex justify-between items-center mb-2">
-                        <h4 class="text-xs font-bold text-slate-700">📈 แนวโน้มการหักคะแนนเทียบการทำความดี/ซ่อมพฤติกรรม</h4>
-                        <span class="text-[10px] text-slate-400 font-semibold">โหมด: รายเดือน</span>
-                    </div>
-                    <div class="relative h-52">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-1">
+                <div class="lg:col-span-2 bg-slate-50/50 p-3 sm:p-4 rounded-xl border border-slate-200">
+                    <h4 class="text-xs font-bold text-slate-700 mb-2">📈 แนวโน้มการหักคะแนนเทียบการทำความดี/ซ่อมพฤติกรรม</h4>
+                    <div class="relative h-48">
                         <canvas id="execBehaviorTrendChart"></canvas>
                     </div>
                 </div>
 
-                <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+                <div class="bg-slate-50/50 p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
                     <div>
-                        <h4 class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                        <h4 class="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
                             <i class="fa-solid fa-chart-bar text-rose-500"></i> Top 3 ฐานความผิดสูงสุด
                         </h4>
-                        <div id="top3ViolationsContainer" class="text-center py-8 text-xs text-slate-400 font-medium">
-                            ✨ ยังไม่มีประวัติการกระทำผิด
-                        </div>
+                        <div class="text-center py-6 text-xs text-slate-400 font-medium">✨ ยังไม่มีประวัติการกระทำผิด</div>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-xl shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงานเสนอผู้บริหาร
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- 4. Real-time Truancy & Gatepass Section (ตรงตามภาพ image_096375.png 100%) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- หนีเรียน -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-200 space-y-3">
-                <div class="flex justify-between items-center border-b pb-2">
-                    <h3 class="text-xs font-bold text-rose-800 flex items-center gap-1.5">
-                        🚨 รายงานนักเรียนหนีเรียน Real-time (คาบปัจจุบัน)
-                    </h3>
-                    <span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-full">0 รายการ</span>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs text-left">
-                        <thead class="bg-rose-50 text-rose-900 border-b font-bold">
-                            <tr>
-                                <th class="p-2">นักเรียน / ชั้น</th>
-                                <th class="p-2">วิชา / คาบ</th>
-                                <th class="p-2">จุดเสี่ยง</th>
-                                <th class="p-2">เวลา</th>
-                                <th class="p-2 text-center">การดำเนินการ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="realtimeTruancyBody">
-                            <tr><td colspan="5" class="text-center py-6 text-slate-400">ไม่มีรายการนักเรียนหนีเรียนในขณะนี้</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ออกนอกโรงเรียนประจำวัน -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-amber-200 space-y-3">
-                <div class="flex justify-between items-center border-b pb-2">
-                    <h3 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                        🚪 รายงานนักเรียนออกนอกบริเวณโรงเรียน (ประจำวัน)
-                    </h3>
-                    <button onclick="document.getElementById('btnOpenGatepassModal').click()" class="bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition cursor-pointer">
-                        + บันทึกขอออก
-                    </button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs text-left">
-                        <thead class="bg-amber-50 text-amber-950 border-b font-bold">
-                            <tr>
-                                <th class="p-2">นักเรียน / ชั้น</th>
-                                <th class="p-2">เหตุผล / วัตถุประสงค์</th>
-                                <th class="p-2">เวลาออก</th>
-                                <th class="p-2">เวลากลับ</th>
-                                <th class="p-2 text-center">สถานะประตู</th>
-                            </tr>
-                        </thead>
-                        <tbody id="realtimeGatepassBody">
-                            <tr><td colspan="5" class="text-center py-6 text-slate-400">ไม่มีรายการขออนุญาตออกนอกโรงเรียนในวันนี้</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 5. สรุปพฤติกรรมเสี่ยงแยกตามห้องเรียน -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
-            <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <i class="fa-solid fa-border-all text-amber-600"></i> สรุปพฤติกรรมเสี่ยงแยกตามห้องเรียน (เฉพาะห้องที่มีปัญหา)
-            </h3>
-            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-emerald-800 text-xs font-bold flex items-center justify-center gap-2">
-                <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                <span>ทุกห้องเรียนอยู่ในเกณฑ์ปกติ ดึงข้อมูล Real-time จาก Supabase สำเร็จเรียบร้อย (1000 ms)</span>
-            </div>
-        </div>
-
-        <!-- 6. Behavior Form & History Tabs (ตรงตามภาพ image_096375.png 100%) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 h-fit space-y-4">
+        <!-- 4. Behavior Form & History Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
                 <div class="border-b pb-3">
-                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <h2 class="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
                         <i class="fa-solid fa-clipboard-user text-amber-600"></i> คะแนนความประพฤติ
                     </h2>
                 </div>
                 <div class="flex rounded-xl bg-slate-100 p-1 text-xs font-bold gap-1">
-                    <button type="button" id="btnTabDeduct" class="form-tab active-deduct flex-1 py-2.5 rounded-lg text-center transition cursor-pointer shadow"><i class="fa-solid fa-minus-circle mr-1"></i> ตัดคะแนน</button>
-                    <button type="button" id="btnTabRepair" class="form-tab flex-1 py-2.5 rounded-lg text-center text-slate-600 transition cursor-pointer"><i class="fa-solid fa-star mr-1"></i> ทำความดี (+คะแนน)</button>
+                    <button type="button" id="btnTabDeduct" class="form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow"><i class="fa-solid fa-minus-circle mr-1"></i> ตัดคะแนน</button>
+                    <button type="button" id="btnTabRepair" class="form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer"><i class="fa-solid fa-star mr-1"></i> ทำความดี (+คะแนน)</button>
                 </div>
 
                 <form id="deductForm" class="space-y-3 text-xs">
@@ -357,8 +281,8 @@
                     </div>
                     <div id="deductFields" class="space-y-3">
                         <div>
-                            <label class="block font-bold text-slate-600 mb-1">ฐานความผิด (พฤติกรรม)</label>
-                            <select id="reasonSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-amber-600">
+                            <label class="block font-bold text-slate-600 mb-1">ฐานความผิด</label>
+                            <select id="reasonSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none">
                                 <option value="หนีเรียน/ออกนอกสถานศึกษา" data-points="10">หนีเรียน/ออกนอกสถานศึกษา (-10 คะแนน)</option>
                                 <option value="มาสายเกินกำหนด" data-points="5">มาสายเกินกำหนด (-5 คะแนน)</option>
                                 <option value="แต่งกายผิดระเบียบ" data-points="5">แต่งกายผิดระเบียบ (-5 คะแนน)</option>
@@ -367,13 +291,13 @@
                         </div>
                         <div>
                             <label class="block font-bold text-slate-600 mb-1">จำนวนคะแนนที่หัก (-Points)</label>
-                            <input type="number" id="deductPoints" value="10" min="1" max="50" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-rose-600 focus:outline-none focus:border-amber-600">
+                            <input type="number" id="deductPoints" value="10" min="1" max="50" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-rose-600">
                         </div>
                     </div>
                     <div id="repairFields" class="space-y-3 hidden">
                         <div>
-                            <label class="block font-bold text-slate-600 mb-1">รายการทำความดี / จิตอาสา / บำเพ็ญประโยชน์</label>
-                            <select id="repairReasonSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-emerald-600">
+                            <label class="block font-bold text-slate-600 mb-1">รายการทำความดี</label>
+                            <select id="repairReasonSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none">
                                 <option value="สร้างชื่อเสียงให้กับโรงเรียน">สร้างชื่อเสียงให้กับโรงเรียน (+20 คะแนน)</option>
                                 <option value="เก็บของตกสูญหายนำส่งคืนเจ้าของ">เก็บของตกสูญหายนำส่งคืนเจ้าของ (+10 คะแนน)</option>
                                 <option value="ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน">ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน (+10 คะแนน)</option>
@@ -381,34 +305,34 @@
                         </div>
                         <div>
                             <label class="block font-bold text-slate-600 mb-1">จำนวนคะแนนที่เพิ่มให้ (+Points)</label>
-                            <input type="number" id="addPoints" value="10" min="1" max="40" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-600 focus:outline-none focus:border-emerald-600">
+                            <input type="number" id="addPoints" value="10" min="1" max="40" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-600">
                         </div>
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-600 mb-1">หมายเหตุ / รายละเอียดเพิ่มเติม</label>
-                        <textarea id="noteInput" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติม..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-amber-600"></textarea>
+                        <label class="block font-bold text-slate-600 mb-1">หมายเหตุ</label>
+                        <textarea id="noteInput" rows="2" placeholder="รายละเอียดเพิ่มเติม..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium"></textarea>
                     </div>
-                    <button type="submit" id="btnSubmitForm" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button type="submit" id="btnSubmitForm" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-2.5 rounded-xl shadow transition text-xs flex items-center justify-center gap-1.5 cursor-pointer">
                         <i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน
                     </button>
                 </form>
             </div>
 
-            <div class="lg:col-span-2 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                <div class="flex flex-wrap border-b gap-4 text-xs font-bold text-slate-500">
+            <div class="lg:col-span-2 bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
+                <div class="flex flex-wrap border-b gap-3 text-xs font-bold text-slate-500">
                     <button id="tabHist" class="tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-list-check"></i> ประวัติหัก/เพิ่มคะแนน</button>
                     <button id="tabRisk" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i> กลุ่มติดเงื่อนไข &lt; 80%</button>
-                    <button id="tabGate" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-door-open text-amber-500"></i> รายงานขอออกนอกโรงเรียนทั้งหมด</button>
+                    <button id="tabGate" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-door-open text-amber-500"></i> รายงานขอออกนอกโรงเรียน</button>
                 </div>
 
                 <div id="viewHistory" class="space-y-3">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-xs text-left min-w-[550px]">
+                        <table class="w-full text-xs text-left min-w-[500px]">
                             <thead class="bg-slate-50 text-slate-600 border-b font-bold">
                                 <tr>
                                     <th class="p-2.5">นักเรียน</th>
                                     <th class="p-2.5">รายการ / กิจกรรม</th>
-                                    <th class="p-2.5 text-center">หัก/คืนคะแนน</th>
+                                    <th class="p-2.5 text-center">หัก/คืน</th>
                                     <th class="p-2.5 text-center">คะแนนคงเหลือ</th>
                                     <th class="p-2.5">เวลาบันทึก</th>
                                 </tr>
@@ -422,7 +346,7 @@
 
                 <div id="viewRisk" class="space-y-3 hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-xs text-left min-w-[550px]">
+                        <table class="w-full text-xs text-left min-w-[500px]">
                             <thead class="bg-rose-50 text-rose-800 border-b font-bold">
                                 <tr>
                                     <th class="p-2.5">นักเรียน / ชั้น</th>
@@ -438,13 +362,13 @@
 
                 <div id="viewGatepass" class="space-y-3 hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-xs text-left min-w-[600px]">
+                        <table class="w-full text-xs text-left min-w-[550px]">
                             <thead class="bg-amber-50 text-amber-900 border-b font-bold">
                                 <tr>
                                     <th class="p-2.5">นักเรียน / ห้อง</th>
                                     <th class="p-2.5">เวลาออก-กลับ</th>
-                                    <th class="p-2.5">ธุระ / วัตถุประสงค์</th>
-                                    <th class="p-2.5 text-center">สถานะประตู/คาบเรียน</th>
+                                    <th class="p-2.5">วัตถุประสงค์</th>
+                                    <th class="p-2.5 text-center">สถานะ</th>
                                     <th class="p-2.5">ผู้อนุมัติ</th>
                                 </tr>
                             </thead>
@@ -455,162 +379,150 @@
             </div>
         </div>
 
-        <!-- 7. ศูนย์รวมรายงานงานกิจการนักเรียน/ฝ่ายปกครอง (12 รายการ) (ตรงตามภาพ image_09639d.png 100%) -->
-        <div id="section-12-reports" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+        <!-- 5. ศูนย์รวมรายงานงานกิจการนักเรียน/ฝ่ายปกครอง (12 รายการ) -->
+        <div id="section-12-reports" class="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
                 <div>
-                    <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                    <h2 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
                         <i class="fa-solid fa-folder-open text-amber-600"></i>
                         📑 ศูนย์รวมรายงานงานกิจการนักเรียน/ฝ่ายปกครอง (12 รายการ)
                     </h2>
-                    <p class="text-xs text-slate-500">เลือกพิมพ์รายงานและส่งออกเอกสารราชการเสนอผู้บริหารและรับการประเมินคุณภาพ</p>
+                    <p class="text-[11px] text-slate-500">เลือกพิมพ์รายงานและส่งออกเอกสารราชการเสนอผู้บริหารและรับการประเมินคุณภาพ</p>
                 </div>
-                <span class="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-full text-xs">
-                    ระบบรายงานมาตรฐาน สพฐ.
+                <span class="bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-full text-[11px]">
+                    มาตรฐาน สพฐ.
                 </span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- รายงานที่ 1 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 1</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">1. รายงานสรุปคะแนนพฤติกรรมรายห้อง</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">สรุปคะแนนคงเหลือเฉลี่ยแยกตามห้องเรียน ม.1 - ม.6</p>
+                        <p class="text-[11px] text-slate-500">สรุปคะแนนคงเหลือเฉลี่ยแยกตามห้องเรียน ม.1 - ม.6</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 2 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 2</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">2. รายงานรายชื่อนักเรียนกลุ่มเสี่ยง (&lt; 80 คะแนน)</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">รายชื่อเด็กติดเงื่อนไขวิกฤตที่จะต้องทำกิจกรรมซ่อมแซมคะแนน</p>
+                        <p class="text-[11px] text-slate-500">รายชื่อเด็กติดเงื่อนไขวิกฤตที่จะต้องทำกิจกรรมซ่อมแซมคะแนน</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 3 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 3</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">3. รายงานประวัติการทำความดีและจิตอาสา</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">สรุปการเพิ่มคะแนนความประพฤติและถือเป็นยกย่องเชิดชูเกียรติ</p>
+                        <p class="text-[11px] text-slate-500">สรุปการเพิ่มคะแนนความประพฤติและถือเป็นยกย่องเชิดชูเกียรติ</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 4 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 4</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">4. รายงานการเข้าแถวเคารพธงชาติ (ม.ต้น/ม.ปลาย)</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">สถิติการตรงต่อเวลา การมาสาย และการขาดแถวหน้าเสาธง</p>
+                        <p class="text-[11px] text-slate-500">สถิติการตรงต่อเวลา การมาสาย และการขาดแถวหน้าเสาธง</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 5 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 5</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">5. รายงานการขอออกนอกสถานศึกษาประจำวัน</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">สถิติการออกนอกบริเวณโรงเรียนและผู้อนุมัติอนุญาต</p>
+                        <p class="text-[11px] text-slate-500">สถิติการออกนอกบริเวณโรงเรียนและผู้อนุมัติอนุญาต</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 6 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 6</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">6. รายงานสรุปการหนีเรียนประจำคาบ</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">สถิตินักเรียนโดดเรียนแยกรายวิชา คาบเรียน และจุดเสี่ยง</p>
+                        <p class="text-[11px] text-slate-500">สถิตินักเรียนโดดเรียนแยกรายวิชา คาบเรียน และจุดเสี่ยง</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 7 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 7</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">7. รายงาน Top 5 ฐานความผิดวินัยสูงสุด</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">วิเคราะห์แนวโน้มพฤติกรรมผิดระเบียบเพื่อการป้องกันในเชิงรุก</p>
+                        <p class="text-[11px] text-slate-500">วิเคราะห์แนวโน้มพฤติกรรมผิดระเบียบเพื่อการป้องกันในเชิงรุก</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 8 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 8</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">8. รายงานสถิติการเข้าใช้ห้องพยาบาล</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">สรุปการป่วยและการนอนพักในห้องพยาบาลรายวัน</p>
+                        <p class="text-[11px] text-slate-500">สรุปการป่วยและการนอนพักในห้องพยาบาลรายวัน</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 9 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 9</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">9. รายงานอัตราการปรับเปลี่ยนพฤติกรรม</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">สรุปความสำเร็จในการซ่อมปรับพฤติกรรมของนักเรียน</p>
+                        <p class="text-[11px] text-slate-500">สรุปความสำเร็จในการซ่อมปรับพฤติกรรมของนักเรียน</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 10 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 10</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">10. หนังสือแจ้งเตือนผู้ปกครอง (Official Notice)</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">หนังสือแจ้งเตือนเป็นทางการเมื่อเด็กติดเงื่อนไขวิกฤต</p>
+                        <p class="text-[11px] text-slate-500">หนังสือแจ้งเตือนเป็นทางการเมื่อเด็กติดเงื่อนไขวิกฤต</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 11 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 11</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">11. รายงานสถิติการมาสายหน้าประตูโรงเรียน</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">สรุปการมาสายช่วงเช้าสำหรับบริหารจัดการทางพฤติกรรม</p>
+                        <p class="text-[11px] text-slate-500">สรุปการมาสายช่วงเช้าสำหรับบริหารจัดการทางพฤติกรรม</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
-                <!-- รายงานที่ 12 -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
                     <div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">รายงานที่ 12</span>
                         <h4 class="font-bold text-xs text-slate-800 mt-1">12. แบบบันทึกการส่งต่อครูแนะแนว/เยี่ยมบ้าน</h4>
-                        <p class="text-[11px] text-slate-500 mt-0.5">เอกสารส่งต่อระบบดูแลช่วยเหลือนักเรียนแบบบูรณาการ</p>
+                        <p class="text-[11px] text-slate-500">เอกสารส่งต่อระบบดูแลช่วยเหลือนักเรียนแบบบูรณาการ</p>
                     </div>
-                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <button onclick="window.print()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-print"></i> พิมพ์รายงาน
                     </button>
                 </div>
@@ -619,28 +531,66 @@
 
     </main>
 
+    <!-- OFF-CANVAS SLIDE-OVER DRAWER (สำหรับแสดงรายชื่อนักเรียนรายห้องบนมือถือ) -->
+    <div id="roomDetailDrawer" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 hidden transition-opacity">
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-6">
+            <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col">
+                <div class="p-4 bg-sky-900 text-white flex justify-between items-center">
+                    <div>
+                        <h3 id="drawerRoomTitle" class="font-extrabold text-sm sm:text-base">รายละเอียดห้อง ม.1/1</h3>
+                        <p id="drawerRoomSub" class="text-xs text-sky-200">รายชื่อนักเรียนและสถานะรายบุคคล</p>
+                    </div>
+                    <button type="button" onclick="closeRoomDrawer()" class="text-white/80 hover:text-white text-2xl font-bold cursor-pointer">&times;</button>
+                </div>
+
+                <div class="p-4 overflow-y-auto flex-1 space-y-3">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-100 font-bold border-b">
+                                <tr>
+                                    <th class="p-2">เลขที่</th>
+                                    <th class="p-2">ชื่อ - นามสกุล</th>
+                                    <th class="p-2 text-center">สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="drawerStudentList" class="divide-y divide-slate-100 font-medium">
+                                <tr><td colspan="3" class="text-center py-4 text-slate-400">กำลังดึงข้อมูลนักเรียน...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-50 border-t text-right">
+                    <button type="button" onclick="closeRoomDrawer()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs">
+                        ปิดหน้าต่าง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Gatepass Modal -->
-    <div id="gatepassModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div id="gatepassModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 no-print">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-amber-200">
             <div class="bg-[#5c2406] px-5 py-3.5 text-white flex justify-between items-center">
-                <h3 class="font-bold text-xs sm:text-sm flex items-center gap-2"><i class="fa-solid fa-door-open text-amber-300"></i> บันทึกขออนุญาตออกนอกบริเวณโรงเรียน</h3>
-                <button id="btnCloseGatepassModal" class="text-amber-200 hover:text-white text-xl font-bold transition cursor-pointer">&times;</button>
+                <h3 class="font-bold text-xs sm:text-sm flex items-center gap-2"><i class="fa-solid fa-door-open text-amber-300"></i> ขออนุญาตออกนอกบริเวณโรงเรียน</h3>
+                <button id="btnCloseGatepassModal" class="text-amber-200 hover:text-white text-xl font-bold cursor-pointer">&times;</button>
             </div>
-            <form id="gatepassForm" class="p-4 sm:p-5 space-y-3.5 text-xs">
+            <form id="gatepassForm" class="p-4 space-y-3 text-xs">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">รหัสนักเรียน <span class="text-rose-500">*</span></label>
                     <div class="flex gap-2">
-                        <input type="text" id="gateStudentId" placeholder="กรอกรหัสนักเรียน เช่น 12345" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none">
-                        <button type="button" id="btnSearchGateStudent" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0">ค้นหา</button>
+                        <input type="text" id="gateStudentId" placeholder="กรอกรหัสนักเรียน เช่น 12345" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900">
+                        <button type="button" id="btnSearchGateStudent" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 rounded-xl shrink-0">ค้นหา</button>
                     </div>
                 </div>
-                <div id="modalStudentInfoBox" class="p-3 bg-amber-50/70 rounded-xl border border-amber-200 hidden">
+                <div id="modalStudentInfoBox" class="p-3 bg-amber-50 rounded-xl border border-amber-200 hidden">
                     <p id="modalStudentName" class="font-extrabold text-slate-800 text-sm">-</p>
                     <p id="modalStudentClass" class="text-slate-500 font-medium text-[11px]">-</p>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">เหตุผล / วัตถุประสงค์ <span class="text-rose-500">*</span></label>
-                    <textarea id="gateReason" rows="2" placeholder="ระบุเหตุผล..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium" required></textarea>
+                    <label class="block font-bold text-slate-700 mb-1">เหตุผล <span class="text-rose-500">*</span></label>
+                    <textarea id="gateReason" rows="2" placeholder="ระบุเหตุผล..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl" required></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="block font-bold text-slate-700 mb-1">เวลาที่ออก</label><input type="time" id="gateExitTime" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold" required></div>
@@ -648,25 +598,20 @@
                 </div>
                 <div><label class="block font-bold text-slate-700 mb-1">ผู้อนุมัติ</label><input type="text" id="gateApprovedBy" value="ครูฝ่ายปกครอง (ห้องกิจการนักเรียน)" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold"></div>
                 
-                <div class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-800 font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
-                    <span>ระบบจะอัปเดตสถานะไปยังคาบเรียนของครูผู้สอน Real-time อัตโนมัติ</span>
-                </div>
-
                 <div class="flex justify-end gap-2 pt-3 border-t">
-                    <button type="button" id="btnCancelGatepass" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl cursor-pointer">ยกเลิก</button>
-                    <button type="submit" id="btnSubmitGatepass" disabled class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl opacity-50 cursor-not-allowed cursor-pointer shadow">บันทึกและซิงก์คาบเรียน</button>
+                    <button type="button" id="btnCancelGatepass" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl">ยกเลิก</button>
+                    <button type="submit" id="btnSubmitGatepass" disabled class="px-5 py-2 bg-amber-600 text-white font-bold rounded-xl opacity-50 cursor-not-allowed shadow">บันทึกและซิงก์คาบเรียน</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3 mt-6 no-print">
-        โรงเรียนบัวเชดวิทยา (BCW) &bull; Discipline & Student Care Management System
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3 mt-4 no-print">
+        โรงเรียนบัวเชดวิทยา (BCW) &bull; Discipline System
     </footer>
 
-    <!-- Module Integration Script -->
+    <!-- JavaScript Module Logic -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
         import { 
@@ -679,20 +624,58 @@
 
         let appData = { students: [], behaviorLogs: [], gatePassLogs: [], attendanceLogs: [], clinicRecords: [] };
         let currentFormMode = 'deduct';
+        let currentReportMode = 'assembly'; // 'assembly' หรือ 'daily'
         let selectedStudentForGatepass = null;
         let execChartInstance = null;
 
-        // 🚪 ออกจากระบบ
+        window.switchReportMode = function(mode) {
+            currentReportMode = mode;
+            const btnAssembly = document.getElementById('btnModeAssembly');
+            const btnDaily = document.getElementById('btnModeDaily');
+            const titleText = document.getElementById('reportTitleText');
+
+            if (mode === 'assembly') {
+                btnAssembly.className = "px-3 py-1.5 rounded-lg bg-sky-700 text-white shadow-xs transition flex items-center gap-1 cursor-pointer";
+                btnDaily.className = "px-3 py-1.5 rounded-lg hover:text-slate-900 transition flex items-center gap-1 cursor-pointer";
+                titleText.innerText = "📌 รายงานสรุปการเข้าแถวเคารพธงชาติ (ม.ต้น / ม.ปลาย)";
+            } else {
+                btnDaily.className = "px-3 py-1.5 rounded-lg bg-sky-700 text-white shadow-xs transition flex items-center gap-1 cursor-pointer";
+                btnAssembly.className = "px-3 py-1.5 rounded-lg hover:text-slate-900 transition flex items-center gap-1 cursor-pointer";
+                titleText.innerText = "🏫 รายงานสรุปการมาเรียนประจำวัน (ม.ต้น / ม.ปลาย)";
+            }
+            renderAssemblyTable();
+        };
+
+        window.openRoomDrawer = function(roomName) {
+            document.getElementById('drawerRoomTitle').innerText = `รายละเอียดห้อง ${roomName}`;
+            document.getElementById('drawerRoomSub').innerText = currentReportMode === 'assembly' ? 'สถานะการเข้าแถวรายบุคคล' : 'สถานะการมาเรียนรายบุคคล';
+            
+            const tbody = document.getElementById('drawerStudentList');
+            const studentsInRoom = appData.students.filter(s => (s.classroom || s.class_name) === roomName);
+            
+            if (studentsInRoom.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-slate-400">ไม่พบรายชื่อนักเรียนในห้องนี้</td></tr>`;
+            } else {
+                tbody.innerHTML = studentsInRoom.map((s, idx) => `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2 font-bold text-slate-600">${idx + 1}</td>
+                        <td class="p-2 font-bold text-slate-800">${getStudentFullName(s)}</td>
+                        <td class="p-2 text-center"><span class="bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full text-[10px]">มาเรียน</span></td>
+                    </tr>
+                `).join('');
+            }
+            document.getElementById('roomDetailDrawer').classList.remove('hidden');
+        };
+
+        window.closeRoomDrawer = function() {
+            document.getElementById('roomDetailDrawer').classList.add('hidden');
+        };
+
         async function handleLogout() {
-            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                try {
-                    await db.auth.signOut();
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.href = '../../login.html';
-                } catch (err) {
-                    alert('เกิดข้อผิดพลาดในการออกจากระบบ: ' + err.message);
-                }
+            if (confirm('ต้องการออกจากระบบใช่หรือไม่?')) {
+                await db.auth.signOut();
+                localStorage.clear();
+                window.location.href = '../../login.html';
             }
         }
         window.handleLogout = handleLogout;
@@ -730,20 +713,26 @@
             const roomMap = {};
             appData.students.forEach(s => {
                 const room = s.classroom || s.class_name || 'ไม่ระบุห้อง';
-                if (!roomMap[room]) roomMap[room] = { room, total: 0, absent: 0, late: 0, leave: 0 };
+                if (!roomMap[room]) roomMap[room] = { room, total: 0, absent: 0, late: 0, leave: 0, truant: 0 };
                 roomMap[room].total++;
             });
 
             const rooms = Object.values(roomMap);
             tbody.innerHTML = rooms.map(d => `
-                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                    <td class="p-2.5 font-bold text-slate-800">${d.room}</td>
+                <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                    <td class="p-2.5 font-bold text-slate-900">${d.room}</td>
                     <td class="p-2.5 text-center font-semibold text-slate-600">${d.total}</td>
-                    <td class="p-2.5 text-center font-bold text-emerald-600">${d.total - d.absent - d.late}</td>
+                    <td class="p-2.5 text-center font-bold text-emerald-600">${d.total - d.absent - d.late - d.leave - d.truant}</td>
                     <td class="p-2.5 text-center font-bold text-amber-600">${d.late}</td>
                     <td class="p-2.5 text-center font-bold text-rose-600">${d.absent}</td>
                     <td class="p-2.5 text-center font-bold text-sky-600">${d.leave}</td>
-                    <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[11px]">100%</span></td>
+                    <td class="p-2.5 text-center font-bold text-purple-600">${d.truant}</td>
+                    <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[10px]">100%</span></td>
+                    <td class="p-2.5 text-center">
+                        <button onclick="openRoomDrawer('${d.room}')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold px-2 py-1 rounded-lg text-[10px] cursor-pointer">
+                            ดูรายชื่อ
+                        </button>
+                    </td>
                 </tr>
             `).join('');
         }
@@ -758,7 +747,7 @@
             }
 
             tbody.innerHTML = appData.behaviorLogs.map(r => `
-                <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
                     <td class="p-2.5 font-bold text-slate-800">${r.student_name || r.student_id || 'ไม่ระบุชื่อ'}</td>
                     <td class="p-2.5 text-slate-600 font-medium">${r.action || r.reason || '-'}</td>
                     <td class="p-2.5 text-center font-bold ${r.points < 0 ? 'text-rose-600' : 'text-emerald-600'}">${r.points > 0 ? '+' : ''}${r.points || 0}</td>
@@ -786,7 +775,7 @@
                         <td class="p-2.5 font-bold text-slate-800">${name} (${s.classroom || '-'})</td>
                         <td class="p-2.5 text-center font-bold text-rose-600">${score} คะแนน</td>
                         <td class="p-2.5 text-slate-600 font-medium">บำเพ็ญประโยชน์เพิ่ม ${80 - score} คะแนน</td>
-                        <td class="p-2.5 text-center"><span class="bg-rose-100 text-rose-700 font-bold px-2.5 py-1 rounded-full text-xs">เฝ้าระวัง</span></td>
+                        <td class="p-2.5 text-center"><span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full text-xs">เฝ้าระวัง</span></td>
                     </tr>
                 `;
             }).join('');
@@ -802,11 +791,11 @@
             }
 
             tbody.innerHTML = appData.gatePassLogs.map(g => `
-                <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
                     <td class="p-2.5 font-bold text-slate-800">${g.student_name || g.student_id}</td>
                     <td class="p-2.5 text-slate-700 font-semibold">${g.exit_time || '-'} ถึง ${g.return_time || '-'}</td>
                     <td class="p-2.5 text-slate-600 font-medium">${g.reason || '-'}</td>
-                    <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[11px]">🟢 ซิงก์คาบเรียนแล้ว</span></td>
+                    <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[10px]">🟢 ซิงก์คาบเรียน</span></td>
                     <td class="p-2.5 text-slate-400 font-medium">${g.approved_by || '-'}</td>
                 </tr>
             `).join('');
@@ -912,7 +901,6 @@
                 }
             });
 
-            // อนุมัติออกนอกโรงเรียน + อัปเดตตารางเช็กชื่อคาบเรียนของครูผู้สอน Real-time
             document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!selectedStudentForGatepass) return;
@@ -923,14 +911,12 @@
                 const returnTime = document.getElementById('gateReturnTime').value;
                 const approvedBy = document.getElementById('gateApprovedBy').value;
 
-                // 1. บันทึกข้อมูลในระบบฝ่ายปกครอง
                 const result = await saveGatePassRecord({
                     studentId: selectedStudentForGatepass.student_id,
                     studentName: `${studentName} (${selectedStudentForGatepass.classroom || '-'})`,
                     reason, exitTime, returnTime, approvedBy
                 });
 
-                // 2. ซิงก์ข้อมูลไปตารางเช็กชื่อครูผู้สอน Real-time (สถานะ: LEAVE)
                 try {
                     await db.from('attendance_logs').insert([{
                         student_id: selectedStudentForGatepass.student_id,
@@ -945,7 +931,7 @@
                 }
 
                 if (result.success) {
-                    alert('🎉 บันทึกขออนุญาตออกนอกสถานศึกษาเรียบร้อยแล้ว!\nระบบได้อัปเดตสถานะไปยังคาบเรียนของครูผู้สอนให้เรียบร้อยครับ');
+                    alert('🎉 บันทึกขออนุญาตออกนอกสถานศึกษาเรียบร้อยแล้ว!\nระบบอัปเดตสถานะไปยังคาบเรียนของครูผู้สอนเรียบร้อยครับ');
                     toggleModal('gatepassModal', false);
                     document.getElementById('gatepassForm').reset();
                     await loadDashboardData();
@@ -967,8 +953,8 @@
 
         function switchFormMode(mode) {
             currentFormMode = mode;
-            document.getElementById('btnTabDeduct').className = mode === 'deduct' ? "form-tab active-deduct flex-1 py-2.5 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2.5 rounded-lg text-center text-slate-600 transition cursor-pointer";
-            document.getElementById('btnTabRepair').className = mode === 'repair' ? "form-tab active-repair flex-1 py-2.5 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2.5 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            document.getElementById('btnTabDeduct').className = mode === 'deduct' ? "form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            document.getElementById('btnTabRepair').className = mode === 'repair' ? "form-tab active-repair flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
             document.getElementById('deductFields').classList.toggle('hidden', mode !== 'deduct');
             document.getElementById('repairFields').classList.toggle('hidden', mode !== 'repair');
             
