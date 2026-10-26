@@ -162,13 +162,13 @@
             </button>
 
             <div class="divider">
-                <span>หรือ ใช้อีเมล / รหัสนักเรียน</span>
+                <span>หรือ ใช้อีเมล / รหัสนักเรียน / รหัสครู</span>
             </div>
 
             <!-- 2. ฟอร์มสำหรับ นักเรียน / ครู -->
             <form id="account-login-form" onsubmit="handleAccountLogin(event)" class="mb-2">
                 <div class="form-group">
-                    <input type="text" id="account-email" class="form-input" placeholder="✉️ อีเมลโรงเรียน / รหัสนักเรียน" required>
+                    <input type="text" id="account-email" class="form-input" placeholder="✉️ อีเมลโรงเรียน / รหัสครู / รหัสนักเรียน" required>
                 </div>
 
                 <div class="form-group">
@@ -207,14 +207,13 @@
         
         const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // 1. Google SSO (ส่งกลับมาหน้า landing.html เพื่อให้ตรวจสอบ Role ล่าสุด)
         async function loginWithGoogle() {
             try {
                 const { data, error } = await _supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
                         queryParams: { hd: 'buached.ac.th' },
-                        redirectTo: window.location.origin + window.location.pathname.replace(/login\.html.*$/, 'landing.html')
+                        redirectTo: window.location.origin + window.location.pathname.replace(/login\.html.*$/, 'apps/student-app/student.html')
                     }
                 });
                 if (error) throw error;
@@ -223,7 +222,6 @@
             }
         }
 
-        // 2. ล็อกอินด้วย อีเมล / รหัสผ่าน
         async function handleAccountLogin(event) {
             event.preventDefault();
             let inputVal = document.getElementById('account-email').value.trim();
@@ -233,7 +231,7 @@
             if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
 
             let fullEmail = inputVal.includes('@') ? inputVal : `${inputVal}@buached.ac.th`;
-            let cleanId = fullEmail.split('@')[0];
+            let cleanId = fullEmail.split('@')[0]; // เช่น T030, 13174, หรือ kruthanadol
 
             try {
                 btnSubmit.disabled = true;
@@ -243,50 +241,37 @@
                 localStorage.clear();
                 sessionStorage.clear();
 
-                let loginSuccess = false;
-                let userRole = '';
+                let isTeacher = false;
 
-                // 🎯 [แก้ไขจุดสำคัญ]: ตรวจสอบตารางครู (teachers) เป็นอันดับแรกเสมอ
-                const { data: teacher } = await _supabase.from('teachers').select('*').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
-                
-                if (teacher) {
-                    loginSuccess = true;
-                    userRole = 'teacher';
-                } else {
-                    // หากไม่พบในตารางครู จึงมาตรวจสอบตารางนักเรียน (students)
-                    const { data: student } = await _supabase.from('students').select('*').or(`email.eq.${fullEmail},student_id.eq.${cleanId}`).maybeSingle();
-                    if (student) {
-                        loginSuccess = true;
-                        userRole = 'student';
-                    } else {
-                        // เช็กผ่าน Supabase Auth
-                        const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
-                            email: fullEmail,
-                            password: passwordVal
-                        });
-                        if (!authError && authData?.user) {
-                            loginSuccess = true;
-                            userRole = authData.user?.user_metadata?.role || (fullEmail.includes('teacher') ? 'teacher' : 'student');
-                        }
-                    }
+                // 🎯 1. เช็กความยืดหยุ่นจากตาราง teachers (ตรวจทั้ง email, teacher_id และ full_name)
+                const { data: teacherData } = await _supabase
+                    .from('teachers')
+                    .select('id, teacher_id, email, full_name')
+                    .or(`email.ilike.%${cleanId}%,teacher_id.ilike.%${cleanId}%,full_name.ilike.%${cleanId}%`)
+                    .maybeSingle();
+
+                if (teacherData) {
+                    isTeacher = true;
+                } else if (cleanId.toUpperCase().startsWith('T') || fullEmail.toLowerCase().includes('teacher') || fullEmail.toLowerCase().includes('kru')) {
+                    // ดักตรวจรูปแบบรหัสครู (เช่น ขึ้นต้นด้วย T หรือมีคำว่า kru/teacher)
+                    isTeacher = true;
                 }
 
-                if (!loginSuccess) {
-                    alert('❌ ไม่พบข้อมูลอีเมลหรือรหัสนักเรียนนี้ในระบบ');
-                    return;
-                }
+                if (isTeacher) {
+                    // บันทึก Session สำหรับครู
+                    localStorage.setItem('teacher_id', cleanId);
+                    localStorage.setItem('user_email', fullEmail);
+                    localStorage.setItem('role', 'teacher');
 
-                // บันทึก Session และ Role ล่าสุด
-                localStorage.setItem('student_id', cleanId);
-                localStorage.setItem('student_email', fullEmail);
-                localStorage.setItem('user_email', fullEmail);
-                localStorage.setItem('role', userRole);
-
-                // 🎯 นำทางแยกบทบาทให้ถูกต้องแม่นยำ
-                if (userRole === 'teacher' || fullEmail.includes('teacher')) {
                     alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
                     window.location.href = 'apps/school-app/teacher.html';
                 } else {
+                    // บันทึก Session สำหรับนักเรียน
+                    localStorage.setItem('student_id', cleanId);
+                    localStorage.setItem('student_email', fullEmail);
+                    localStorage.setItem('user_email', fullEmail);
+                    localStorage.setItem('role', 'student');
+
                     window.location.href = 'apps/student-app/student.html';
                 }
 
@@ -299,7 +284,6 @@
             }
         }
 
-        // 3. ล็อกอินสำหรับ ผู้ปกครอง
         async function handleParentLogin(event) {
             event.preventDefault();
             
