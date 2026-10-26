@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BCW Smart HUB - เข้าสู่ระบบ</title>
     
-    <!-- 🌟 Favicon สำหรับแท็บเบราว์เซอร์ -->
+    <!-- Favicon สำหรับแท็บเบราว์เซอร์ -->
     <link rel="icon" type="image/png" href="assets/images/logo_bcw.png">
     <link rel="apple-touch-icon" href="assets/images/logo_bcw.png">
 
@@ -75,7 +75,6 @@
         
         .brand-text { display: flex; flex-direction: column; justify-content: center; text-align: left; min-width: 0; }
         
-        /* บรรทัดที่ 1: BCW SMART HUB */
         .brand-text .line-1 { 
             font-size: 21px; 
             font-weight: 800; 
@@ -86,7 +85,6 @@
             white-space: nowrap;
         }
         
-        /* บรรทัดที่ 2: ชื่อโรงเรียนภาษาอังกฤษ */
         .brand-text .line-2-en { 
             font-size: 15px; 
             color: #fef08a; 
@@ -97,7 +95,6 @@
             text-transform: uppercase;
         }
 
-        /* บรรทัดที่ 3: ชื่อโรงเรียนภาษาไทย */
         .brand-text .line-3-th { 
             font-size: 16px; 
             color: #ffffff; 
@@ -142,7 +139,7 @@
 <body>
 
     <div class="login-card">
-        <!-- Header โทนสีโรงเรียน เขียว - ขาว - ทอง พร้อมชื่ออังกฤษบรรทัดที่ 2 -->
+        <!-- Header โทนสีโรงเรียน เขียว - ขาว - ทอง -->
         <div class="card-header">
             <div class="logo-wrapper">
                 <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
@@ -210,13 +207,14 @@
         
         const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // 1. Google SSO (ส่งกลับมาหน้า landing.html เพื่อให้ตรวจสอบ Role ล่าสุด)
         async function loginWithGoogle() {
             try {
                 const { data, error } = await _supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
                         queryParams: { hd: 'buached.ac.th' },
-                        redirectTo: window.location.origin + window.location.pathname.replace(/login\.html.*$/, 'apps/student-app/student.html')
+                        redirectTo: window.location.origin + window.location.pathname.replace(/login\.html.*$/, 'landing.html')
                     }
                 });
                 if (error) throw error;
@@ -225,6 +223,7 @@
             }
         }
 
+        // 2. ล็อกอินด้วย อีเมล / รหัสผ่าน
         async function handleAccountLogin(event) {
             event.preventDefault();
             let inputVal = document.getElementById('account-email').value.trim();
@@ -245,29 +244,29 @@
                 sessionStorage.clear();
 
                 let loginSuccess = false;
-                let userRole = 'student';
+                let userRole = '';
 
-                // 1. เช็กนักเรียน
-                const { data: student } = await _supabase.from('students').select('*').or(`email.eq.${fullEmail},student_id.eq.${cleanId}`).maybeSingle();
+                // 🎯 [แก้ไขจุดสำคัญ]: ตรวจสอบตารางครู (teachers) เป็นอันดับแรกเสมอ
+                const { data: teacher } = await _supabase.from('teachers').select('*').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
                 
-                if (student) {
+                if (teacher) {
                     loginSuccess = true;
-                    userRole = 'student';
+                    userRole = 'teacher';
                 } else {
-                    // 2. เช็กครู
-                    const { data: teacher } = await _supabase.from('teachers').select('*').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
-                    if (teacher) {
+                    // หากไม่พบในตารางครู จึงมาตรวจสอบตารางนักเรียน (students)
+                    const { data: student } = await _supabase.from('students').select('*').or(`email.eq.${fullEmail},student_id.eq.${cleanId}`).maybeSingle();
+                    if (student) {
                         loginSuccess = true;
-                        userRole = 'teacher';
+                        userRole = 'student';
                     } else {
-                        // 3. ยิง Supabase Auth
+                        // เช็กผ่าน Supabase Auth
                         const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
                             email: fullEmail,
                             password: passwordVal
                         });
                         if (!authError && authData?.user) {
                             loginSuccess = true;
-                            userRole = authData.user?.user_metadata?.role || 'student';
+                            userRole = authData.user?.user_metadata?.role || (fullEmail.includes('teacher') ? 'teacher' : 'student');
                         }
                     }
                 }
@@ -277,11 +276,13 @@
                     return;
                 }
 
+                // บันทึก Session และ Role ล่าสุด
                 localStorage.setItem('student_id', cleanId);
                 localStorage.setItem('student_email', fullEmail);
                 localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('role', userRole);
 
+                // 🎯 นำทางแยกบทบาทให้ถูกต้องแม่นยำ
                 if (userRole === 'teacher' || fullEmail.includes('teacher')) {
                     alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
                     window.location.href = 'apps/school-app/teacher.html';
@@ -298,6 +299,7 @@
             }
         }
 
+        // 3. ล็อกอินสำหรับ ผู้ปกครอง
         async function handleParentLogin(event) {
             event.preventDefault();
             
