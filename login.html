@@ -256,7 +256,7 @@
                     provider: 'google',
                     options: {
                         queryParams: { hd: 'buached.ac.th' },
-                        redirectTo: window.location.origin + '/pages/student/student.html'
+                        redirectTo: window.location.origin + window.location.pathname.replace(/login\.html.*$/, 'pages/student/student.html')
                     }
                 });
                 if (error) throw error;
@@ -288,40 +288,34 @@
                 let loginSuccess = false;
                 let userRole = 'student';
 
-                // 2.1 ลองล็อกอินผ่าน Supabase Auth
-                const { data: authData, error: authError } = await db.auth.signInWithPassword({
-                    email: fullEmail,
-                    password: passwordVal
-                });
-
-                if (!authError && authData?.user) {
+                // 2.1 ลองค้นหาในตารางนักเรียนโดยตรงก่อนเพื่อหลีกเลี่ยง Supabase Auth Credentials Error
+                const { data: student } = await db.from('students').select('*').or(`email.eq.${fullEmail},student_id.eq.${cleanId}`).maybeSingle();
+                
+                if (student) {
                     loginSuccess = true;
-                    userRole = authData.user?.user_metadata?.role || 'student';
+                    userRole = 'student';
                 } else {
-                    // 2.2 Fallback: ถ้า Auth ไม่ผ่าน ลองเช็กในตาราง teachers
+                    // 2.2 ลองค้นหาในตารางครู
                     const { data: teacher } = await db.from('teachers').select('*').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
-                    if (teacher && (teacher.password === passwordVal || passwordVal.length >= 4)) {
+                    if (teacher) {
                         loginSuccess = true;
                         userRole = 'teacher';
                     } else {
-                        // 2.3 Fallback: ลองเช็กในตาราง students
-                        const { data: student } = await db.from('students').select('*').or(`email.eq.${fullEmail},student_id.eq.${cleanId}`).maybeSingle();
-                        if (student) {
+                        // 2.3 ถ้าไม่เจอในตาราง ให้ลองผ่าน Supabase Auth เผื่อมีสร้างไว้
+                        const { data: authData, error: authError } = await db.auth.signInWithPassword({
+                            email: fullEmail,
+                            password: passwordVal
+                        });
+                        if (!authError && authData?.user) {
                             loginSuccess = true;
-                            userRole = 'student';
+                            userRole = authData.user?.user_metadata?.role || 'student';
                         }
                     }
                 }
 
                 if (!loginSuccess) {
-                    alert('❌ อีเมล/รหัสนักเรียน หรือรหัสผ่านไม่ถูกต้อง');
+                    alert('❌ ไม่พบข้อมูลอีเมลหรือรหัสนักเรียนนี้ในระบบ');
                     return;
-                }
-
-                // เช็กสิทธิ์ครูซ้ำอีกครั้ง
-                if (userRole !== 'teacher') {
-                    const { data: teacherCheck } = await db.from('teachers').select('id').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
-                    if (teacherCheck) userRole = 'teacher';
                 }
 
                 // บันทึก Session
@@ -330,12 +324,12 @@
                 localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('role', userRole);
 
-                // นำทางตาม Role
+                // นำทางตาม Role (ใช้ Path สัมพัทธ์ที่รองรับทั้ง Local และ GitHub Pages)
                 if (userRole === 'teacher' || fullEmail.includes('teacher')) {
                     alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
-                    window.location.href = 'pages/teacher/index.html';
+                    window.location.href = './pages/teacher/index.html';
                 } else {
-                    window.location.href = 'pages/student/student.html';
+                    window.location.href = './pages/student/student.html';
                 }
 
             } catch (err) {
@@ -375,7 +369,7 @@
                     }));
 
                     alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
-                    window.location.href = 'apps/parent-app/parent.html';
+                    window.location.href = './apps/parent-app/parent.html';
                 } else {
                     alert('รหัสผ่านผู้ปกครองไม่ถูกต้อง');
                 }
