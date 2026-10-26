@@ -231,7 +231,7 @@
             if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
 
             let fullEmail = inputVal.includes('@') ? inputVal : `${inputVal}@buached.ac.th`;
-            let cleanId = fullEmail.split('@')[0]; // เช่น T030, 13174, หรือ kruthanadol
+            let cleanId = inputVal.split('@')[0]; // ไอดีเดี่ยวๆ เช่น T030, kruthanadol หรือ 13174
 
             try {
                 btnSubmit.disabled = true;
@@ -241,32 +241,23 @@
                 localStorage.clear();
                 sessionStorage.clear();
 
-                let isTeacher = false;
-
-                // 🎯 1. เช็กความยืดหยุ่นจากตาราง teachers (ตรวจทั้ง email, teacher_id และ full_name)
+                // 🎯 1. ตรวจสอบตารางครู (teachers) เป็นอันดับแรกเสมอ
                 const { data: teacherData } = await _supabase
                     .from('teachers')
                     .select('id, teacher_id, email, full_name')
-                    .or(`email.ilike.%${cleanId}%,teacher_id.ilike.%${cleanId}%,full_name.ilike.%${cleanId}%`)
+                    .or(`email.ilike.${fullEmail},teacher_id.ilike.${cleanId},email.ilike.%${cleanId}%`)
                     .maybeSingle();
 
                 if (teacherData) {
-                    isTeacher = true;
-                } else if (cleanId.toUpperCase().startsWith('T') || fullEmail.toLowerCase().includes('teacher') || fullEmail.toLowerCase().includes('kru')) {
-                    // ดักตรวจรูปแบบรหัสครู (เช่น ขึ้นต้นด้วย T หรือมีคำว่า kru/teacher)
-                    isTeacher = true;
-                }
-
-                if (isTeacher) {
-                    // บันทึก Session สำหรับครู
-                    localStorage.setItem('teacher_id', cleanId);
+                    // ✅ ถ้าพบข้อมูลในตารางครู ➔ ให้สิทธิ์ครู ➔ ส่งไปหน้าครู
+                    localStorage.setItem('teacher_id', teacherData.teacher_id || cleanId);
                     localStorage.setItem('user_email', fullEmail);
                     localStorage.setItem('role', 'teacher');
 
                     alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
                     window.location.href = 'apps/school-app/teacher.html';
                 } else {
-                    // บันทึก Session สำหรับนักเรียน
+                    // ✅ ถ้าไม่พบข้อมูลในตารางครู ➔ ให้สิทธิ์นักเรียน ➔ ส่งไปหน้านักเรียน
                     localStorage.setItem('student_id', cleanId);
                     localStorage.setItem('student_email', fullEmail);
                     localStorage.setItem('user_email', fullEmail);
