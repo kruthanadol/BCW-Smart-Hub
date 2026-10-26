@@ -220,84 +220,120 @@
     </footer>
 
     <!-- Module Integration Script -->
-    <script type="module">
-        import {
-            getStudentProfile,
-            submitGatepassRequest,
-            getActiveGatepass,
-            getStudentScheduleWithTeachers,
-            getClassAdvisors,
-            getStudentAcademicRisks,
-            getStudentBehaviorLogs,
-            getStudentHomeworks,
-            getStudentClinicRecords
-        } from '../../modules/student/student.service.js';
+<script type="module">
+    import { db } from '../../core/supabase-client.js';
+    import {
+        getStudentProfile,
+        submitGatepassRequest,
+        getActiveGatepass,
+        getStudentScheduleWithTeachers,
+        getClassAdvisors,
+        getStudentAcademicRisks,
+        getStudentBehaviorLogs,
+        getStudentHomeworks,
+        getStudentClinicRecords
+    } from '../../modules/student/student.service.js';
 
-        // ตรวจสอบข้อมูลการล็อกอินอย่างรัดกุม
-        function getLoggedInStudentId() {
-            let id = localStorage.getItem('student_id') || sessionStorage.getItem('student_id') || 
-                     localStorage.getItem('ref_id') || sessionStorage.getItem('ref_id') ||
-                     localStorage.getItem('user_id') || sessionStorage.getItem('user_id');
-
-            if (!id) {
-                const userObj = localStorage.getItem('user') || sessionStorage.getItem('user');
-                if (userObj) {
-                    try {
-                        const parsed = JSON.parse(userObj);
-                        id = parsed.student_id || parsed.ref_id || parsed.id || parsed.username;
-                    } catch(e) {}
-                }
+    // 🔍 ฟังก์ชันดึง User ID หรือ Email ของนักเรียนที่ล็อกอินเข้ามาจริง
+    async function getLoggedInStudentIdentifier() {
+        // 1. ลองดึงจาก Supabase Auth Session (กรณีล็อกอินด้วย Email จริง)
+        try {
+            const { data: { session } } = await db.auth.getSession();
+            if (session?.user) {
+                return session.user.email || session.user.id;
             }
-            return id || null;
+        } catch (e) {
+            console.warn('Supabase session check error:', e);
         }
 
-        let CURRENT_STUDENT_ID = getLoggedInStudentId();
-        let currentStudentClass = '';
+        // 2. ถ้าไม่มี Session ให้ดึงจาก Storage (รองรับทั้ง student_id, email, user object)
+        let idOrEmail = localStorage.getItem('student_id') || 
+                       sessionStorage.getItem('student_id') || 
+                       localStorage.getItem('student_email') ||
+                       localStorage.getItem('user_email') ||
+                       localStorage.getItem('ref_id') || 
+                       localStorage.getItem('user_id');
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!CURRENT_STUDENT_ID) {
-                alert('⚠️ ไม่พบข้อมูลการเข้าสู่ระบบ กรุณาล็อกอินใหม่อีกครั้ง');
-                window.location.href = '../../login.html';
-                return;
+        if (!idOrEmail) {
+            const userObj = localStorage.getItem('user') || sessionStorage.getItem('user');
+            if (userObj) {
+                try {
+                    const parsed = JSON.parse(userObj);
+                    idOrEmail = parsed.email || parsed.student_id || parsed.ref_id || parsed.id || parsed.username;
+                } catch(e) {}
             }
-            initStudentPortal();
-            setupEventListeners();
-        });
-
-        async function initStudentPortal() {
-            const student = await getStudentProfile(CURRENT_STUDENT_ID);
-
-            const fullName = student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : 'นักเรียน บัวเชดวิทยา';
-            currentStudentClass = student?.classroom || student?.class || 'ม.1/1';
-            const studentNo = student?.number_no ?? student?.no ?? '-';
-
-            document.getElementById('student-fullname').innerText = fullName;
-            document.getElementById('student-class').innerText = currentStudentClass;
-            document.getElementById('student-no').innerText = studentNo;
-            document.getElementById('student-id').innerText = student?.student_id || CURRENT_STUDENT_ID;
-            document.getElementById('student-behavior-score').innerText = student?.behavior_score ?? 100;
-
-            const avatarImg = document.getElementById('student-avatar');
-            if (avatarImg) {
-                avatarImg.src = student?.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-            }
-
-            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            const todayName = days[new Date().getDay()];
-            if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(todayName)) {
-                document.getElementById('dayFilter').value = todayName;
-            }
-
-            await Promise.all([
-                renderActiveGatepass(),
-                renderStudentSchedule(),
-                renderClassAdvisors(currentStudentClass),
-                renderAcademicData(CURRENT_STUDENT_ID),
-                renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
-                renderHomeworkData(currentStudentClass),
-                renderClinicData(CURRENT_STUDENT_ID)
-            ]);
         }
+
+        return idOrEmail; // ถ้าหาไม่เจอจริงๆ คืนค่า null เพื่อไปจัดการต่อ
+    }
+
+    let CURRENT_STUDENT_ID = null;
+    let currentStudentClass = '';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const identifier = await getLoggedInStudentIdentifier();
+
+        if (!identifier) {
+            console.warn('⚠️ ไม่พบข้อมูล Session การล็อกอิน ย้ายไปหน้า Login');
+            window.location.href = '../../login.html';
+            return;
+        }
+
+        await initStudentPortal(identifier);
+        setupEventListeners();
+    });
+
+    async function initStudentPortal(identifier) {
+        // ดึงข้อมูลโปรไฟล์นักเรียน (รองรับทั้งการค้นด้วย ID หรือค้นด้วย Email)
+        let student = await getStudentProfile(identifier);
+
+        // กรณีที่ getStudentProfile ค้นด้วย Email ไม่เจอ ให้ลองค้นตรงจากตาราง students ใน Supabase
+        if (!student && identifier.includes('@')) {
+            try {
+                const { data } = await db.from('students').select('*').eq('email', identifier).maybeSingle();
+                if (data) student = data;
+            } catch (err) {
+                console.error('Error fetching student by email:', err);
+            }
+        }
+
+        // กำหนด ID หลักสำหรับใช้งานในระบบ
+        CURRENT_STUDENT_ID = student?.student_id || student?.id || identifier;
+
+        const fullName = student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : 'นักเรียน บัวเชดวิทยา';
+        currentStudentClass = student?.classroom || student?.class || 'ม.1/1';
+        const studentNo = student?.number_no ?? student?.no ?? '-';
+
+        // แสดงผลหน้าจอ Profile
+        document.getElementById('student-fullname').innerText = fullName;
+        document.getElementById('student-class').innerText = currentStudentClass;
+        document.getElementById('student-no').innerText = studentNo;
+        document.getElementById('student-id').innerText = CURRENT_STUDENT_ID;
+        document.getElementById('student-behavior-score').innerText = student?.behavior_score ?? 100;
+
+        const avatarImg = document.getElementById('student-avatar');
+        if (avatarImg) {
+            avatarImg.src = student?.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+        }
+
+        // ตั้งค่าวันปัจจุบันในตารางเรียน
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const todayName = days[new Date().getDay()];
+        if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(todayName)) {
+            document.getElementById('dayFilter').value = todayName;
+        }
+
+        // โหลดข้อมูลทั้ง 6 โมดูล
+        await Promise.all([
+            renderActiveGatepass(),
+            renderStudentSchedule(),
+            renderClassAdvisors(currentStudentClass),
+            renderAcademicData(CURRENT_STUDENT_ID),
+            renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
+            renderHomeworkData(currentStudentClass),
+            renderClinicData(CURRENT_STUDENT_ID)
+        ]);
+    }
 
         async function renderActiveGatepass() {
             const pass = await getActiveGatepass(CURRENT_STUDENT_ID);
