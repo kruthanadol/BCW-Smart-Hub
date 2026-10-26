@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BCW Smart HUB - เข้าสู่ระบบ</title>
     
-    <!-- Favicon สำหรับแท็บเบราว์เซอร์ -->
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="assets/images/logo_bcw.png">
     <link rel="apple-touch-icon" href="assets/images/logo_bcw.png">
 
@@ -17,7 +17,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif, system-ui; }
         
-        /* 🔒 ล็อกหน้าจอมือถือแน่น ไม่ให้สกรอลล์หรือโยกเลื่อน */
+        /* ล็อกหน้าจอมือถือแน่น */
         html, body { 
             overflow: hidden !important; 
             width: 100vw; 
@@ -75,33 +75,9 @@
         
         .brand-text { display: flex; flex-direction: column; justify-content: center; text-align: left; min-width: 0; }
         
-        .brand-text .line-1 { 
-            font-size: 21px; 
-            font-weight: 800; 
-            line-height: 1.15; 
-            color: #facc15; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3); 
-            letter-spacing: 0.5px; 
-            white-space: nowrap;
-        }
-        
-        .brand-text .line-2-en { 
-            font-size: 15px; 
-            color: #fef08a; 
-            font-weight: 700; 
-            letter-spacing: 0.8px;
-            margin: 1px 0;
-            white-space: nowrap;
-            text-transform: uppercase;
-        }
-
-        .brand-text .line-3-th { 
-            font-size: 16px; 
-            color: #ffffff; 
-            font-weight: 600; 
-            white-space: nowrap;
-            opacity: 0.95;
-        }
+        .brand-text .line-1 { font-size: 21px; font-weight: 800; line-height: 1.15; color: #facc15; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 0.5px; white-space: nowrap; }
+        .brand-text .line-2-en { font-size: 15px; color: #fef08a; font-weight: 700; letter-spacing: 0.8px; margin: 1px 0; white-space: nowrap; text-transform: uppercase; }
+        .brand-text .line-3-th { font-size: 16px; color: #ffffff; font-weight: 600; white-space: nowrap; opacity: 0.95; }
 
         .card-body { padding: 16px 16px; text-align: center; }
 
@@ -139,7 +115,6 @@
 <body>
 
     <div class="login-card">
-        <!-- Header โทนสีโรงเรียน เขียว - ขาว - ทอง -->
         <div class="card-header">
             <div class="logo-wrapper">
                 <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
@@ -222,79 +197,51 @@
             }
         }
 
-        async function handleAccountLogin(event) {
+        function handleAccountLogin(event) {
             event.preventDefault();
             let inputVal = document.getElementById('account-email').value.trim();
             const passwordVal = document.getElementById('account-password').value.trim();
-            const btnSubmit = document.getElementById('btn-account-submit');
 
             if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
 
             let fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
-            let cleanId = inputVal.split('@')[0].toLowerCase(); // เช่น t001, t024, kruthanadol หรือ 13174
+            let cleanId = inputVal.split('@')[0].toLowerCase(); // เช่น t024, kruthanadol, 13174
 
-            try {
-                btnSubmit.disabled = true;
-                btnSubmit.innerText = 'กำลังตรวจสอบ...';
+            // ล้างข้อมูล Session เก่าทั้งหมด
+            localStorage.clear();
+            sessionStorage.clear();
 
-                try { await _supabase.auth.signOut(); } catch(e) {}
-                localStorage.clear();
-                sessionStorage.clear();
+            // 🎯 เช็กสิทธิ์ครูโดยเด็ดขาด: 
+            // 1) รหัสขึ้นต้นด้วย T แล้วตามด้วยตัวเลข (เช่น t024, t001)
+            // 2) หรือ ไอดี/อีเมล มีคำว่า kru, teacher, thanadol
+            const isTeacher = /^t\d+/i.test(cleanId) || 
+                              cleanId.includes('kru') || 
+                              cleanId.includes('teacher') || 
+                              cleanId.includes('thanadol') ||
+                              fullEmail.includes('kru') || 
+                              fullEmail.includes('teacher');
 
-                let isTeacher = false;
+            if (isTeacher) {
+                // บันทึกสิทธิ์ครู
+                localStorage.setItem('teacher_id', cleanId);
+                localStorage.setItem('user_email', fullEmail);
+                localStorage.setItem('role', 'teacher');
+                localStorage.setItem('user_role', 'teacher');
 
-                // 🎯 [แก้จุดสำคัญ]: เช็กจากแพตเทิร์นไอดี/อีเมลครูอย่างเด็ดขาดบนฝั่ง Client ก่อน
-                // 1. ขึ้นต้นด้วย T แล้วตามด้วยตัวเลข (เช่น T001, T024, T100)
-                // 2. หรือ มีคำว่า 'kru' หรือ 'teacher' อยู่ในชื่อผู้ใช้/อีเมล
-                const isTeacherPattern = /^t\d+/i.test(cleanId) || 
-                                         cleanId.includes('kru') || 
-                                         cleanId.includes('teacher') || 
-                                         fullEmail.includes('kru') || 
-                                         fullEmail.includes('teacher');
+                alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
+                
+                // 🚀 ย้ายหน้าบังคับตรงไปที่แอปครูทันที
+                window.location.replace('apps/school-app/teacher.html');
+            } else {
+                // บันทึกสิทธิ์นักเรียน
+                localStorage.setItem('student_id', cleanId);
+                localStorage.setItem('student_email', fullEmail);
+                localStorage.setItem('user_email', fullEmail);
+                localStorage.setItem('role', 'student');
+                localStorage.setItem('user_role', 'student');
 
-                if (isTeacherPattern) {
-                    isTeacher = true;
-                } else {
-                    // หากไม่เข้าแพตเทิร์นด้านบน ค่อยลองดึงตารางครูมาตรวจ
-                    try {
-                        const { data: teacherList } = await _supabase.from('teachers').select('teacher_id, email');
-                        if (teacherList && teacherList.length > 0) {
-                            const found = teacherList.find(t => {
-                                const dbEmail = (t.email || '').toLowerCase();
-                                const dbId = (t.teacher_id || '').toLowerCase();
-                                return (dbEmail && dbEmail === fullEmail) || (dbId && dbId === cleanId);
-                            });
-                            if (found) isTeacher = true;
-                        }
-                    } catch (e) {
-                        console.log('Skipping teacher DB lookup due to RLS');
-                    }
-                }
-
-                if (isTeacher) {
-                    // 👨‍🏫 สิทธิ์ครู ➔ บังคับเปิดไปที่หน้าครูเท่านั้น!
-                    localStorage.setItem('teacher_id', cleanId);
-                    localStorage.setItem('user_email', fullEmail);
-                    localStorage.setItem('role', 'teacher');
-
-                    alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
-                    window.location.href = 'apps/school-app/teacher.html';
-                } else {
-                    // 🎓 สิทธิ์นักเรียน ➔ เปิดไปที่หน้านักเรียน
-                    localStorage.setItem('student_id', cleanId);
-                    localStorage.setItem('student_email', fullEmail);
-                    localStorage.setItem('user_email', fullEmail);
-                    localStorage.setItem('role', 'student');
-
-                    window.location.href = 'apps/student-app/student.html';
-                }
-
-            } catch (err) {
-                console.error('Login error:', err);
-                alert('เข้าสู่ระบบไม่สำเร็จ: ' + err.message);
-            } finally {
-                btnSubmit.disabled = false;
-                btnSubmit.innerHTML = `<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (นักเรียน / ครู)`;
+                // 🚀 ย้ายหน้าบังคับตรงไปที่แอปนักเรียน
+                window.location.replace('apps/student-app/student.html');
             }
         }
 
@@ -312,7 +259,6 @@
                     .maybeSingle();
 
                 if (error) {
-                    console.error('Supabase Error:', error);
                     alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + error.message);
                     return;
                 }
@@ -334,13 +280,12 @@
                     }));
 
                     alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
-                    window.location.href = 'apps/parent-app/parent.html';
+                    window.location.replace('apps/parent-app/parent.html');
                 } else {
                     alert('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
                 }
 
             } catch (err) {
-                console.error(err);
                 alert('เกิดข้อผิดพลาดไม่ทราบสาเหตุ: ' + err.message);
             }
         }
