@@ -55,7 +55,6 @@
 
         .card-body { padding: 20px 18px; text-align: center; }
         
-        /* แท็บสลับผู้ใช้ */
         .tab-btn {
             flex: 1; padding: 10px 6px; font-size: 14px; font-weight: 700; text-align: center; color: #64748b;
             border-bottom: 3px solid #e2e8f0; transition: all 0.2s; cursor: pointer; background: none; border-top: none; border-left: none; border-right: none;
@@ -87,11 +86,10 @@
 <body>
 
     <div class="login-card">
-        <!-- Header โลโก้ + ข้อความสวยงามของคุณครู -->
         <div class="card-header">
             <div class="header-brand">
                 <div class="logo-wrapper">
-                    <img src="logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
+                    <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
                 </div>
                 <div class="brand-text">
                     <h1>BCW SMART HUB</h1>
@@ -101,7 +99,6 @@
             <div class="badge-status">BCW Portal</div>
         </div>
 
-        <!-- แท็บสลับผู้ใช้งาน -->
         <div class="flex bg-slate-50 border-b border-slate-100">
             <button type="button" id="tab-account" class="tab-btn active" onclick="switchTab('account')">
                 <i class="fa-solid fa-user-graduate mr-1"></i> ครู / นักเรียน
@@ -195,7 +192,7 @@
                     provider: 'google',
                     options: {
                         queryParams: { hd: 'buached.ac.th' },
-                        redirectTo: window.location.origin + '/pages/student/student.html'
+                        redirectTo: window.location.origin + window.location.pathname.replace(/login\.html.*$/, 'apps/student-app/student.html')
                     }
                 });
                 if (error) throw error;
@@ -226,20 +223,20 @@
                 let loginSuccess = false;
                 let userRole = 'student';
 
-                // 1. ตรวจสอบข้อมูลนักเรียนในตาราง
+                // 1. เช็กนักเรียน
                 const { data: student } = await _supabase.from('students').select('*').or(`email.eq.${fullEmail},student_id.eq.${cleanId}`).maybeSingle();
                 
                 if (student) {
                     loginSuccess = true;
                     userRole = 'student';
                 } else {
-                    // 2. ตรวจสอบข้อมูลครูในตาราง
+                    // 2. เช็กครู
                     const { data: teacher } = await _supabase.from('teachers').select('*').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
                     if (teacher) {
                         loginSuccess = true;
                         userRole = 'teacher';
                     } else {
-                        // 3. ยิงผ่าน Supabase Auth
+                        // 3. ยิง Supabase Auth
                         const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
                             email: fullEmail,
                             password: passwordVal
@@ -256,18 +253,17 @@
                     return;
                 }
 
-                // บันทึก Session
                 localStorage.setItem('student_id', cleanId);
                 localStorage.setItem('student_email', fullEmail);
                 localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('role', userRole);
 
-                // แยกเส้นทางเข้าใช้งาน
+                // 🎯 ปรับแก้ Path ให้ตรงกับโครงสร้าง GitHub Pages จริง
                 if (userRole === 'teacher' || fullEmail.includes('teacher')) {
                     alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
-                    window.location.href = './pages/teacher/index.html';
+                    window.location.href = 'apps/school-app/teacher.html';
                 } else {
-                    window.location.href = './pages/student/student.html';
+                    window.location.href = 'apps/student-app/student.html';
                 }
 
             } catch (err) {
@@ -315,7 +311,7 @@
                     }));
 
                     alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
-                    window.location.href = './apps/parent-app/parent.html';
+                    window.location.href = 'apps/parent-app/parent.html';
                 } else {
                     alert('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
                 }
