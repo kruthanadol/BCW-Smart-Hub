@@ -242,78 +242,63 @@
     </div>
 
     <!-- ES Module Integration -->
-    <script type="module">
-        import { db } from './core/supabase-client.js';
+<script type="module">
+    import { db } from './core/supabase-client.js';
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('btn-google-login')?.addEventListener('click', loginWithGoogle);
-            document.getElementById('parent-login-form')?.addEventListener('submit', handleParentLogin);
-        });
+    document.addEventListener('DOMContentLoaded', () => {
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleLogin);
+        }
+    });
 
-        async function loginWithGoogle() {
-            try {
-                const { data, error } = await db.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        queryParams: { hd: 'buached.ac.th' },
-                        redirectTo: window.location.href.replace(/login\.html.*$/, 'landing.html')
-                    }
-                });
-                if (error) throw error;
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
-            }
+    async function handleLogin(e) {
+        e.preventDefault();
+        
+        const emailInput = document.getElementById('emailInput')?.value.trim();
+        const passwordInput = document.getElementById('passwordInput')?.value.trim();
+
+        if (!emailInput || !passwordInput) {
+            alert('กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน');
+            return;
         }
 
-        async function handleParentLogin(event) {
-            event.preventDefault();
-            
-            const studentId = document.getElementById('parent-student-id').value.trim();
-            const password = document.getElementById('parent-password').value.trim();
-
+        try {
+            // 1. เคลียร์ Session และ Cache เก่าออกทั้งหมดก่อน เพื่อให้สลับผู้ใช้งานได้จริง
             try {
-                const { data: student, error } = await db
-                    .from('students')
-                    .select('id, student_id, first_name, last_name, parent_password')
-                    .eq('student_id', studentId)
-                    .maybeSingle();
+                await db.auth.signOut();
+            } catch (signOutErr) {}
+            localStorage.clear();
+            sessionStorage.clear();
 
-                if (error) {
-                    console.error('Supabase Error:', error);
-                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + error.message);
-                    return;
-                }
+            // 2. ส่งข้อมูลการเข้าสู่ระบบไปยัง Supabase Auth
+            const { data, error } = await db.auth.signInWithPassword({
+                email: emailInput,
+                password: passwordInput
+            });
 
-                if (!student) {
-                    alert('ไม่พบข้อมูลเลขประจำตัวนักเรียนนี้ในระบบ');
-                    return;
-                }
-
-                if (student.parent_password === password) {
-                    const fullName = (student.first_name && student.last_name) 
-                        ? `${student.first_name} ${student.last_name}`
-                        : (student.full_name || 'นักเรียน');
-
-                    localStorage.setItem('parent_session', JSON.stringify({
-                        role: 'parent',
-                        student_id: student.student_id,
-                        student_name: fullName
-                    }));
-
-                    alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
-                    window.location.href = 'apps/parent-app/parent.html';
-                } else {
-                    alert('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
-                }
-
-            } catch (err) {
-                console.error(err);
-                alert('เกิดข้อผิดพลาดไม่ทราบสาเหตุ: ' + err.message);
+            if (error) {
+                alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message);
+                return;
             }
-        }
 
-        window.loginWithGoogle = loginWithGoogle;
-        window.handleParentLogin = handleParentLogin;
-    </script>
+            // 3. สกัดรหัสนักเรียนตัวเลข (เช่น 13174 จาก 13174@buached.ac.th)
+            const cleanStudentId = emailInput.includes('@') ? emailInput.split('@')[0] : emailInput;
+
+            // 4. บันทึกข้อมูลผู้ใช้ใหม่ลงใน Storage
+            localStorage.setItem('student_id', cleanStudentId);
+            localStorage.setItem('student_email', emailInput);
+            localStorage.setItem('user_email', emailInput);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
+            // 5. เปลี่ยนหน้าไปยัง Student Portal
+            window.location.href = 'pages/student/student.html';
+
+        } catch (err) {
+            console.error('Login process error:', err);
+            alert('เกิดข้อผิดพลาดในระบบ: ' + err.message);
+        }
+    }
+</script>
 </body>
 </html>
