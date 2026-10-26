@@ -236,35 +236,43 @@
 
     // 🔍 ฟังก์ชันดึง รหัสนักเรียน (ตัวเลขล้วน) จาก Session หรือ Storage
     async function getCleanStudentId() {
-        let identifier = null;
+    let identifier = null;
 
-        // 1. ดึงจาก Session ของ Supabase Auth
-        try {
-            const { data: { session } } = await db.auth.getSession();
-            if (session?.user?.email) {
-                identifier = session.user.email;
-            }
-        } catch (e) {}
+    // 1. ดึงจาก Session ล่าสุดของ Supabase Auth เสมอ
+    try {
+        const { data: { session } } = await db.auth.getSession();
+        if (session?.user?.email) {
+            identifier = session.user.email;
+        }
+    } catch (e) {
+        console.warn('Session check error:', e);
+    }
 
-        // 2. ถ้าไม่มี Session ดึงจาก Storage
+    // 2. หากไม่มี Auth Session ค่อยไปดึงจาก Storage
+    if (!identifier) {
+        identifier = localStorage.getItem('student_email') || 
+                     localStorage.getItem('user_email') || 
+                     localStorage.getItem('student_id') || 
+                     sessionStorage.getItem('student_id');
+
         if (!identifier) {
-            identifier = localStorage.getItem('student_id') || 
-                         sessionStorage.getItem('student_id') || 
-                         localStorage.getItem('student_email') ||
-                         localStorage.getItem('user_email') ||
-                         localStorage.getItem('ref_id') || 
-                         localStorage.getItem('user_id');
-
-            if (!identifier) {
-                const userObj = localStorage.getItem('user') || sessionStorage.getItem('user');
-                if (userObj) {
-                    try {
-                        const parsed = JSON.parse(userObj);
-                        identifier = parsed.student_id || parsed.email || parsed.ref_id || parsed.id;
-                    } catch(e) {}
-                }
+            const userObj = localStorage.getItem('user') || sessionStorage.getItem('user');
+            if (userObj) {
+                try {
+                    const parsed = JSON.parse(userObj);
+                    identifier = parsed.email || parsed.student_id;
+                } catch(e) {}
             }
         }
+    }
+
+    // 3. แปลงอีเมลเป็นรหัสนักเรียนตัวเลข (เช่น 13175@buached.ac.th -> 13175)
+    if (identifier && identifier.includes('@')) {
+        identifier = identifier.split('@')[0];
+    }
+
+    return identifier;
+}
 
         // 3. แปลงอีเมล (เช่น 13174@buached.ac.th) ให้เหลือเฉพาะรหัสนักเรียน (13174)
         if (identifier && identifier.includes('@')) {
