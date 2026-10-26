@@ -24,7 +24,6 @@
             padding: 8px; 
         }
         
-        /* ขยายขนาดการ์ดให้กว้างเต็มจอมือถือ ( max-width: 480px ) */
         .login-card { 
             width: 100%; 
             max-width: 480px; 
@@ -77,7 +76,6 @@
 
         .card-body { padding: 20px 18px; }
         
-        /* แท็บสลับประเภทผู้ใช้ */
         .tab-btn {
             flex: 1;
             padding: 10px 6px;
@@ -117,7 +115,6 @@
         .form-group { text-align: left; margin-bottom: 12px; }
         .form-group label { font-size: 15px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 5px; }
         
-        /* ขยายขนาดช่องกรอกให้สัมผัสนิ้วง่าย ป้องกันการ Zoom ของ iOS/Android (font-size: 16px) */
         .form-input { 
             width: 100%; 
             padding: 12px 14px; 
@@ -187,7 +184,7 @@
                 <form id="account-login-form">
                     <div class="form-group">
                         <label>✉️ อีเมลโรงเรียน / รหัสนักเรียน</label>
-                        <input type="text" id="account-email" class="form-input" placeholder="เช่น 13174 หรือ teacher@buached.ac.th" required>
+                        <input type="text" id="account-email" class="form-input" placeholder="เช่น 13174@buached.ac.th หรือ 13174" required>
                     </div>
                     <div class="form-group">
                         <label>🔒 รหัสผ่าน</label>
@@ -241,7 +238,6 @@
             } catch (e) {}
         }
 
-        // สลับแท็บ
         window.switchTab = function(type) {
             const tabAccount = document.getElementById('tab-account');
             const tabParent = document.getElementById('tab-parent');
@@ -285,50 +281,59 @@
 
         async function handleAccountLogin(event) {
             event.preventDefault();
-            let emailVal = document.getElementById('account-email').value.trim();
+            let inputVal = document.getElementById('account-email').value.trim();
             const passwordVal = document.getElementById('account-password').value.trim();
             const btnSubmit = document.getElementById('btn-account-login');
 
-            if (!emailVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-            if (!emailVal.includes('@')) emailVal = `${emailVal}@buached.ac.th`;
+            if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
+            // 🎯 ปรับปรุงจุดนี้: ถ้านำเข้าเป็นรหัสตัวเลขเพรียวๆ ให้เติม @buached.ac.th แต่ถ้าใส่อีเมลเต็ม ให้ใช้ตามจริง
+            let fullEmail = inputVal.includes('@') ? inputVal : `${inputVal}@buached.ac.th`;
 
             try {
                 btnSubmit.disabled = true;
                 btnSubmit.innerText = 'กำลังตรวจสอบ...';
                 if (!db) throw new Error('ไม่สามารถเชื่อมต่อ Supabase ได้');
 
+                // เคลียร์ Cache และ Session เก่า
                 try { await db.auth.signOut(); } catch(e) {}
                 localStorage.clear();
                 sessionStorage.clear();
 
+                // สั่งล็อกอินด้วย Email เต็มไปยัง Supabase Auth
                 const { data, error } = await db.auth.signInWithPassword({
-                    email: emailVal,
+                    email: fullEmail,
                     password: passwordVal
                 });
 
                 if (error) throw error;
 
-                const cleanId = emailVal.split('@')[0];
+                const cleanId = fullEmail.split('@')[0];
                 const user = data.user;
 
+                // ตรวจสอบสิทธิ์ผู้ใช้งาน (Role Check)
                 let userRole = user?.user_metadata?.role || localStorage.getItem('role');
+
                 if (!userRole) {
-                    const { data: teacherCheck } = await db.from('teachers').select('id').or(`email.eq.${emailVal},teacher_id.eq.${cleanId}`).maybeSingle();
+                    const { data: teacherCheck } = await db.from('teachers').select('id').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
                     if (teacherCheck) userRole = 'teacher';
                 }
 
+                // บันทึก Session ปัจจุบันลงใน Storage
                 localStorage.setItem('student_id', cleanId);
-                localStorage.setItem('student_email', emailVal);
-                localStorage.setItem('user_email', emailVal);
+                localStorage.setItem('student_email', fullEmail);
+                localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('user', JSON.stringify(user));
 
-                if (userRole === 'teacher' || emailVal.includes('teacher')) {
+                // แยกเส้นทางเข้าใช้งาน (Role Routing)
+                if (userRole === 'teacher' || fullEmail.includes('teacher')) {
                     window.location.href = 'pages/teacher/index.html';
                 } else {
                     window.location.href = 'pages/student/student.html';
                 }
 
             } catch (err) {
+                console.error('Login error:', err);
                 alert('เข้าสู่ระบบไม่สำเร็จ: ' + (err.message || 'กรุณาตรวจสอบอีเมลและรหัสผ่านอีกครั้ง'));
             } finally {
                 btnSubmit.disabled = false;
