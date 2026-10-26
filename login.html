@@ -53,26 +53,20 @@
             white-space: nowrap;
         }
 
-        .card-body { padding: 20px 18px; text-align: center; }
-        
-        .tab-btn {
-            flex: 1; padding: 10px 6px; font-size: 14px; font-weight: 700; text-align: center; color: #64748b;
-            border-bottom: 3px solid #e2e8f0; transition: all 0.2s; cursor: pointer; background: none; border-top: none; border-left: none; border-right: none;
-        }
-        .tab-btn.active { color: #059669; border-bottom-color: #059669; }
+        .card-body { padding: 22px 20px; text-align: center; }
 
-        .btn-google-sso { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
+        .btn-google-sso { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 11px; background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
         .btn-google-sso:hover { background-color: #f8fafc; border-color: #059669; }
-        .google-icon { width: 20px; height: 20px; }
+        .google-icon { width: 22px; height: 22px; }
         .btn-text-group { display: flex; flex-direction: column; align-items: flex-start; }
-        .main-text { font-size: 13px; font-weight: 700; color: #1e293b; }
-        .sub-text { font-size: 10px; color: #64748b; }
+        .main-text { font-size: 13.5px; font-weight: 700; color: #1e293b; }
+        .sub-text { font-size: 10.5px; color: #64748b; }
 
-        .divider { margin: 14px 0; display: flex; align-items: center; color: #94a3b8; font-size: 11px; }
+        .divider { margin: 16px 0; display: flex; align-items: center; color: #64748b; font-size: 11.5px; font-weight: 600; }
         .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; }
-        .divider span { padding: 0 8px; font-weight: 500; }
+        .divider span { padding: 0 8px; }
 
-        .form-group { text-align: left; margin-bottom: 10px; }
+        .form-group { text-align: left; margin-bottom: 12px; }
         .form-group label { font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 4px; }
         .form-input { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; font-weight: 600; }
         .form-input:focus { border-color: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
@@ -80,12 +74,12 @@
         .btn-submit { width: 100%; padding: 11px; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 6px; transition: background 0.2s; }
         .btn-emerald { background: #059669; } .btn-emerald:hover { background: #047857; }
         .btn-sky { background: #0284c7; } .btn-sky:hover { background: #0369a1; }
-        .hidden { display: none; }
     </style>
 </head>
 <body>
 
     <div class="login-card">
+        <!-- Header โทนสีโรงเรียน เขียว - ขาว - ทอง -->
         <div class="card-header">
             <div class="header-brand">
                 <div class="logo-wrapper">
@@ -99,65 +93,57 @@
             <div class="badge-status">BCW Portal</div>
         </div>
 
-        <div class="flex bg-slate-50 border-b border-slate-100">
-            <button type="button" id="tab-account" class="tab-btn active" onclick="switchTab('account')">
-                <i class="fa-solid fa-user-graduate mr-1"></i> ครู / นักเรียน
-            </button>
-            <button type="button" id="tab-parent" class="tab-btn" onclick="switchTab('parent')">
-                <i class="fa-solid fa-users-between-lines mr-1"></i> ผู้ปกครอง
-            </button>
-        </div>
-
         <div class="card-body">
-            <!-- 1. แท็บ ครู / นักเรียน -->
-            <div id="section-account">
-                <button id="btn-google-login" type="button" class="btn-google-sso" onclick="loginWithGoogle()">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
-                    <div class="btn-text-group">
-                        <span class="main-text">เข้าสู่ระบบด้วย Google SSO</span>
-                        <span class="sub-text">ใช้อีเมลองค์กร @buached.ac.th</span>
-                    </div>
-                </button>
+            <!-- 1. ปุ่ม Google SSO (สลับเน้น นักเรียน / ครู) -->
+            <button id="btn-google-login" type="button" class="btn-google-sso" onclick="loginWithGoogle()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
+                <div class="btn-text-group">
+                    <span class="main-text">เข้าสู่ระบบสำหรับ นักเรียน / ครู</span>
+                    <span class="sub-text">ใช้อีเมลองค์กร @buached.ac.th</span>
+                </div>
+            </button>
 
-                <div class="divider">
-                    <span>หรือ ใช้อีเมล / รหัสนักเรียน</span>
+            <div class="divider">
+                <span>หรือ ใช้อีเมล / รหัสนักเรียน</span>
+            </div>
+
+            <!-- 2. ฟอร์มสำหรับ นักเรียน / ครู -->
+            <form id="account-login-form" onsubmit="handleAccountLogin(event)" class="mb-4">
+                <div class="form-group">
+                    <label>✉️ อีเมลโรงเรียน / รหัสนักเรียน</label>
+                    <input type="text" id="account-email" class="form-input" placeholder="เช่น 13174 หรือ 13174@buached.ac.th" required>
                 </div>
 
-                <form id="account-login-form" onsubmit="handleAccountLogin(event)">
-                    <div class="form-group">
-                        <label>✉️ อีเมลโรงเรียน / รหัสนักเรียน</label>
-                        <input type="text" id="account-email" class="form-input" placeholder="เช่น 13174@buached.ac.th หรือ 13174" required>
-                    </div>
+                <div class="form-group">
+                    <label>🔒 รหัสผ่าน</label>
+                    <input type="password" id="account-password" class="form-input" placeholder="กรอกรหัสผ่าน" required>
+                </div>
 
-                    <div class="form-group">
-                        <label>🔒 รหัสผ่าน</label>
-                        <input type="password" id="account-password" class="form-input" placeholder="กรอกรหัสผ่าน" required>
-                    </div>
+                <button type="submit" id="btn-account-submit" class="btn-submit btn-emerald">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (นักเรียน / ครู)
+                </button>
+            </form>
 
-                    <button type="submit" id="btn-account-submit" class="btn-submit btn-emerald">
-                        <i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (ครู / นักเรียน)
-                    </button>
-                </form>
+            <div class="divider">
+                <span>หรือ เข้าใช้งานสำหรับผู้ปกครอง</span>
             </div>
 
-            <!-- 2. แท็บ ผู้ปกครอง -->
-            <div id="section-parent" class="hidden">
-                <form id="parent-login-form" onsubmit="handleParentLogin(event)">
-                    <div class="form-group">
-                        <label>🆔 เลขประจำตัวนักเรียน</label>
-                        <input type="text" id="parent-student-id" class="form-input" placeholder="กรอกรหัสนักเรียน เช่น 12345" required>
-                    </div>
+            <!-- 3. ฟอร์มสำหรับ ผู้ปกครอง (อยู่ด้านล่างสุด ไม่ต้องสลับแท็บ) -->
+            <form id="parent-login-form" onsubmit="handleParentLogin(event)">
+                <div class="form-group">
+                    <label>🆔 เลขประจำตัวนักเรียน</label>
+                    <input type="text" id="parent-student-id" class="form-input" placeholder="กรอกรหัสนักเรียน เช่น 12345" required>
+                </div>
 
-                    <div class="form-group">
-                        <label>🔒 รหัสผ่านผู้ปกครอง</label>
-                        <input type="password" id="parent-password" class="form-input" placeholder="กรอกรหัสผ่าน" required>
-                    </div>
+                <div class="form-group">
+                    <label>🔒 รหัสผ่านผู้ปกครอง</label>
+                    <input type="password" id="parent-password" class="form-input" placeholder="กรอกรหัสผ่าน" required>
+                </div>
 
-                    <button type="submit" class="btn-submit btn-sky">
-                        👨‍👩‍👧‍👦 เข้าสู่ระบบสำหรับผู้ปกครอง
-                    </button>
-                </form>
-            </div>
+                <button type="submit" class="btn-submit btn-sky">
+                    👨‍👩‍👧‍👦 เข้าสู่ระบบสำหรับผู้ปกครอง
+                </button>
+            </form>
         </div>
     </div>
 
@@ -166,25 +152,6 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
         
         const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        function switchTab(type) {
-            const tabAccount = document.getElementById('tab-account');
-            const tabParent = document.getElementById('tab-parent');
-            const secAccount = document.getElementById('section-account');
-            const secParent = document.getElementById('section-parent');
-
-            if (type === 'account') {
-                tabAccount.classList.add('active');
-                tabParent.classList.remove('active');
-                secAccount.classList.remove('hidden');
-                secParent.classList.add('hidden');
-            } else {
-                tabParent.classList.add('active');
-                tabAccount.classList.remove('active');
-                secParent.classList.remove('hidden');
-                secAccount.classList.add('hidden');
-            }
-        }
 
         async function loginWithGoogle() {
             try {
@@ -223,14 +190,14 @@
                 let loginSuccess = false;
                 let userRole = 'student';
 
-                // 1. เช็กนักเรียน
+                // 1. เช็กข้อมูลนักเรียนก่อน
                 const { data: student } = await _supabase.from('students').select('*').or(`email.eq.${fullEmail},student_id.eq.${cleanId}`).maybeSingle();
                 
                 if (student) {
                     loginSuccess = true;
                     userRole = 'student';
                 } else {
-                    // 2. เช็กครู
+                    // 2. เช็กข้อมูลครู
                     const { data: teacher } = await _supabase.from('teachers').select('*').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
                     if (teacher) {
                         loginSuccess = true;
@@ -258,7 +225,7 @@
                 localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('role', userRole);
 
-                // 🎯 ปรับแก้ Path ให้ตรงกับโครงสร้าง GitHub Pages จริง
+                // นำทางตามบทบาท (Role)
                 if (userRole === 'teacher' || fullEmail.includes('teacher')) {
                     alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
                     window.location.href = 'apps/school-app/teacher.html';
@@ -271,7 +238,7 @@
                 alert('เข้าสู่ระบบไม่สำเร็จ: ' + err.message);
             } finally {
                 btnSubmit.disabled = false;
-                btnSubmit.innerHTML = `<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (ครู / นักเรียน)`;
+                btnSubmit.innerHTML = `<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (นักเรียน / ครู)`;
             }
         }
 
