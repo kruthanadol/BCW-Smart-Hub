@@ -234,91 +234,86 @@
         getStudentClinicRecords
     } from '../../modules/student/student.service.js';
 
-    // 🔍 ฟังก์ชันดึง User ID หรือ Email ของนักเรียนที่ล็อกอินเข้ามาจริง
-    async function getLoggedInStudentIdentifier() {
+    // 🔍 ฟังก์ชันดึง รหัสนักเรียน (ตัวเลขล้วน) จาก Session หรือ Storage
+    async function getCleanStudentId() {
+        let identifier = null;
+
+        // 1. ดึงจาก Session ของ Supabase Auth
         try {
             const { data: { session } } = await db.auth.getSession();
             if (session?.user?.email) {
-                return session.user.email;
+                identifier = session.user.email;
             }
-        } catch (e) {
-            console.warn('Supabase session check error:', e);
+        } catch (e) {}
+
+        // 2. ถ้าไม่มี Session ดึงจาก Storage
+        if (!identifier) {
+            identifier = localStorage.getItem('student_id') || 
+                         sessionStorage.getItem('student_id') || 
+                         localStorage.getItem('student_email') ||
+                         localStorage.getItem('user_email') ||
+                         localStorage.getItem('ref_id') || 
+                         localStorage.getItem('user_id');
+
+            if (!identifier) {
+                const userObj = localStorage.getItem('user') || sessionStorage.getItem('user');
+                if (userObj) {
+                    try {
+                        const parsed = JSON.parse(userObj);
+                        identifier = parsed.student_id || parsed.email || parsed.ref_id || parsed.id;
+                    } catch(e) {}
+                }
+            }
         }
 
-        let idOrEmail = localStorage.getItem('student_email') ||
-                       localStorage.getItem('user_email') ||
-                       localStorage.getItem('student_id') || 
-                       sessionStorage.getItem('student_id') || 
-                       localStorage.getItem('ref_id') || 
-                       localStorage.getItem('user_id');
-
-        if (!idOrEmail) {
-            const userObj = localStorage.getItem('user') || sessionStorage.getItem('user');
-            if (userObj) {
-                try {
-                    const parsed = JSON.parse(userObj);
-                    idOrEmail = parsed.email || parsed.student_id || parsed.ref_id || parsed.id || parsed.username;
-                } catch(e) {}
-            }
+        // 3. แปลงอีเมล (เช่น 13174@buached.ac.th) ให้เหลือเฉพาะรหัสนักเรียน (13174)
+        if (identifier && identifier.includes('@')) {
+            identifier = identifier.split('@')[0];
         }
 
-        return idOrEmail;
+        return identifier;
     }
 
     let CURRENT_STUDENT_ID = null;
     let currentStudentClass = '';
 
     document.addEventListener('DOMContentLoaded', async () => {
-        const identifier = await getLoggedInStudentIdentifier();
+        const studentId = await getCleanStudentId();
 
-        if (!identifier) {
-            console.warn('⚠️ ไม่พบข้อมูล Session การล็อกอิน ย้ายไปหน้า Login');
+        if (!studentId) {
+            console.warn('⚠️ ไม่พบข้อมูลการเข้าสู่ระบบ ย้ายไปหน้า Login');
             window.location.href = '../../login.html';
             return;
         }
 
-        await initStudentPortal(identifier);
+        await initStudentPortal(studentId);
         setupEventListeners();
     });
 
-    async function initStudentPortal(identifier) {
-        let student = null;
+    async function initStudentPortal(studentId) {
+        CURRENT_STUDENT_ID = studentId;
 
-        // 1. ค้นหาจาก getStudentProfile เดิมก่อน
-        try {
-            student = await getStudentProfile(identifier);
-        } catch (err) {}
+        // ดึงโปรไฟล์จาก Service ดั้งเดิม (ส่ง ID ตัวเลขเข้าไป)
+        let student = await getStudentProfile(studentId);
 
-        // 2. ถ้า identifier เป็น email (เช่น 13174@buached.ac.th) ให้ค้นจากคอลัมน์ email ใน Supabase
-        if (!student && identifier.includes('@')) {
+        // Fallback กรณีที่ค้นจาก student_id ไม่พบ ให้ลองค้นจาก email เผื่อในฐานข้อมูลเก็บบันทึกไว้
+        if (!student) {
             try {
-                const { data } = await db.from('students').select('*').eq('email', identifier).maybeSingle();
+                const { data } = await db.from('students')
+                    .select('*')
+                    .or(`student_id.eq.${studentId},email.ilike.${studentId}@%`)
+                    .maybeSingle();
                 if (data) student = data;
-            } catch (err) {
-                console.error('Error fetching by email:', err);
-            }
+            } catch (err) {}
         }
 
-        // 3. ถ้ายังไม่เจอ ให้ตัดเอาตัวเลขหน้า @ (เช่น 13174) ไปค้นจาก student_id
-        if (!student && identifier.includes('@')) {
-            const codeOnly = identifier.split('@')[0];
-            try {
-                const { data } = await db.from('students').select('*').eq('student_id', codeOnly).maybeSingle();
-                if (data) student = data;
-            } catch (err) {
-                console.error('Error fetching by extracted student_id:', err);
-            }
-        }
-
-        // กำหนด ID หลักและห้องเรียนจริงที่ดึงได้จาก Supabase
-        CURRENT_STUDENT_ID = student?.student_id || (identifier.includes('@') ? identifier.split('@')[0] : identifier);
+        // กำหนดข้อมูลโปรไฟล์นักเรียน
         currentStudentClass = student?.classroom || student?.class_name || student?.class || '';
-
-        // แสดงชื่อ-นามสกุลจริง
         const fullName = student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : 'นักเรียน บัวเชดวิทยา';
-        const studentNo = student?.number_no ?? student?.no ?? '-';
+        const studentNo = student?.no ?? student?.number_no ?? student?.student_no ?? student?.class_no ?? '-';
 
-        document.getElementById('student-fullname').innerText = fullName || 'นักเรียน บัวเชดวิทยา';
+        // แสดงผลขึ้นหน้าจอ UI
+        document.getElementById('student-fullname').innerText = fullName;
         document.getElementById('student-class').innerText = currentStudentClass || 'ไม่ระบุห้อง';
         document.getElementById('student-no').innerText = studentNo;
         document.getElementById('student-id').innerText = CURRENT_STUDENT_ID;
@@ -336,7 +331,7 @@
             document.getElementById('dayFilter').value = todayName;
         }
 
-        // โหลดข้อมูลทั้ง 6 โมดูลด้วย ID และห้องเรียนจริง
+        // ดึงข้อมูลจริงจากตารางทั้ง 6 โมดูล
         await Promise.all([
             renderActiveGatepass(),
             renderStudentSchedule(),
@@ -394,7 +389,7 @@
         const schedules = await getStudentScheduleWithTeachers(currentStudentClass, day);
 
         if (!schedules || schedules.length === 0) {
-            container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (ห้อง ${currentStudentClass})</div>`;
+            container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${currentStudentClass})</div>`;
             return;
         }
 
@@ -405,18 +400,18 @@
                     <div class="flex items-center gap-2.5 sm:gap-3">
                         <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
                             <span class="text-[8px] text-indigo-500 uppercase leading-none">คาบ</span>
-                            <span class="text-xs sm:text-sm font-extrabold leading-tight">${s.period_no || 1}</span>
+                            <span class="text-xs sm:text-sm font-extrabold leading-tight">${s.period_no || s.period || 1}</span>
                         </div>
                         <div class="min-w-0">
-                            <h4 class="text-xs font-bold text-slate-800 truncate">${s.course_name} <span class="text-slate-400 font-normal">(${s.course_code})</span></h4>
-                            <p class="text-[10px] text-slate-400 truncate"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.room_no || 'ไม่ระบุ'}</p>
+                            <h4 class="text-xs font-bold text-slate-800 truncate">${s.course_name || s.subject_name} <span class="text-slate-400 font-normal">(${s.course_code || s.subject_code || ''})</span></h4>
+                            <p class="text-[10px] text-slate-400 truncate"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.room_no || s.room || 'ไม่ระบุ'}</p>
                         </div>
                     </div>
 
                     <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shadow-xs shrink-0">
                         <img src="${teacherAvatar}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-5 h-5 sm:w-6 sm:h-6 rounded-md object-cover">
                         <div class="text-left hidden sm:block">
-                            <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_name}</p>
+                            <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_name || 'ผู้สอน'}</p>
                             <p class="text-[8px] text-slate-400">ผู้สอน</p>
                         </div>
                     </div>
@@ -621,6 +616,6 @@
             window.location.href = '../../login.html';
         });
     }
-    </script>
+</script>
 </body>
 </html>
