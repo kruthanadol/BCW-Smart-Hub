@@ -1,80 +1,267 @@
 <!DOCTYPE html>
-<html lang="th" class="scroll-smooth">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>เข้าสู่ระบบ - BCW Smart Hub</title>
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/images/logo_bcw.png">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BCW Smart HUB - เข้าสู่ระบบ</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #0f172a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', 'Sarabun', sans-serif; }
+        
+        /* ล็อกหน้าจอไม่ให้โยกเลื่อนออกนอกขอบ */
+        html, body { 
+            overflow-x: hidden; 
+            width: 100%; 
+            max-width: 100vw; 
+            height: 100%;
+        }
+        
+        /* ใช้ 100dvh เพื่อให้คำนวณความสูงจอมือถือจริง ไม่โดนแถบ URL ดัน */
+        body { 
+            background-color: #0f172a; 
+            min-height: 100vh; 
+            min-height: 100dvh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 12px; 
+        }
+        
+        /* ปรับให้การ์ดไม่สูงเกินหน้าจอมือถือ */
+        .login-card { 
+            width: 100%; 
+            max-width: 480px; 
+            max-height: calc(100dvh - 24px);
+            background: #ffffff; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-header { 
+            background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%); 
+            padding: 20px 18px; 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start; 
+            gap: 14px;
+            border-bottom: 4px solid #facc15; 
+            box-shadow: inset 0 -2px 10px rgba(0,0,0,0.15);
+            shrink: 0;
+        }
+        
+        .logo-wrapper {
+            width: 68px;
+            height: 68px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(250, 204, 21, 0.85);
+            flex-shrink: 0;
+        }
+        .school-logo { width: 100%; height: 100%; object-fit: contain; }
+        
+        .brand-text { display: flex; flex-direction: column; justify-content: center; text-align: left; min-width: 0; }
+        
+        /* บรรทัดที่ 1: BCW SMART HUB */
+        .brand-text .line-1 { 
+            font-size: 20px; 
+            font-weight: 800; 
+            line-height: 1.15; 
+            color: #facc15; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3); 
+            letter-spacing: 0.2px; 
+            white-space: nowrap;
+        }
+        
+        /* บรรทัดที่ 2: BCW Portal Badge */
+        .brand-text .line-2-badge { 
+            display: inline-block;
+            margin-top: 3px;
+            margin-bottom: 2px;
+            background: rgba(0, 0, 0, 0.35); 
+            border: 1.5px solid #facc15;
+            color: #fef08a;
+            padding: 2px 10px; 
+            border-radius: 8px; 
+            font-size: 13px; 
+            font-weight: 800;
+            white-space: nowrap;
+            width: fit-content;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        /* บรรทัดที่ 3: โรงเรียนบัวเชดวิทยา */
+        .brand-text .line-3 { 
+            font-size: 15px; 
+            color: #ffffff; 
+            font-weight: 600; 
+            white-space: nowrap;
+        }
+
+        /* ถ้าจอมือถือเล็กมาก ให้สกรอลล์เฉพาะเนื้อหาในการ์ด */
+        .card-body { 
+            padding: 20px 18px; 
+            text-align: center; 
+            overflow-y: auto; 
+            flex: 1;
+        }
+        
+        .title { font-size: 21px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #64748b; font-weight: 500; margin-bottom: 18px; }
+        
+        .btn-google-sso { 
+            width: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 12px; 
+            padding: 12px; 
+            background-color: #ffffff; 
+            border: 2px solid #cbd5e1; 
+            border-radius: 14px; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+        }
+        .btn-google-sso:hover { background-color: #f8fafc; border-color: #059669; transform: translateY(-1px); }
+        .google-icon { width: 26px; height: 26px; flex-shrink: 0; }
+        .btn-text-group { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+        
+        .main-text { font-size: 15px; font-weight: 800; color: #1e293b; }
+        .sub-text { font-size: 12px; color: #475569; font-weight: 600; }
+        
+        .divider { margin: 18px 0; display: flex; align-items: center; color: #64748b; font-size: 13px; font-weight: 600; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; }
+        .divider span { padding: 0 10px; }
+        
+        .form-group { text-align: left; margin-bottom: 12px; }
+        
+        .form-group label { font-size: 15px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 11px 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 15px; outline: none; font-weight: 600; }
+        .form-input:focus { border-color: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
+        
+        .btn-parent-submit { 
+            width: 100%; 
+            padding: 12px; 
+            background: #0284c7; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-weight: 800; 
+            font-size: 16px; 
+            cursor: pointer; 
+            margin-top: 6px; 
+            transition: background 0.2s; 
+            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);
+        }
+        .btn-parent-submit:hover { background: #0369a1; }
+
+        .btn-account-submit {
+            width: 100%;
+            padding: 12px;
+            background: #059669;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+            box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25);
+        }
+        .btn-account-submit:hover { background: #047857; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-3 sm:p-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+<body>
 
-    <!-- Login Container -->
-    <div class="w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/20 my-auto">
-        
-        <!-- Header Zone -->
-        <div class="bg-gradient-to-r from-indigo-900 to-indigo-800 p-6 sm:p-8 text-center text-white relative">
-            <div class="inline-block bg-white p-2 rounded-2xl shadow-lg mb-3">
-                <img src="assets/images/logo_bcw.png" alt="BCW Logo" class="w-14 h-14 object-contain" onerror="this.src='https://via.placeholder.com/60'">
+    <div class="login-card">
+        <!-- Header โทนสีโรงเรียน เขียว - ขาว - ทอง -->
+        <div class="card-header">
+            <div class="logo-wrapper">
+                <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/68?text=BCW'">
             </div>
-            <h1 class="text-xl sm:text-2xl font-black tracking-tight">BCW Smart Hub</h1>
-            <p class="text-xs text-indigo-200 mt-1">ระบบสารสนเทศ โรงเรียนบัวเชดวิทยา</p>
+            <div class="brand-text">
+                <div class="line-1">BCW SMART HUB</div>
+                <div class="line-2-badge">BCW Portal</div>
+                <div class="line-3">โรงเรียนบัวเชดวิทยา</div>
+            </div>
         </div>
 
-        <!-- Login Form -->
-        <form id="loginForm" class="p-6 sm:p-8 space-y-4 text-xs">
-            <div>
-                <label class="block font-bold text-slate-700 mb-1.5 text-xs">อีเมลโรงเรียน / รหัสนักเรียน <span class="text-rose-500">*</span></label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                        <i class="fa-solid fa-envelope"></i>
-                    </span>
-                    <input type="text" id="emailInput" placeholder="เช่น 13174@buached.ac.th หรือครูผู้สอน" class="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:border-indigo-600 focus:bg-white text-slate-800 transition" required autocomplete="username">
+        <div class="card-body">
+            <h2 class="title">เข้าสู่ระบบ BCW Portal</h2>
+            <p class="subtitle">เลือกช่องทางเข้าสู่ระบบตามประเภทผู้ใช้งาน</p>
+
+            <!-- 1. ปุ่ม Google SSO (สำหรับครู/นักเรียน) -->
+            <button type="button" id="btn-google-login" class="btn-google-sso">
+                <svg class="google-icon" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <div class="btn-text-group">
+                    <span class="main-text">เข้าสู่ระบบด้วย Google SSO</span>
+                    <span class="sub-text">ใช้อีเมลองค์กร @buached.ac.th</span>
                 </div>
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-700 mb-1.5 text-xs">รหัสผ่าน <span class="text-rose-500">*</span></label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                        <i class="fa-solid fa-lock"></i>
-                    </span>
-                    <input type="password" id="passwordInput" placeholder="กรอกรหัสผ่าน..." class="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:border-indigo-600 focus:bg-white text-slate-800 transition" required autocomplete="current-password">
-                    <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600">
-                        <i class="fa-solid fa-eye" id="eyeIcon"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Error Message Alert -->
-            <div id="loginErrorAlert" class="hidden p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-[11px] font-bold items-center gap-2">
-                <i class="fa-solid fa-circle-exclamation shrink-0 text-sm"></i>
-                <span id="errorMessageText">เข้าสู่ระบบไม่สำเร็จ</span>
-            </div>
-
-            <button type="submit" id="btnSubmitLogin" class="w-full bg-indigo-700 hover:bg-indigo-800 text-white font-extrabold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer mt-2">
-                <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ
             </button>
-        </form>
 
-        <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 text-center text-[11px] text-slate-400 font-medium">
-            โรงเรียนบัวเชดวิทยา (BCW) &bull; Smart Hub System
+            <div class="divider">
+                <span>หรือ ล็อกอินด้วยบัญชีอีเมล / รหัสนักเรียน</span>
+            </div>
+
+            <!-- 2. ฟอร์มเข้าสู่ระบบสำหรับ ครู / นักเรียน (อีเมล/รหัสผ่าน) -->
+            <form id="account-login-form" class="mb-4">
+                <div class="form-group">
+                    <label>✉️ อีเมลโรงเรียน / รหัสนักเรียน</label>
+                    <input type="text" id="account-email" class="form-input" placeholder="เช่น 13174 หรือ teacher@buached.ac.th" required>
+                </div>
+                <div class="form-group">
+                    <label>🔒 รหัสผ่าน</label>
+                    <input type="password" id="account-password" class="form-input" placeholder="กรอกรหัสผ่าน" required>
+                </div>
+                <button type="submit" id="btn-account-login" class="btn-account-submit">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (ครู / นักเรียน)
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>หรือ เข้าใช้งานสำหรับผู้ปกครอง</span>
+            </div>
+
+            <!-- 3. ฟอร์มสำหรับ ผู้ปกครอง -->
+            <form id="parent-login-form">
+                <div class="form-group">
+                    <label>🆔 เลขประจำตัวนักเรียน</label>
+                    <input type="text" id="parent-student-id" class="form-input" placeholder="กรอกรหัสนักเรียน เช่น 12345" required>
+                </div>
+
+                <div class="form-group">
+                    <label>🔒 รหัสผ่านผู้ปกครอง</label>
+                    <input type="password" id="parent-password" class="form-input" placeholder="กรอกรหัสผ่าน" required>
+                </div>
+
+                <button type="submit" class="btn-parent-submit">
+                    👨‍👩‍👧‍👦 เข้าสู่ระบบสำหรับผู้ปกครอง
+                </button>
+            </form>
         </div>
     </div>
 
-    <!-- Script Handling Login Logic -->
+    <!-- ES Module Integration -->
     <script type="module">
-        // ค้นหาดึงไฟล์ Supabase Client จาก Path ที่เป็นไปได้ทั้งหมด
+        // Dynamic Path Lookup สำหรับค้นหาไฟล์ Supabase Client
         let db = null;
         const possiblePaths = [
             './core/supabase-client.js',
@@ -88,67 +275,63 @@
                 const module = await import(path);
                 if (module.db) {
                     db = module.db;
-                    console.log('✅ โหลด Supabase Client สำเร็จจาก:', path);
+                    console.log('✅ Connected Supabase Client from:', path);
                     break;
                 }
             } catch (e) {}
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // ปุ่มแสดง/ซ่อนรหัสผ่าน
-            const togglePassword = document.getElementById('togglePassword');
-            const passwordInput = document.getElementById('passwordInput');
-            const eyeIcon = document.getElementById('eyeIcon');
-
-            if (togglePassword) {
-                togglePassword.addEventListener('click', () => {
-                    const isPassword = passwordInput.type === 'password';
-                    passwordInput.type = isPassword ? 'text' : 'password';
-                    eyeIcon.className = isPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
-                });
-            }
-
-            const loginForm = document.getElementById('loginForm');
-            if (loginForm) {
-                loginForm.addEventListener('submit', handleLogin);
-            }
+            document.getElementById('btn-google-login')?.addEventListener('click', loginWithGoogle);
+            document.getElementById('account-login-form')?.addEventListener('submit', handleAccountLogin);
+            document.getElementById('parent-login-form')?.addEventListener('submit', handleParentLogin);
         });
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            
-            let emailVal = document.getElementById('emailInput')?.value.trim();
-            const passwordVal = document.getElementById('passwordInput')?.value.trim();
-            const btnSubmit = document.getElementById('btnSubmitLogin');
+        // 1. ระบบ Google SSO (พร้อม Router แยก ครู/นักเรียน)
+        async function loginWithGoogle() {
+            try {
+                if (!db) throw new Error('ไม่พบการเชื่อมต่อฐานข้อมูล');
+                const { data, error } = await db.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        queryParams: { hd: 'buached.ac.th' },
+                        redirectTo: window.location.origin + window.location.pathname.replace(/login\.html.*$/, 'pages/student/student.html')
+                    }
+                });
+                if (error) throw error;
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ Google: ' + err.message);
+            }
+        }
+
+        // 2. ระบบล็อกอินด้วย อีเมล/รหัสผ่าน (ครู & นักเรียน)
+        async function handleAccountLogin(event) {
+            event.preventDefault();
+            let emailVal = document.getElementById('account-email').value.trim();
+            const passwordVal = document.getElementById('account-password').value.trim();
+            const btnSubmit = document.getElementById('btn-account-login');
 
             if (!emailVal || !passwordVal) {
-                showError('กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน');
+                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
                 return;
             }
 
-            // ถ้านักเรียนกรอกเฉพาะตัวเลขรหัส (เช่น 13174) เติมโดเมนอีเมลให้อัตโนมัติ
+            // ถ้านักเรียนกรอกเฉพาะรหัสตัวเลข (เช่น 13174) ให้เติมโดเมนโรงเรียนให้อัตโนมัติ
             if (!emailVal.includes('@')) {
                 emailVal = `${emailVal}@buached.ac.th`;
             }
 
             try {
                 btnSubmit.disabled = true;
-                btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบข้อมูล...`;
-                hideError();
+                btnSubmit.innerText = 'กำลังตรวจสอบข้อมูล...';
 
-                // เช็กว่าโหลด Supabase db ได้หรือไม่
-                if (!db) {
-                    throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (ไม่พบไฟล์ supabase-client.js)');
-                }
+                if (!db) throw new Error('ไม่สามารถเชื่อมต่อ Supabase ได้');
 
-                // 1. ล้าง Session เก่าป้องกันแคชเดิมค้าง
-                try {
-                    await db.auth.signOut();
-                } catch (signOutErr) {}
+                // เคลียร์ Session เก่าทิ้งเพื่อป้องกันบัญชีสลับกัน
+                try { await db.auth.signOut(); } catch(e) {}
                 localStorage.clear();
                 sessionStorage.clear();
 
-                // 2. ล็อกอินผ่าน Supabase Auth
                 const { data, error } = await db.auth.signInWithPassword({
                     email: emailVal,
                     password: passwordVal
@@ -156,57 +339,94 @@
 
                 if (error) throw error;
 
-                // 3. สกัดรหัสนักเรียน/ผู้ใช้
-                const cleanStudentId = emailVal.split('@')[0];
+                const cleanId = emailVal.split('@')[0];
+                const user = data.user;
 
-                // 4. บันทึกค่าผู้ใช้ใหม่ลงใน Storage
-                localStorage.setItem('student_id', cleanStudentId);
+                // ตรวจสอบสิทธิ์เพื่อแยกทางเดิน (Role Routing)
+                let userRole = user?.user_metadata?.role || localStorage.getItem('role');
+
+                // ค้นหาสิทธิ์จากตาราง teachers หรือ users หากยังไม่ระบุ role
+                if (!userRole) {
+                    const { data: teacherCheck } = await db.from('teachers').select('id').or(`email.eq.${emailVal},teacher_id.eq.${cleanId}`).maybeSingle();
+                    if (teacherCheck) userRole = 'teacher';
+                }
+
+                // บันทึกค่าลง Storage
+                localStorage.setItem('student_id', cleanId);
                 localStorage.setItem('student_email', emailVal);
                 localStorage.setItem('user_email', emailVal);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem('user', JSON.stringify(user));
 
-                // 5. แยกเส้นทางเข้าใช้งาน (ถ้าระบุสิทธิ์ครูไปหน้าระบบครู / ถ้านักเรียนไปหน้าแอปนักเรียน)
-                const userRole = data.user?.user_metadata?.role || localStorage.getItem('role');
-                
-                if (userRole === 'teacher' || emailVal.includes('teacher') || emailVal.includes('@buached.ac.th') === false) {
-                    // กรณีครูผู้สอน
-                    window.location.href = 'pages/teacher/index.html';
+                // 🔀 สลับแอปพลิเคชันตามประเภทผู้ใช้งาน
+                if (userRole === 'teacher' || emailVal.includes('teacher')) {
+                    alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
+                    window.location.href = 'pages/teacher/index.html'; // หรือ apps/teacher-app/teacher.html
                 } else {
-                    // กรณีนักเรียน
                     window.location.href = 'pages/student/student.html';
                 }
 
             } catch (err) {
-                console.error('Login Error Details:', err);
-                let msg = err.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
-                if (err.message.includes('Invalid login credentials')) {
-                    msg = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
-                }
-                showError(msg);
-                alert('⚠️ แจ้งเตือน: ' + msg); // Alert ซ้ำเพื่อป้องกันกรณีมองไม่เห็นแถบสีแดง
-            } fontFinally: {
+                console.error(err);
+                alert('เข้าสู่ระบบไม่สำเร็จ: ' + (err.message || 'กรุณาตรวจสอบอีเมลและรหัสผ่านอีกครั้ง'));
+            } finally {
                 btnSubmit.disabled = false;
-                btnSubmit.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ`;
+                btnSubmit.innerHTML = `<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (ครู / นักเรียน)`;
             }
         }
 
-        function showError(msg) {
-            const errorAlert = document.getElementById('loginErrorAlert');
-            const errorText = document.getElementById('errorMessageText');
-            if (errorAlert && errorText) {
-                errorText.innerText = msg;
-                errorAlert.classList.remove('hidden');
-                errorAlert.classList.add('flex');
+        // 3. ระบบล็อกอินสำหรับ ผู้ปกครอง
+        async function handleParentLogin(event) {
+            event.preventDefault();
+            
+            const studentId = document.getElementById('parent-student-id').value.trim();
+            const password = document.getElementById('parent-password').value.trim();
+
+            try {
+                if (!db) throw new Error('ไม่พบการเชื่อมต่อฐานข้อมูล');
+
+                const { data: student, error } = await db
+                    .from('students')
+                    .select('id, student_id, first_name, last_name, parent_password')
+                    .eq('student_id', studentId)
+                    .maybeSingle();
+
+                if (error) {
+                    console.error('Supabase Error:', error);
+                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + error.message);
+                    return;
+                }
+
+                if (!student) {
+                    alert('ไม่พบข้อมูลเลขประจำตัวนักเรียนนี้ในระบบ');
+                    return;
+                }
+
+                if (student.parent_password === password) {
+                    const fullName = (student.first_name && student.last_name) 
+                        ? `${student.first_name} ${student.last_name}`
+                        : (student.full_name || 'นักเรียน');
+
+                    localStorage.setItem('parent_session', JSON.stringify({
+                        role: 'parent',
+                        student_id: student.student_id,
+                        student_name: fullName
+                    }));
+
+                    alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
+                    window.location.href = 'apps/parent-app/parent.html';
+                } else {
+                    alert('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert('เกิดข้อผิดพลาดไม่ทราบสาเหตุ: ' + err.message);
             }
         }
 
-        function hideError() {
-            const errorAlert = document.getElementById('loginErrorAlert');
-            if (errorAlert) {
-                errorAlert.classList.add('hidden');
-                errorAlert.classList.remove('flex');
-            }
-        }
+        window.loginWithGoogle = loginWithGoogle;
+        window.handleAccountLogin = handleAccountLogin;
+        window.handleParentLogin = handleParentLogin;
     </script>
 </body>
 </html>
