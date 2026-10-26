@@ -2,195 +2,142 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BCW Smart HUB - เข้าสู่ระบบ</title>
-    <!-- Tailwind CSS CDN & Fonts -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- โหลด Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', 'Sarabun', sans-serif; }
-        
-        html, body { 
-            overflow: hidden; 
-            width: 100%; 
-            height: 100vh; 
-            height: 100dvh; 
-            background-color: #0f172a; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 8px; 
-        }
-        
-        .login-card { 
-            width: 100%; 
-            max-width: 480px; 
-            background: #ffffff; 
-            border-radius: 24px; 
-            overflow: hidden; 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
-            border: 1px solid rgba(255, 255, 255, 0.15); 
-            display: flex;
-            flex-direction: column;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif, system-ui; }
+        body { background-color: #0f172a; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 12px; }
+        .login-card { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); }
         
         .card-header { 
             background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%); 
-            padding: 16px 18px; 
+            padding: 18px 20px; 
             color: white; 
             display: flex; 
             align-items: center; 
-            gap: 14px;
+            justify-content: space-between; 
             border-bottom: 4px solid #facc15; 
+            box-shadow: inset 0 -2px 10px rgba(0,0,0,0.15);
         }
+        .header-brand { display: flex; align-items: center; gap: 14px; }
         
         .logo-wrapper {
             width: 60px;
             height: 60px;
             background: #ffffff;
-            border-radius: 14px;
-            padding: 4px;
+            border-radius: 16px;
+            padding: 5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 0 2px rgba(250, 204, 21, 0.85);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(250, 204, 21, 0.8);
             flex-shrink: 0;
         }
         .school-logo { width: 100%; height: 100%; object-fit: contain; }
         
-        .brand-text .line-1 { font-size: 20px; font-weight: 800; line-height: 1.15; color: #facc15; }
-        .brand-text .line-2-badge { 
-            display: inline-block; 
-            background: rgba(0, 0, 0, 0.35); 
-            border: 1px solid #facc15; 
-            color: #fef08a; 
-            padding: 2px 10px; 
-            border-radius: 6px; 
-            font-size: 12px; 
-            font-weight: 800; 
-            margin: 2px 0;
-        }
-        .brand-text .line-3 { font-size: 14px; color: #ffffff; font-weight: 600; }
-
-        .card-body { padding: 20px 18px; }
+        .brand-text h1 { font-size: 19px; font-weight: 800; line-height: 1.1; color: #facc15; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 0.5px; }
+        .brand-text p { font-size: 13px; color: #ffffff; font-weight: 600; margin-top: 3px; opacity: 0.95; }
         
-        .tab-btn {
-            flex: 1;
-            padding: 10px 6px;
-            font-size: 15px;
+        .badge-status { 
+            background: rgba(0, 0, 0, 0.25); 
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #fef08a;
+            padding: 4px 10px; 
+            border-radius: 8px; 
+            font-size: 11px; 
             font-weight: 700;
-            text-align: center;
-            color: #64748b;
-            border-bottom: 3px solid #e2e8f0;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        .tab-btn.active {
-            color: #059669;
-            border-bottom-color: #059669;
+            white-space: nowrap;
         }
 
-        .btn-google-sso { 
-            width: 100%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 10px; 
-            padding: 12px; 
-            background-color: #ffffff; 
-            border: 2px solid #cbd5e1; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            transition: all 0.2s; 
+        .card-body { padding: 20px 18px; text-align: center; }
+        
+        /* แท็บสลับผู้ใช้ */
+        .tab-btn {
+            flex: 1; padding: 10px 6px; font-size: 14px; font-weight: 700; text-align: center; color: #64748b;
+            border-bottom: 3px solid #e2e8f0; transition: all 0.2s; cursor: pointer; background: none; border-top: none; border-left: none; border-right: none;
         }
+        .tab-btn.active { color: #059669; border-bottom-color: #059669; }
+
+        .btn-google-sso { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
         .btn-google-sso:hover { background-color: #f8fafc; border-color: #059669; }
-        .google-icon { width: 22px; height: 22px; flex-shrink: 0; }
+        .google-icon { width: 20px; height: 20px; }
+        .btn-text-group { display: flex; flex-direction: column; align-items: flex-start; }
+        .main-text { font-size: 13px; font-weight: 700; color: #1e293b; }
+        .sub-text { font-size: 10px; color: #64748b; }
 
-        .divider { margin: 14px 0; display: flex; align-items: center; color: #64748b; font-size: 12px; font-weight: 600; }
+        .divider { margin: 14px 0; display: flex; align-items: center; color: #94a3b8; font-size: 11px; }
         .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; }
-        .divider span { padding: 0 10px; }
+        .divider span { padding: 0 8px; font-weight: 500; }
 
-        .form-group { text-align: left; margin-bottom: 12px; }
-        .form-group label { font-size: 15px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 5px; }
-        
-        .form-input { 
-            width: 100%; 
-            padding: 12px 14px; 
-            border: 2px solid #cbd5e1; 
-            border-radius: 10px; 
-            font-size: 16px; 
-            outline: none; 
-            font-weight: 600; 
-        }
+        .form-group { text-align: left; margin-bottom: 10px; }
+        .form-group label { font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 4px; }
+        .form-input { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; font-weight: 600; }
         .form-input:focus { border-color: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
-        
-        .btn-submit { 
-            width: 100%; 
-            padding: 12px; 
-            color: white; 
-            border: none; 
-            border-radius: 10px; 
-            font-weight: 800; 
-            font-size: 16px; 
-            cursor: pointer; 
-            margin-top: 6px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
-        }
+
+        .btn-submit { width: 100%; padding: 11px; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 6px; transition: background 0.2s; }
+        .btn-emerald { background: #059669; } .btn-emerald:hover { background: #047857; }
+        .btn-sky { background: #0284c7; } .btn-sky:hover { background: #0369a1; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
     <div class="login-card">
-        <!-- Header โทนสีโรงเรียน เขียว - ขาว - ทอง -->
+        <!-- Header โลโก้ + ข้อความสวยงามของคุณครู -->
         <div class="card-header">
-            <div class="logo-wrapper">
-                <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
+            <div class="header-brand">
+                <div class="logo-wrapper">
+                    <img src="logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
+                </div>
+                <div class="brand-text">
+                    <h1>BCW SMART HUB</h1>
+                    <p>โรงเรียนบัวเชดวิทยา</p>
+                </div>
             </div>
-            <div class="brand-text">
-                <div class="line-1">BCW SMART HUB</div>
-                <div class="line-2-badge">BCW Portal</div>
-                <div class="line-3">โรงเรียนบัวเชดวิทยา</div>
-            </div>
+            <div class="badge-status">BCW Portal</div>
         </div>
 
         <!-- แท็บสลับผู้ใช้งาน -->
         <div class="flex bg-slate-50 border-b border-slate-100">
-            <button type="button" id="tab-account" class="tab-btn active">
+            <button type="button" id="tab-account" class="tab-btn active" onclick="switchTab('account')">
                 <i class="fa-solid fa-user-graduate mr-1"></i> ครู / นักเรียน
             </button>
-            <button type="button" id="tab-parent" class="tab-btn">
+            <button type="button" id="tab-parent" class="tab-btn" onclick="switchTab('parent')">
                 <i class="fa-solid fa-users-between-lines mr-1"></i> ผู้ปกครอง
             </button>
         </div>
 
         <div class="card-body">
-            
             <!-- 1. แท็บ ครู / นักเรียน -->
             <div id="section-account">
-                <button type="button" id="btn-google-login" class="btn-google-sso">
-                    <svg class="google-icon" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                    </svg>
-                    <span class="text-sm font-extrabold text-slate-700">เข้าสู่ระบบด้วย Google SSO (@buached.ac.th)</span>
+                <button id="btn-google-login" type="button" class="btn-google-sso" onclick="loginWithGoogle()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
+                    <div class="btn-text-group">
+                        <span class="main-text">เข้าสู่ระบบด้วย Google SSO</span>
+                        <span class="sub-text">ใช้อีเมลองค์กร @buached.ac.th</span>
+                    </div>
                 </button>
 
-                <div class="divider"><span>หรือ ใช้อีเมล / รหัสนักเรียน</span></div>
+                <div class="divider">
+                    <span>หรือ ใช้อีเมล / รหัสนักเรียน</span>
+                </div>
 
-                <form id="account-login-form">
+                <form id="account-login-form" onsubmit="handleAccountLogin(event)">
                     <div class="form-group">
                         <label>✉️ อีเมลโรงเรียน / รหัสนักเรียน</label>
                         <input type="text" id="account-email" class="form-input" placeholder="เช่น 13174@buached.ac.th หรือ 13174" required>
                     </div>
+
                     <div class="form-group">
                         <label>🔒 รหัสผ่าน</label>
                         <input type="password" id="account-password" class="form-input" placeholder="กรอกรหัสผ่าน" required>
                     </div>
-                    <button type="submit" id="btn-account-login" class="btn-submit bg-emerald-600 hover:bg-emerald-700">
+
+                    <button type="submit" id="btn-account-submit" class="btn-submit btn-emerald">
                         <i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (ครู / นักเรียน)
                     </button>
                 </form>
@@ -198,7 +145,7 @@
 
             <!-- 2. แท็บ ผู้ปกครอง -->
             <div id="section-parent" class="hidden">
-                <form id="parent-login-form">
+                <form id="parent-login-form" onsubmit="handleParentLogin(event)">
                     <div class="form-group">
                         <label>🆔 เลขประจำตัวนักเรียน</label>
                         <input type="text" id="parent-student-id" class="form-input" placeholder="กรอกรหัสนักเรียน เช่น 12345" required>
@@ -209,17 +156,19 @@
                         <input type="password" id="parent-password" class="form-input" placeholder="กรอกรหัสผ่าน" required>
                     </div>
 
-                    <button type="submit" class="btn-submit bg-sky-600 hover:bg-sky-700">
+                    <button type="submit" class="btn-submit btn-sky">
                         👨‍👩‍👧‍👦 เข้าสู่ระบบสำหรับผู้ปกครอง
                     </button>
                 </form>
             </div>
-
         </div>
     </div>
 
-    <script type="module">
-        import { db } from './core/supabase-client.js';
+    <script>
+        const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
+        
+        const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         function switchTab(type) {
             const tabAccount = document.getElementById('tab-account');
@@ -228,49 +177,38 @@
             const secParent = document.getElementById('section-parent');
 
             if (type === 'account') {
-                tabAccount?.classList.add('active');
-                tabParent?.classList.remove('active');
-                secAccount?.classList.remove('hidden');
-                secParent?.classList.add('hidden');
+                tabAccount.classList.add('active');
+                tabParent.classList.remove('active');
+                secAccount.classList.remove('hidden');
+                secParent.classList.add('hidden');
             } else {
-                tabParent?.classList.add('active');
-                tabAccount?.classList.remove('active');
-                secParent?.classList.remove('hidden');
-                secAccount?.classList.add('hidden');
+                tabParent.classList.add('active');
+                tabAccount.classList.remove('active');
+                secParent.classList.remove('hidden');
+                secAccount.classList.add('hidden');
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('tab-account')?.addEventListener('click', () => switchTab('account'));
-            document.getElementById('tab-parent')?.addEventListener('click', () => switchTab('parent'));
-
-            document.getElementById('btn-google-login')?.addEventListener('click', loginWithGoogle);
-            document.getElementById('account-login-form')?.addEventListener('submit', handleAccountLogin);
-            document.getElementById('parent-login-form')?.addEventListener('submit', handleParentLogin);
-        });
-
-        // 1. Google Login
         async function loginWithGoogle() {
             try {
-                const { error } = await db.auth.signInWithOAuth({
+                const { data, error } = await _supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
                         queryParams: { hd: 'buached.ac.th' },
-                        redirectTo: window.location.origin + window.location.pathname.replace(/login\.html.*$/, 'pages/student/student.html')
+                        redirectTo: window.location.origin + '/pages/student/student.html'
                     }
                 });
                 if (error) throw error;
             } catch (err) {
-                alert('เกิดข้อผิดพลาด Google Login: ' + err.message);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
             }
         }
 
-        // 2. ล็อกอิน ครู / นักเรียน
         async function handleAccountLogin(event) {
             event.preventDefault();
             let inputVal = document.getElementById('account-email').value.trim();
             const passwordVal = document.getElementById('account-password').value.trim();
-            const btnSubmit = document.getElementById('btn-account-login');
+            const btnSubmit = document.getElementById('btn-account-submit');
 
             if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
 
@@ -281,28 +219,28 @@
                 btnSubmit.disabled = true;
                 btnSubmit.innerText = 'กำลังตรวจสอบ...';
 
-                try { await db.auth.signOut(); } catch(e) {}
+                try { await _supabase.auth.signOut(); } catch(e) {}
                 localStorage.clear();
                 sessionStorage.clear();
 
                 let loginSuccess = false;
                 let userRole = 'student';
 
-                // 2.1 ลองค้นหาในตารางนักเรียนโดยตรงก่อนเพื่อหลีกเลี่ยง Supabase Auth Credentials Error
-                const { data: student } = await db.from('students').select('*').or(`email.eq.${fullEmail},student_id.eq.${cleanId}`).maybeSingle();
+                // 1. ตรวจสอบข้อมูลนักเรียนในตาราง
+                const { data: student } = await _supabase.from('students').select('*').or(`email.eq.${fullEmail},student_id.eq.${cleanId}`).maybeSingle();
                 
                 if (student) {
                     loginSuccess = true;
                     userRole = 'student';
                 } else {
-                    // 2.2 ลองค้นหาในตารางครู
-                    const { data: teacher } = await db.from('teachers').select('*').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
+                    // 2. ตรวจสอบข้อมูลครูในตาราง
+                    const { data: teacher } = await _supabase.from('teachers').select('*').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
                     if (teacher) {
                         loginSuccess = true;
                         userRole = 'teacher';
                     } else {
-                        // 2.3 ถ้าไม่เจอในตาราง ให้ลองผ่าน Supabase Auth เผื่อมีสร้างไว้
-                        const { data: authData, error: authError } = await db.auth.signInWithPassword({
+                        // 3. ยิงผ่าน Supabase Auth
+                        const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
                             email: fullEmail,
                             password: passwordVal
                         });
@@ -324,7 +262,7 @@
                 localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('role', userRole);
 
-                // นำทางตาม Role (ใช้ Path สัมพัทธ์ที่รองรับทั้ง Local และ GitHub Pages)
+                // แยกเส้นทางเข้าใช้งาน
                 if (userRole === 'teacher' || fullEmail.includes('teacher')) {
                     alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
                     window.location.href = './pages/teacher/index.html';
@@ -341,21 +279,29 @@
             }
         }
 
-        // 3. ล็อกอิน ผู้ปกครอง
         async function handleParentLogin(event) {
             event.preventDefault();
+            
             const studentId = document.getElementById('parent-student-id').value.trim();
             const password = document.getElementById('parent-password').value.trim();
 
             try {
-                const { data: student, error } = await db
+                const { data: student, error } = await _supabase
                     .from('students')
                     .select('id, student_id, first_name, last_name, parent_password')
                     .eq('student_id', studentId)
                     .maybeSingle();
 
-                if (error) return alert('เกิดข้อผิดพลาดฐานข้อมูล: ' + error.message);
-                if (!student) return alert('ไม่พบข้อมูลเลขประจำตัวนักเรียนนี้');
+                if (error) {
+                    console.error('Supabase Error:', error);
+                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + error.message);
+                    return;
+                }
+
+                if (!student) {
+                    alert('ไม่พบข้อมูลเลขประจำตัวนักเรียนนี้ในระบบ');
+                    return;
+                }
 
                 if (student.parent_password === password || password.length >= 4) {
                     const fullName = (student.first_name && student.last_name) 
@@ -371,11 +317,12 @@
                     alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
                     window.location.href = './apps/parent-app/parent.html';
                 } else {
-                    alert('รหัสผ่านผู้ปกครองไม่ถูกต้อง');
+                    alert('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
                 }
 
             } catch (err) {
-                alert('เกิดข้อผิดพลาด: ' + err.message);
+                console.error(err);
+                alert('เกิดข้อผิดพลาดไม่ทราบสาเหตุ: ' + err.message);
             }
         }
     </script>
