@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BCW Smart HUB - เข้าสู่ระบบ</title>
-    <!-- Tailwind CSS & FontAwesome CDN -->
+    <!-- Tailwind CSS CDN & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -157,10 +157,10 @@
 
         <!-- แท็บสลับผู้ใช้งาน -->
         <div class="flex bg-slate-50 border-b border-slate-100">
-            <button type="button" id="tab-account" class="tab-btn active" onclick="switchTab('account')">
+            <button type="button" id="tab-account" class="tab-btn active">
                 <i class="fa-solid fa-user-graduate mr-1"></i> ครู / นักเรียน
             </button>
-            <button type="button" id="tab-parent" class="tab-btn" onclick="switchTab('parent')">
+            <button type="button" id="tab-parent" class="tab-btn">
                 <i class="fa-solid fa-users-between-lines mr-1"></i> ผู้ปกครอง
             </button>
         </div>
@@ -218,33 +218,11 @@
         </div>
     </div>
 
-    <!-- โหลด Supabase JS SDK โดยตรงแบบ CDN เพื่อตัดปัญหาเรื่อง Import Path -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script type="module">
-        // 1. ดึงไฟล์ Config และ Client ดั้งเดิม หากไม่เจอให้สร้าง Supabase Instance ตรงกลางทันที
-        let db = null;
-        try {
-            const module = await import('./core/supabase-client.js');
-            if (module.db) db = module.db;
-        } catch (e) {
-            try {
-                const module = await import('../../core/supabase-client.js');
-                if (module.db) db = module.db;
-            } catch (err) {}
-        }
+        import { db } from './core/supabase-client.js';
 
-        // กรณีโหลดผ่าน Import ไม่เจอ สร้าง Client จาก Supabase JS Direct
-        if (!db && typeof supabase !== 'undefined') {
-            const SUPABASE_URL = "https://your-supabase-url.supabase.co"; // URL Supabase ของโรงเรียน
-            const SUPABASE_ANON_KEY = "your-anon-key";                   // Anon Key ของโรงเรียน
-            try {
-                db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            } catch(e) {}
-        }
-
-        // สลับแท็บ
-        window.switchTab = function(type) {
+        // ฟังก์ชันสลับแท็บ
+        function switchTab(type) {
             const tabAccount = document.getElementById('tab-account');
             const tabParent = document.getElementById('tab-parent');
             const secAccount = document.getElementById('section-account');
@@ -261,22 +239,25 @@
                 secParent.classList.remove('hidden');
                 secAccount.classList.add('hidden');
             }
-        };
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('tab-account')?.addEventListener('click', () => switchTab('account'));
+            document.getElementById('tab-parent')?.addEventListener('click', () => switchTab('parent'));
+
             document.getElementById('btn-google-login')?.addEventListener('click', loginWithGoogle);
             document.getElementById('account-login-form')?.addEventListener('submit', handleAccountLogin);
             document.getElementById('parent-login-form')?.addEventListener('submit', handleParentLogin);
         });
 
+        // 1. Google Login
         async function loginWithGoogle() {
             try {
-                if (!db) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
                 const { error } = await db.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
                         queryParams: { hd: 'buached.ac.th' },
-                        redirectTo: window.location.origin + window.location.pathname.replace(/login\.html.*$/, 'pages/student/student.html')
+                        redirectTo: window.location.origin + '/pages/student/student.html'
                     }
                 });
                 if (error) throw error;
@@ -285,6 +266,7 @@
             }
         }
 
+        // 2. ล็อกอิน ครู / นักเรียน
         async function handleAccountLogin(event) {
             event.preventDefault();
             let inputVal = document.getElementById('account-email').value.trim();
@@ -299,17 +281,12 @@
                 btnSubmit.disabled = true;
                 btnSubmit.innerText = 'กำลังตรวจสอบ...';
 
-                if (!db) {
-                    alert('⚠️ เกิดข้อผิดพลาด: ไม่สามารถเชื่อมต่อกับฐานข้อมูล Supabase ได้ (กรุณาเช็กไฟล์ supabase-client.js)');
-                    return;
-                }
-
-                // เคลียร์ Session เก่าป้องกันข้อมูลสลับกัน
+                // เคลียร์ Cache และ Session เก่า
                 try { await db.auth.signOut(); } catch(e) {}
                 localStorage.clear();
                 sessionStorage.clear();
 
-                // ล็อกอินผ่าน Supabase Auth
+                // สั่ง Auth
                 const { data, error } = await db.auth.signInWithPassword({
                     email: fullEmail,
                     password: passwordVal
@@ -320,7 +297,7 @@
                 const cleanId = fullEmail.split('@')[0];
                 const user = data.user;
 
-                // ตรวจสอบสิทธิ์สลับหน้าจอ (Role Routing)
+                // เช็ก Role ของผู้ใช้งาน
                 let userRole = user?.user_metadata?.role || localStorage.getItem('role');
 
                 if (!userRole) {
@@ -336,7 +313,7 @@
                 localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('user', JSON.stringify(user));
 
-                // นำทางไปยังแต่ละระบบ
+                // นำทางตาม Role
                 if (userRole === 'teacher' || fullEmail.includes('teacher')) {
                     window.location.href = 'pages/teacher/index.html';
                 } else {
@@ -345,21 +322,20 @@
 
             } catch (err) {
                 console.error('Login error:', err);
-                alert('❌ เข้าสู่ระบบไม่สำเร็จ: ' + (err.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'));
+                alert('เข้าสู่ระบบไม่สำเร็จ: ' + (err.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'));
             } finally {
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = `<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (ครู / นักเรียน)`;
             }
         }
 
+        // 3. ล็อกอิน ผู้ปกครอง
         async function handleParentLogin(event) {
             event.preventDefault();
             const studentId = document.getElementById('parent-student-id').value.trim();
             const password = document.getElementById('parent-password').value.trim();
 
             try {
-                if (!db) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล');
-
                 const { data: student, error } = await db
                     .from('students')
                     .select('id, student_id, first_name, last_name, parent_password')
