@@ -230,8 +230,8 @@
 
             if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
 
-            let fullEmail = inputVal.includes('@') ? inputVal : `${inputVal}@buached.ac.th`;
-            let cleanId = inputVal.split('@')[0]; // ไอดีเดี่ยวๆ เช่น T030, kruthanadol หรือ 13174
+            let fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
+            let cleanId = inputVal.split('@')[0].toLowerCase(); // เช่น t001, t024, kruthanadol หรือ 13174
 
             try {
                 btnSubmit.disabled = true;
@@ -241,23 +241,42 @@
                 localStorage.clear();
                 sessionStorage.clear();
 
-                // 🎯 1. ตรวจสอบตารางครู (teachers) เป็นอันดับแรกเสมอ
-                const { data: teacherData } = await _supabase
-                    .from('teachers')
-                    .select('id, teacher_id, email, full_name')
-                    .or(`email.ilike.${fullEmail},teacher_id.ilike.${cleanId},email.ilike.%${cleanId}%`)
-                    .maybeSingle();
+                let isTeacher = false;
 
-                if (teacherData) {
-                    // ✅ ถ้าพบข้อมูลในตารางครู ➔ ให้สิทธิ์ครู ➔ ส่งไปหน้าครู
-                    localStorage.setItem('teacher_id', teacherData.teacher_id || cleanId);
+                // 🎯 [เช็กจุดที่ 1]: รหัสครูขึ้นต้นด้วย T หรือ t (เช่น T001 - T999) หรือ มีคำว่า kru/teacher
+                const isTeacherPattern = /^t\d+/i.test(cleanId) || cleanId.includes('kru') || cleanId.includes('teacher') || fullEmail.includes('kru') || fullEmail.includes('teacher');
+
+                if (isTeacherPattern) {
+                    isTeacher = true;
+                } else {
+                    // 🎯 [เช็กจุดที่ 2]: ค้นหาในตาราง teachers ตรงๆ ทั้งช่อง email และ teacher_id
+                    const { data: teacherList } = await _supabase
+                        .from('teachers')
+                        .select('teacher_id, email');
+
+                    if (teacherList && teacherList.length > 0) {
+                        const found = teacherList.find(t => {
+                            const dbEmail = (t.email || '').toLowerCase();
+                            const dbId = (t.teacher_id || '').toLowerCase();
+                            
+                            return (dbEmail && dbEmail === fullEmail) ||
+                                   (dbEmail && dbEmail.includes(cleanId)) ||
+                                   (dbId && dbId === cleanId);
+                        });
+                        if (found) isTeacher = true;
+                    }
+                }
+
+                if (isTeacher) {
+                    // 👨‍🏫 สิทธิ์ครู ➔ บังคับเปิดไปที่หน้าครูเท่านั้น!
+                    localStorage.setItem('teacher_id', cleanId);
                     localStorage.setItem('user_email', fullEmail);
                     localStorage.setItem('role', 'teacher');
 
                     alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
                     window.location.href = 'apps/school-app/teacher.html';
                 } else {
-                    // ✅ ถ้าไม่พบข้อมูลในตารางครู ➔ ให้สิทธิ์นักเรียน ➔ ส่งไปหน้านักเรียน
+                    // 🎓 สิทธิ์นักเรียน ➔ เปิดไปที่หน้านักเรียน
                     localStorage.setItem('student_id', cleanId);
                     localStorage.setItem('student_email', fullEmail);
                     localStorage.setItem('user_email', fullEmail);
