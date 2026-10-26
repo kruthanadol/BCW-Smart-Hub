@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BCW Smart HUB - เข้าสู่ระบบ</title>
-    <!-- Tailwind CSS CDN & Fonts -->
+    <!-- Tailwind CSS & FontAwesome CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -218,26 +218,32 @@
         </div>
     </div>
 
-    <!-- ES Module Integration -->
-    <script type="module">
-        let db = null;
-        const possiblePaths = [
-            './core/supabase-client.js',
-            '../core/supabase-client.js',
-            '../../core/supabase-client.js',
-            '/core/supabase-client.js'
-        ];
+    <!-- โหลด Supabase JS SDK โดยตรงแบบ CDN เพื่อตัดปัญหาเรื่อง Import Path -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        for (const path of possiblePaths) {
+    <script type="module">
+        // 1. ดึงไฟล์ Config และ Client ดั้งเดิม หากไม่เจอให้สร้าง Supabase Instance ตรงกลางทันที
+        let db = null;
+        try {
+            const module = await import('./core/supabase-client.js');
+            if (module.db) db = module.db;
+        } catch (e) {
             try {
-                const module = await import(path);
-                if (module.db) {
-                    db = module.db;
-                    break;
-                }
-            } catch (e) {}
+                const module = await import('../../core/supabase-client.js');
+                if (module.db) db = module.db;
+            } catch (err) {}
         }
 
+        // กรณีโหลดผ่าน Import ไม่เจอ สร้าง Client จาก Supabase JS Direct
+        if (!db && typeof supabase !== 'undefined') {
+            const SUPABASE_URL = "https://your-supabase-url.supabase.co"; // URL Supabase ของโรงเรียน
+            const SUPABASE_ANON_KEY = "your-anon-key";                   // Anon Key ของโรงเรียน
+            try {
+                db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } catch(e) {}
+        }
+
+        // สลับแท็บ
         window.switchTab = function(type) {
             const tabAccount = document.getElementById('tab-account');
             const tabParent = document.getElementById('tab-parent');
@@ -265,7 +271,7 @@
 
         async function loginWithGoogle() {
             try {
-                if (!db) throw new Error('ไม่พบการเชื่อมต่อฐานข้อมูล');
+                if (!db) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
                 const { error } = await db.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
@@ -287,20 +293,23 @@
 
             if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
 
-            // 🎯 ปรับปรุงจุดนี้: ถ้านำเข้าเป็นรหัสตัวเลขเพรียวๆ ให้เติม @buached.ac.th แต่ถ้าใส่อีเมลเต็ม ให้ใช้ตามจริง
             let fullEmail = inputVal.includes('@') ? inputVal : `${inputVal}@buached.ac.th`;
 
             try {
                 btnSubmit.disabled = true;
                 btnSubmit.innerText = 'กำลังตรวจสอบ...';
-                if (!db) throw new Error('ไม่สามารถเชื่อมต่อ Supabase ได้');
 
-                // เคลียร์ Cache และ Session เก่า
+                if (!db) {
+                    alert('⚠️ เกิดข้อผิดพลาด: ไม่สามารถเชื่อมต่อกับฐานข้อมูล Supabase ได้ (กรุณาเช็กไฟล์ supabase-client.js)');
+                    return;
+                }
+
+                // เคลียร์ Session เก่าป้องกันข้อมูลสลับกัน
                 try { await db.auth.signOut(); } catch(e) {}
                 localStorage.clear();
                 sessionStorage.clear();
 
-                // สั่งล็อกอินด้วย Email เต็มไปยัง Supabase Auth
+                // ล็อกอินผ่าน Supabase Auth
                 const { data, error } = await db.auth.signInWithPassword({
                     email: fullEmail,
                     password: passwordVal
@@ -311,21 +320,23 @@
                 const cleanId = fullEmail.split('@')[0];
                 const user = data.user;
 
-                // ตรวจสอบสิทธิ์ผู้ใช้งาน (Role Check)
+                // ตรวจสอบสิทธิ์สลับหน้าจอ (Role Routing)
                 let userRole = user?.user_metadata?.role || localStorage.getItem('role');
 
                 if (!userRole) {
-                    const { data: teacherCheck } = await db.from('teachers').select('id').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
-                    if (teacherCheck) userRole = 'teacher';
+                    try {
+                        const { data: teacherCheck } = await db.from('teachers').select('id').or(`email.eq.${fullEmail},teacher_id.eq.${cleanId}`).maybeSingle();
+                        if (teacherCheck) userRole = 'teacher';
+                    } catch(e) {}
                 }
 
-                // บันทึก Session ปัจจุบันลงใน Storage
+                // บันทึกค่าผู้ใช้
                 localStorage.setItem('student_id', cleanId);
                 localStorage.setItem('student_email', fullEmail);
                 localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('user', JSON.stringify(user));
 
-                // แยกเส้นทางเข้าใช้งาน (Role Routing)
+                // นำทางไปยังแต่ละระบบ
                 if (userRole === 'teacher' || fullEmail.includes('teacher')) {
                     window.location.href = 'pages/teacher/index.html';
                 } else {
@@ -334,7 +345,7 @@
 
             } catch (err) {
                 console.error('Login error:', err);
-                alert('เข้าสู่ระบบไม่สำเร็จ: ' + (err.message || 'กรุณาตรวจสอบอีเมลและรหัสผ่านอีกครั้ง'));
+                alert('❌ เข้าสู่ระบบไม่สำเร็จ: ' + (err.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'));
             } finally {
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = `<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (ครู / นักเรียน)`;
@@ -347,7 +358,7 @@
             const password = document.getElementById('parent-password').value.trim();
 
             try {
-                if (!db) throw new Error('ไม่พบการเชื่อมต่อฐานข้อมูล');
+                if (!db) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล');
 
                 const { data: student, error } = await db
                     .from('students')
