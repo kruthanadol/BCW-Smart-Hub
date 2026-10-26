@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BCW Smart HUB - เข้าสู่ระบบ</title>
     <!-- โหลด Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -10,8 +10,36 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif, system-ui; }
-        body { background-color: #0f172a; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 12px; }
-        .login-card { width: 100%; max-width: 480px; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        /* 🔒 ล็อกหน้าจอมือถือแบบเด็ดขาด ไม่ให้สกรอลล์หรือโยกเลื่อนได้ */
+        html, body { 
+            overflow: hidden !important; 
+            width: 100vw; 
+            height: 100vh; 
+            height: 100dvh; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            touch-action: none; 
+            background-color: #0f172a; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 12px; 
+        }
+
+        .login-card { 
+            width: 100%; 
+            max-width: 480px; 
+            background: #ffffff; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            touch-action: auto; /* อนุญาตให้แตะใช้งานปุ่มและช่องกรอกได้ปกติ */
+        }
         
         .card-header { 
             background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%); 
@@ -26,8 +54,8 @@
         .header-brand { display: flex; align-items: center; gap: 14px; }
         
         .logo-wrapper {
-            width: 58px;
-            height: 58px;
+            width: 56px;
+            height: 56px;
             background: #ffffff;
             border-radius: 16px;
             padding: 5px;
@@ -53,28 +81,28 @@
             white-space: nowrap;
         }
 
-        .card-body { padding: 20px 18px; text-align: center; }
+        .card-body { padding: 18px 18px; text-align: center; }
 
-        .btn-google-sso { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 11px; background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
+        .btn-google-sso { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
         .btn-google-sso:hover { background-color: #f8fafc; border-color: #059669; }
         .google-icon { width: 22px; height: 22px; }
         .btn-text-group { display: flex; flex-direction: column; align-items: flex-start; }
         .main-text { font-size: 13.5px; font-weight: 700; color: #1e293b; }
         .sub-text { font-size: 10.5px; color: #64748b; }
 
-        .divider { margin: 14px 0; display: flex; align-items: center; color: #64748b; font-size: 11.5px; font-weight: 600; }
+        .divider { margin: 12px 0; display: flex; align-items: center; color: #64748b; font-size: 11.5px; font-weight: 600; }
         .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; }
         .divider span { padding: 0 8px; }
 
-        .form-group { text-align: left; margin-bottom: 10px; }
+        .form-group { text-align: left; margin-bottom: 8px; }
         
-        /* ช่องกรอกข้อมูลที่รวมหัวข้อเข้าไปใน Placeholder */
+        /* ช่องกรอกข้อมูล + ป้องกันการ Zoom ใน iPhone/Android (font-size: 16px) */
         .form-input { 
             width: 100%; 
-            padding: 12px 14px; 
+            padding: 11px 14px; 
             border: 1.5px solid #cbd5e1; 
             border-radius: 10px; 
-            font-size: 14px; 
+            font-size: 16px; 
             outline: none; 
             font-weight: 600; 
             background-color: #f8fafc;
@@ -82,7 +110,7 @@
         }
         .form-input:focus { border-color: #059669; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
 
-        .btn-submit { width: 100%; padding: 11.5px; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 4px; transition: background 0.2s; }
+        .btn-submit { width: 100%; padding: 11px; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 4px; transition: background 0.2s; }
         .btn-emerald { background: #059669; } .btn-emerald:hover { background: #047857; }
         .btn-sky { background: #0284c7; } .btn-sky:hover { background: #0369a1; }
     </style>
@@ -118,8 +146,8 @@
                 <span>หรือ ใช้อีเมล / รหัสนักเรียน</span>
             </div>
 
-            <!-- 2. ฟอร์มสำหรับ นักเรียน / ครู (ตัด <label> ออก ใช้ Placeholder แทรกหัวข้อแทน) -->
-            <form id="account-login-form" onsubmit="handleAccountLogin(event)" class="mb-3">
+            <!-- 2. ฟอร์มสำหรับ นักเรียน / ครู -->
+            <form id="account-login-form" onsubmit="handleAccountLogin(event)" class="mb-2">
                 <div class="form-group">
                     <input type="text" id="account-email" class="form-input" placeholder="✉️ อีเมลโรงเรียน / รหัสนักเรียน (เช่น 13174)" required>
                 </div>
@@ -137,7 +165,7 @@
                 <span>หรือ เข้าใช้งานสำหรับผู้ปกครอง</span>
             </div>
 
-            <!-- 3. ฟอร์มสำหรับ ผู้ปกครอง (ตัด <label> ออก ใช้ Placeholder แทรกหัวข้อแทน) -->
+            <!-- 3. ฟอร์มสำหรับ ผู้ปกครอง -->
             <form id="parent-login-form" onsubmit="handleParentLogin(event)">
                 <div class="form-group">
                     <input type="text" id="parent-student-id" class="form-input" placeholder="🆔 เลขประจำตัวนักเรียน (เช่น 12345)" required>
