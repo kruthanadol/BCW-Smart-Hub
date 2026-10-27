@@ -185,20 +185,25 @@
         const _supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : db;
 
         // 1. ผูกฟังก์ชัน Google Login เข้ากับ Window (เพื่อรองรับ onclick="loginWithGoogle()")
-        window.loginWithGoogle = async function() {
-            try {
-                const client = db || _supabase;
-                const { data, error } = await client.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: window.location.origin + '/login.html'
-                    }
-                });
-                if (error) throw error;
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + err.message);
+// 🟢 ปรับแก้ในแท็ก <script type="module"> ของ login.html
+window.loginWithGoogle = async function() {
+    try {
+        const client = db || _supabase;
+        
+        // 💡 ใช้ window.location.href.split('?')[0] เพื่ออ้างอิงตำแหน่งไฟล์ปัจจุบันอย่างถูกต้องบน GitHub Pages
+        const redirectUrl = window.location.href.split('?')[0].split('#')[0];
+
+        const { data, error } = await client.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: redirectUrl // ส่งกลับมาที่ไฟล์ปัจจุบันแน่นอน
             }
-        };
+        });
+        if (error) throw error;
+    } catch (err) {
+        alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + err.message);
+    }
+};
 
         // 2. ฟังก์ชันจัดการล็อกอินฝั่ง ครู และ นักเรียน
         window.handleAccountLogin = async function(event) {
