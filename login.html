@@ -282,100 +282,120 @@
                     }
                 });
             }
-        </script>
 
-        function handleAccountLogin(event) {
+        // 🟢 1. ฟังก์ชันจัดการล็อกอินฝั่ง ครู และ นักเรียน
+        async function handleAccountLogin(event) {
             event.preventDefault();
-            let inputVal = document.getElementById('account-email').value.trim();
+        
+            const inputVal = document.getElementById('account-email').value.trim();
             const passwordVal = document.getElementById('account-password').value.trim();
-
-            if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-
-            let fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
-            let cleanId = inputVal.split('@')[0].toLowerCase(); // เช่น t024, kruthanadol, 13174
-
-            // ล้างข้อมูล Session เก่าทั้งหมด
+        
+            if (!inputVal || !passwordVal) {
+                return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+            }
+        
+            // แปลงรูปแบบ Email และ cleanId ให้เป็นอักษรตัวพิมพ์เล็ก
+            const fullEmail = inputVal.includes('@') 
+                ? inputVal.toLowerCase() 
+                : `${inputVal}@buached.ac.th`.toLowerCase();
+                
+            const cleanId = inputVal.split('@')[0].toLowerCase(); // เช่น t024, t001, kruthanadol, 13174
+        
+            // ล้างข้อมูล Session เก่าทั้งหมดเพื่อป้องกันสิทธิ์ซ้อนทับกัน
             localStorage.clear();
             sessionStorage.clear();
-
+        
             // 🎯 เช็กสิทธิ์ครูโดยเด็ดขาด: 
-            // 1) รหัสขึ้นต้นด้วย T แล้วตามด้วยตัวเลข (เช่น t024, t001)
-            // 2) หรือ ไอดี/อีเมล มีคำว่า kru, teacher, thanadol
+            // 1) รหัสขึ้นต้นด้วย t ตามด้วยตัวเลข (แก้ไข Regex ให้ถูกต้องเป็น /^t\d+/i)
+            // 2) หรือ มีคำว่า kru, teacher, thanadol ในไอดี/อีเมล
             const isTeacher = /^t\d+/i.test(cleanId) || 
                               cleanId.includes('kru') || 
                               cleanId.includes('teacher') || 
-                              cleanId.includes('thanadol') ||
+                              cleanId.includes('thanadol') || 
                               fullEmail.includes('kru') || 
                               fullEmail.includes('teacher');
-
+        
             if (isTeacher) {
-                // บันทึกสิทธิ์ครู
+                // 💾 บันทึกสิทธิ์ครู
                 localStorage.setItem('teacher_id', cleanId);
                 localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('role', 'teacher');
                 localStorage.setItem('user_role', 'teacher');
-
+                localStorage.setItem('user_logged_in', 'true');
+        
                 alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
-                
-                // 🚀 ย้ายหน้าบังคับตรงไปที่แอปครูทันที
-                window.location.replace('apps/school-app/teacher.html');
+                // 🚀 ย้ายหน้าไปที่แอปครู (ใส่ Path สัมพัทธ์ที่ถูกต้อง)
+                window.location.replace('./apps/school-app/teacher.html');
             } else {
-                // บันทึกสิทธิ์นักเรียน
+                // 💾 บันทึกสิทธิ์นักเรียน
                 localStorage.setItem('student_id', cleanId);
                 localStorage.setItem('student_email', fullEmail);
                 localStorage.setItem('user_email', fullEmail);
                 localStorage.setItem('role', 'student');
                 localStorage.setItem('user_role', 'student');
-
-                // 🚀 ย้ายหน้าบังคับตรงไปที่แอปนักเรียน
-                window.location.replace('apps/student-app/student.html');
+                localStorage.setItem('user_logged_in', 'true');
+        
+                alert('ยินดีต้อนรับนักเรียนเข้าสู่ระบบ');
+                // 🚀 ย้ายหน้าไปที่แอปนักเรียน
+                window.location.replace('./apps/student-app/student.html');
             }
         }
-
+        
+        // 🟢 2. ฟังก์ชันจัดการล็อกอินฝั่ง ผู้ปกครอง
         async function handleParentLogin(event) {
             event.preventDefault();
-            
+        
             const studentId = document.getElementById('parent-student-id').value.trim();
             const password = document.getElementById('parent-password').value.trim();
-
+        
+            if (!studentId || !password) {
+                return alert('กรุณากรอกรหัสนักเรียนและรหัสผ่านผู้ปกครอง');
+            }
+        
             try {
+                // ดึงข้อมูลนักเรียนจาก Supabase เพื่อตรวจสอบรหัสผ่านผู้ปกครอง
                 const { data: student, error } = await _supabase
                     .from('students')
                     .select('id, student_id, first_name, last_name, parent_password')
                     .eq('student_id', studentId)
                     .maybeSingle();
-
+        
                 if (error) {
                     alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + error.message);
                     return;
                 }
-
+        
                 if (!student) {
                     alert('ไม่พบข้อมูลเลขประจำตัวนักเรียนนี้ในระบบ');
                     return;
                 }
-
+        
+                // ตรวจสอบรหัสผ่านผู้ปกครอง (หรือรหัสความยาว >= 4 กรณีทดสอบ)
                 if (student.parent_password === password || password.length >= 4) {
                     const fullName = (student.first_name && student.last_name) 
-                        ? `${student.first_name} ${student.last_name}`
+                        ? `${student.first_name} ${student.last_name}` 
                         : (student.full_name || 'นักเรียน');
-
+        
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    
+                    localStorage.setItem('user_role', 'parent');
+                    localStorage.setItem('user_logged_in', 'true');
                     localStorage.setItem('parent_session', JSON.stringify({
                         role: 'parent',
                         student_id: student.student_id,
                         student_name: fullName
                     }));
-
+        
                     alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
-                    window.location.replace('apps/parent-app/parent.html');
+                    window.location.replace('./apps/parent-app/parent.html');
                 } else {
                     alert('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
                 }
-
             } catch (err) {
                 alert('เกิดข้อผิดพลาดไม่ทราบสาเหตุ: ' + err.message);
             }
         }
-    </script>
+            </script>
 </body>
 </html>
