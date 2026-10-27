@@ -17,7 +17,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif, system-ui; }
         
-        /* ล็อกหน้าจอมือถือแน่น */
+        /* ล็อกหน้าจอมือถือ */
         html, body { 
             overflow: hidden !important; 
             width: 100vw; 
@@ -141,7 +141,7 @@
             </div>
 
             <!-- 2. ฟอร์มสำหรับ นักเรียน / ครู -->
-            <form id="account-login-form" onsubmit="handleAccountLogin(event)" class="mb-2">
+            <form id="account-login-form" onsubmit="handleAccountLogin(event)">
                 <div class="form-group">
                     <input type="text" id="account-email" class="form-input" placeholder="✉️ อีเมลโรงเรียน / รหัสครู / รหัสนักเรียน" required>
                 </div>
@@ -176,36 +176,36 @@
         </div>
     </div>
 
-    <!-- 🟢 สคริปต์หลักแบบ Module สำหรับควบคุมระบบเข้าสู่ระบบทั้งหมด -->
+    <!-- 🟢 สคริปต์หลักแบบ Module เพียงชุดเดียวในไฟล์ -->
     <script type="module">
         import { db } from './core/supabase-client.js';
 
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
-        const _supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : db;
+        const _supabase = (window.supabase && window.supabase.createClient) 
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
+            : db;
 
-        // 1. ผูกฟังก์ชัน Google Login เข้ากับ Window (เพื่อรองรับ onclick="loginWithGoogle()")
-// 🟢 ปรับแก้ในแท็ก <script type="module"> ของ login.html
-window.loginWithGoogle = async function() {
-    try {
-        const client = db || _supabase;
-        
-        // 💡 ใช้ window.location.href.split('?')[0] เพื่ออ้างอิงตำแหน่งไฟล์ปัจจุบันอย่างถูกต้องบน GitHub Pages
-        const redirectUrl = window.location.href.split('?')[0].split('#')[0];
+        // คำนวณ Base Path สำหรับ GitHub Pages
+        const currentPath = window.location.pathname;
+        const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
 
-        const { data, error } = await client.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: redirectUrl // ส่งกลับมาที่ไฟล์ปัจจุบันแน่นอน
+        // 1. Google SSO Login
+        window.loginWithGoogle = async function() {
+            try {
+                const redirectUrl = window.location.href.split('?')[0].split('#')[0];
+                const client = db || _supabase;
+                const { error } = await client.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: redirectUrl }
+                });
+                if (error) throw error;
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + err.message);
             }
-        });
-        if (error) throw error;
-    } catch (err) {
-        alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + err.message);
-    }
-};
+        };
 
-        // 2. ฟังก์ชันจัดการล็อกอินฝั่ง ครู และ นักเรียน
+        // 2. ล็อกอิน ครู / นักเรียน
         window.handleAccountLogin = async function(event) {
             event.preventDefault();
 
@@ -222,10 +222,11 @@ window.loginWithGoogle = async function() {
                 
             const cleanId = inputVal.split('@')[0].toLowerCase(); // เช่น t024, t001, kruthanadol, 13174
 
+            // เคลียร์ Session เก่า
             localStorage.clear();
             sessionStorage.clear();
 
-            // 🎯 เช็กสิทธิ์ครูโดยเด็ดขาด: รหัสขึ้นต้นด้วย t ตามด้วยตัวเลข หรือ มีคำว่า kru/teacher ในอีเมล
+            // 🎯 เช็กสิทธิ์ครู: รหัสขึ้นต้นด้วย t ตามด้วยเลข หรือมีคำว่า kru/teacher
             const isTeacher = /^t\d+/i.test(cleanId) || 
                               cleanId.includes('kru') || 
                               cleanId.includes('teacher') || 
@@ -234,28 +235,27 @@ window.loginWithGoogle = async function() {
                               fullEmail.includes('teacher');
 
             if (isTeacher) {
-                localStorage.setItem('teacher_id', cleanId);
-                localStorage.setItem('user_email', fullEmail);
+                localStorage.setItem('user_logged_in', 'true');
                 localStorage.setItem('role', 'teacher');
                 localStorage.setItem('user_role', 'teacher');
-                localStorage.setItem('user_logged_in', 'true');
+                localStorage.setItem('teacher_id', cleanId);
+                localStorage.setItem('user_email', fullEmail);
 
                 alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
-                window.location.replace('./apps/school-app/teacher.html');
+                window.location.replace(basePath + 'apps/school-app/teacher.html');
             } else {
-                localStorage.setItem('student_id', cleanId);
-                localStorage.setItem('student_email', fullEmail);
-                localStorage.setItem('user_email', fullEmail);
+                localStorage.setItem('user_logged_in', 'true');
                 localStorage.setItem('role', 'student');
                 localStorage.setItem('user_role', 'student');
-                localStorage.setItem('user_logged_in', 'true');
+                localStorage.setItem('student_id', cleanId);
+                localStorage.setItem('user_email', fullEmail);
 
                 alert('ยินดีต้อนรับนักเรียนเข้าสู่ระบบ');
-                window.location.replace('./apps/student-app/student.html');
+                window.location.replace(basePath + 'apps/student-app/student.html');
             }
         };
 
-        // 3. ฟังก์ชันจัดการล็อกอินฝั่ง ผู้ปกครอง
+        // 3. ล็อกอิน ผู้ปกครอง
         window.handleParentLogin = async function(event) {
             event.preventDefault();
 
@@ -289,24 +289,23 @@ window.loginWithGoogle = async function() {
                         ? `${student.first_name} ${student.last_name}` 
                         : (student.full_name || 'นักเรียน');
 
-                // 🟢 สำหรับฝั่ง ครู (isTeacher)
-                localStorage.clear();
-                sessionStorage.clear();
-                
-                // บันทึก Key ให้ครบทุกรูปแบบที่หน้าปลายทางอาจจะเรียกใช้
-                localStorage.setItem('user_logged_in', 'true');
-                localStorage.setItem('role', 'teacher');
-                localStorage.setItem('user_role', 'teacher');
-                localStorage.setItem('teacher_id', cleanId);
-                localStorage.setItem('user_email', fullEmail);
-                
-                // 🚀 ใช้ Path สัมพัทธ์ที่ไม่อ้างอิง Root Domain บน GitHub Pages
-                const currentPath = window.location.pathname;
-                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                window.location.replace(basePath + 'apps/school-app/teacher.html');
+                    localStorage.clear();
+                    sessionStorage.clear();
                     
+                    localStorage.setItem('user_role', 'parent');
+                    localStorage.setItem('role', 'parent');
+                    localStorage.setItem('user_logged_in', 'true');
+                    localStorage.setItem('student_id', student.student_id);
+                    localStorage.setItem('student_name', fullName);
+
+                    localStorage.setItem('parent_session', JSON.stringify({
+                        role: 'parent',
+                        student_id: student.student_id,
+                        student_name: fullName
+                    }));
+
                     alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
-                    window.location.replace('./apps/parent-app/parent.html');
+                    window.location.replace(basePath + 'apps/parent-app/parent.html');
                 } else {
                     alert('รหัสผ่านผู้ปกครองไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
                 }
