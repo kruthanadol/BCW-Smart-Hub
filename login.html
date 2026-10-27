@@ -289,22 +289,22 @@ window.loginWithGoogle = async function() {
                         ? `${student.first_name} ${student.last_name}` 
                         : (student.full_name || 'นักเรียน');
 
-                   localStorage.clear();
+                // 🟢 สำหรับฝั่ง ครู (isTeacher)
+                localStorage.clear();
                 sessionStorage.clear();
                 
-                localStorage.setItem('user_role', 'parent');
+                // บันทึก Key ให้ครบทุกรูปแบบที่หน้าปลายทางอาจจะเรียกใช้
                 localStorage.setItem('user_logged_in', 'true');
+                localStorage.setItem('role', 'teacher');
+                localStorage.setItem('user_role', 'teacher');
+                localStorage.setItem('teacher_id', cleanId);
+                localStorage.setItem('user_email', fullEmail);
                 
-                // 🟢 เพิ่ม 2 บรรทัดนี้เพื่อให้ทุกหน้าอ่านรหัสนักเรียนได้ตรงกันทันที!
-                localStorage.setItem('student_id', student.student_id);
-                localStorage.setItem('student_name', fullName);
-                
-                localStorage.setItem('parent_session', JSON.stringify({
-                    role: 'parent',
-                    student_id: student.student_id,
-                    student_name: fullName
-                }));
-
+                // 🚀 ใช้ Path สัมพัทธ์ที่ไม่อ้างอิง Root Domain บน GitHub Pages
+                const currentPath = window.location.pathname;
+                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                window.location.replace(basePath + 'apps/school-app/teacher.html');
+                    
                     alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
                     window.location.replace('./apps/parent-app/parent.html');
                 } else {
