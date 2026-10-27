@@ -21,73 +21,6 @@
         .table-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
         .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-        /* 🎨 ปุ่มเรียกเปิดป๊อปอัปแบบพรีเมียม */
-        .btn-request-gatepass {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 16px 20px;
-            background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
-            border: 1.5px solid #fed7aa;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.08);
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-align: left;
-        }
-        
-        .btn-request-gatepass:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px -5px rgba(234, 88, 12, 0.18);
-            border-color: #ea580c;
-            background: #ffffff;
-        }
-
-        .btn-request-gatepass .icon-circle {
-            width: 46px;
-            height: 46px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            box-shadow: 0 6px 14px rgba(234, 88, 12, 0.3);
-            flex-shrink: 0;
-        }
-
-        .btn-request-gatepass .btn-text {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .btn-request-gatepass .title {
-            font-size: 15px;
-            font-weight: 800;
-            color: #9a3412;
-        }
-
-        .btn-request-gatepass .subtitle {
-            font-size: 12.5px;
-            color: #ea580c;
-            font-weight: 500;
-            opacity: 0.9;
-        }
-
-        .btn-request-gatepass .arrow-icon {
-            color: #fdba74;
-            font-size: 16px;
-            transition: transform 0.2s;
-        }
-
-        .btn-request-gatepass:hover .arrow-icon {
-            transform: translateX(4px);
-            color: #ea580c;
-        }
-
         /* 🔒 Modal Glassmorphism Overlay */
         .modal-overlay {
             position: fixed;
@@ -290,9 +223,10 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Header Zone -->
+    <!-- Header Zone (Standard App Bar) -->
     <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-50 border-b border-indigo-700">
         <div class="max-w-4xl mx-auto px-3 sm:px-4 py-2.5 flex justify-between items-center gap-2">
+            <!-- Brand Logo & Title -->
             <div class="flex items-center gap-2.5 min-w-0">
                 <div class="bg-white p-1 rounded-xl shadow shrink-0">
                     <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 sm:w-9 sm:h-9 object-contain" onerror="this.src='https://via.placeholder.com/40'">
@@ -302,10 +236,22 @@
                     <p class="text-[10px] sm:text-[11px] text-indigo-300 truncate">โรงเรียนบัวเชดวิทยา (BCW Smart School)</p>
                 </div>
             </div>
-            <button id="btnLogout" class="text-xs bg-indigo-800 hover:bg-rose-600 text-white px-2.5 py-1.5 rounded-xl font-bold transition border border-indigo-700 flex items-center gap-1.5 shrink-0 cursor-pointer">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                <span class="hidden sm:inline">ออกจากระบบ</span>
-            </button>
+
+            <!-- Action Buttons Group (ปุ่มยื่นขออนุญาต + ปุ่มออกจากระบบ) -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <!-- ปุ่มยื่นขออนุญาตออกนอกบริเวณโรงเรียน (Header Compact Button) -->
+                <button type="button" onclick="openGatepassModal()" class="text-xs bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl font-bold transition shadow-sm border border-amber-400/50 flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-door-open text-amber-100"></i>
+                    <span class="hidden sm:inline">ขอออกนอกโรงเรียน</span>
+                    <span class="sm:hidden">ยื่นคำขอ</span>
+                </button>
+
+                <!-- ปุ่มออกจากระบบ -->
+                <button id="btnLogout" class="text-xs bg-indigo-800/80 hover:bg-rose-600 text-white px-2.5 py-1.5 rounded-xl font-bold transition border border-indigo-700 flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden sm:inline">ออกจากระบบ</span>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -341,36 +287,21 @@
             </div>
         </div>
 
-        <!-- 2. GATEPASS SYSTEM (ปุ่มเรียกดึงขึ้นป๊อปอัป & Active Card) -->
-        <div class="space-y-4">
-            <!-- Active Digital Pass Card (เมื่อได้รับการอนุมัติ) -->
-            <div id="activePassCard" class="bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-indigo-700 space-y-3 hidden">
-                <div class="flex justify-between items-center border-b border-indigo-700/60 pb-2">
-                    <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-shield-halved"></i> บัตรผ่านประตูดิจิทัล
-                    </span>
-                    <span id="passStatusBadge" class="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md">รอการอนุมัติ</span>
-                </div>
-                <div class="text-center py-1 space-y-2">
-                    <div class="flex justify-center my-1">
-                        <div id="qrcodeContainer" class="p-2 bg-white rounded-xl shadow border border-indigo-300 min-w-[120px] min-h-[120px] flex items-center justify-center"></div>
-                    </div>
-                    <p id="passReason" class="text-xs font-bold text-white">เหตุผล: --</p>
-                    <p id="passTimeRange" class="text-[11px] text-indigo-200 font-medium">เวลาอนุญาต: -- ถึง --</p>
-                </div>
+        <!-- 2. ACTIVE DIGITAL PASS CARD (แสดงการอนุมัติและ QR Code) -->
+        <div id="activePassCard" class="bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-indigo-700 space-y-3 hidden">
+            <div class="flex justify-between items-center border-b border-indigo-700/60 pb-2">
+                <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-halved"></i> บัตรผ่านประตูดิจิทัล (การอนุมัติล่าสุด)
+                </span>
+                <span id="passStatusBadge" class="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md">รอการอนุมัติ</span>
             </div>
-
-            <!-- ปุ่มกดเรียกป๊อปอัปพรีเมียม -->
-            <button type="button" class="btn-request-gatepass" onclick="openGatepassModal()">
-                <div class="icon-circle">
-                    <i class="fa-solid fa-door-open"></i>
+            <div class="text-center py-1 space-y-2">
+                <div class="flex justify-center my-1">
+                    <div id="qrcodeContainer" class="p-2 bg-white rounded-xl shadow border border-indigo-300 min-w-[120px] min-h-[120px] flex items-center justify-center"></div>
                 </div>
-                <div class="btn-text">
-                    <span class="title">ยื่นขออนุญาตออกนอกบริเวณโรงเรียน</span>
-                    <span class="subtitle">คลิกเพื่อกรอกข้อมูลและส่งคำขออนุมัติออนไลน์</span>
-                </div>
-                <i class="fa-solid fa-chevron-right arrow-icon"></i>
-            </button>
+                <p id="passReason" class="text-xs font-bold text-white">เหตุผล: --</p>
+                <p id="passTimeRange" class="text-[11px] text-indigo-200 font-medium">เวลาอนุญาต: -- ถึง --</p>
+            </div>
         </div>
 
         <!-- 3. 📅 ตารางเรียนประจำวัน -->
@@ -920,7 +851,6 @@
                     alert('🎉 ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครองเรียบร้อยแล้ว!');
                     document.getElementById('gatepassForm').reset();
                     
-                    // ปิด Modal หลังจากส่งข้อมูลสำเร็จ
                     if (window.closeGatepassModalDirect) {
                         window.closeGatepassModalDirect();
                     }
