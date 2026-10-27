@@ -179,9 +179,35 @@
     <script>
         const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
-        
         const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+ 
+        import { identifyUserRole, saveUserSession } from './core/auth-manager.js';
+        
+        document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const usernameInput = document.getElementById('username').value.trim();
+            const passwordInput = document.getElementById('password').value.trim();
+            const btnSubmit = document.getElementById('btnSubmit');
+        
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = 'กำลังตรวจสอบสิทธิ์...';
+        
+            // 1. ตรวจสอบบทบาทและค้นหาผู้ใช้
+            const result = await identifyUserRole(usernameInput, passwordInput);
+        
+            if (result.role && result.redirectUrl) {
+                // 2. บันทึก Session
+                saveUserSession(result.role, result.userData);
+                
+                // 3. ย้ายหน้าไปยังแอปเป้าหมาย
+                window.location.href = result.redirectUrl;
+            } else {
+                alert('❌ ไม่พบข้อมูลผู้ใช้งาน หรือรหัสผ่านไม่ถูกต้อง');
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = 'เข้าสู่ระบบ';
+            }
+        });
         async function loginWithGoogle() {
             try {
                 const { data, error } = await _supabase.auth.signInWithOAuth({
