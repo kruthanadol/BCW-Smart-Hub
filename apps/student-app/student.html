@@ -596,16 +596,25 @@
         let SELECTED_SCHEDULE_DAY = 'Monday';
 
         // 🔍 ฟังก์ชันดึง Email / Student ID ล่าสุดแบบเรียลไทม์
+         // ใน apps/student-app/student.html
         async function getCurrentUserIdentity() {
-            let userEmail = null;
-            let studentId = null;
-
-            try {
-                const { data: { session } } = await db.auth.getSession();
-                if (session?.user?.email) {
-                    userEmail = session.user.email;
-                }
-            } catch (e) {}
+            // 1. ดึงสิทธิ์ล่าสุดจาก LocalStorage
+            let studentId = localStorage.getItem('student_id');
+            let userEmail = localStorage.getItem('user_email') || localStorage.getItem('student_email');
+        
+            // 2. ถ้าไม่มีใน LocalStorage ค่อยไปดึงจาก Supabase Auth Session
+            if (!studentId && !userEmail) {
+                try {
+                    const { data: { session } } = await db.auth.getSession();
+                    if (session?.user?.email) {
+                        userEmail = session.user.email;
+                        studentId = userEmail.split('@')[0];
+                    }
+                } catch (e) {}
+            }
+        
+            return { userEmail, studentId };
+        }
 
             studentId = localStorage.getItem('student_id') || sessionStorage.getItem('student_id');
             if (!userEmail) {
