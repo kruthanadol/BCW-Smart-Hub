@@ -206,55 +206,53 @@
         };
 
         // 2. ล็อกอิน ครู / นักเรียน
-        window.handleAccountLogin = async function(event) {
-            event.preventDefault();
-
-            const inputVal = document.getElementById('account-email').value.trim();
-            const passwordVal = document.getElementById('account-password').value.trim();
-
-            if (!inputVal || !passwordVal) {
-                return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-            }
-
-            const fullEmail = inputVal.includes('@') 
-                ? inputVal.toLowerCase() 
-                : `${inputVal}@buached.ac.th`.toLowerCase();
-                
-            const cleanId = inputVal.split('@')[0].toLowerCase(); // เช่น t024, t001, kruthanadol, 13174
-
-            // เคลียร์ Session เก่า
-            localStorage.clear();
-            sessionStorage.clear();
-
-            // 🎯 เช็กสิทธิ์ครู: รหัสขึ้นต้นด้วย t ตามด้วยเลข หรือมีคำว่า kru/teacher
-            const isTeacher = /^t\d+/i.test(cleanId) || 
-                              cleanId.includes('kru') || 
-                              cleanId.includes('teacher') || 
-                              cleanId.includes('thanadol') || 
-                              fullEmail.includes('kru') || 
-                              fullEmail.includes('teacher');
-
-            if (isTeacher) {
-                localStorage.setItem('user_logged_in', 'true');
-                localStorage.setItem('role', 'teacher');
-                localStorage.setItem('user_role', 'teacher');
-                localStorage.setItem('teacher_id', cleanId);
-                localStorage.setItem('user_email', fullEmail);
-
-                alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
-                window.location.replace(basePath + 'apps/school-app/teacher.html');
-            } else {
-                localStorage.setItem('user_logged_in', 'true');
-                localStorage.setItem('role', 'student');
-                localStorage.setItem('user_role', 'student');
-                localStorage.setItem('student_id', cleanId);
-                localStorage.setItem('user_email', fullEmail);
-
-                alert('ยินดีต้อนรับนักเรียนเข้าสู่ระบบ');
-                window.location.replace(basePath + 'apps/student-app/student.html');
-            }
-        };
-
+            window.handleAccountLogin = async function(event) {
+                event.preventDefault();
+            
+                const inputVal = document.getElementById('account-email').value.trim();
+                const passwordVal = document.getElementById('account-password').value.trim();
+            
+                if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+            
+                const fullEmail = inputVal.includes('@') 
+                    ? inputVal.toLowerCase() 
+                    : `${inputVal}@buached.ac.th`.toLowerCase();
+                    
+                const cleanId = inputVal.split('@')[0].toLowerCase();
+            
+                // 🧹 เคลียร์ Session เก่าออกก่อน
+                localStorage.clear();
+                sessionStorage.clear();
+            
+                const isTeacher = /^t\d+/i.test(cleanId) || 
+                                  cleanId.includes('kru') || 
+                                  cleanId.includes('teacher') || 
+                                  fullEmail.includes('kru');
+            
+                if (isTeacher) {
+                    // บันทึกสิทธิ์ครู
+                    localStorage.setItem('user_logged_in', 'true');
+                    localStorage.setItem('role', 'teacher');
+                    localStorage.setItem('user_role', 'teacher');
+                    localStorage.setItem('teacher_id', cleanId);
+                    localStorage.setItem('user_email', fullEmail);
+            
+                    alert('ยินดีต้อนรับคุณครูเข้าสู่ระบบ');
+                    window.location.href = './apps/school-app/teacher.html';
+                } else {
+                    // 🟢 บันทึกสิทธิ์นักเรียน (เซ็ตให้ครอบคลุมทุกตัวแปร)
+                    localStorage.setItem('user_logged_in', 'true');
+                    localStorage.setItem('role', 'student');
+                    localStorage.setItem('user_role', 'student');
+                    localStorage.setItem('student_id', cleanId);
+                    localStorage.setItem('user_email', fullEmail);
+            
+                    alert('ยินดีต้อนรับนักเรียนเข้าสู่ระบบ');
+                    // 🚀 ย้ายหน้าด้วย Path สัมพัทธ์
+                    window.location.href = './apps/student-app/student.html';
+                }
+            };
+        
         // 3. ล็อกอิน ผู้ปกครอง
         window.handleParentLogin = async function(event) {
             event.preventDefault();
