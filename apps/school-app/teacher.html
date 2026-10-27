@@ -9,15 +9,105 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        body { font-family: 'Kanit', sans-serif; }
+        body { font-family: 'Kanit', sans-serif; background-color: #f1f5f9; }
         .touch-btn { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+
+        /* 🔒 ระยะเว้นขอบกัน Header บังเนื้อหาเวลา Scroll ไปยังเซกชันต่างๆ */
+        main section, main > div {
+            scroll-margin-top: 70px;
+        }
+
+        /* 📱 สไตล์เฉพาะจอมือถือ (ไม่กระทบคอมพิวเตอร์) */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 80px !important;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* 📱 แถบ Bottom Navigation Bar ฝั่งครู */
+            .teacher-bottom-nav {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 68px;
+                background: rgba(255, 255, 255, 0.96);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border-top: 1px solid #e2e8f0;
+                display: flex;
+                align-items: center;
+                justify-content: space-around;
+                z-index: 999;
+                box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+                padding: 0 4px;
+            }
+
+            .teacher-nav-btn {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #64748b;
+                font-size: 11px;
+                font-weight: 700;
+                background: none;
+                border: none;
+                width: 25%;
+                height: 100%;
+                cursor: pointer;
+                transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+                border-radius: 16px;
+                padding: 4px 0;
+            }
+
+            /* 🟢✨ เมนูสีเขียวมรกต + กรอบสีทองลอยตัว Active */
+            .teacher-nav-btn.active {
+                color: #047857 !important; /* สีเขียวมรกต */
+                transform: translateY(-8px);
+                background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+                border: 2px solid #f59e0b !important; /* กรอบสีทองพรีเมียม */
+                box-shadow: 0 8px 18px -2px rgba(4, 120, 87, 0.25), 0 0 10px rgba(245, 158, 11, 0.3);
+            }
+
+            .teacher-nav-btn.active i {
+                font-size: 19px;
+                color: #047857;
+                filter: drop-shadow(0 2px 4px rgba(4, 120, 87, 0.3));
+            }
+
+            .teacher-nav-btn i {
+                font-size: 18px;
+                margin-bottom: 2px;
+                transition: all 0.2s;
+            }
+
+            /* ปุ่มยื่นคำขอ/บันทึกรวดเร็วตรงกลาง */
+            .teacher-nav-btn.highlight-btn i {
+                width: 40px;
+                height: 40px;
+                background: linear-gradient(135deg, #059669 0%, #047857 100%);
+                color: #ffffff;
+                border: 1.5px solid #fbbf24; /* ขอบทองซอฟต์ */
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 17px;
+                box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+            }
+        }
+
+        @media (min-width: 769px) {
+            .teacher-bottom-nav { display: none !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
@@ -62,9 +152,8 @@
 
     <main class="max-w-7xl mx-auto w-full px-2.5 md:px-4 py-3 md:py-5 space-y-3 md:space-y-5 my-auto">
         
-        <!-- 2. SMART GATE TRAFFIC CARDS (ปรับเป็น Grid 2x2 บนมือถือ ขยายตัวเลขสถิติให้อ่านชัดเจน) -->
-        <div class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 p-2 md:p-4 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-            <!-- กล่องที่ 1: ในโรงเรียน -->
+        <!-- 2. SMART GATE TRAFFIC CARDS -->
+        <section id="section-traffic" class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 p-2 md:p-4 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
             <div class="bg-emerald-50 border border-emerald-200 p-2 md:p-3 rounded-xl flex items-center gap-2.5 text-left">
                 <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm md:text-lg font-bold shrink-0"><i class="fa-solid fa-school"></i></div>
                 <div>
@@ -73,7 +162,6 @@
                 </div>
             </div>
             
-            <!-- กล่องที่ 2: ออกนอก -->
             <div class="bg-sky-50 border border-sky-200 p-2 md:p-3 rounded-xl flex items-center gap-2.5 text-left">
                 <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-sky-600 text-white flex items-center justify-center text-sm md:text-lg font-bold shrink-0"><i class="fa-solid fa-building-flag"></i></div>
                 <div>
@@ -82,7 +170,6 @@
                 </div>
             </div>
 
-            <!-- กล่องที่ 3: ขาด/เสี่ยงหนี -->
             <div class="bg-rose-50 border border-rose-200 p-2 md:p-3 rounded-xl flex items-center gap-2.5 text-left">
                 <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-rose-600 text-white flex items-center justify-center text-sm md:text-lg font-bold shrink-0"><i class="fa-solid fa-user-xmark"></i></div>
                 <div>
@@ -91,7 +178,6 @@
                 </div>
             </div>
 
-            <!-- กล่องที่ 4: สแกนกลับบ้าน -->
             <div class="bg-purple-50 border border-purple-200 p-2 md:p-3 rounded-xl flex items-center gap-2.5 text-left">
                 <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-purple-600 text-white flex items-center justify-center text-sm md:text-lg font-bold shrink-0"><i class="fa-solid fa-house-user"></i></div>
                 <div>
@@ -99,10 +185,10 @@
                     <span id="summary-purple-count" class="text-base md:text-xl font-black text-purple-900 block mt-0.5">0 คน</span>
                 </div>
             </div>
-        </div>
+        </section>
 
         <!-- 3. REAL-TIME NOTICE CENTER & BATCH ACTIONS -->
-        <div class="bg-amber-50 border border-amber-200 p-2.5 md:p-3.5 rounded-xl md:rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-3">
+        <section id="section-notice" class="bg-amber-50 border border-amber-200 p-2.5 md:p-3.5 rounded-xl md:rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-3">
             <div class="flex items-center gap-2 min-w-0 w-full md:w-auto">
                 <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping shrink-0"></span>
                 <span class="text-xs md:text-sm font-extrabold text-amber-900 shrink-0">📢 ศูนย์แจ้งเตือน Real-time:</span>
@@ -116,12 +202,11 @@
                     ➕ รับใบลา (Line/โทร)
                 </button>
             </div>
-        </div>
+        </section>
 
         <!-- 4. SMART TIMETABLE SELECTOR -->
-        <div class="bg-white p-2.5 md:p-4 rounded-xl md:rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2.5 md:gap-4">
+        <section id="section-selector" class="bg-white p-2.5 md:p-4 rounded-xl md:rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2.5 md:gap-4">
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-                <!-- Custom Dropdown Button -->
                 <div class="relative w-full sm:w-auto">
                     <button type="button" onclick="toggleSubjectModal()" id="customSubjectBtn" class="bg-slate-50 border-2 border-slate-300 font-bold text-slate-800 text-xs md:text-sm rounded-xl py-2 px-3 md:p-2.5 flex items-center justify-between gap-2 w-full sm:w-auto hover:bg-slate-100 transition">
                         <span id="customSubjectText" class="truncate">คณิตศาสตร์เพิ่มเติม (ค32201) - ห้อง ม.5/1</span>
@@ -130,7 +215,6 @@
                     <input type="hidden" id="subjectSelect" value="ค32201|ม.5/1" onchange="renderStudents()">
                 </div>
                 
-                <!-- กล่องครูผู้สอนบน Desktop -->
                 <div class="hidden md:flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
                     <img id="teacherAvatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-7 h-7 rounded-full object-cover shrink-0">
                     <span id="teacherName" class="text-xs font-bold text-slate-700">กำลังโหลด...</span>
@@ -144,10 +228,10 @@
                     💾 บันทึกการเช็กชื่อ
                 </button>
             </div>
-        </div>
+        </section>
 
         <!-- 5. STUDENT ATTENDANCE TABLE -->
-        <div class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <section id="section-attendance" class="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-2.5 md:p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                 <h3 class="font-extrabold text-slate-900 text-xs md:text-base" id="tableHeaderTitle">รายชื่อนักเรียนประจำห้อง ม.5/1</h3>
                 <span class="text-[10px] md:text-xs text-slate-400 font-medium">🔍 ใช้นิ้วถ่างซูมขยายได้</span>
@@ -160,10 +244,8 @@
                             <th class="p-2 md:p-3 text-center w-8 md:w-12">เลขที่</th>
                             <th class="p-2 md:p-3 min-w-[130px] md:w-72">ชื่อ-นามสกุล / โปรไฟล์</th>
                             
-                            <!-- หัวตาราง Desktop -->
                             <th class="p-3 text-center hidden md:table-cell min-w-[260px]">สถานะการเข้าเรียน</th>
                             
-                            <!-- หัวตาราง Mobile -->
                             <th class="p-2 text-center md:hidden min-w-[170px]">
                                 <div class="grid grid-cols-5 gap-0.5 text-[10px] font-black text-center">
                                     <span class="bg-emerald-100 text-emerald-900 py-1 rounded border border-emerald-300">มา</span>
@@ -174,7 +256,6 @@
                                 </div>
                             </th>
 
-                            <!-- คอลัมน์หมายเหตุ Desktop -->
                             <th class="p-3 hidden md:table-cell min-w-[200px]">หมายเหตุพฤติกรรม / การลา</th>
                         </tr>
                     </thead>
@@ -183,10 +264,10 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
 
         <!-- 6. HOMEWORK ASSIGNMENT SECTION -->
-        <div class="bg-indigo-50/60 p-2.5 md:p-4 rounded-xl md:rounded-2xl border border-indigo-100 space-y-2 md:space-y-3">
+        <section id="section-homework" class="bg-indigo-50/60 p-2.5 md:p-4 rounded-xl md:rounded-2xl border border-indigo-100 space-y-2 md:space-y-3">
             <h4 class="text-xs md:text-sm font-extrabold text-indigo-950 flex items-center gap-1.5"><i class="fa-solid fa-book-bookmark text-indigo-600"></i> สั่งการบ้าน / มอบหมายงานประจำคาบ</h4>
             <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-end">
                 <div class="md:col-span-7">
@@ -199,13 +280,33 @@
                     <button type="button" onclick="saveHomework(event)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-xs font-extrabold py-2 md:py-2.5 rounded-xl shadow transition touch-btn">สั่งการบ้าน</button>
                 </div>
             </div>
-        </div>
+        </section>
 
     </main>
 
     <footer class="bg-white border-t border-slate-200 text-center text-slate-500 text-xs py-2.5 md:py-3">
         โรงเรียนบัวเชดวิทยา (BCW) • Smart School Ecosystem v6.0
     </footer>
+
+    <!-- 📱 3. แถบ Bottom Navigation Bar สำหรับมือถือ (ปุ่มสีเขียว ขอบทอง ลอยตัว Active) -->
+    <nav class="teacher-bottom-nav">
+        <button type="button" class="teacher-nav-btn active" onclick="scrollToTeacherSection('section-attendance', this)">
+            <i class="fa-solid fa-clipboard-user"></i>
+            <span>เช็กชื่อ</span>
+        </button>
+        <button type="button" class="teacher-nav-btn" onclick="scrollToTeacherSection('section-traffic', this)">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>สถิติ</span>
+        </button>
+        <button type="button" class="teacher-nav-btn highlight-btn" onclick="submitAttendance()">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>บันทึก</span>
+        </button>
+        <button type="button" class="teacher-nav-btn" onclick="scrollToTeacherSection('section-homework', this)">
+            <i class="fa-solid fa-book"></i>
+            <span>การบ้าน</span>
+        </button>
+    </nav>
 
     <!-- 7. CUSTOM SUBJECT SELECTOR MODAL -->
     <div id="subjectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
@@ -243,6 +344,19 @@
             autoSelectCurrentSubject();
             await checkAuthAndInit();
         });
+
+        // 📱 ฟังก์ชันเลื่อนไปยังเซกชันต่างๆ ฝั่งครู + ไฮไลท์ปุ่มเขียวขอบทอง
+        function scrollToTeacherSection(sectionId, btnElement) {
+            const target = document.getElementById(sectionId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                if (btnElement) {
+                    document.querySelectorAll('.teacher-nav-btn').forEach(btn => btn.classList.remove('active'));
+                    btnElement.classList.add('active');
+                }
+            }
+        }
 
         function handleLogout() {
             localStorage.clear();
@@ -385,7 +499,6 @@
                                 </div>
                             </td>
 
-                            <!-- สถานะ Desktop -->
                             <td class="p-3 text-center hidden md:table-cell">
                                 <div class="flex items-center justify-center gap-1 font-bold text-xs md:text-sm">
                                     <label class="cursor-pointer bg-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-lg hover:bg-emerald-200">
@@ -406,7 +519,6 @@
                                 </div>
                             </td>
 
-                            <!-- สถานะ Mobile -->
                             <td class="p-2 md:hidden">
                                 <div class="flex flex-col gap-1.5">
                                     <div class="grid grid-cols-5 gap-1 text-center items-center">
@@ -430,7 +542,6 @@
                                 </div>
                             </td>
 
-                            <!-- ช่องหมายเหตุ Desktop -->
                             <td class="p-3 hidden md:table-cell">
                                 <input type="text" id="note_${studentId}" value="${autoNoteText}" onchange="syncNote('${studentId}', this.value)" placeholder="ระบุเหตุผล/หมายเหตุ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
                             </td>
