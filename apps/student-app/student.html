@@ -595,12 +595,12 @@
 
         let SELECTED_SCHEDULE_DAY = 'Monday';
 
-        // 🟢 ฟังก์ชันดึง Identity ของนักเรียนที่ล็อกอินเข้ามาล่าสุด (แก้ไขให้คลีน 100%)
+        // 🟢 แก้ไขฟังก์ชัน getCurrentUserIdentity ใน student.html
         async function getCurrentUserIdentity() {
             let studentId = localStorage.getItem('student_id') || sessionStorage.getItem('student_id');
             let userEmail = localStorage.getItem('user_email') || localStorage.getItem('student_email');
-
-            // หากไม่พบใน Storage ให้ดึงจาก Supabase Auth Session
+        
+            // ถ้ายังไม่มี ให้ลองหาจาก Supabase Auth
             if (!studentId && !userEmail) {
                 try {
                     const { data: { session } } = await db.auth.getSession();
@@ -610,10 +610,23 @@
                     }
                 } catch (e) {}
             }
-
+        
             return { userEmail, studentId };
         }
-
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            const identity = await getCurrentUserIdentity();
+        
+            // 🔒 ถ้าไม่มีทั้ง Email และ Student ID จริงๆ ถึงค่อยให้เด้งกลับ
+            if (!identity.userEmail && !identity.studentId) {
+                console.warn('No session found, redirecting to login...');
+                window.location.href = '../../login.html';
+                return;
+            }
+        
+            await initStudentPortal(identity);
+            setupEventListeners();
+        });
         let CURRENT_STUDENT_ID = null;
         let currentStudentClass = '';
 
