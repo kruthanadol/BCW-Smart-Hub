@@ -578,7 +578,7 @@
         }
     </script>
 
-    <!-- Module Integration Script -->
+<!-- Module Integration Script -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
         import {
@@ -595,11 +595,12 @@
 
         let SELECTED_SCHEDULE_DAY = 'Monday';
 
-        // ❌ โค้ดเดิมใน student.html (มี Syntax Error สคริปต์พัง):
+        // 🟢 ฟังก์ชันดึง Identity ของนักเรียนที่ล็อกอินเข้ามาล่าสุด (แก้ไขให้คลีน 100%)
         async function getCurrentUserIdentity() {
-            let studentId = localStorage.getItem('student_id');
+            let studentId = localStorage.getItem('student_id') || sessionStorage.getItem('student_id');
             let userEmail = localStorage.getItem('user_email') || localStorage.getItem('student_email');
-        
+
+            // หากไม่พบใน Storage ให้ดึงจาก Supabase Auth Session
             if (!studentId && !userEmail) {
                 try {
                     const { data: { session } } = await db.auth.getSession();
@@ -608,26 +609,6 @@
                         studentId = userEmail.split('@')[0];
                     }
                 } catch (e) {}
-            }
-        
-            return { userEmail, studentId };
-        } // 👈 ปีกกาปิดตรงนี้ไปแล้ว!
-        
-            // 🔴 โค้ดด้านล่างนี้หลุดอยู่นอกฟังก์ชัน ทำให้เกิด Syntax Error ทันที!
-            studentId = localStorage.getItem('student_id') || sessionStorage.getItem('student_id');
-            if (!userEmail) {
-                userEmail = localStorage.getItem('student_email') || localStorage.getItem('user_email');
-            }
- 
-            if (!studentId && !userEmail) {
-                const userObj = localStorage.getItem('user') || sessionStorage.getItem('user');
-                if (userObj) {
-                    try {
-                        const parsed = JSON.parse(userObj);
-                        userEmail = parsed.email || userEmail;
-                        studentId = parsed.student_id || parsed.ref_id || studentId;
-                    } catch(e) {}
-                }
             }
 
             return { userEmail, studentId };
@@ -639,6 +620,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const identity = await getCurrentUserIdentity();
 
+            // เช็กว่ามี Session การล็อกอินหรือไม่ ถ้าไม่มีให้เด้งกลับหน้า Login
             if (!identity.userEmail && !identity.studentId) {
                 alert('⚠️ ไม่พบข้อมูลการเข้าสู่ระบบ กรุณาล็อกอินใหม่อีกครั้ง');
                 window.location.href = '../../login.html';
@@ -652,17 +634,19 @@
         async function initStudentPortal(identity) {
             let student = null;
 
-            if (identity.userEmail) {
+            // 1. ค้นหาโปรไฟล์จาก Email หรือ Student ID ที่ล็อกอินมาจริง
+            const cleanId = identity.studentId || (identity.userEmail ? identity.userEmail.split('@')[0] : null);
+
+            if (cleanId) {
                 try {
-                    const { data } = await db.from('students').select('*').eq('email', identity.userEmail).maybeSingle();
+                    const { data } = await db.from('students').select('*').eq('student_id', cleanId).maybeSingle();
                     if (data) student = data;
                 } catch (err) {}
             }
 
-            const cleanId = identity.studentId || (identity.userEmail ? identity.userEmail.split('@')[0] : null);
-            if (!student && cleanId) {
+            if (!student && identity.userEmail) {
                 try {
-                    const { data } = await db.from('students').select('*').eq('student_id', cleanId).maybeSingle();
+                    const { data } = await db.from('students').select('*').eq('email', identity.userEmail).maybeSingle();
                     if (data) student = data;
                 } catch (err) {}
             }
@@ -673,12 +657,23 @@
                 } catch (err) {}
             }
 
-            CURRENT_STUDENT_ID = student?.student_id || cleanId || '12345';
+            // กำหนด ID ให้ตรงกับคนที่ล็อกอินเข้ามาจริงเท่านั้น
+            CURRENT_STUDENT_ID = student?.student_id || cleanId;
+            
+            if (!CURRENT_STUDENT_ID) {
+                alert('⚠️ ไม่พบข้อมูลนักเรียนคนนี้ในระบบ');
+                window.location.href = '../../login.html';
+                return;
+            }
+
             currentStudentClass = student?.classroom || student?.class_name || student?.class || '';
             
             const studentNo = student?.no ?? student?.number_no ?? student?.student_no ?? student?.class_no ?? '-';
-            const fullName = student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : 'นักเรียน บัวเชดวิทยา';
+            const fullName = student 
+                ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() 
+                : 'นักเรียน บัวเชดวิทยา';
 
+            // แสดงผลชื่อ-รหัสของคนที่ล็อกอินเข้ามาจริงบน UI
             document.getElementById('student-fullname').innerText = fullName;
             document.getElementById('student-class').innerText = currentStudentClass || 'ไม่ระบุห้อง';
             document.getElementById('student-no').innerText = studentNo;
