@@ -19,25 +19,9 @@
         body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; overflow-x: hidden; }
         .touch-btn { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
 
-        /* 🔒 ระยะเว้นขอบกัน Header บังเนื้อหาเวลา Scroll */
+        /* 🔒 ล็อคระยะเว้นขอบกัน Header บังเนื้อหา เวลาเลื่อนลงมาดูสถิติหรือเช็กชื่อ */
         main section, main > div {
-            scroll-margin-top: 100px;
-        }
-
-        /* 📱 แถบโปรไฟล์ครูย่อย (Dynamic Sub-Header) สไลด์หายเมื่อ Scroll */
-        .sub-header-teacher {
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            max-height: 50px;
-            opacity: 1;
-            overflow: hidden;
-        }
-
-        .sub-header-teacher.is-scrolling {
-            max-height: 0;
-            opacity: 0;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-            border-bottom: none !important;
+            scroll-margin-top: 65px;
         }
 
         /* 📱 สไตล์แถบปุ่มล่างกะทัดรัด (Compact Active Pill) */
@@ -78,21 +62,20 @@
                 padding: 3px 12px;
                 border-radius: 14px;
                 cursor: pointer;
-                transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+                transition: all 0.2s ease-in-out;
             }
 
             .teacher-nav-btn i {
                 font-size: 16px;
                 margin-bottom: 1px;
-                transition: all 0.2s;
             }
 
-            /* 🟢✨ 2. กรอบ Active พอดีคำ สั้นกะทัดรัด ไม่ยาวเกินไป */
+            /* 🟢✨ กรอบ Active พอดีคำ สั้นกะทัดรัด ไม่ยาวเกินไป */
             .teacher-nav-btn.active {
                 color: #047857 !important;
                 background: #ecfdf5 !important;
-                border: 1.5px solid #f59e0b !important; /* ขอบทองบางกระชับ */
-                transform: translateY(-3px);
+                border: 1.5px solid #f59e0b !important;
+                transform: translateY(-2px);
                 box-shadow: 0 4px 10px -2px rgba(4, 120, 87, 0.2);
             }
 
@@ -123,10 +106,9 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- 1. HEADER (แบ่งเป็น 2 แถบ ไม่ทับกัน) -->
+    <!-- 1. HEADER (Sticky Top ล็อคแน่น ไม่กระพริบ) -->
     <header class="bg-emerald-950 text-white shadow-md sticky top-0 z-50 border-b border-emerald-800">
-        
-        <!-- แถบบน: โลโก้ + ชื่อระบบ + ปุ่มออกจากระบบ (แสดงตลอดเวลา) -->
+        <!-- แถบบน: โลโก้ + ชื่อระบบ + ปุ่มออกจากระบบ -->
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                 <div class="bg-white p-1 rounded-xl shadow-md shrink-0">
@@ -144,21 +126,22 @@
                 <span class="hidden sm:inline">ออกจากระบบ</span>
             </button>
         </div>
+    </header>
 
-        <!-- 3. แถบลงมา (Dynamic Sub-Header): แสดงชื่อครูผู้สอน (เลื่อนหน้าจอแล้วจะค่อยๆ ซ่อน) -->
-        <div id="subHeaderTeacher" class="sub-header-teacher bg-emerald-900/90 border-t border-emerald-800/80 px-3 sm:px-4 py-1.5 flex justify-between items-center">
+    <!-- 2. แถบชื่อครูผู้สอนแบบ Static (เลื่อนตามเนื้อหาปกติ หมดปัญหากระพริบ) -->
+    <div class="bg-emerald-900 border-b border-emerald-800 text-white px-3 sm:px-4 py-1.5 shadow-inner">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2 min-w-0">
                 <img id="headerTeacherAvatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-6 h-6 rounded-lg object-cover border border-emerald-400 shrink-0">
                 <span class="text-xs font-bold text-white truncate">ครูผู้สอน: <span id="headerTeacherName" class="text-amber-300">กำลังโหลด...</span></span>
             </div>
             <span id="teacherCodeDisplay" class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-700/50 font-mono shrink-0">รหัส: -</span>
         </div>
-
-    </header>
+    </div>
 
     <main class="max-w-7xl mx-auto w-full px-2.5 sm:px-4 py-3 sm:py-5 space-y-3.5 my-auto">
         
-        <!-- 📱 1. แถบเมนูด่วนไป Landing & Reports (เลื่อนไปที่ไหนก็กดเปลี่ยนหน้าได้สะดวก) -->
+        <!-- 📱 เมนูด่วนไป Landing & Reports + ปุ่มเปิดสถิติ -->
         <div class="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-200 shadow-xs gap-2">
             <div class="flex items-center gap-1.5 shrink-0">
                 <a href="../../landing.html" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 flex items-center gap-1 transition">
@@ -169,16 +152,16 @@
                 </a>
             </div>
 
-            <!-- ปุ่มสลับซ่อน/แสดง สถิติต่างๆ -->
+            <!-- ปุ่มสลับซ่อน/แสดง สถิติประตู -->
             <button type="button" onclick="toggleStatsDrawer()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2.5 py-1.5 rounded-lg border border-emerald-200 flex items-center gap-1 transition shrink-0">
                 <i class="fa-solid fa-chart-simple"></i>
-                <span id="btnStatsText" class="hidden sm:inline">สถิติสแกนประตู</span>
+                <span id="btnStatsText">ดูสถิติสแกนประตู</span>
                 <i id="statsChevron" class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
             </button>
         </div>
 
-        <!-- 2. SMART GATE TRAFFIC CARDS (การ์ดสถิติแบบพับเก็บได้) -->
-        <section id="section-traffic" class="bg-white rounded-2xl shadow-xs border border-slate-200 p-3 grid grid-cols-2 md:grid-cols-4 gap-2 hidden md:grid">
+        <!-- 3. SMART GATE TRAFFIC CARDS (การ์ดสถิติ - กดแล้วเปิด/พับนุ่มนวล) -->
+        <section id="section-traffic" class="bg-white rounded-2xl shadow-xs border border-slate-200 p-3 grid grid-cols-2 md:grid-cols-4 gap-2 hidden transition-all duration-300">
             <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center gap-2 text-left">
                 <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold shrink-0"><i class="fa-solid fa-school"></i></div>
                 <div>
@@ -291,7 +274,7 @@
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Teacher Portal System
     </footer>
 
-    <!-- 📱 2. แถบ Bottom Navigation Bar ฝั่งครู (กรอบ Active พอดีคำ สั้นกะทัดรัด) -->
+    <!-- 📱 2. แถบ Bottom Navigation Bar ฝั่งครู -->
     <nav class="teacher-bottom-nav">
         <button type="button" class="teacher-nav-btn active" onclick="scrollToTeacherSection('section-attendance', this)">
             <i class="fa-solid fa-clipboard-user"></i>
@@ -348,34 +331,28 @@
             await checkAuthAndInit();
         });
 
-        // 3. สคริปต์ซ่อน/แสดง แถบชื่อครูเมื่อเลื่อนหน้าจอ
-        let lastScrollY = window.scrollY;
-        window.addEventListener('scroll', () => {
-            const subHeader = document.getElementById('subHeaderTeacher');
-            if (!subHeader) return;
-
-            if (window.scrollY > 40) {
-                subHeader.classList.add('is-scrolling');
-            } else {
-                subHeader.classList.remove('is-scrolling');
-            }
-        });
-
+        // เปิด/พับเก็บการ์ดสถิติสแกนประตู
         function toggleStatsDrawer() {
             const trafficSec = document.getElementById('section-traffic');
             const chevron = document.getElementById('statsChevron');
+            const btnText = document.getElementById('btnStatsText');
 
             if (trafficSec.classList.contains('hidden')) {
                 trafficSec.classList.remove('hidden');
                 if (chevron) chevron.style.transform = 'rotate(180deg)';
+                if (btnText) btnText.innerText = 'ซ่อนสถิติสแกนประตู';
             } else {
                 trafficSec.classList.add('hidden');
                 if (chevron) chevron.style.transform = 'rotate(0deg)';
+                if (btnText) btnText.innerText = 'ดูสถิติสแกนประตู';
             }
         }
 
         function toggleStatsDrawerFromNav(btnElement) {
-            toggleStatsDrawer();
+            const trafficSec = document.getElementById('section-traffic');
+            if (trafficSec.classList.contains('hidden')) {
+                toggleStatsDrawer();
+            }
             scrollToTeacherSection('section-traffic', btnElement);
         }
 
