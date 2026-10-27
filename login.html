@@ -209,11 +209,12 @@
             }
         });
         
+        <!-- 🟢 แก้ไขแท็ก script ให้เป็น type="module" และผูก Window Function -->
         <script type="module">
             import { db } from './core/supabase-client.js';
             import { identifyUserRole, saveUserSession } from './core/auth-manager.js';
         
-            // 💡 ผูกฟังก์ชัน loginWithGoogle ไว้กับ window เพื่อให้ inline onclick="loginWithGoogle()" หาเจอ
+            // 1. ผูกฟังก์ชัน Google Login เข้ากับ Window (แก้ปัญหา loginWithGoogle is not defined)
             window.loginWithGoogle = async function() {
                 try {
                     const { data, error } = await db.auth.signInWithOAuth({
@@ -228,37 +229,59 @@
                 }
             };
         
-            // ฟังก์ชันจัดการ Submit Form ล็อกอินปกติ (ครู/นักเรียน)
-            document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const inputVal = document.getElementById('usernameInput').value.trim();
-                const passVal = document.getElementById('passwordInput').value.trim();
+            // 2. จัดการการล็อกอินผ่านฟอร์ม ครู / นักเรียน
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById('username')?.value.trim() || '';
+                    const password = document.getElementById('password')?.value.trim() || '';
+                    const btnSubmit = e.target.querySelector('button[type="submit"]');
         
-                const result = await identifyUserRole(inputVal, passVal);
+                    if (btnSubmit) {
+                        btnSubmit.disabled = true;
+                        btnSubmit.innerText = 'กำลังตรวจสอบ...';
+                    }
         
-                if (result.role && result.redirectUrl) {
-                    saveUserSession(result.role, result.userData);
-                    window.location.href = result.redirectUrl;
-                } else {
-                    alert('❌ ไม่พบข้อมูลผู้ใช้ หรือรหัสผ่านไม่ถูกต้อง');
-                }
-            });
+                    try {
+                        const result = await identifyUserRole(username, password);
         
-            // ฟังก์ชันจัดการ Submit Form ผู้ปกครอง
-            document.getElementById('parentLoginForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const studentId = document.getElementById('parentStudentIdInput').value.trim();
-                const parentPass = document.getElementById('parentPasswordInput').value.trim();
+                        if (result.role && result.redirectUrl) {
+                            saveUserSession(result.role, result.userData);
+                            window.location.href = result.redirectUrl;
+                        } else {
+                            alert('❌ ไม่พบข้อมูลผู้ใช้ หรือรหัสผ่านไม่ถูกต้อง');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล');
+                    } finally {
+                        if (btnSubmit) {
+                            btnSubmit.disabled = false;
+                            btnSubmit.innerText = '➜] เข้าสู่ระบบ (นักเรียน / ครู)';
+                        }
+                    }
+                });
+            }
         
-                const result = await identifyUserRole(studentId, parentPass);
+            // 3. จัดการการล็อกอินผ่านฟอร์ม ผู้ปกครอง
+            const parentForm = document.getElementById('parentLoginForm');
+            if (parentForm) {
+                parentForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const studentId = document.getElementById('parentStudentId')?.value.trim() || '';
+                    const parentPass = document.getElementById('parentPassword')?.value.trim() || '';
         
-                if (result.role === 'parent' && result.redirectUrl) {
-                    saveUserSession(result.role, result.userData);
-                    window.location.href = result.redirectUrl;
-                } else {
-                    alert('❌ รหัสนักเรียน หรือรหัสผ่านผู้ปกครองไม่ถูกต้อง');
-                }
-            });
+                    const result = await identifyUserRole(studentId, parentPass);
+        
+                    if (result.role === 'parent' && result.redirectUrl) {
+                        saveUserSession(result.role, result.userData);
+                        window.location.href = result.redirectUrl;
+                    } else {
+                        alert('❌ รหัสนักเรียน หรือรหัสผ่านผู้ปกครองไม่ถูกต้อง');
+                    }
+                });
+            }
         </script>
 
         function handleAccountLogin(event) {
