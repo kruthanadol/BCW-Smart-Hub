@@ -242,6 +242,92 @@
             background: #f0f9ff;
             color: #0369a1;
         }
+        /* 📱 สไตล์เฉพาะจอมือถือ (ความกว้างไม่เกิน 768px) */
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 80px !important; /* เว้นพื้นที่ให้แถบเมนูล่าง */
+                -webkit-tap-highlight-color: transparent;
+            }
+        
+            /* ซ่อนเนื้อหาแท็บไว้ เพื่อรอแสดงเฉพาะแท็บที่เลือก */
+            .mobile-tab-content {
+                display: none;
+            }
+            .mobile-tab-content.active {
+                display: block;
+                animation: fadeIn 0.2s ease-in-out;
+            }
+        
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        
+            /* แถบเมนูด้านล่างสุด (Bottom Nav Bar) */
+            .mobile-bottom-nav {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 65px;
+                background: rgba(255, 255, 255, 0.96);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-top: 1px solid #e2e8f0;
+                display: flex;
+                align-items: center;
+                justify-content: space-around;
+                z-index: 999;
+                box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+            }
+        
+            .nav-tab-btn {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #64748b;
+                font-size: 11px;
+                font-weight: 700;
+                background: none;
+                border: none;
+                width: 25%;
+                height: 100%;
+                cursor: pointer;
+            }
+        
+            .nav-tab-btn.active {
+                color: #4f46e5;
+            }
+        
+            .nav-tab-btn i {
+                font-size: 18px;
+                margin-bottom: 2px;
+            }
+        
+            .nav-tab-btn.highlight-btn i {
+                width: 38px;
+                height: 38px;
+                background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+                color: #ffffff;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+                box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);
+            }
+        }
+        
+        /* 💻 หน้าจอคอมพิวเตอร์ (กว้างเกิน 769px) ให้แสดงผลตามปกติ 100% */
+        @media (min-width: 769px) {
+            .mobile-bottom-nav {
+                display: none !important;
+            }
+            .mobile-tab-content {
+                display: block !important;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
@@ -281,39 +367,24 @@
     </header>
 
     <!-- Main Content (ปรับขนาดตัวอักษรสำหรับจอมือถือเพิ่ม 2px) -->
-    <main class="max-w-4xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 flex-1 space-y-4 sm:space-y-5">
-
-        <!-- 1. Student Profile Overview -->
-        <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex flex-col sm:flex-row items-center gap-3.5 sm:gap-4 text-center sm:text-left w-full sm:w-auto">
-                <div class="relative shrink-0">
-                    <img id="student-avatar" src="https://via.placeholder.com/100?text=Student" alt="Student Photo" class="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl object-cover ring-4 ring-indigo-50 shadow-sm border border-slate-100">
-                    <span id="badge-status-dot" class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
-                </div>
-                <div class="space-y-1 min-w-0">
-                    <!-- หัวข้อชื่อนักเรียน (ปรับขนาดตัวอักษรบนมือถือเพิ่ม 2px) -->
-                    <h2 id="student-fullname" class="text-lg sm:text-xl font-extrabold text-slate-800 leading-tight">กำลังโหลดข้อมูล...</h2>
-                    <!-- เนื้อหาข้อมูลนักเรียน (ปรับขนาดตัวอักษรบนมือถือเพิ่ม 2px) -->
-                    <p class="text-sm sm:text-xs text-slate-500 font-medium leading-relaxed">
-                        ชั้น: <span id="student-class" class="font-bold text-indigo-600">-</span> &bull; 
-                        เลขที่: <span id="student-no" class="font-bold text-slate-700">-</span> &bull; 
-                        รหัสประจำตัว: <span id="student-id" class="font-bold text-slate-700">-</span>
-                    </p>
-                    <span id="student-academic-status" class="inline-block mt-1 text-xs sm:text-[10px] bg-emerald-100 text-emerald-800 font-bold px-3 py-0.5 rounded-full">
-                        🟢 สถานะ: เชื่อมต่อสำเร็จ
-                    </span>
-                </div>
+        <main class="max-w-4xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 flex-1 space-y-4 sm:space-y-5">
+        
+            <!-- 🟢 กลุ่มที่ 1: หน้าแรก (แสดงโปรไฟล์ + บัตรผ่าน) -->
+            <div id="tab-home" class="mobile-tab-content active space-y-4">
+                <!-- ใส่ 1. Student Profile และ 2. ACTIVE DIGITAL PASS CARD ไว้ตรงนี้ -->
             </div>
-            
-            <div class="bg-indigo-50/80 p-3.5 sm:p-3 rounded-2xl border border-indigo-100 w-full sm:w-auto text-center sm:text-right shrink-0">
-                <span class="text-xs sm:text-[10px] text-indigo-900 block font-bold">คะแนนพฤติกรรมคงเหลือ</span>
-                <div class="flex sm:block justify-center items-baseline gap-1 mt-0.5">
-                    <span id="student-behavior-score" class="text-3xl sm:text-3xl font-black text-indigo-700">--</span>
-                    <span class="text-sm sm:text-xs text-slate-500 font-semibold">/ 100 คะแนน</span>
-                </div>
+        
+            <!-- 🟢 กลุ่มที่ 2: ตารางเรียน (แสดงตารางเรียน + เวลาเรียน มส. + ครูที่ปรึกษา) -->
+            <div id="tab-schedule" class="mobile-tab-content space-y-4">
+                <!-- ใส่ 3. ตารางเรียน, 4. ครูที่ปรึกษา, และ 5. เวลาเรียนสะสม (มส.) ไว้ตรงนี้ -->
             </div>
-        </div>
-
+        
+            <!-- 🟢 กลุ่มที่ 3: ประวัติ/กิจกรรม (แสดงคะแนนพฤติกรรม + การบ้าน + สุขภาพ) -->
+            <div id="tab-activity" class="mobile-tab-content space-y-4">
+                <!-- ใส่ 6. ประวัติพฤติกรรม และ 7. การบ้าน/การรักษา ไว้ตรงนี้ -->
+            </div>
+        
+        </main>
         <!-- 2. ACTIVE DIGITAL PASS CARD (แสดงบัตรอนุมัติและ QR Code) -->
         <div id="activePassCard" class="bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-md border border-indigo-700 space-y-3 hidden">
             <div class="flex justify-between items-center border-b border-indigo-700/60 pb-2">
@@ -1006,6 +1077,49 @@
                 sessionStorage.clear();
                 window.location.href = '../../login.html';
             });
+        }
+    </script>
+    <!-- 📱 แถบเมนูด้านล่างสำหรับโทรศัพท์มือถือ -->
+    <nav class="mobile-bottom-nav">
+        <button type="button" class="nav-tab-btn active" onclick="switchMobileTab('tab-home', this)">
+            <i class="fa-solid fa-house"></i>
+            <span>หน้าแรก</span>
+        </button>
+        
+        <button type="button" class="nav-tab-btn" onclick="switchMobileTab('tab-schedule', this)">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>ตารางเรียน</span>
+        </button>
+        
+        <button type="button" class="nav-tab-btn highlight-btn" onclick="openGatepassModal()">
+            <i class="fa-solid fa-door-open"></i>
+            <span>ขอออก</span>
+        </button>
+        
+        <button type="button" class="nav-tab-btn" onclick="switchMobileTab('tab-activity', this)">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>พฤติกรรม</span>
+        </button>
+    </nav>
+
+    <!-- สคริปต์สลับหน้าจอฝั่งมือถือ -->
+    <script>
+        function switchMobileTab(tabId, btnElement) {
+            if (window.innerWidth > 768) return;
+
+            document.querySelectorAll('.mobile-tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) targetTab.classList.add('active');
+
+            document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (btnElement) btnElement.classList.add('active');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
 </body>
