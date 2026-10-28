@@ -206,9 +206,9 @@
         <div id="dynamicSubHeader" class="dynamic-subheader bg-indigo-950/90 border-t border-indigo-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-xs">
             <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 text-xs sm:text-sm truncate">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                <span>เข้าเรียนเฉลี่ยรวม: <strong id="subHeaderAttendance" class="text-amber-300">0%</strong></span>
+                <span>เช็คชื่อสอนวันนี้: <strong id="subHeaderAttendance" class="text-amber-300">0%</strong> <span id="subHeaderClassCount" class="text-[10px] text-indigo-200 font-normal hidden sm:inline">(0/0 คาบ)</span></span>
             </span>
-
+        
             <div class="flex items-center gap-1.5 text-amber-200 font-bold text-xs shrink-0">
                 <i class="fa-regular fa-clock text-amber-400"></i>
                 <span id="thaiDateStr" class="hidden sm:inline">กำลังโหลด...</span>
@@ -882,6 +882,40 @@
         let globalProcessedData = null;
         let activeRecordForRemediation = null;
 
+        // ฟังก์ชันคำนวณเปอร์เซนต์การเช็คชื่อของครูประจำวันแบบ Real-time
+        async function updateDailyTeacherCheckProgress() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            
+            try {
+                // ดึงข้อมูลการเข้าสอนของครูทั้งหมดในวันนี้
+                const { data: logs, error } = await db.from('teacher_attendance')
+                    .select('status')
+                    .eq('date', todayStr);
+        
+                if (!error && logs && logs.length > 0) {
+                    const totalClasses = logs.length;
+                    const checkedClasses = logs.filter(l => l.status === 'checked').length;
+                    const percent = Math.round((checkedClasses / totalClasses) * 100);
+        
+                    const percentElem = document.getElementById('subHeaderAttendance');
+                    const countElem = document.getElementById('subHeaderClassCount');
+        
+                    if (percentElem) percentElem.innerText = `${percent}%`;
+                    if (countElem) countElem.innerText = `(${checkedClasses}/${totalClasses} คาบ)`;
+                } else {
+                    const percentElem = document.getElementById('subHeaderAttendance');
+                    if (percentElem) percentElem.innerText = `0%`;
+                }
+            } catch (e) {
+                console.error('Error fetching daily check progress:', e);
+            }
+        }
+        
+        // เรียกใช้งานเมื่อโหลดหน้าเว็บ
+        document.addEventListener('DOMContentLoaded', async () => {
+            await updateDailyTeacherCheckProgress();
+        });
+        
         function updateThaiClock() {
             const now = new Date();
             const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
