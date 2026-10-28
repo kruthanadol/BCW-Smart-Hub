@@ -38,8 +38,6 @@
             position: absolute; top: 110%; z-index: 60; white-space: nowrap;
         }
         .has-tooltip:hover .tooltip-box { visibility: visible; opacity: 1; }
-        .tooltip-align-left { left: 0; }
-        .tooltip-align-right { right: 0; }
 
         .table-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .table-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -66,7 +64,6 @@
             body { padding-bottom: 75px !important; -webkit-tap-highlight-color: transparent; }
             main section, main > div { scroll-margin-top: 120px; }
 
-            /* Sticky Dynamic Sub-Header เฉพาะมือถือ */
             .dynamic-subheader {
                 transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
                 max-height: 48px;
@@ -82,7 +79,6 @@
                 border-bottom: none !important;
             }
 
-            /* Bottom Navigation Bar สำหรับมือถือ */
             .discipline-bottom-nav {
                 position: fixed;
                 bottom: 0; left: 0; right: 0;
@@ -130,7 +126,7 @@
             }
         }
 
-        /* 🧪 FROSTED LIQUID GLASS DRAWER (รองรับนิ้วปัด Swipe to Close) */
+        /* 🧪 FROSTED LIQUID GLASS DRAWER */
         .drawer-overlay {
             position: fixed;
             inset: 0;
@@ -180,13 +176,10 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Header Zone (มาตรฐาน BCW SMART HUB ปรับสำหรับมือถือ) -->
+    <!-- Header Zone -->
     <header class="bg-gradient-to-r from-[#421a04] via-[#5c2406] to-[#2e1203] text-white shadow-md sticky top-0 z-40 border-b-2 border-amber-600 no-print">
-        
-        <!-- แถบบน: โลโก้, ชื่อระบบปรับเรียงบรรทัดใหม่ และปุ่มกดฝั่งขวา -->
         <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex justify-between items-center gap-2">
             
-            <!-- ฝั่งซ้าย: โลโก้ + ข้อความระบบ 3 แถบ -->
             <div class="flex items-center gap-2.5 min-w-0 flex-1">
                 <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-amber-300/50">
                     <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 sm:w-11 sm:h-11 object-contain" onerror="this.src='https://via.placeholder.com/40'">
@@ -206,7 +199,6 @@
                 </div>
             </div>
 
-            <!-- ฝั่งขวาบน: ปุ่มเปิด Side Drawer, หน้าหลัก & ปุ่มออกจากระบบ -->
             <div class="flex items-center gap-1.5 shrink-0">
                 <button onclick="toggleDisciplineDrawer()" class="relative bg-amber-900/80 hover:bg-amber-800 text-amber-100 p-2 rounded-xl text-xs font-bold border border-amber-600 transition flex items-center gap-1 cursor-pointer active:scale-95">
                     <i class="fa-solid fa-bars-staggered text-amber-400"></i>
@@ -224,7 +216,6 @@
             </div>
         </div>
 
-        <!-- Sticky Dynamic Sub-Header แถบล่างแสดงสถานะ Real-time -->
         <div id="dynamicSubHeader" class="dynamic-subheader bg-[#2e1203]/90 border-t border-amber-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-xs">
             <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 text-xs sm:text-sm truncate">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
@@ -239,10 +230,9 @@
         </div>
     </header>
 
-    <!-- 🧪 SIDE DRAWER MENU (สไลด์ข้างแบบ Liquid Glass + ใช้นิ้วปัดปิดได้) -->
+    <!-- Side Drawer Menu -->
     <div id="drawerOverlay" class="drawer-overlay" onclick="toggleDisciplineDrawer()">
         <div id="drawerContent" class="drawer-content-glass p-4 space-y-4" onclick="event.stopPropagation()">
-            <!-- Indicator สำหรับลากปัดปิด -->
             <div class="w-12 h-1.5 bg-slate-300/80 rounded-full mx-auto sm:hidden mb-1"></div>
 
             <div class="flex justify-between items-center border-b border-amber-900/10 pb-3">
@@ -267,7 +257,7 @@
                     <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
                 </a>
 
-                <button onclick="openGatepassFromDrawer()" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between">
+                <button onclick="openGatepassModalUI()" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
                     <span class="flex items-center gap-2.5">
                         <span class="w-7 h-7 rounded-lg bg-amber-600/10 text-amber-700 flex items-center justify-center text-xs"><i class="fa-solid fa-door-open"></i></span>
                         <span>ขอออกนอกสถานศึกษา</span>
@@ -317,44 +307,44 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 flex-1 space-y-4 sm:space-y-6">
         
-        <!-- 1. Key Metrics Cards (4 การ์ดหลัก) -->
+        <!-- 1. Key Metrics Cards (4 การ์ดหลัก - ปรับให้คลิกดู Pop-up ได้สมบูรณ์) -->
         <section id="section-kpis" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-            <div class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border border-slate-200 flex items-center gap-2.5 relative has-tooltip cursor-pointer">
+            <div onclick="openKpiModal('risk')" class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border-2 border-slate-200 hover:border-rose-400 transition flex items-center gap-2.5 relative cursor-pointer active:scale-98">
                 <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-base sm:text-xl font-bold shrink-0">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">เสี่ยงวิกฤต (&lt;80)</p>
+                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">เสี่ยงวิกฤต (&lt;80) 🔍</p>
                     <h3 id="kpiRiskCount" class="text-base sm:text-xl font-black text-rose-600">0 คน</h3>
                 </div>
             </div>
 
-            <div class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border border-slate-200 flex items-center gap-2.5 relative has-tooltip cursor-pointer">
+            <div onclick="openKpiModal('gatepass')" class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border-2 border-slate-200 hover:border-amber-400 transition flex items-center gap-2.5 relative cursor-pointer active:scale-98">
                 <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-base sm:text-xl font-bold shrink-0">
                     <i class="fa-solid fa-door-open"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">ขอออกนอก รร.</p>
+                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">ขอออกนอก รร. 🔍</p>
                     <h3 id="kpiGatePassCount" class="text-base sm:text-xl font-black text-amber-600">0 คน</h3>
                 </div>
             </div>
 
-            <div class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border border-slate-200 flex items-center gap-2.5 relative has-tooltip cursor-pointer">
+            <div onclick="openKpiModal('infirmary')" class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border-2 border-slate-200 hover:border-sky-400 transition flex items-center gap-2.5 relative cursor-pointer active:scale-98">
                 <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center text-base sm:text-xl font-bold shrink-0">
                     <i class="fa-solid fa-bed-pulse"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">ห้องพยาบาล</p>
+                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">ห้องพยาบาล 🔍</p>
                     <h3 id="kpiInfirmaryCount" class="text-base sm:text-xl font-black text-sky-600">0 คน</h3>
                 </div>
             </div>
 
-            <div class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border border-slate-200 flex items-center gap-2.5 relative has-tooltip cursor-pointer">
+            <div onclick="openKpiModal('truancy')" class="bg-white p-3 rounded-xl sm:rounded-2xl shadow-xs border-2 border-slate-200 hover:border-purple-400 transition flex items-center gap-2.5 relative cursor-pointer active:scale-98">
                 <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-base sm:text-xl font-bold shrink-0">
                     <i class="fa-solid fa-user-ninja"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">หนีเรียนวันนี้</p>
+                    <p class="text-[10px] sm:text-xs font-bold text-slate-500 truncate">หนีเรียนวันนี้ 🔍</p>
                     <h3 id="kpiTruancyCount" class="text-base sm:text-xl font-black text-purple-600">0 เคส</h3>
                 </div>
             </div>
@@ -371,7 +361,6 @@
                     <p class="text-[11px] text-slate-500">จำแนกตามระดับชั้น ม.ต้น - ม.ปลาย และรายห้องเรียนทุกห้อง</p>
                 </div>
 
-                <!-- Toggle Switcher (เข้าแถว VS มาเรียนประจำวัน) -->
                 <div class="flex bg-slate-100 p-1 rounded-xl text-[11px] font-extrabold text-slate-600 border border-slate-200 self-start sm:self-auto">
                     <button type="button" id="btnModeAssembly" onclick="switchReportMode('assembly')" class="px-3 py-1.5 rounded-lg bg-sky-700 text-white shadow-xs transition flex items-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-flag"></i> การเข้าแถว
@@ -382,7 +371,6 @@
                 </div>
             </div>
 
-            <!-- การ์ด ม.ต้น & ม.ปลาย -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <div class="bg-slate-50 p-3.5 rounded-xl border border-sky-200 space-y-2.5">
                     <div class="flex justify-between items-center border-b border-slate-200 pb-2">
@@ -417,7 +405,6 @@
                 </div>
             </div>
 
-            <!-- ตารางแจงรายห้อง -->
             <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
                 <div class="max-h-[380px] overflow-y-auto table-scroll">
                     <table class="w-full text-xs text-left min-w-[550px]">
@@ -770,7 +757,7 @@
 
     </main>
 
-    <!-- OFF-CANVAS SLIDE-OVER DRAWER -->
+    <!-- OFF-CANVAS SLIDE-OVER DRAWER (สำหรับแสดงรายละเอียดรายห้อง) -->
     <div id="roomDetailDrawer" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 hidden transition-opacity">
         <div class="fixed inset-y-0 right-0 max-w-full flex pl-6">
             <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col">
@@ -800,7 +787,7 @@
                 </div>
 
                 <div class="p-3 bg-slate-50 border-t text-right">
-                    <button type="button" onclick="closeRoomDrawer()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs">
+                    <button type="button" onclick="closeRoomDrawer()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs cursor-pointer">
                         ปิดหน้าต่าง
                     </button>
                 </div>
@@ -808,8 +795,33 @@
         </div>
     </div>
 
-    <!-- Gatepass Modal -->
-    <div id="gatepassModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 no-print">
+    <!-- Modal: แสดง Pop-up รายชื่อนักเรียนจาก KPI Cards ทั้ง 4 กล่อง -->
+    <div id="kpiListModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-[1050] p-3 sm:p-6 no-print">
+        <div class="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border-2 border-amber-300 space-y-3.5 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-2.5 shrink-0">
+                <h3 id="modalKpiTitle" class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">📋 รายชื่อนักเรียน</h3>
+                <button onclick="closeKpiModal()" class="text-slate-400 hover:text-slate-600 font-extrabold text-xl cursor-pointer">✕</button>
+            </div>
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
+                    <thead id="modalKpiHeader" class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300 sticky top-0">
+                        <tr>
+                            <th class="py-2 px-1.5 sm:px-3">ชื่อ - นามสกุล</th>
+                            <th class="py-2 px-1.5 sm:px-3 text-center">ชั้นเรียน</th>
+                            <th class="py-2 px-1.5 sm:px-3">รายละเอียด / หมายเหตุ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalKpiBody" class="divide-y divide-slate-200 font-medium"></tbody>
+                </table>
+            </div>
+            <div class="pt-2 border-t border-slate-200 text-right shrink-0">
+                <button onclick="closeKpiModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-xl text-xs cursor-pointer">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gatepass Modal (ปรับ z-index เป็น z-[1050] ไม่ถูกบัง) -->
+    <div id="gatepassModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1050] hidden flex items-center justify-center p-3 no-print">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-amber-200">
             <div class="bg-[#5c2406] px-5 py-3.5 text-white flex justify-between items-center">
                 <h3 class="font-bold text-xs sm:text-sm flex items-center gap-2"><i class="fa-solid fa-door-open text-amber-300"></i> ขออนุญาตออกนอกบริเวณโรงเรียน</h3>
@@ -820,7 +832,7 @@
                     <label class="block font-bold text-slate-700 mb-1">รหัสนักเรียน <span class="text-rose-500">*</span></label>
                     <div class="flex gap-2">
                         <input type="text" id="gateStudentId" placeholder="กรอกรหัสนักเรียน เช่น 12345" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900">
-                        <button type="button" id="btnSearchGateStudent" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 rounded-xl shrink-0">ค้นหา</button>
+                        <button type="button" id="btnSearchGateStudent" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 rounded-xl shrink-0 cursor-pointer">ค้นหา</button>
                     </div>
                 </div>
                 <div id="modalStudentInfoBox" class="p-3 bg-amber-50 rounded-xl border border-amber-200 hidden">
@@ -838,8 +850,8 @@
                 <div><label class="block font-bold text-slate-700 mb-1">ผู้อนุมัติ</label><input type="text" id="gateApprovedBy" value="ครูฝ่ายปกครอง (ห้องกิจการนักเรียน)" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold"></div>
                 
                 <div class="flex justify-end gap-2 pt-3 border-t">
-                    <button type="button" id="btnCancelGatepass" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl">ยกเลิก</button>
-                    <button type="submit" id="btnSubmitGatepass" disabled class="px-5 py-2 bg-amber-600 text-white font-bold rounded-xl opacity-50 cursor-not-allowed shadow">บันทึกและซิงก์คาบเรียน</button>
+                    <button type="button" id="btnCancelGatepass" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl cursor-pointer">ยกเลิก</button>
+                    <button type="submit" id="btnSubmitGatepass" disabled class="px-5 py-2 bg-amber-600 text-white font-bold rounded-xl opacity-50 cursor-not-allowed shadow cursor-pointer">บันทึกและซิงก์คาบเรียน</button>
                 </div>
             </form>
         </div>
@@ -860,7 +872,7 @@
             <i class="fa-solid fa-flag"></i>
             <span>เคารพธงชาติ</span>
         </button>
-        <button type="button" class="discipline-nav-btn highlight-btn" onclick="openGatepassFromDrawer()">
+        <button type="button" class="discipline-nav-btn highlight-btn" onclick="openGatepassModalUI()">
             <i class="fa-solid fa-door-open"></i>
             <span>ขอออกนอก</span>
         </button>
@@ -883,8 +895,11 @@
             }
         }
 
-        function openGatepassFromDrawer() {
-            toggleDisciplineDrawer();
+        function openGatepassModalUI() {
+            const overlay = document.getElementById('drawerOverlay');
+            if (overlay && overlay.classList.contains('active')) {
+                toggleDisciplineDrawer();
+            }
             const modal = document.getElementById('gatepassModal');
             if (modal) {
                 modal.classList.remove('hidden');
@@ -904,7 +919,7 @@
             }
         }
 
-        // 👈👉 SWIPE TO CLOSE GESTURE (ใช้นิ้วปัดขวาเพื่อสไลด์ปิดเมนู)
+        // SWIPE TO CLOSE GESTURE
         document.addEventListener('DOMContentLoaded', () => {
             const drawer = document.getElementById('drawerContent');
             if (!drawer) return;
@@ -987,6 +1002,96 @@
             const clockElem = document.getElementById('liveClock');
             if (clockElem) clockElem.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
         }
+
+        window.openKpiModal = function(type) {
+            const modal = document.getElementById('kpiListModal');
+            const title = document.getElementById('modalKpiTitle');
+            const tbody = document.getElementById('modalKpiBody');
+
+            tbody.innerHTML = '';
+
+            if (type === 'risk') {
+                title.innerText = '📋 รายชื่อนักเรียนกลุ่มเสี่ยงวิกฤต (< 80 คะแนน)';
+                const riskStudents = appData.students.filter(s => calculateStudentScore(getStudentFullName(s), appData.behaviorLogs) < 80);
+                if (riskStudents.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400 font-bold">ไม่พบรายชื่อนักเรียนกลุ่มเสี่ยงวิกฤต</td></tr>`;
+                } else {
+                    riskStudents.forEach(s => {
+                        const fullName = getStudentFullName(s);
+                        const score = calculateStudentScore(fullName, appData.behaviorLogs);
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 border-b border-slate-200";
+                        tr.innerHTML = `
+                            <td class="py-2 px-2 font-bold text-slate-800">${fullName}</td>
+                            <td class="py-2 px-2 text-center font-bold text-slate-600">${s.classroom || '-'}</td>
+                            <td class="py-2 px-2 text-rose-600 font-bold">คงเหลือ ${score} คะแนน (ต้องซ่อมเพิ่ม ${80 - score} คะแนน)</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } else if (type === 'gatepass') {
+                title.innerText = '📋 รายชื่อนักเรียนที่ขอออกนอกสถานศึกษาประจำวัน';
+                if (appData.gatePassLogs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400 font-bold">ไม่มีรายการขอออกนอกสถานศึกษาในวันนี้</td></tr>`;
+                } else {
+                    appData.gatePassLogs.forEach(g => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 border-b border-slate-200";
+                        tr.innerHTML = `
+                            <td class="py-2 px-2 font-bold text-slate-800">${g.student_name || g.student_id}</td>
+                            <td class="py-2 px-2 text-center font-bold text-slate-600">${g.exit_time || '-'} - ${g.return_time || '-'}</td>
+                            <td class="py-2 px-2 text-slate-700 font-semibold">${g.reason || 'ขอออกนอกโรงเรียน'} (ผู้อนุมัติ: ${g.approved_by || '-'})</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } else if (type === 'infirmary') {
+                title.innerText = '📋 รายชื่อนักเรียนที่เข้าใช้ห้องพยาบาลประจำวัน';
+                const todayStr = new Date().toISOString().split('T')[0];
+                const activeClinic = appData.clinicRecords.filter(c => (c.created_at || '').startsWith(todayStr));
+                if (activeClinic.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400 font-bold">ไม่มีประวัติเข้าใช้ห้องพยาบาลในวันนี้</td></tr>`;
+                } else {
+                    activeClinic.forEach(c => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 border-b border-slate-200";
+                        tr.innerHTML = `
+                            <td class="py-2 px-2 font-bold text-slate-800">${c.student_name || c.student_id}</td>
+                            <td class="py-2 px-2 text-center font-bold text-slate-600">${c.classroom || '-'}</td>
+                            <td class="py-2 px-2 text-sky-700 font-bold">${c.symptom || 'ป่วย/นอนพักผ่อน'}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } else if (type === 'truancy') {
+                title.innerText = '📋 รายชื่อนักเรียนที่มีประวัติหนีเรียนประจำวัน';
+                if (appData.attendanceLogs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400 font-bold">ไม่พบประวัติการหนีเรียนในวันนี้</td></tr>`;
+                } else {
+                    appData.attendanceLogs.forEach(a => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 border-b border-slate-200";
+                        tr.innerHTML = `
+                            <td class="py-2 px-2 font-bold text-slate-800">${a.student_name || a.student_id}</td>
+                            <td class="py-2 px-2 text-center font-bold text-slate-600">${a.classroom || '-'}</td>
+                            <td class="py-2 px-2 text-purple-700 font-bold">คาบที่ ${a.period || '-'} (${a.subject_name || 'ขาดเช็คชื่อ'})</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeKpiModal = function() {
+            const modal = document.getElementById('kpiListModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        };
 
         window.switchReportMode = function(mode) {
             currentReportMode = mode;
