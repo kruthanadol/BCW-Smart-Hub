@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>BCW Parent Connect - ระบบสำหรับผู้ปกครอง</title>
+    <title>BCW Parent Connect - Notification First</title>
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,28 +12,64 @@
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; overflow-x: hidden; }
 
-        /* 🔒 ระยะเว้นขอบกัน Header บังเนื้อหาเวลา Scroll ไปยังส่วนต่างๆ */
-        main section, main > div {
-            scroll-margin-top: 85px;
+        /* 🔒 ระยะเว้นขอบกัน Header บังเนื้อหาเวลา Scroll */
+        main section, main > div { scroll-margin-top: 110px; }
+
+        /* 📱 Sticky Dynamic Sub-Header (หด-ขยายเมื่อ Scroll) */
+        .dynamic-subheader {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 48px;
+            opacity: 1;
+            overflow: hidden;
         }
 
-        /* 📱 สไตล์เฉพาะจอมือถือ (ไม่กระทบคอมพิวเตอร์ Desktop) */
-        @media (max-width: 768px) {
-            body {
-                padding-bottom: 75px !important;
-                -webkit-tap-highlight-color: transparent;
-            }
+        .dynamic-subheader.is-scrolled {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            border-bottom: none !important;
+        }
 
-            /* 📱 แถบ Bottom Navigation Bar ฝั่งผู้ปกครอง */
+        /* 🚪 Side Drawer Menu */
+        .drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .drawer-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .drawer-content {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 290px;
+            height: 100%;
+            background: #ffffff;
+            z-index: 1001;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+            overflow-y: auto;
+        }
+
+        .drawer-overlay.active .drawer-content { transform: translateX(-320px); }
+
+        /* 📱 สไตล์เฉพาะจอมือถือ Bottom Navigation Bar */
+        @media (max-width: 768px) {
+            body { padding-bottom: 75px !important; -webkit-tap-highlight-color: transparent; }
+
             .parent-bottom-nav {
                 position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
+                bottom: 0; left: 0; right: 0;
                 height: 62px;
                 background: rgba(255, 255, 255, 0.96);
                 backdrop-filter: blur(14px);
-                -webkit-backdrop-filter: blur(14px);
                 border-top: 1px solid #e2e8f0;
                 display: flex;
                 align-items: center;
@@ -44,28 +80,16 @@
             }
 
             .parent-nav-btn {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                color: #64748b;
-                font-size: 10px;
-                font-weight: 700;
-                background: transparent;
-                border: 1.5px solid transparent;
-                padding: 3px 10px;
-                border-radius: 14px;
-                cursor: pointer;
+                position: relative;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                color: #64748b; font-size: 10px; font-weight: 700;
+                background: transparent; border: 1.5px solid transparent;
+                padding: 3px 10px; border-radius: 14px; cursor: pointer;
                 transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             }
 
-            .parent-nav-btn i {
-                font-size: 16px;
-                margin-bottom: 1px;
-                transition: all 0.2s;
-            }
+            .parent-nav-btn i { font-size: 16px; margin-bottom: 1px; }
 
-            /* ✨ สถานะ Active: ตัวอักษร Indigo + กรอบทองพรีเมียมกระชับพอดีคำ */
             .parent-nav-btn.active {
                 color: #3730a3 !important;
                 background: #eef2ff !important;
@@ -74,21 +98,13 @@
                 box-shadow: 0 4px 10px -2px rgba(55, 48, 163, 0.2);
             }
 
-            .parent-nav-btn.active i {
-                color: #3730a3;
-            }
-
-            /* ปุ่มยื่นใบลาตรงกลาง เด่นแบบกระชับ */
             .parent-nav-btn.highlight-btn i {
-                width: 34px;
-                height: 34px;
+                width: 34px; height: 34px;
                 background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
                 color: #ffffff !important;
                 border: 1px solid #fef3c7;
                 border-radius: 12px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                display: flex; align-items: center; justify-content: center;
                 font-size: 15px;
                 box-shadow: 0 3px 10px rgba(245, 158, 11, 0.35);
             }
@@ -101,12 +117,9 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <!-- 1. Header มาตรฐาน BCW SMART HUB (ปรับให้บางกระชับบนมือถือ) -->
+    <!-- 1. HEADER & STICKY DYNAMIC SUB-HEADER -->
     <header class="bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md sticky top-0 z-50 border-b-2 border-indigo-600">
-        
-        <!-- แถบบน: โลโก้, BCW SMART HUB, BCW Parent Connect และ ปุ่มออกจากระบบ -->
         <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex justify-between items-center gap-2">
-            
             <div class="flex items-center gap-2.5 min-w-0">
                 <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-indigo-300/50">
                     <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 sm:w-11 sm:h-11 object-contain" onerror="this.src='https://via.placeholder.com/40'">
@@ -116,37 +129,93 @@
                         BCW SMART HUB
                     </h1>
                     <div class="text-[11px] sm:text-sm font-extrabold text-indigo-100 leading-tight truncate mt-0.5">
-                        BCW Parent Connect &bull; ระบบสำหรับผู้ปกครอง
+                        BCW Parent Connect
                     </div>
                 </div>
             </div>
 
             <div class="shrink-0 flex items-center gap-1.5">
+                <!-- 🔴 ปุ่ม Side Drawer พร้อมจุดแดงแจ้งเตือนข้อความใหม่ -->
+                <button onclick="toggleSideDrawer()" class="relative bg-indigo-800/80 hover:bg-indigo-700 text-indigo-100 p-2 rounded-xl text-xs font-bold border border-indigo-600 transition flex items-center gap-1 cursor-pointer">
+                    <i class="fa-solid fa-bars-staggered"></i>
+                    <span class="hidden sm:inline">เมนูเพิ่มเติม</span>
+                    <!-- จุดแดงแจ้งเตือนบนปุ่มเมนู -->
+                    <span id="drawerBadgeDot" class="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-indigo-950 animate-ping"></span>
+                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-indigo-950"></span>
+                </button>
+                
                 <button id="btnLogout" title="ออกจากระบบ" class="w-8 h-8 sm:w-9 sm:h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-500 active:scale-95">
                     <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
                 </button>
             </div>
         </div>
 
-        <!-- แถวล่าง: แสดงสถานะผู้ปกครองออนไลน์ + วันที่และเวลา Real-time -->
-        <div class="bg-indigo-950/90 border-t border-indigo-800/60 px-3 sm:px-5 py-1 flex justify-between items-center text-xs">
-            <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 text-[10px] sm:text-xs">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>🟢 ผู้ปกครองออนไลน์</span>
-            </span>
+        <!-- STICKY DYNAMIC SUB-HEADER -->
+        <div id="dynamicSubHeader" class="dynamic-subheader bg-indigo-950/90 border-t border-indigo-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-xs">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                <span class="font-bold text-indigo-100 truncate">นักเรียน: <strong id="subHeaderStudentName" class="text-amber-300">กำลังโหลด...</strong></span>
+            </div>
 
-            <div class="flex items-center gap-1.5 text-amber-200 font-bold text-[10px] sm:text-xs">
+            <div class="flex items-center gap-1.5 text-amber-200 font-bold text-[10px] sm:text-xs shrink-0">
                 <i class="fa-regular fa-clock text-amber-400"></i>
                 <span id="header-date-display">กำลังโหลด...</span>
                 <span id="header-clock-display" class="bg-indigo-900 px-1.5 py-0.5 rounded border border-indigo-700 font-mono text-white">00:00:00</span>
             </div>
         </div>
-
     </header>
 
+    <!-- 2. SIDE DRAWER MENU (สำหรับข้อมูลเพิ่มเติม พร้อม Badge สีแดงเตือน) -->
+    <div id="drawerOverlay" class="drawer-overlay" onclick="toggleSideDrawer()">
+        <div class="drawer-content p-4 space-y-4" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-folder-open text-indigo-600"></i> เมนูและรายงานย่อย
+                </h3>
+                <button onclick="toggleSideDrawer()" class="text-slate-400 hover:text-slate-600 text-sm p-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-2 text-xs font-bold text-slate-700">
+                <button onclick="scrollToParentSection('section-clinic'); toggleSideDrawer();" class="w-full text-left p-2.5 rounded-xl bg-slate-50 hover:bg-rose-50 hover:text-rose-900 flex items-center justify-between border border-slate-200">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-notes-medical text-rose-500"></i> ประวัติห้องพยาบาล</span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+                </button>
+                <button onclick="scrollToParentSection('section-leave-history'); toggleSideDrawer();" class="w-full text-left p-2.5 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-900 flex items-center justify-between border border-slate-200">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-amber-500"></i> ประวัติการยื่นใบลา</span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+                </button>
+                <button onclick="scrollToParentSection('section-location'); toggleSideDrawer();" class="w-full text-left p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-900 flex items-center justify-between border border-slate-200">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-location-dot text-emerald-600"></i> ตำแหน่งสแกนใน รรร.</span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+                </button>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 text-[10px] text-slate-400 text-center">
+                BCW Smart Ecosystem v6.0
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto w-full px-3 sm:px-4 py-3 sm:py-4 flex-1 space-y-3 sm:space-y-4">
+    <main class="max-w-7xl mx-auto w-full px-3 sm:px-4 py-3 sm:py-4 flex-1 space-y-3.5 my-auto">
         
+        <!-- 🔔 1. กล่องแจ้งเตือนด่วนสุดจากโรงเรียน (จัดไว้บนสุดเพื่อให้ผู้ปกครองไม่พลาด) -->
+        <section id="section-notifications" class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl shadow-sm border-2 border-amber-300 p-3 sm:p-4 space-y-2">
+            <div class="flex justify-between items-center border-b border-amber-200/80 pb-2">
+                <h3 class="text-xs sm:text-sm font-black text-amber-950 flex items-center gap-1.5">
+                    <span class="relative flex h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                    </span>
+                    <i class="fa-solid fa-bell text-amber-600"></i> ข้อความแจ้งเตือนด่วนจากทางโรงเรียน
+                </h3>
+                <span class="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold shadow-xs">อัปเดตล่าสุด</span>
+            </div>
+            <div id="notificationList" class="space-y-1.5">
+                <p class="text-xs text-slate-500 text-center py-2 font-medium">ยังไม่มีข้อความแจ้งเตือนใหม่ในวันนี้</p>
+            </div>
+        </section>
+
         <!-- 2. เลือกชื่อนักเรียน -->
         <section id="section-student-select" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-2.5 sm:p-3.5 flex justify-between items-center gap-2">
             <span class="text-xs sm:text-sm font-extrabold text-slate-700 flex items-center gap-1.5 shrink-0">
@@ -162,17 +231,12 @@
         <!-- 3. Profile & Advisor -->
         <section id="section-profile" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div class="flex flex-row items-center gap-3 text-left w-full sm:w-auto justify-between sm:justify-start">
-                
                 <div class="flex items-center gap-2 shrink-0">
                     <div class="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0">
                         <img id="student-avatar" src="https://via.placeholder.com/100?text=Student" alt="Student Photo" class="w-full h-full rounded-2xl object-cover ring-2 ring-indigo-100 shadow-sm border border-slate-200">
                         <span id="badge-status-dot" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
                     </div>
-
-                    <div class="text-slate-300 text-xs shrink-0">
-                        <i class="fa-solid fa-link"></i>
-                    </div>
-
+                    <div class="text-slate-300 text-xs shrink-0"><i class="fa-solid fa-link"></i></div>
                     <div class="flex flex-col items-center shrink-0">
                         <div class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-indigo-400 bg-indigo-50 shadow-sm shrink-0">
                             <img id="advisor-avatar" src="https://cdn-icons-png.flaticon.com/512/1995/1995531.png" alt="Advisor Photo" class="w-full h-full object-cover" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1995/1995531.png'">
@@ -200,7 +264,20 @@
             </div>
         </section>
 
-        <!-- 6. Smart Gate Live Status -->
+        <!-- 🚨 4. ประวัติพฤติกรรมและการตัดคะแนน (เน้นไว้อยู่หน้าหลักชัดเจน) -->
+        <section id="section-behavior" class="bg-white rounded-2xl shadow-sm border-2 border-indigo-200 p-3 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-cat text-indigo-600"></i> ประวัติการเข้าเรียนและแจ้งเตือนพฤติกรรม
+                </h3>
+                <span class="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full font-bold">บันทึกเรียลไทม์</span>
+            </div>
+            <div id="behaviorLogsContainer" class="space-y-1.5">
+                <div class="text-center py-2 text-xs text-slate-400">ยังไม่มีประวัติการบันทึกพฤติกรรมผิดปกติ</div>
+            </div>
+        </section>
+
+        <!-- 5. Smart Gate Live Status -->
         <section id="section-gate" class="bg-emerald-600 text-white rounded-2xl p-3 sm:p-5 shadow-sm transition-all duration-300">
             <div class="flex items-start justify-between">
                 <div class="flex items-center gap-2.5">
@@ -220,7 +297,7 @@
             </div>
         </section>
 
-        <!-- 4. การ์ดสรุปยอดการมาเรียน 4 กล่อง -->
+        <!-- 6. การ์ดสรุปยอดการมาเรียน 4 กล่อง -->
         <section id="section-attendance-stats" class="bg-white rounded-2xl p-2 sm:p-3 border border-slate-200 shadow-sm grid grid-cols-4 gap-1.5 sm:gap-3">
             <div class="bg-emerald-50 border border-emerald-200 p-1.5 sm:p-3 rounded-xl flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-3 text-center sm:text-left">
                 <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs sm:text-lg font-bold shrink-0"><i class="fa-solid fa-circle-check"></i></div>
@@ -255,7 +332,7 @@
             </div>
         </section>
 
-        <!-- 5. ปุ่มเมนูด่วน ยื่นใบลาออนไลน์ -->
+        <!-- 7. ปุ่มเมนูด่วน ยื่นใบลาออนไลน์ -->
         <section id="section-leave-banner" class="bg-gradient-to-r from-amber-500 via-amber-600 to-indigo-700 text-white rounded-2xl p-3 sm:p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2.5">
             <div class="flex items-center gap-2.5 text-center sm:text-left">
                 <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0 shadow-inner">📝</div>
@@ -269,38 +346,7 @@
             </button>
         </section>
 
-        <!-- 7. ความเสี่ยงผลการเรียน (มส.) -->
-        <section id="section-academic-risk" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> สถานะความเสี่ยงผลการเรียน & สิทธิ์สอบ (มส.)
-                </h3>
-                <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">ฝ่ายวิชาการ</span>
-            </div>
-            <div id="academicRiskContainer" class="space-y-1.5">
-                <div class="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-xs text-emerald-900 font-bold">
-                    <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา
-                </div>
-            </div>
-        </section>
-
-        <!-- 8. สถานะลงเวลา / ตำแหน่งในโรงเรียน -->
-        <section id="section-location" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
-                    <i class="fa-solid fa-location-dot text-emerald-600"></i> สถานะการลงเวลา / ตำแหน่งในโรงเรียน
-                </h3>
-                <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold">เกตเวย์ & เช็คชื่อ</span>
-            </div>
-            <div id="locationGateContainer">
-                <div class="p-2.5 sm:p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center">
-                    <span class="text-slate-800 font-bold"><i class="fa-solid fa-door-open text-emerald-600 mr-1"></i> สแกนเข้าประตูโรงเรียน (BCW Smart Gate)</span>
-                    <span class="text-xs bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-lg">07:45 น.</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- 9. ตารางเรียนประจำวัน -->
+        <!-- 8. ตารางเรียนประจำวัน -->
         <section id="section-schedule" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2">
                 <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
@@ -317,7 +363,51 @@
             </div>
         </section>
 
-        <!-- 10. ประวัติยื่นใบลา -->
+        <!-- 9. รายการการบ้าน -->
+        <section id="section-homework" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-book-bookmark text-indigo-600"></i> รายการการบ้าน / งานที่ได้รับมอบหมาย
+                </h3>
+                <span class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold">อัปเดตจากครู</span>
+            </div>
+            <div id="homeworkList" class="space-y-1.5">
+                <p class="text-xs text-slate-400 text-center py-2">🎉 ปัจจุบันไม่มีการบ้านค้างส่ง</p>
+            </div>
+        </section>
+
+        <!-- 10. ความเสี่ยงผลการเรียน (มส.) -->
+        <section id="section-academic-risk" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> สถานะความเสี่ยงผลการเรียน & สิทธิ์สอบ (มส.)
+                </h3>
+                <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">ฝ่ายวิชาการ</span>
+            </div>
+            <div id="academicRiskContainer" class="space-y-1.5">
+                <div class="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-xs text-emerald-900 font-bold">
+                    <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา
+                </div>
+            </div>
+        </section>
+
+        <!-- 11. สถานะลงเวลา / ตำแหน่งในโรงเรียน -->
+        <section id="section-location" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-dot text-emerald-600"></i> สถานะการลงเวลา / ตำแหน่งในโรงเรียน
+                </h3>
+                <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold">เกตเวย์ & เช็คชื่อ</span>
+            </div>
+            <div id="locationGateContainer">
+                <div class="p-2.5 sm:p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center">
+                    <span class="text-slate-800 font-bold"><i class="fa-solid fa-door-open text-emerald-600 mr-1"></i> สแกนเข้าประตูโรงเรียน (BCW Smart Gate)</span>
+                    <span class="text-xs bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-lg">07:45 น.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 12. ประวัติยื่นใบลา -->
         <section id="section-leave-history" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2">
                 <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
@@ -332,33 +422,7 @@
             </div>
         </section>
 
-        <!-- 13. รายการการบ้าน -->
-        <section id="section-homework" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
-                    <i class="fa-solid fa-book-bookmark text-indigo-600"></i> รายการการบ้าน / งานที่ได้รับมอบหมาย
-                </h3>
-                <span class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold">อัปเดตจากครู</span>
-            </div>
-            <div id="homeworkList" class="space-y-1.5">
-                <p class="text-xs text-slate-400 text-center py-2">🎉 ปัจจุบันไม่มีการบ้านค้างส่ง</p>
-            </div>
-        </section>
-
-        <!-- 11. แจ้งเตือนล่าสุด -->
-        <section id="section-notifications" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
-                    <i class="fa-solid fa-bell text-amber-500"></i> ข้อความแจ้งเตือนล่าสุด
-                </h3>
-                <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">แจ้งเตือนผู้ปกครอง</span>
-            </div>
-            <div id="notificationList" class="space-y-1.5">
-                <p class="text-xs text-slate-400 text-center py-2">ยังไม่มีข้อความแจ้งเตือนใหม่</p>
-            </div>
-        </section>
-
-        <!-- 12. ประวัติห้องพยาบาล -->
+        <!-- 13. ประวัติห้องพยาบาล -->
         <section id="section-clinic" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2">
                 <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
@@ -371,18 +435,6 @@
             </div>
         </section>
 
-        <!-- 14. ประวัติพฤติกรรม -->
-        <section id="section-behavior" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-5 space-y-2">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
-                    <i class="fa-solid fa-clock-rotate-left text-sky-600"></i> ประวัติการเข้าเรียนและแจ้งเตือนพฤติกรรม
-                </h3>
-                <span class="text-[10px] bg-sky-50 text-sky-700 px-2 py-0.5 rounded-full font-bold">อัปเดตอัตโนมัติ</span>
-            </div>
-            <div id="behaviorLogsContainer" class="space-y-1.5">
-                <div class="text-center py-2 text-xs text-slate-400">ยังไม่มีประวัติการบันทึกพฤติกรรม</div>
-            </div>
-        </section>
     </main>
 
     <!-- Modal 1: เลือกนักเรียนในปกครอง -->
@@ -478,9 +530,9 @@
 
     <!-- 📱 แถบ Bottom Navigation Bar สำหรับมือถือ -->
     <nav class="parent-bottom-nav">
-        <button type="button" class="parent-nav-btn active" onclick="scrollToParentSection('section-profile', this)">
-            <i class="fa-solid fa-house"></i>
-            <span>หน้าหลัก</span>
+        <button type="button" class="parent-nav-btn active" onclick="scrollToParentSection('section-notifications', this)">
+            <i class="fa-solid fa-bell"></i>
+            <span>การแจ้งเตือน</span>
         </button>
         <button type="button" class="parent-nav-btn" onclick="scrollToParentSection('section-attendance-stats', this)">
             <i class="fa-solid fa-chart-pie"></i>
@@ -496,9 +548,24 @@
         </button>
     </nav>
 
-    <!-- Global Dropdown Control Scripts -->
+    <!-- Global Dropdown & Control Scripts -->
     <script>
-        // 📱 ฟังก์ชันเลื่อนไปยังเซกชันต่างๆ ฝั่งผู้ปกครอง + ไฮไลท์ปุ่ม
+        function toggleSideDrawer() {
+            const overlay = document.getElementById('drawerOverlay');
+            if (overlay) overlay.classList.toggle('active');
+        }
+
+        window.addEventListener('scroll', () => {
+            const subHeader = document.getElementById('dynamicSubHeader');
+            if (!subHeader) return;
+
+            if (window.scrollY > 50) {
+                subHeader.classList.add('is-scrolled');
+            } else {
+                subHeader.classList.remove('is-scrolled');
+            }
+        });
+
         function scrollToParentSection(sectionId, btnElement) {
             const target = document.getElementById(sectionId);
             if (target) {
@@ -590,10 +657,14 @@
                 document.getElementById('customChildText').innerText = `${parentSession.student_name || 'นักเรียน'} (${currentStudentId})`;
                 document.getElementById('childSelector').value = currentStudentId;
 
+                const subHeaderStudentName = document.getElementById('subHeaderStudentName');
+                if (subHeaderStudentName) subHeaderStudentName.innerText = parentSession.student_name || 'นักเรียนในปกครอง';
+
                 window.selectChildOption = (id, name) => {
                     currentStudentId = id;
                     document.getElementById('childSelector').value = id;
                     document.getElementById('customChildText').innerText = `${name} (${id})`;
+                    if (subHeaderStudentName) subHeaderStudentName.innerText = name;
                     toggleChildModal();
                     loadDashboardData();
                 };
@@ -653,7 +724,6 @@
         function setupEventListeners() {
             document.getElementById('dayFilter')?.addEventListener('change', loadDashboardData);
 
-            // Modal Controls
             const leaveModal = document.getElementById('leaveModal');
             const openModalBtns = [document.getElementById('btnOpenLeaveQuick'), document.getElementById('btnOpenLeaveModal')];
             const closeModalBtns = [document.getElementById('btnCloseLeaveModal'), document.getElementById('btnCancelLeave')];
