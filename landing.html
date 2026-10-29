@@ -764,75 +764,79 @@
 
     <!-- Main JS Module -->
     <script type="module">
-        import { db } from './core/supabase-client.js';
-
         let chartObj = null;
 
-        // 🔍 Central Router Check
-        async function checkUserSession() {
+        import { db } from './core/supabase-client.js';
+        
+        async function processCentralRouting() {
             try {
+                // 1. ดึง Supabase Session
                 let { data: { session } } = await db.auth.getSession();
-
+        
                 if (!session) {
                     await new Promise(resolve => setTimeout(resolve, 600));
                     const retry = await db.auth.getSession();
                     session = retry.data?.session;
                 }
-
+        
                 if (session && session.user) {
                     localStorage.removeItem('parent_session');
-
+        
                     const userEmail = (session.user.email || '').toLowerCase();
                     const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || userEmail;
                     const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
                     const cleanId = userEmail.split('@')[0].toLowerCase();
-
-                    // 1. เช็กตาราง users
+        
+                    // 🔍 A. ตรวจสอบตาราง users (ครู / แอดมิน / ผู้บริหาร 5 ท่าน)
                     const { data: teacherProfile } = await db.from('users')
                         .select('user_id, role, prefix, first_name, last_name')
                         .eq('email', userEmail)
                         .maybeSingle();
-
+        
                     if (teacherProfile) {
                         const fullName = `${teacherProfile.prefix || ''}${teacherProfile.first_name || ''} ${teacherProfile.last_name || ''}`.trim() || googleName;
                         const role = teacherProfile.role ? teacherProfile.role.toLowerCase() : 'teacher';
-
+        
+                        // บันทึก Session ลง localStorage
                         localStorage.setItem('user_role', role);
                         localStorage.setItem('user_id', teacherProfile.user_id || cleanId);
                         localStorage.setItem('teacher_id', teacherProfile.user_id || cleanId);
                         localStorage.setItem('user_email', userEmail);
                         localStorage.setItem('user_logged_in', 'true');
-
+        
+                        // 📌 สิทธิ์ EXECUTIVE (ผู้บริหาร 5 ท่าน) & ADMIN ➔ ปักหลักที่หน้า landing.html
                         if (role === 'admin' || role === 'executive') {
                             updateLandingUI(fullName, role.toUpperCase(), `รหัส: ${teacherProfile.user_id || cleanId}`, avatarUrl);
                             loadLandingRealStats();
-                            return;
+                            return; // หยุดให้อยู่หน้า landing.html
                         }
-
+        
+                        // 📌 สิทธิ์ TEACHER (ครูทั่วไป) ➔ ส่งไปแอปครูทันที
                         window.location.replace('apps/school-app/teacher.html');
                         return;
                     }
-
-                    // 2. เช็กตาราง students
+        
+                    // 🔍 B. ตรวจสอบตาราง students (นักเรียน)
                     const { data: studentProfile } = await db.from('students')
                         .select('student_id, prefix, first_name, last_name')
                         .or(`email.eq.${userEmail},student_id.eq.${cleanId}`)
                         .maybeSingle();
-
+        
                     if (studentProfile) {
                         const fullName = `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || googleName;
-
+        
                         localStorage.setItem('user_role', 'student');
                         localStorage.setItem('user_id', studentProfile.student_id);
                         localStorage.setItem('student_id', studentProfile.student_id);
                         localStorage.setItem('user_email', userEmail);
                         localStorage.setItem('user_logged_in', 'true');
-
+        
+                        // 📌 นักเรียน ➔ ส่งไปแอปนักเรียนทันที
                         window.location.replace('apps/student-app/student.html');
                         return;
                     }
-
-                    // 3. Fallback ตัวเลข 5 หลัก
+        
+                    // 🔍 C. Fallback: ตรวจรหัสนักเรียน 5 หลัก
                     const isStudent = /^\d{5}$/.test(cleanId);
                     if (isStudent) {
                         localStorage.setItem('user_role', 'student');
@@ -840,7 +844,7 @@
                         localStorage.setItem('student_id', cleanId);
                         localStorage.setItem('user_email', userEmail);
                         localStorage.setItem('user_logged_in', 'true');
-
+        
                         window.location.replace('apps/student-app/student.html');
                     } else {
                         localStorage.setItem('user_role', 'teacher');
@@ -848,23 +852,24 @@
                         localStorage.setItem('teacher_id', cleanId);
                         localStorage.setItem('user_email', userEmail);
                         localStorage.setItem('user_logged_in', 'true');
-
+        
                         window.location.replace('apps/school-app/teacher.html');
                     }
                     return;
                 }
-
-                // เช็ก session ผู้ปกครอง
+        
+                // 📌 ตรวจผู้ปกครอง (parent_session)
                 const parentSession = localStorage.getItem('parent_session');
                 if (parentSession) {
                     window.location.replace('apps/parent-app/parent.html');
                     return;
                 }
-
+        
+                // หากไม่มี Session ใดๆ ➔ กลับไปหน้า Login
                 window.location.replace('login.html');
-
+        
             } catch (err) {
-                console.error('Error checking user session:', err.message);
+                console.error('Error in processCentralRouting:', err);
                 window.location.replace('login.html');
             }
         }
