@@ -632,82 +632,54 @@
         let SELECTED_SCHEDULE_DAY = 'Monday';
         let GLOBAL_SCHEDULE_DATA = [];
 
-         async function getCurrentUserIdentity() {
+        import { db } from '../../core/supabase-client.js';
+        
+        async function initStudentAuthGuard() {
             try {
-                // 1. ตรวจสอบ Supabase Auth Session (จากการล็อกอิน Google) เป็นอันดับแรก
-                const { data: { session } } = await db.auth.getSession();
-                
-                let userEmail = '';
-                let googleName = '';
-                let avatarUrl = '';
+                // 1. ดึงข้อมูล Session จาก localStorage
+                let studentId = localStorage.getItem('student_id') || localStorage.getItem('user_id');
+                let userEmail = localStorage.getItem('user_email') || '';
         
-                if (session && session.user) {
-                    userEmail = (session.user.email || '').toLowerCase();
-                    googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-                    avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '';
+                // 2. เช็กสำรองจาก Supabase Session
+                if (!studentId) {
+                    const { data: { session } } = await db.auth.getSession();
+                    if (session && session.user) {
+                        userEmail = (session.user.email || '').toLowerCase();
+                        studentId = userEmail.split('@')[0];
+                        localStorage.setItem('user_email', userEmail);
+                        localStorage.setItem('student_id', studentId);
+                        localStorage.setItem('user_logged_in', 'true');
+                    }
                 }
         
-                // 2. ดึงข้อมูลจาก LocalStorage/SessionStorage สรุปสำรอง
-                const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
-                const localStudentId = localStorage.getItem('student_id') || sessionStorage.getItem('student_id') || storedUser.student_id;
-                const localEmail = localStorage.getItem('user_email') || localStorage.getItem('student_email');
-        
-                // 🚨 ถ้าไม่มีทั้ง Google Session และ LocalStorage ให้ส่งกลับหน้า Login
-                if (!session && !localStudentId && !localEmail) {
-                    alert('🔒 กรุณาเข้าสู่ระบบก่อนใช้งานแอปนักเรียน');
+                // 🚨 3. หากไม่มี Session เลย ส่งกลับ Login
+                if (!studentId && !userEmail) {
+                    alert('🔒 กรุณาเข้าสู่ระบบก่อนใช้งานแอปนักเรียนครับ');
                     window.location.replace('../../login.html');
-                    return null;
+                    return;
                 }
         
-                // 3. ดึงและระบุตัวตนนักเรียนจากตาราง students
-                let studentId = localStudentId || (userEmail ? userEmail.split('@')[0] : '');
-                let fullName = googleName || 'นักเรียน';
+                // 4. ดึงข้อมูลนักเรียนมาแสดงผลบน Header
+                const { data: studentProfile } = await db
+                    .from('students')
+                    .select('prefix, first_name, last_name, classroom')
+                    .or(`email.eq.${userEmail},student_id.eq.${studentId}`)
+                    .maybeSingle();
         
-                if (userEmail) {
-                    const { data: studentDB } = await db
-                        .from('students')
-                        .select('student_id, prefix, first_name, last_name, classroom, room_number')
-                        .or(`email.eq.${userEmail},student_id.eq.${studentId}`)
-                        .maybeSingle();
-        
-                    if (studentDB) {
-                        studentId = studentDB.student_id || studentId;
-                        fullName = `${studentDB.prefix || ''}${studentDB.first_name || ''} ${studentDB.last_name || ''}`.trim() || fullName;
-                    }
-                } else if (studentId) {
-                    const { data: studentDB } = await db
-                        .from('students')
-                        .select('prefix, first_name, last_name, classroom, room_number')
-                        .eq('student_id', studentId)
-                        .maybeSingle();
-        
-                    if (studentDB) {
-                        fullName = `${studentDB.prefix || ''}${studentDB.first_name || ''} ${studentDB.last_name || ''}`.trim();
-                    }
+                if (studentProfile) {
+                    const fullName = `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim();
+                    const nameElem = document.getElementById('headerStudentName') || document.getElementById('user_display_name');
+                    if (nameElem) nameElem.innerText = fullName;
                 }
         
-                // 4. บันทึก Session ลง LocalStorage เพื่อให้สคริปต์ส่วนอื่นเรียกใช้ต่อได้สะดวก
-                if (studentId) localStorage.setItem('student_id', studentId);
-                if (userEmail) localStorage.setItem('student_email', userEmail);
-                localStorage.setItem('user_logged_in', 'true');
+                console.log('✅ แอปนักเรียนพร้อมใช้งานสำหรับ:', studentId);
         
-                // 5. แสดงผลขึ้น UI Header
-                const nameElem = document.getElementById('headerStudentName');
-                if (nameElem) nameElem.innerText = fullName;
-        
-                const codeElem = document.getElementById('studentCodeDisplay');
-                if (codeElem) codeElem.innerText = `รหัสประจำตัว: ${studentId}`;
-        
-                const imgElem = document.getElementById('headerStudentAvatar');
-                if (imgElem && avatarUrl) imgElem.src = avatarUrl;
-        
-                return { studentId, userEmail, fullName };
-        
-            } catch (e) {
-                console.error('Error in getCurrentUserIdentity:', e);
-                return null;
+            } catch (err) {
+                console.error('Error in Student Auth Guard:', err);
             }
         }
+        
+        document.addEventListener('DOMContentLoaded', initStudentAuthGuard);
 
         async function initStudentPortal(identity) {
             let student = null;
