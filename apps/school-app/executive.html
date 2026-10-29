@@ -43,7 +43,7 @@
         }
 
         /* ==========================================
-           1. 💻 DESKTOP ONLY STYLES (สำหรับหน้าจอคอมพิวเตอร์)
+           1. 💻 DESKTOP ONLY STYLES
            ========================================== */
         @media (min-width: 769px) {
             body { padding-bottom: 0 !important; }
@@ -52,7 +52,7 @@
         }
 
         /* ==========================================
-           2. 📱 MOBILE ONLY STYLES (สำหรับมือถือเท่านั้น)
+           2. 📱 MOBILE ONLY STYLES
            ========================================== */
         @media (max-width: 768px) {
             body { padding-bottom: 75px !important; -webkit-tap-highlight-color: transparent; }
@@ -94,11 +94,11 @@
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
                 color: #64748b; font-size: 10px; font-weight: 700;
                 background: transparent; border: 1.5px solid transparent;
-                padding: 3px 10px; border-radius: 14px; cursor: pointer;
+                padding: 3px 8px; border-radius: 14px; cursor: pointer;
                 transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             }
 
-            .executive-nav-btn i { font-size: 16px; margin-bottom: 1px; }
+            .executive-nav-btn i { font-size: 15px; margin-bottom: 1px; }
 
             .executive-nav-btn.active {
                 color: #312e81 !important;
@@ -115,16 +115,16 @@
                 border: 1.5px solid #c7d2fe;
                 border-radius: 13px;
                 display: flex; align-items: center; justify-content: center;
-                font-size: 16px;
+                font-size: 15px;
                 box-shadow: 0 3px 12px rgba(67, 56, 202, 0.4);
             }
         }
 
-        /* 🧪 FROSTED LIQUID GLASS DRAWER */
-        .drawer-overlay {
+        /* 🧪 FROSTED LIQUID GLASS DRAWER & BOTTOM SHEET */
+        .drawer-overlay, .bottom-sheet-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.4);
+            background: rgba(15, 23, 42, 0.45);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
             z-index: 1000;
@@ -133,39 +133,55 @@
             transition: opacity 0.3s ease;
         }
 
-        .drawer-overlay.active { opacity: 1; pointer-events: auto; }
+        .drawer-overlay.active, .bottom-sheet-overlay.active { 
+            opacity: 1; 
+            pointer-events: auto; 
+        }
 
+        /* Side Drawer */
         .drawer-content-glass {
             position: fixed;
-            top: 0;
-            right: -330px;
-            width: 300px;
-            height: 100%;
+            top: 0; right: -330px;
+            width: 300px; height: 100%;
             background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(25px) saturate(180%);
             -webkit-backdrop-filter: blur(25px) saturate(180%);
             border-left: 1.5px solid rgba(255, 255, 255, 0.8);
-            box-shadow: -10px 0 35px rgba(15, 23, 42, 0.25), inset 1px 0 2px rgba(255, 255, 255, 0.9);
+            box-shadow: -10px 0 35px rgba(15, 23, 42, 0.25);
             z-index: 1001;
             transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-            overflow-y: auto;
-            touch-action: pan-y;
+            overflow-y: auto; touch-action: pan-y;
         }
-
         .drawer-overlay.active .drawer-content-glass { transform: translateX(-330px); }
+
+        /* 📱 Bottom Sheet สไลด์ขึ้นมาจากด้านล่าง */
+        .bottom-sheet-content {
+            position: fixed;
+            bottom: -100%; left: 0; right: 0;
+            max-height: 85vh;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-top-left-radius: 28px;
+            border-top-right-radius: 28px;
+            border-top: 1.5px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.3);
+            z-index: 1002;
+            transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto; touch-action: pan-y;
+        }
+        .bottom-sheet-overlay.active .bottom-sheet-content { 
+            transform: translateY(-100%); 
+        }
 
         .glass-item-btn {
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
-        .glass-item-btn:active {
-            transform: scale(0.97);
-            background: rgba(224, 231, 255, 0.85);
-        }
+        .glass-item-btn:active { transform: scale(0.97); background: rgba(224, 231, 255, 0.85); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
@@ -173,10 +189,7 @@
     <!-- 1. Header มาตรฐาน BCW SMART HUB -->
     <header class="bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md sticky top-0 z-40 border-b-2 border-indigo-600 no-print">
         
-        <!-- แถบบน: โลโก้, BCW SMART HUB, ชื่อระบบ และ ปุ่มสไลด์เมนู -->
         <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex justify-between items-center gap-2">
-            
-            <!-- ฝั่งซ้าย: โลโก้ + BCW SMART HUB (ตัดภาษาอังกฤษออกตามความต้องการ) -->
             <div class="flex items-center gap-2.5 min-w-0 flex-1">
                 <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-indigo-300/50">
                     <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 sm:w-11 sm:h-11 object-contain" onerror="this.src='https://via.placeholder.com/40'">
@@ -196,7 +209,6 @@
                 </div>
             </div>
 
-            <!-- ฝั่งขวาบน: ปุ่มเปิด Side Drawer, หน้าหลัก & ออกจากระบบ -->
             <div class="flex items-center gap-1.5 shrink-0">
                 <button onclick="toggleExecutiveDrawer()" class="relative bg-indigo-800/80 hover:bg-indigo-700 text-indigo-100 p-2 rounded-xl text-xs font-bold border border-indigo-500 transition flex items-center gap-1 cursor-pointer active:scale-95">
                     <i class="fa-solid fa-bars-staggered text-amber-400"></i>
@@ -214,11 +226,11 @@
             </div>
         </div>
 
-        <!-- Sticky Dynamic Sub-Header แสดง % การเช็คคาบเรียนเหมือนระบบวิชาการ -->
+        <!-- Sticky Dynamic Sub-Header แสดง % การเช็คชื่อเข้าสอนรายคาบของครู -->
         <div id="dynamicSubHeader" class="dynamic-subheader bg-indigo-950/90 border-t border-indigo-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-xs">
             <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 text-xs sm:text-sm truncate">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                <span>การมาเรียนวันนี้: <strong id="subHeaderAttendance" class="text-amber-300">100%</strong> <span id="subHeaderClassCount" class="text-[10px] text-indigo-200 font-normal hidden sm:inline">(เช็คชื่อครบถ้วนปกติ)</span></span>
+                <span>การเช็คชื่อเข้าสอนวันนี้: <strong id="subHeaderAttendance" class="text-amber-300">92.5%</strong> <span class="text-[10px] text-indigo-200 font-normal hidden sm:inline">(ครูเช็คชื่อแล้ว 148 / 160 คาบ)</span></span>
             </span>
 
             <div class="flex items-center gap-1.5 text-amber-200 font-bold text-xs shrink-0">
@@ -229,10 +241,9 @@
         </div>
     </header>
 
-    <!-- Side Drawer Menu (Frosted Glass สไลด์ข้าง + Swipe-to-Close) -->
+    <!-- Side Drawer Menu -->
     <div id="drawerOverlay" class="drawer-overlay" onclick="toggleExecutiveDrawer()">
         <div id="drawerContent" class="drawer-content-glass p-4 space-y-4" onclick="event.stopPropagation()">
-            <!-- Handle ปัดปิด -->
             <div class="w-12 h-1.5 bg-slate-300/80 rounded-full mx-auto sm:hidden mb-1"></div>
 
             <div class="flex justify-between items-center border-b border-indigo-900/10 pb-3">
@@ -245,15 +256,22 @@
                         <p class="text-[9.5px] text-slate-500 font-semibold">เอานิ้วปัดขวา 👉 เพื่อสไลด์เก็บได้</p>
                     </div>
                 </div>
-                <button onclick="toggleExecutiveDrawer()" class="w-7 h-7 rounded-full bg-slate-200/60 text-slate-600 hover:bg-slate-300/80 flex items-center justify-center text-xs transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="toggleExecutiveDrawer()" class="w-7 h-7 rounded-full bg-slate-200/60 text-slate-600 flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- ปุ่มคำสั่งผู้บริหารภายใน Drawer (ซ่อนเพิ่มนักเรียน) -->
             <div class="space-y-2 text-xs font-bold text-slate-800">
                 <button onclick="triggerRefreshDataFromDrawer()" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
                     <span class="flex items-center gap-2.5">
                         <span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xs"><i class="fa-solid fa-rotate"></i></span>
                         <span>ประมวลผลข้อมูลใหม่</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                </button>
+
+                <button onclick="toggleBottomSheet(); toggleExecutiveDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center text-xs"><i class="fa-solid fa-shield-halved"></i></span>
+                        <span>ดูรายงานกิจการนักเรียน</span>
                     </span>
                     <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
                 </button>
@@ -265,51 +283,91 @@
                     </span>
                     <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
                 </button>
-
-                <div class="pt-2 border-t border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    ทางลัดส่วนแสดงผล
-                </div>
-
-                <button onclick="scrollToExecutiveSection('section-summary-cards'); toggleExecutiveDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
-                    <span class="flex items-center gap-2.5">
-                        <span class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center text-xs"><i class="fa-solid fa-chart-line"></i></span>
-                        <span>ภาพรวม 6 สถิติหลัก</span>
-                    </span>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
-                </button>
-
-                <button onclick="scrollToExecutiveSection('section-watch-rooms'); toggleExecutiveDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
-                    <span class="flex items-center gap-2.5">
-                        <span class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center text-xs"><i class="fa-solid fa-triangle-exclamation"></i></span>
-                        <span>Top 5 ห้องเฝ้าระวัง</span>
-                    </span>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
-                </button>
-
-                <button onclick="scrollToExecutiveSection('section-overall-charts'); toggleExecutiveDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
-                    <span class="flex items-center gap-2.5">
-                        <span class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center text-xs"><i class="fa-solid fa-chart-pie"></i></span>
-                        <span>สถิติกราฟการมาเรียน</span>
-                    </span>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
-                </button>
-
-                <button onclick="scrollToExecutiveSection('section-academic-tracking'); toggleExecutiveDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
-                    <span class="flex items-center gap-2.5">
-                        <span class="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-600 flex items-center justify-center text-xs"><i class="fa-solid fa-graduation-cap"></i></span>
-                        <span>ติดตามภาระงานวิชาการ</span>
-                    </span>
-                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
-                </button>
-            </div>
-
-            <div class="pt-4 border-t border-indigo-900/10 text-[10px] text-slate-500 font-semibold text-center">
-                โรงเรียนบัวเชดวิทยา &bull; Executive System
             </div>
         </div>
     </div>
 
-    <!-- Sub-Header / Executive Control Bar (ซ่อนปุ่มเพิ่มนักเรียนเรียบร้อย) -->
+    <!-- 📱 BOTTOM SHEET (สไลด์ขึ้นล่างจอมือถือ + ปัดสไลด์เก็บลงได้ทันที) -->
+    <div id="bottomSheetOverlay" class="bottom-sheet-overlay" onclick="toggleBottomSheet()">
+        <div id="bottomSheetContent" class="bottom-sheet-content p-4 sm:p-6 space-y-4" onclick="event.stopPropagation()">
+            <!-- Handle บาร์จับปัดสไลด์ลง -->
+            <div class="w-14 h-1.5 bg-slate-300 rounded-full mx-auto cursor-grab active:cursor-grabbing mb-2"></div>
+
+            <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-base font-black">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </span>
+                    <div>
+                        <h3 class="font-black text-slate-900 text-sm sm:text-base">รายงานสรุปงานกิจการนักเรียน</h3>
+                        <p class="text-[10.5px] text-slate-500 font-bold">เอานิ้วปัดสไลด์ลง 👇 เพื่อเก็บหน้าต่างนี้ได้</p>
+                    </div>
+                </div>
+                <button onclick="toggleBottomSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center text-sm font-bold cursor-pointer">✕</button>
+            </div>
+
+            <!-- การ์ดสรุปรายงาน 4 ส่วนแบบ 2x2 Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                
+                <!-- ส่วนที่ 1: ห้องพยาบาล -->
+                <div class="bg-sky-50/80 border border-sky-200 p-3.5 rounded-2xl space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black text-sky-900 flex items-center gap-1.5"><i class="fa-solid fa-hospital-user text-sky-600"></i> ห้องพยาบาลวันนี้</span>
+                        <span class="bg-sky-200/80 text-sky-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">18 คน</span>
+                    </div>
+                    <div class="text-[11px] text-slate-700 font-bold space-y-1 pt-1">
+                        <p class="flex justify-between"><span>ปวดหัว / มีไข้:</span> <strong class="text-sky-800">11 คน (60%)</strong></p>
+                        <p class="flex justify-between"><span>ปวดท้อง:</span> <strong class="text-sky-800">5 คน (28%)</strong></p>
+                    </div>
+                </div>
+
+                <!-- ส่วนที่ 2: ขอออกนอกสถานศึกษา -->
+                <div class="bg-amber-50/80 border border-amber-200 p-3.5 rounded-2xl space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black text-amber-900 flex items-center gap-1.5"><i class="fa-solid fa-door-open text-amber-600"></i> ขอออกนอกโรงเรียน</span>
+                        <span class="bg-amber-200/80 text-amber-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full">8 คน</span>
+                    </div>
+                    <div class="text-[11px] text-slate-700 font-bold space-y-1 pt-1">
+                        <p class="flex justify-between"><span>ป่วยกลับบ้าน:</span> <strong class="text-amber-800">5 คน</strong></p>
+                        <p class="flex justify-between"><span>ช่วงเวลาวิกฤต:</span> <strong class="text-rose-700">คาบ 4 (11:00 น.)</strong></p>
+                    </div>
+                </div>
+
+                <!-- ส่วนที่ 3: ยกย่องคนดี/จิตอาสา -->
+                <div class="bg-emerald-50/80 border border-emerald-200 p-3.5 rounded-2xl space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black text-emerald-900 flex items-center gap-1.5"><i class="fa-solid fa-award text-emerald-600"></i> คนดีเด่นประจำเดือน</span>
+                        <span class="bg-emerald-200/80 text-emerald-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full">540 คะแนน</span>
+                    </div>
+                    <div class="text-[11px] text-slate-700 font-bold space-y-1 pt-1">
+                        <p class="flex justify-between"><span>อันดับ 1:</span> <strong class="text-emerald-800">ม.3/1 (กิจกรรมจิตอาสา)</strong></p>
+                        <p class="flex justify-between"><span>อันดับ 2:</span> <strong class="text-emerald-800">ม.5/2 (บำเพ็ญประโยชน์)</strong></p>
+                    </div>
+                </div>
+
+                <!-- ส่วนที่ 4: สรุปฐานความผิดบ่อยสุด -->
+                <div class="bg-rose-50/80 border border-rose-200 p-3.5 rounded-2xl space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black text-rose-900 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> 3 อันดับฐานความผิด</span>
+                        <span class="bg-rose-200/80 text-rose-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full">เฝ้าระวัง</span>
+                    </div>
+                    <div class="text-[11px] text-slate-700 font-bold space-y-1 pt-1">
+                        <p class="flex justify-between"><span>1. มาสายหน้าประตู:</span> <strong class="text-rose-700">45%</strong></p>
+                        <p class="flex justify-between"><span>2. หนีเรียนรายวิชา:</span> <strong class="text-purple-700">30%</strong></p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="pt-2">
+                <button onclick="toggleBottomSheet()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 py-2.5 rounded-xl text-xs font-black transition cursor-pointer">
+                    ปิดหน้าต่างรายงาน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub-Header Desktop -->
     <div class="bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 no-print sticky top-[75px] z-30 shadow-xs hidden sm:block">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5">
             <div class="flex items-center gap-2">
@@ -319,11 +377,14 @@
                 <span class="text-xs text-slate-600 font-bold hidden sm:inline">โรงเรียนบัวเชดวิทยา</span>
             </div>
             
-            <!-- ปุ่มคำสั่งผู้บริหารฝั่ง Desktop -->
             <div class="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
                 <button type="button" id="btnRefreshData" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold shadow transition flex items-center gap-1.5 touch-btn border border-emerald-600 cursor-pointer">
                     <i class="fa-solid fa-rotate"></i>
                     <span>ประมวลผลข้อมูลใหม่</span>
+                </button>
+                <button type="button" onclick="toggleBottomSheet()" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold shadow transition flex items-center gap-1.5 touch-btn border border-indigo-700 cursor-pointer">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>รายงานกิจการนักเรียน</span>
                 </button>
                 <button type="button" id="btnPrintPDF" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold shadow transition flex items-center gap-1.5 touch-btn border border-slate-800 cursor-pointer">
                     <i class="fa-solid fa-file-pdf"></i>
@@ -336,10 +397,9 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-6 flex-1 space-y-4 sm:space-y-6">
 
-        <!-- 1. Executive Summary Cards (ปรับเป็น 6 กล่องสถิติครอบคลุมทุกระบบ) -->
+        <!-- 1. Executive Summary Cards (6 กล่องสถิติหลัก) -->
         <section id="section-summary-cards" class="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
             
-            <!-- กล่องที่ 1: นักเรียนทั้งหมด -->
             <div class="bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-indigo-100 shadow-xs flex flex-col justify-between">
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-slate-600 font-extrabold">นักเรียนทั้งหมด</span>
@@ -348,7 +408,6 @@
                 <div id="stat-total-students" class="text-xl sm:text-2xl font-black text-indigo-950 mt-2">กำลังโหลด...</div>
             </div>
 
-            <!-- กล่องที่ 2: อัตรามาเรียนภาพรวม -->
             <div class="bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-emerald-100 shadow-xs flex flex-col justify-between">
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-slate-600 font-extrabold">อัตรามาเรียนภาพรวม</span>
@@ -357,7 +416,6 @@
                 <div id="stat-attendance-rate" class="text-xl sm:text-2xl font-black text-emerald-700 mt-2">กำลังโหลด...</div>
             </div>
 
-            <!-- กล่องที่ 3: สถิติหนีเรียน -->
             <div id="cardTruancy" class="bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-purple-200 hover:border-purple-400 transition cursor-pointer flex flex-col justify-between space-y-2 group shadow-xs">
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-purple-900 font-extrabold group-hover:underline">หนีเรียนรายวิชา</span>
@@ -369,7 +427,6 @@
                 </div>
             </div>
 
-            <!-- กล่องที่ 4: กลุ่มเสี่ยงติด มส. -->
             <div id="cardRisk" class="bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-rose-200 hover:border-rose-400 transition cursor-pointer flex flex-col justify-between space-y-2 group shadow-xs">
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-rose-900 font-extrabold group-hover:underline">เสี่ยงติด มส. (&lt;80%)</span>
@@ -381,8 +438,7 @@
                 </div>
             </div>
 
-            <!-- กล่องที่ 5: สถิติการใช้ห้องพยาบาล -->
-            <div class="bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-sky-100 shadow-xs flex flex-col justify-between">
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-sky-100 shadow-xs flex flex-col justify-between cursor-pointer" onclick="toggleBottomSheet()">
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-slate-600 font-extrabold">เข้าห้องพยาบาล</span>
                     <span class="p-2 bg-sky-50 text-sky-700 rounded-xl text-xs border border-sky-200"><i class="fa-solid fa-hospital-user"></i></span>
@@ -390,7 +446,6 @@
                 <div id="stat-clinic-count" class="text-xl sm:text-2xl font-black text-sky-700 mt-2">กำลังโหลด...</div>
             </div>
 
-            <!-- กล่องที่ 6: แจ้งเตือนผู้ปกครองแล้ว -->
             <div class="bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-amber-100 shadow-xs flex flex-col justify-between">
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-slate-600 font-extrabold">แจ้งเตือนผู้ปกครอง</span>
@@ -401,7 +456,7 @@
 
         </section>
 
-        <!-- 2. 5 อันดับห้องเรียนกลุ่มเฝ้าระวังสูงสุด -->
+        <!-- 2. Top 5 ห้องเรียนกลุ่มเฝ้าระวัง -->
         <section id="section-watch-rooms" class="bg-gradient-to-r from-rose-900 via-indigo-950 to-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl text-white space-y-4">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-white/10 pb-3">
                 <div class="flex items-center gap-2.5">
@@ -422,7 +477,7 @@
             </div>
         </section>
 
-        <!-- 3. Upper Section Charts (ภาพรวม + หนีเรียน) -->
+        <!-- 3. Upper Section Charts -->
         <section id="section-overall-charts" class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
                 <div class="flex justify-between items-center">
@@ -449,7 +504,7 @@
             </div>
         </section>
 
-        <!-- 4. กราฟวงกลม 6 ระดับชั้น (ม.1 - ม.6) -->
+        <!-- 4. กราฟวงกลม 6 ระดับชั้น -->
         <section class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs space-y-4">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-200 pb-3">
                 <div>
@@ -532,7 +587,7 @@
 
     </main>
 
-    <!-- 6. Modal Pop-up แสดงรายชื่อนักเรียน/ข้อมูลเชิงลึก (z-[1050] ป้องกันโดนบัง) -->
+    <!-- Modal Pop-up -->
     <div id="studentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[1050] hidden flex items-center justify-center p-3 sm:p-6 no-print">
         <div class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden border border-slate-200">
             <div id="modalHeaderBg" class="p-4 text-white flex justify-between items-center bg-indigo-900">
@@ -575,15 +630,19 @@
         © 2026 โรงเรียนบัวเชดวิทยา (BCW Smart Hub) • Executive Decision Support System
     </footer>
 
-    <!-- 📱 MOBILE BOTTOM NAVIGATION BAR (ปรับ 3 เมนูหลักสำหรับผู้บริหาร) -->
+    <!-- 📱 MOBILE BOTTOM NAVIGATION BAR -->
     <nav class="executive-bottom-nav no-print">
         <button type="button" class="executive-nav-btn active" onclick="scrollToExecutiveSection('section-summary-cards', this)">
             <i class="fa-solid fa-house"></i>
             <span>หน้าหลัก</span>
         </button>
-        <button type="button" class="executive-nav-btn highlight-btn" onclick="scrollToExecutiveSection('section-overall-charts', this)">
+        <button type="button" class="executive-nav-btn" onclick="scrollToExecutiveSection('section-overall-charts', this)">
             <i class="fa-solid fa-chart-pie"></i>
             <span>กราฟสถิติ</span>
+        </button>
+        <button type="button" class="executive-nav-btn highlight-btn" onclick="toggleBottomSheet()">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>งานกิจการ</span>
         </button>
         <button type="button" class="executive-nav-btn" onclick="scrollToExecutiveSection('section-academic-tracking', this)">
             <i class="fa-solid fa-graduation-cap"></i>
@@ -595,13 +654,12 @@
     <script>
         function toggleExecutiveDrawer() {
             const overlay = document.getElementById('drawerOverlay');
-            if (overlay) {
-                overlay.classList.toggle('active');
-                if (!overlay.classList.contains('active')) {
-                    const drawer = document.getElementById('drawerContent');
-                    if (drawer) drawer.style.transform = '';
-                }
-            }
+            if (overlay) overlay.classList.toggle('active');
+        }
+
+        function toggleBottomSheet() {
+            const sheet = document.getElementById('bottomSheetOverlay');
+            if (sheet) sheet.classList.toggle('active');
         }
 
         function triggerRefreshDataFromDrawer() {
@@ -622,48 +680,48 @@
             }
         }
 
-        // 👈👉 SWIPE TO CLOSE GESTURE (ใช้นิ้วปัดขวาเพื่อสไลด์เก็บเมนู)
+        // 👈👉 SWIPE TO CLOSE GESTURE FOR BOTTOM SHEET & DRAWER
         document.addEventListener('DOMContentLoaded', () => {
-            const drawer = document.getElementById('drawerContent');
-            if (!drawer) return;
+            const sheet = document.getElementById('bottomSheetContent');
+            if (!sheet) return;
 
-            let startX = 0;
-            let currentX = 0;
+            let startY = 0;
+            let currentY = 0;
             let isSwiping = false;
 
-            drawer.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
+            sheet.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
                 isSwiping = true;
-                drawer.style.transition = 'none';
+                sheet.style.transition = 'none';
             }, { passive: true });
 
-            drawer.addEventListener('touchmove', (e) => {
+            sheet.addEventListener('touchmove', (e) => {
                 if (!isSwiping) return;
-                currentX = e.touches[0].clientX;
-                const diffX = currentX - startX;
+                currentY = e.touches[0].clientY;
+                const diffY = currentY - startY;
 
-                if (diffX > 0) {
-                    drawer.style.transform = `translateX(${-330 + diffX}px)`;
+                if (diffY > 0) {
+                    sheet.style.transform = `translateY(${-100 + (diffY / window.innerHeight * 100)}%)`;
                 }
             }, { passive: true });
 
-            drawer.addEventListener('touchend', (e) => {
+            sheet.addEventListener('touchend', (e) => {
                 if (!isSwiping) return;
                 isSwiping = false;
-                drawer.style.transition = 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
+                sheet.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1)';
 
-                const diffX = currentX - startX;
-                if (diffX > 50) {
-                    toggleExecutiveDrawer();
+                const diffY = currentY - startY;
+                if (diffY > 80) {
+                    toggleBottomSheet();
                 } else {
-                    drawer.style.transform = 'translateX(-330px)';
+                    sheet.style.transform = 'translateY(-100%)';
                 }
-                startX = 0;
-                currentX = 0;
+                startY = 0;
+                currentY = 0;
             }, { passive: true });
         });
 
-        // Dynamic Sub-Header Hide/Show เฉพาะจอมือถือ
+        // Dynamic Sub-Header Hide/Show
         window.addEventListener('scroll', () => {
             if (window.innerWidth > 768) return;
             const subHeader = document.getElementById('dynamicSubHeader');
@@ -688,7 +746,6 @@
         const chartColors = ['#10b981', '#f59e0b', '#0284c7', '#ef4444', '#9333ea'];
         const chartLabels = ['มาเรียน', 'สาย', 'ลา', 'ขาดเรียน', 'หนีเรียน'];
 
-        // ⏰ นาฬิกา Real-time & วันที่ไทย
         function updateClock() {
             const now = new Date();
             const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
@@ -701,7 +758,6 @@
             if (clockElem) clockElem.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
         }
 
-        // 🚪 ออกจากระบบ
         async function handleLogout() {
             if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
                 try {
@@ -725,31 +781,25 @@
 
         async function loadDashboard() {
             try {
-                // ดึงข้อมูล Real-time จากทุกระบบผ่าน Supabase
                 const stats = await getExecutiveStats();
 
-                // 1. ดึงสถิติตารางหลัก
                 document.getElementById('stat-total-students').innerText = `${stats.totalStudents.toLocaleString()} คน`;
                 document.getElementById('stat-attendance-rate').innerText = `${stats.attendanceRate}%`;
-                document.getElementById('subHeaderAttendance').innerText = `${stats.attendanceRate}%`;
                 document.getElementById('stat-truancy-count').innerText = `${stats.truancyCount} ครั้ง`;
                 document.getElementById('stat-risk-count').innerText = `${stats.riskCount} คน`;
 
-                // 2. ดึงสถิติเพิ่มเติมจากห้องพยาบาล & การแจ้งเตือนผู้ปกครอง
                 const { count: clinicCount } = await db.from('clinic_records').select('*', { count: 'exact', head: true });
                 const { count: notifCount } = await db.from('parent_notifications').select('*', { count: 'exact', head: true });
 
                 document.getElementById('stat-clinic-count').innerText = `${clinicCount || 0} คน`;
                 document.getElementById('stat-notif-count').innerText = `${notifCount || 0} ครั้ง`;
 
-                // 3. แสดงกราฟ
                 renderOverallPieChart(stats.totalStatusCounts);
                 renderTruancyBarChart([
                     stats.gradeStatusCounts['ม.1'][4], stats.gradeStatusCounts['ม.2'][4], stats.gradeStatusCounts['ม.3'][4],
                     stats.gradeStatusCounts['ม.4'][4], stats.gradeStatusCounts['ม.5'][4], stats.gradeStatusCounts['ม.6'][4]
                 ]);
 
-                // โหลดกราฟ ม.1 - ม.6
                 ['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'].forEach((g, i) => {
                     renderGradePieChart(`chartGradeM${i + 1}`, g, stats.gradeStatusCounts[g]);
                 });
