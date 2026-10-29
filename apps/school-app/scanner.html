@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BCW Smart Gate - กล้องสแกนมือถือ</title>
+    <title>BCW Smart Gate - AI & Advanced Camera Scanner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Html5-QRCode Library สำหรับ AI/Barcode Engine -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>body { font-family: 'Kanit', sans-serif; background: #0f172a; }</style>
 </head>
 <body class="min-h-screen text-white flex flex-col items-center justify-between p-4">
@@ -17,83 +19,207 @@
             <i class="fa-solid fa-arrow-left"></i> กลับหน้าหลัก
         </a>
         <div class="text-right">
-            <h1 class="text-base font-black text-amber-400">📸 BCW Smart Gate</h1>
-            <p class="text-[10px] text-slate-400">โรงเรียนบัวเชดวิทยา</p>
+            <h1 class="text-base font-black text-amber-400">🤖 BCW Smart Gate AI</h1>
+            <p class="text-[10px] text-slate-400">ระบบประตูสแกนอัจฉริยะ 2026</p>
         </div>
     </div>
 
-    <!-- กรอบกล้องมือถือ -->
+    <!-- กรอบกล้องมือถือ/กล้องสแกน -->
     <div class="relative w-full max-w-sm aspect-[3/4] bg-slate-800 rounded-3xl overflow-hidden border-4 border-emerald-500 shadow-2xl flex items-center justify-center my-2">
-        <!-- วิดีโอจากกล้องมือถือ -->
-        <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
+        <!-- Element สำหรับแสดงผลกล้องจากทั้ง WebRTC / Html5QRCode -->
+        <div id="reader" class="w-full h-full object-cover"></div>
+        <video id="webcam" autoplay playsinline class="w-full h-full object-cover hidden"></video>
         
-        <!-- เส้นเล็งสแกนหน้า -->
-        <div id="scanFrame" class="absolute inset-12 border-2 border-dashed border-emerald-400 rounded-2xl pointer-events-none animate-pulse flex items-center justify-center">
-            <span class="text-xs font-bold text-emerald-300 bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm">วางใบหน้าให้อยู่ในกรอบ</span>
+        <!-- เส้นเล็งสแกนหน้า / QR Code -->
+        <div id="scanFrame" class="absolute inset-10 border-2 border-dashed border-emerald-400 rounded-2xl pointer-events-none animate-pulse flex items-center justify-center z-10">
+            <span class="text-xs font-bold text-emerald-300 bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm">ส่องใบหน้า หรือ QR Code บัตร</span>
         </div>
     </div>
 
     <!-- กล่องแสดงผลการสแกนล่าสุด -->
     <div id="scanResult" class="w-full max-w-sm bg-white text-slate-900 rounded-2xl p-4 shadow-lg text-center space-y-1">
-        <span class="text-xs text-slate-500 font-bold block">สถานะสแกนล่าสุด</span>
-        <h3 id="studentName" class="text-lg font-black text-emerald-700">พร้อมสแกนหน้า...</h3>
-        <p id="scanTime" class="text-xs text-slate-600 font-semibold">กรุณาส่องกล้องไปที่ใบหน้านักเรียน</p>
+        <span class="text-xs text-slate-500 font-bold block">สถานะสแกนล่าสุด (AI Detection)</span>
+        <h3 id="studentName" class="text-lg font-black text-emerald-700">พร้อมสแกน...</h3>
+        <p id="scanTime" class="text-xs text-slate-600 font-semibold">กรุณาส่องกล้องไปที่ใบหน้าหรือบัตรนักเรียน</p>
     </div>
 
-    <!-- ปุ่มเปิดกล้อง & สลับกล้อง -->
-    <div class="w-full max-w-sm flex gap-2">
-        <button id="btnStartCamera" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
-            <i class="fa-solid fa-camera"></i> เปิดกล้องสแกน
-        </button>
-        <button id="btnSwitchCamera" class="bg-slate-800 hover:bg-slate-700 text-white p-3.5 rounded-2xl border border-slate-700 shadow-lg transition cursor-pointer" title="สลับกล้อง">
-            <i class="fa-solid fa-camera-rotate text-lg"></i>
-        </button>
+    <!-- แผงควบคุมกล้องแบบครบพิกัด (Camera Control Panel) -->
+    <div class="w-full max-w-sm space-y-2">
+        <!-- ตัวเลือกรายการกล้องที่ตรวจพบในอุปกรณ์ (Camera Device Dropdown) -->
+        <select id="cameraSelect" class="w-full bg-slate-800 text-xs font-bold text-slate-200 border border-slate-700 rounded-xl px-3 py-2 outline-none hidden">
+            <option value="">🔍 กำลังค้นหากล้องในเครื่อง...</option>
+        </select>
+
+        <div class="flex gap-2">
+            <button id="btnStartCamera" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-camera"></i> เปิดกล้องสแกน
+            </button>
+            <button id="btnToggleFlash" class="bg-slate-800 hover:bg-slate-700 text-amber-400 p-3.5 rounded-2xl border border-slate-700 shadow-lg transition cursor-pointer" title="เปิด/ปิด ไฟแฟลช">
+                <i class="fa-solid fa-bolt text-lg"></i>
+            </button>
+            <button id="btnSwitchCamera" class="bg-slate-800 hover:bg-slate-700 text-white p-3.5 rounded-2xl border border-slate-700 shadow-lg transition cursor-pointer" title="สลับกล้อง">
+                <i class="fa-solid fa-camera-rotate text-lg"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Module Integration Script -->
     <script type="module">
         import { recordGateIn } from '../../modules/scanner/scanner.service.js';
 
+        let html5QrCode = null;
         let currentStream = null;
+        let currentTrack = null;
+        let isFlashOn = false;
         let facingMode = "environment";
+        let isProcessing = false;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('btnStartCamera')?.addEventListener('click', startMobileCamera);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await getAvailableCameras();
+            document.getElementById('btnStartCamera')?.addEventListener('click', startSmartCamera);
             document.getElementById('btnSwitchCamera')?.addEventListener('click', switchCamera);
+            document.getElementById('btnToggleFlash')?.addEventListener('click', toggleFlashlight);
+            document.getElementById('cameraSelect')?.addEventListener('change', (e) => {
+                if (e.target.value) startSmartCameraWithDeviceId(e.target.value);
+            });
         });
 
-        async function startMobileCamera() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
+        // 🔍 1. ตรวจค้นหากล้องทั้งหมดในอุปกรณ์ (รวมกล้องนอก, กล้องมุมกว้าง Ultra-Wide, Webcam)
+        async function getAvailableCameras() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                const select = document.getElementById('cameraSelect');
+
+                if (videoDevices.length > 0 && select) {
+                    select.innerHTML = videoDevices.map((device, index) => `
+                        <option value="${device.deviceId}">${device.label || `กล้องตัวที่ ${index + 1}`}</option>
+                    `).join('');
+                    select.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.warn('Cannot enumerate devices:', err);
+            }
+        }
+
+        // 🚀 2. เปิดกล้องพร้อมระบบ AI Read QR/Barcode อัตโนมัติ
+        async function startSmartCamera() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                await html5QrCode.stop();
             }
 
-            const video = document.getElementById('webcam');
-            
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 15, qrbox: { width: 250, height: 250 } };
+
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: facingMode }, 
-                    audio: false 
+                await html5QrCode.start(
+                    { facingMode: facingMode },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                );
+                bindVideoTrackForFlash();
+            } catch (err) {
+                console.warn('Fallback to standard getUserMedia:', err);
+                startStandardWebcam();
+            }
+        }
+
+        async function startSmartCameraWithDeviceId(deviceId) {
+            if (html5QrCode && html5QrCode.isScanning) {
+                await html5QrCode.stop();
+            }
+
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 15, qrbox: { width: 250, height: 250 } };
+
+            try {
+                await html5QrCode.start(deviceId, config, onScanSuccess, onScanError);
+                bindVideoTrackForFlash();
+            } catch (err) {
+                alert('ไม่สามารถเปิดกล้องตัวที่เลือกได้: ' + err.message);
+            }
+        }
+
+        // Standard WebCam Fallback (กรณีอุปกรณ์ไม่รองรับ Html5Qrcode)
+        async function startStandardWebcam() {
+            const video = document.getElementById('webcam');
+            const readerDiv = document.getElementById('reader');
+            if (readerDiv) readerDiv.classList.add('hidden');
+            if (video) video.classList.remove('hidden');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: facingMode },
+                    audio: false
                 });
                 currentStream = stream;
+                currentTrack = stream.getVideoTracks()[0];
                 video.srcObject = stream;
-            } catch (err1) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                    currentStream = stream;
-                    video.srcObject = stream;
-                } catch (err2) {
-                    console.error('Camera Error:', err2);
-                    alert('⛔ ไม่สามารถเปิดกล้องได้!\n\nกรุณาตรวจสอบว่า:\n1. ได้กด "Allow" (อนุญาต) สิทธิ์กล้องบนแถบเบราว์เซอร์แล้วหรือยัง\n2. ไม่มีโปรแกรมอื่นเปิดใช้วิดีโออยู่');
+            } catch (err) {
+                alert('⛔ ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตสิทธิ์การใช้งานกล้อง');
+            }
+        }
+
+        // ⚡ 3. สั่งงานเปิด/ปิด ไฟแฟลช (Torch Control)
+        async function toggleFlashlight() {
+            if (!currentTrack) {
+                bindVideoTrackForFlash();
+            }
+
+            if (!currentTrack) {
+                return alert('⚠️ กล้องในอุปกรณ์นี้ไม่รองรับการเปิดไฟแฟลช');
+            }
+
+            try {
+                const capabilities = currentTrack.getCapabilities();
+                if (!capabilities.torch) {
+                    return alert('⚠️ กล้องตัวนี้ไม่มีไฟแฟลช');
                 }
+
+                isFlashOn = !isFlashOn;
+                await currentTrack.applyConstraints({ advanced: [{ torch: isFlashOn }] });
+                
+                const btn = document.getElementById('btnToggleFlash');
+                if (btn) {
+                    btn.classList.toggle('bg-amber-500', isFlashOn);
+                    btn.classList.toggle('text-slate-900', isFlashOn);
+                }
+            } catch (err) {
+                console.error('Torch Error:', err);
+                alert('ไม่สามารถเปิดไฟแฟลชได้');
+            }
+        }
+
+        function bindVideoTrackForFlash() {
+            const videoElem = document.querySelector('#reader video') || document.getElementById('webcam');
+            if (videoElem && videoElem.srcObject) {
+                currentTrack = videoElem.srcObject.getVideoTracks()[0];
             }
         }
 
         function switchCamera() {
             facingMode = (facingMode === "environment") ? "user" : "environment";
-            startMobileCamera();
+            startSmartCamera();
         }
 
-        // ฟังก์ชันรับ Event เมื่อสแกนติด (Expose ให้ AI หรือ Barcode Scanner เรียกใช้)
+        // 🎯 4. Event Handler เมื่อสแกนติด (QR Code / AI Detection)
+        async function onScanSuccess(decodedText) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            await window.handleScanDetected(decodedText);
+
+            setTimeout(() => {
+                isProcessing = false;
+            }, 2500);
+        }
+
+        function onScanError(errorMessage) {
+            // ปล่อยผ่านขณะสแกนหา
+        }
+
+        // ฟังก์ชันรับ Event บันทึกข้อมูลเข้าประตูโรงเรียน
         window.handleScanDetected = async function(studentId) {
             const scanFrame = document.getElementById('scanFrame');
             if (scanFrame) {
