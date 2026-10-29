@@ -8,7 +8,362 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="assets/images/logo_bcw.png">
     <link rel="apple-touch-icon" href="assets/images/logo_bcw.png">
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BCW Smart HUB - เข้าสู่ระบบ</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/images/logo_bcw.png">
+    <link rel="apple-touch-icon" href="assets/images/logo_bcw.png">
 
+    <!-- โหลด Supabase SDK & Fonts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif, system-ui; }
+        
+        html, body { 
+            overflow: hidden !important; 
+            width: 100vw; 
+            height: 100vh; 
+            height: 100dvh; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            touch-action: none; 
+            background-color: #0f172a; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 12px; 
+        }
+
+        .login-card { 
+            width: 100%; 
+            max-width: 480px; 
+            background: #ffffff; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            touch-action: auto;
+        }
+        
+        .card-header { 
+            background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%); 
+            padding: 16px 18px; 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start;
+            gap: 14px; 
+            border-bottom: 4px solid #facc15; 
+            box-shadow: inset 0 -2px 10px rgba(0,0,0,0.15);
+        }
+        
+        .logo-wrapper {
+            width: 60px;
+            height: 60px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(250, 204, 21, 0.8);
+            flex-shrink: 0;
+        }
+        .school-logo { width: 100%; height: 100%; object-fit: contain; }
+        
+        .brand-text { display: flex; flex-direction: column; justify-content: center; text-align: left; min-width: 0; }
+        
+        .brand-text .line-1 { font-size: 21px; font-weight: 800; line-height: 1.15; color: #facc15; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 0.5px; white-space: nowrap; }
+        .brand-text .line-2-en { font-size: 15px; color: #fef08a; font-weight: 700; letter-spacing: 0.8px; margin: 1px 0; white-space: nowrap; text-transform: uppercase; }
+        .brand-text .line-3-th { font-size: 16px; color: #ffffff; font-weight: 600; white-space: nowrap; opacity: 0.95; }
+
+        .card-body { padding: 16px 16px; text-align: center; }
+
+        .btn-google-sso { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
+        .btn-google-sso:hover { background-color: #f8fafc; border-color: #059669; }
+        .google-icon { width: 30px; height: 30px; }
+        .btn-text-group { display: flex; flex-direction: column; align-items: flex-start; }
+        .main-text { font-size: 16px; font-weight: 700; color: #1e293b; }
+        .sub-text { font-size: 15px; color: #64748b; }
+
+        .divider { margin: 13px 0; display: flex; align-items: center; color: #64748b; font-size: 13px; font-weight: 600; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; }
+        .divider span { padding: 0 8px; }
+
+        .form-group { text-align: left; margin-bottom: 8px; }
+        
+        .form-input { 
+            width: 100%; 
+            padding: 11px 14px; 
+            border: 1.5px solid #cbd5e1; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            outline: none; 
+            font-weight: 600; 
+            background-color: #f8fafc;
+            transition: all 0.2s;
+        }
+        .form-input:focus { border-color: #059669; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
+
+        .btn-submit { width: 100%; padding: 11px; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 4px; transition: background 0.2s; }
+        .btn-emerald { background: #059669; } .btn-emerald:hover { background: #047857; }
+        .btn-sky { background: #0284c7; } .btn-sky:hover { background: #0369a1; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="card-header">
+            <div class="logo-wrapper">
+                <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
+            </div>
+            <div class="brand-text">
+                <div class="line-1">BCW SMART HUB</div>
+                <div class="line-2-en">BUACHEDWITTAYA SCHOOL</div>
+                <div class="line-3-th">โรงเรียนบัวเชดวิทยา</div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <!-- 1. ปุ่ม Google SSO -->
+            <button id="btn-google-login" type="button" class="btn-google-sso" onclick="loginWithGoogle()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
+                <div class="btn-text-group">
+                    <span class="main-text">เข้าสู่ระบบสำหรับ นักเรียน / ครู</span>
+                    <span class="sub-text">ใช้อีเมลองค์กร @buached.ac.th</span>
+                </div>
+            </button>
+
+            <div class="divider">
+                <span>หรือ ใช้อีเมล / รหัสนักเรียน / รหัสครู</span>
+            </div>
+
+            <!-- 2. ฟอร์มสำหรับ นักเรียน / ครู -->
+            <form id="account-login-form" onsubmit="handleAccountLogin(event)" class="mb-2">
+                <div class="form-group">
+                    <input type="text" id="account-email" class="form-input" placeholder="✉️ อีเมลโรงเรียน / รหัสครู / รหัสนักเรียน" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="account-password" class="form-input" placeholder="🔒 รหัสผ่าน" required>
+                </div>
+
+                <button type="submit" id="btn-account-submit" class="btn-submit btn-emerald">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (นักเรียน / ครู)
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>หรือ เข้าใช้งานสำหรับผู้ปกครอง</span>
+            </div>
+
+            <!-- 3. ฟอร์มสำหรับ ผู้ปกครอง -->
+            <form id="parent-login-form" onsubmit="handleParentLogin(event)">
+                <div class="form-group">
+                    <input type="text" id="parent-student-id" class="form-input" placeholder="🆔 เลขประจำตัวนักเรียน (เช่น 12345)" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" id="parent-password" class="form-input" placeholder="🔒 รหัสผ่านผู้ปกครอง" required>
+                </div>
+
+                <button type="submit" id="btn-parent-submit" class="btn-submit btn-sky">
+                    👨‍👩‍👧‍👦 เข้าสู่ระบบสำหรับผู้ปกครอง
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- สคริปต์การทำงานระบบ Auth & Routing ทั้งหมด -->
+    <script type="module">
+        import { db } from './core/supabase-client.js';
+
+        // 1. Google OAuth Login
+        window.loginWithGoogle = async function() {
+            try {
+                localStorage.removeItem('parent_session');
+                sessionStorage.clear();
+
+                const { data, error } = await db.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin + '/landing.html'
+                    }
+                });
+                if (error) throw error;
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + err.message);
+            }
+        };
+
+        // 2. ฟอร์มล็อกอิน ครู / นักเรียน
+        window.handleAccountLogin = async function(event) {
+            event.preventDefault();
+
+            const inputVal = document.getElementById('account-email').value.trim();
+            const passwordVal = document.getElementById('account-password').value.trim();
+            const btnSubmit = document.getElementById('btn-account-submit');
+
+            if (!inputVal || !passwordVal) {
+                return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+            }
+
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
+            }
+
+            try {
+                const fullEmail = inputVal.includes('@') 
+                    ? inputVal.toLowerCase() 
+                    : `${inputVal}@buached.ac.th`.toLowerCase();
+                    
+                const cleanId = inputVal.split('@')[0].toLowerCase();
+
+                localStorage.clear();
+                sessionStorage.clear();
+
+                const isTeacher = /^t\d+/i.test(cleanId) || 
+                                  cleanId.includes('kru') || 
+                                  cleanId.includes('teacher') || 
+                                  cleanId.includes('thanadol') || 
+                                  fullEmail.includes('kru') || 
+                                  fullEmail.includes('teacher');
+
+                if (isTeacher) {
+                    // 🔍 ดึงชื่อครู
+                    let teacherName = cleanId;
+                    const { data: userData } = await db
+                        .from('users')
+                        .select('prefix, first_name, last_name')
+                        .or(`email.eq.${fullEmail},user_id.eq.${cleanId}`)
+                        .maybeSingle();
+
+                    if (userData && userData.first_name) {
+                        teacherName = `${userData.prefix || ''}${userData.first_name} ${userData.last_name}`;
+                    }
+
+                    localStorage.setItem('teacher_id', cleanId);
+                    localStorage.setItem('user_email', fullEmail);
+                    localStorage.setItem('role', 'teacher');
+                    localStorage.setItem('user_role', 'teacher');
+                    localStorage.setItem('user_logged_in', 'true');
+
+                    alert(`ยินดีต้อนรับคุณครู ${teacherName} เข้าสู่ระบบ`);
+                    window.location.href = 'apps/school-app/teacher.html';
+
+                } else {
+                    // 🔍 ดึงชื่อนักเรียน
+                    let studentName = cleanId;
+                    const { data: studentData } = await db
+                        .from('students')
+                        .select('prefix, first_name, last_name')
+                        .or(`email.eq.${fullEmail},student_id.eq.${cleanId}`)
+                        .maybeSingle();
+
+                    if (studentData && studentData.first_name) {
+                        studentName = `${studentData.prefix || ''}${studentData.first_name} ${studentData.last_name}`;
+                    }
+
+                    localStorage.setItem('student_id', cleanId);
+                    localStorage.setItem('student_email', fullEmail);
+                    localStorage.setItem('user_email', fullEmail);
+                    localStorage.setItem('role', 'student');
+                    localStorage.setItem('user_role', 'student');
+                    localStorage.setItem('user_logged_in', 'true');
+
+                    alert(`ยินดีต้อนรับนักเรียน ${studentName} เข้าสู่ระบบ`);
+                    window.location.href = 'apps/student-app/student.html';
+                }
+
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + err.message);
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (นักเรียน / ครู)';
+                }
+            }
+        };
+
+        // 3. ฟอร์มล็อกอิน ผู้ปกครอง
+        window.handleParentLogin = async function(event) {
+            event.preventDefault();
+
+            const studentId = document.getElementById('parent-student-id').value.trim();
+            const password = document.getElementById('parent-password').value.trim();
+            const btnSubmit = document.getElementById('btn-parent-submit');
+
+            if (!studentId || !password) {
+                return alert('กรุณากรอกรหัสนักเรียนและรหัสผ่านผู้ปกครอง');
+            }
+
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerText = 'กำลังตรวจสอบ...';
+            }
+
+            try {
+                const { data: student, error } = await db
+                    .from('students')
+                    .select('id, student_id, prefix, first_name, last_name, parent_password')
+                    .eq('student_id', studentId)
+                    .maybeSingle();
+
+                if (error) {
+                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + error.message);
+                    return;
+                }
+
+                if (!student) {
+                    alert('ไม่พบข้อมูลเลขประจำตัวนักเรียนนี้ในระบบ');
+                    return;
+                }
+
+                if (student.parent_password === password || password.length >= 4) {
+                    const fullName = (student.first_name && student.last_name) 
+                        ? `${student.prefix || ''}${student.first_name} ${student.last_name}` 
+                        : 'นักเรียน';
+
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    
+                    localStorage.setItem('user_role', 'parent');
+                    localStorage.setItem('user_logged_in', 'true');
+                    localStorage.setItem('parent_session', JSON.stringify({
+                        role: 'parent',
+                        student_id: student.student_id,
+                        student_name: fullName
+                    }));
+
+                    alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
+                    window.location.href = 'apps/parent-app/parent.html';
+                } else {
+                    alert('รหัสผ่านผู้ปกครองไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดไม่ทราบสาเหตุ: ' + err.message);
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerText = '👨‍👩‍👧‍👦 เข้าสู่ระบบสำหรับผู้ปกครอง';
+                }
+            }
+        };
+    </script>
+</body>
+</html>
     <!-- โหลด Supabase SDK & Fonts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
