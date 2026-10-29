@@ -408,27 +408,77 @@
         }
 
         async function checkAuthAndInit() {
-            const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
-            const teacherCode = storedUser.teacher_code || storedUser.teacher_id || 'T024';
-
-            let fullName = 'นายธนดล คำเสนอ';
-            let avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${teacherCode}.webp`;
-
             try {
-                const { data: userDB } = await db.from('users').select('full_name').eq('teacher_id', teacherCode).maybeSingle();
-                if (userDB && userDB.full_name) fullName = userDB.full_name;
-            } catch (e) {}
-
-            document.getElementById('headerTeacherName').innerText = fullName;
-            document.getElementById('teacherCodeDisplay').innerText = `รหัส: ${teacherCode}`;
-
-            const img = document.getElementById('headerTeacherAvatar');
-            if (img) {
-                img.src = avatarUrl;
-                img.onerror = () => { img.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png'; };
+                // 1. ตรวจสอบ Supabase Auth Session (จากการล็อกอิน Google)
+                const { data: { session } } = await db.auth.getSession();
+                
+                let userEmail = '';
+                let googleName = '';
+                let avatarUrl = '';
+        
+                if (session && session.user) {
+                    userEmail = (session.user.email || '').toLowerCase();
+                    googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+                    avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '';
+                }
+        
+                // 2. ดึงข้อมูลจาก LocalStorage (สำหรับการล็อกอินฟอร์มปกติ)
+                const storedUser = JSON.parse(localStorage.getItem('user_profile') || sessionStorage.getItem('user_profile') || '{}');
+                const localTeacherCode = localStorage.getItem('teacher_id') || storedUser.teacher_code || storedUser.teacher_id;
+        
+                // 🚨 ถ้าไม่มีทั้ง Google Session และ LocalStorage ให้ส่งกลับหน้า Login ทันที
+                if (!session && !localTeacherCode) {
+                    alert('🔒 กรุณาเข้าสู่ระบบก่อนใช้งานแอปครูผู้สอน');
+                    window.location.replace('../../login.html');
+                    return;
+                }
+        
+                // 3. ค้นหาข้อมูลครูจากตาราง users
+                let teacherCode = localTeacherCode || userEmail.split('@')[0];
+                let fullName = googleName || 'คุณครู';
+        
+                if (userEmail) {
+                    // ค้นหาด้วยอีเมล
+                    const { data: userDB } = await db
+                        .from('users')
+                        .select('user_id, prefix, first_name, last_name, full_name')
+                        .eq('email', userEmail)
+                        .maybeSingle();
+        
+                    if (userDB) {
+                        teacherCode = userDB.user_id || teacherCode;
+                        fullName = userDB.full_name || `${userDB.prefix || ''}${userDB.first_name || ''} ${userDB.last_name || ''}`.trim() || fullName;
+                    }
+                } else if (teacherCode) {
+                    // ค้นหาด้วยรหัสครู
+                    const { data: userDB } = await db
+                        .from('users')
+                        .select('prefix, first_name, last_name, full_name')
+                        .or(`user_id.eq.${teacherCode},teacher_id.eq.${teacherCode}`)
+                        .maybeSingle();
+        
+                    if (userDB) {
+                        fullName = userDB.full_name || `${userDB.prefix || ''}${userDB.first_name || ''} ${userDB.last_name || ''}`.trim();
+                    }
+                }
+        
+                // 4. บันทึก Session สำรองเผื่อฟังก์ชันอื่นในหน้าเรียกใช้
+                localStorage.setItem('teacher_id', teacherCode);
+                localStorage.setItem('user_logged_in', 'true');
+        
+                // 5. แสดงผลชื่อและรหัสครูบน UI Header
+                const nameElem = document.getElementById('headerTeacherName');
+                if (nameElem) nameElem.innerText = fullName;
+        
+                const codeElem = document.getElementById('teacherCodeDisplay');
+                if (codeElem) codeElem.innerText = `รหัส: ${teacherCode}`;
+        
+                const imgElem = document.getElementById('headerTeacherAvatar');
+                if (imgElem && avatarUrl) imgElem.src = avatarUrl;
+        
+            } catch (e) {
+                console.error('Error in checkAuthAndInit:', e);
             }
-
-            await renderStudents();
         }
 
         async function renderStudents() {
