@@ -558,79 +558,86 @@
 
         let chartObj = null;
 
-        // 🔍 1. เช็ก Session แยกสิทธิ์การใช้งาน
-        // 🔍 เช็ก Session และจัดการ Routing ตามสิทธิ์ผู้ใช้งานแบบเด็ดขาด
+        // 🔍 เช็ก Session และแยกสาย Routing ให้ถูกต้อง 100% จากฐานข้อมูล Supabase
         async function checkUserSession() {
             try {
                 const { data: { session } } = await db.auth.getSession();
         
                 if (session && session.user) {
-                    // 🚨 ล้าง Session ผู้ปกครองตกค้างทันที เมื่อพบว่าเป็นการเข้าด้วย Google OAuth (ครู/นักเรียน/แอดมิน)
+                    // ล้าง session ผู้ปกครองค้างทิ้งทันทีเมื่อเป็นการล็อกอินด้วย Google
                     localStorage.removeItem('parent_session');
         
-                    const userEmail = session.user.email || '';
+                    const userEmail = (session.user.email || '').toLowerCase();
                     const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || userEmail;
                     const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
+                    const cleanId = userEmail.split('@')[0]; // เช่น kruthanadol หรือ 13174
         
-                    // 1. ตรวจสอบตาราง users (ครู / แอดมิน / ผู้บริหาร)
-                    const { data: profile } = await db
+                    let role = null;
+                    let displayName = googleName;
+                    let userId = cleanId;
+        
+                    // 1. ตรวจสอบในตาราง users ก่อน (สำหรับ ครู / แอดมิน / ผู้บริหาร)
+                    const { data: teacherProfile } = await db
                         .from('users')
                         .select('role, prefix, first_name, last_name, user_id')
                         .eq('email', userEmail)
                         .maybeSingle();
         
-                    let role = profile?.role ? profile.role.toUpperCase() : null;
-                    let displayName = profile && profile.first_name ? `${profile.prefix || ''}${profile.first_name} ${profile.last_name}` : googleName;
-                    let userId = profile?.user_id || userEmail.split('@')[0];
+                    if (teacherProfile) {
+                        role = teacherProfile.role ? teacherProfile.role.toUpperCase() : 'TEACHER';
+                        displayName = `${teacherProfile.prefix || ''}${teacherProfile.first_name || ''} ${teacherProfile.last_name || ''}`.trim() || googleName;
+                        userId = teacherProfile.user_id || cleanId;
+                    }
         
-                    // 2. ถ้าไม่พบใน users ให้ตรวจสอบตาราง students (นักเรียน)
+                    // 2. ถ้าไม่พบใน users ให้ตรวจสอบในตาราง students (สำหรับ นักเรียน)
                     if (!role) {
                         const { data: studentProfile } = await db
                             .from('students')
                             .select('student_id, prefix, first_name, last_name')
-                            .eq('email', userEmail)
+                            .or(`email.eq.${userEmail},student_id.eq.${cleanId}`)
                             .maybeSingle();
         
                         if (studentProfile) {
                             role = 'STUDENT';
-                            displayName = `${studentProfile.prefix || ''}${studentProfile.first_name} ${studentProfile.last_name}`;
-                            userId = studentProfile.student_id;
+                            displayName = `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || googleName;
+                            userId = studentProfile.student_id || cleanId;
                         }
                     }
         
-                    // 3. Fallback จากรูปแบบอีเมล
+                    // 3. Fallback: ถ้ายังไม่พบในตาราง ให้เช็กจากรูปแบบอีเมล
                     if (!role) {
-                        const isStudentEmail = userEmail.startsWith('s') || userEmail.includes('std') || /\d{5}/.test(userEmail);
-                        role = isStudentEmail ? 'STUDENT' : 'TEACHER';
+                        // ถ้านามสมมติ/อีเมล เป็นตัวเลข 5 หลัก (เช่น 13174@buached.ac.th) ให้ถือเป็นนักเรียน
+                        const isStudent = /^\d{5}$/.test(cleanId) || userEmail.startsWith('s');
+                        role = isStudent ? 'STUDENT' : 'TEACHER';
                     }
         
-                    // 🚀 ROUTING LOGIC ตามโจทย์:
-                    // - ครู ➔ เด้งไปแอปครู (teacher.html)
-                    if (role === 'TEACHER') {
-                        window.location.href = 'apps/school-app/teacher.html';
-                        return;
-                    }
-        
-                    // - นักเรียน ➔ เด้งไปแอปนักเรียน (student.html)
+                    // 🎯 ROUTING REDIRECT LOGIC
+                    // - นักเรียน ➔ ไปแอปนักเรียนทันที
                     if (role === 'STUDENT') {
                         window.location.href = 'apps/student-app/student.html';
                         return;
                     }
         
-                    // - แอดมิน / ผู้บริหาร ➔ อยู่หน้า Landing (landing.html) ต่อไป
+                    // - ครู ➔ ไปแอปครูทันที
+                    if (role === 'TEACHER') {
+                        window.location.href = 'apps/school-app/teacher.html';
+                        return;
+                    }
+        
+                    // - แอดมิน / ผู้บริหาร (ADMIN / EXECUTIVE) ➔ แสดงหน้า landing.html
                     updateLandingUI(displayName, role, `รหัส: ${userId}`, avatarUrl);
                     loadLandingRealStats();
                     return;
                 }
         
-                // - ผู้ปกครอง ➔ เด้งไปแอปผู้ปกครอง (parent.html)
+                // หากไม่มี Google Session ค่อยไปดูว่าใช่ Session ผู้ปกครองหรือไม่
                 const parentSession = localStorage.getItem('parent_session');
                 if (parentSession) {
                     window.location.href = 'apps/parent-app/parent.html';
                     return;
                 }
         
-                // ถ้าไม่มี Session ใดๆ ให้กลับไปหน้า Login
+                // ไม่มี Session ใดๆ กลับไป Login
                 window.location.href = './login.html';
         
             } catch (err) {
