@@ -559,66 +559,80 @@
         let chartObj = null;
 
         // 🔍 1. เช็ก Session แยกสิทธิ์การใช้งาน
+        // 🔍 เช็ก Session และจัดการ Routing ตามสิทธิ์ผู้ใช้งานแบบเด็ดขาด
         async function checkUserSession() {
             try {
                 const { data: { session } } = await db.auth.getSession();
-
+        
                 if (session && session.user) {
+                    // 🚨 ล้าง Session ผู้ปกครองตกค้างทันที เมื่อพบว่าเป็นการเข้าด้วย Google OAuth (ครู/นักเรียน/แอดมิน)
+                    localStorage.removeItem('parent_session');
+        
                     const userEmail = session.user.email || '';
                     const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || userEmail;
                     const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null;
-
-                    // เช็กตาราง users
+        
+                    // 1. ตรวจสอบตาราง users (ครู / แอดมิน / ผู้บริหาร)
                     const { data: profile } = await db
                         .from('users')
                         .select('role, prefix, first_name, last_name, user_id')
                         .eq('email', userEmail)
                         .maybeSingle();
-
+        
                     let role = profile?.role ? profile.role.toUpperCase() : null;
                     let displayName = profile && profile.first_name ? `${profile.prefix || ''}${profile.first_name} ${profile.last_name}` : googleName;
                     let userId = profile?.user_id || userEmail.split('@')[0];
-
-                    // ถ้าไม่พบใน users ให้เช็กตาราง students
+        
+                    // 2. ถ้าไม่พบใน users ให้ตรวจสอบตาราง students (นักเรียน)
                     if (!role) {
                         const { data: studentProfile } = await db
                             .from('students')
                             .select('student_id, prefix, first_name, last_name')
                             .eq('email', userEmail)
                             .maybeSingle();
-
+        
                         if (studentProfile) {
                             role = 'STUDENT';
                             displayName = `${studentProfile.prefix || ''}${studentProfile.first_name} ${studentProfile.last_name}`;
                             userId = studentProfile.student_id;
                         }
                     }
-
-                    // Fallback เช็กแพทเทิร์นอีเมลนักเรียน
+        
+                    // 3. Fallback จากรูปแบบอีเมล
                     if (!role) {
-                        role = (userEmail.startsWith('s') || userEmail.includes('std') || /\d{5}/.test(userEmail)) ? 'STUDENT' : 'TEACHER';
+                        const isStudentEmail = userEmail.startsWith('s') || userEmail.includes('std') || /\d{5}/.test(userEmail);
+                        role = isStudentEmail ? 'STUDENT' : 'TEACHER';
                     }
-
-                    // 🚀 นักเรียนเด้งไปหน้า Student App ทันที
+        
+                    // 🚀 ROUTING LOGIC ตามโจทย์:
+                    // - ครู ➔ เด้งไปแอปครู (teacher.html)
+                    if (role === 'TEACHER') {
+                        window.location.href = 'apps/school-app/teacher.html';
+                        return;
+                    }
+        
+                    // - นักเรียน ➔ เด้งไปแอปนักเรียน (student.html)
                     if (role === 'STUDENT') {
                         window.location.href = 'apps/student-app/student.html';
                         return;
                     }
-
+        
+                    // - แอดมิน / ผู้บริหาร ➔ อยู่หน้า Landing (landing.html) ต่อไป
                     updateLandingUI(displayName, role, `รหัส: ${userId}`, avatarUrl);
                     loadLandingRealStats();
                     return;
                 }
-
-                // Session ผู้ปกครอง -> ส่งไปหน้า parent.html
+        
+                // - ผู้ปกครอง ➔ เด้งไปแอปผู้ปกครอง (parent.html)
                 const parentSession = localStorage.getItem('parent_session');
                 if (parentSession) {
                     window.location.href = 'apps/parent-app/parent.html';
                     return;
                 }
-
+        
+                // ถ้าไม่มี Session ใดๆ ให้กลับไปหน้า Login
                 window.location.href = './login.html';
-
+        
             } catch (err) {
                 console.error('Error checking user session:', err.message);
             }
