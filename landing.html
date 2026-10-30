@@ -61,12 +61,12 @@
             z-index: 1001;
             transform: translateY(100%);
             transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-            max-height: 82vh;
+            max-height: 88vh;
             display: flex; flex-direction: column;
         }
         .bottom-sheet-backdrop.active .bottom-sheet-card { transform: translateY(0); }
 
-        /* 👑 ✨ 📱 FLOATING BOTTOM NAVIGATION BAR (แถบเมนูลอย + ขอบทองหรูหรา) ✨ 👑 */
+        /* 👑 FLOATING BOTTOM NAVIGATION BAR (แถบเมนูลอย + ขอบทอง + Active State) */
         .native-bottom-nav {
             position: fixed; 
             bottom: 16px; 
@@ -75,7 +75,7 @@
             height: 64px;
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 2px solid #f59e0b; /* ขอบทอง Amber/Gold */
+            border: 2px solid #f59e0b;
             border-radius: 28px;
             display: flex; align-items: center; justify-content: space-around;
             padding: 0 8px; z-index: 900;
@@ -92,11 +92,23 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 17px; transition: all 0.2s ease; margin-bottom: 2px;
         }
-        .nav-item-btn.active { color: #d97706; }
+        .nav-item-btn.active { color: #d97706 !important; }
         .nav-item-btn.active .nav-icon-box {
-            background: #fef3c7; color: #b45309;
-            box-shadow: 0 2px 10px rgba(217, 119, 6, 0.25);
-            border: 1px solid #fcd34d;
+            background: #fef3c7 !important; color: #b45309 !important;
+            box-shadow: 0 2px 10px rgba(217, 119, 6, 0.25) !important;
+            border: 1px solid #fcd34d !important;
+        }
+
+        /* 👑 Side Admin Floating Button (ปุ่มลูกศรแอดมินลอยขอบขวา) */
+        .admin-side-trigger {
+            position: fixed; right: 0; top: 45%;
+            transform: translateY(-50%);
+            background: #0f172a; color: #fbbf24;
+            border: 2px solid #f59e0b; border-right: none;
+            border-top-left-radius: 18px; border-bottom-left-radius: 18px;
+            padding: 10px 8px; z-index: 950;
+            box-shadow: -4px 4px 15px rgba(0,0,0,0.2);
+            cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
         }
 
         .swipe-handle-area {
@@ -107,7 +119,6 @@
             width: 44px; height: 5px; background-color: #cbd5e1; border-radius: 99px;
         }
 
-        /* 📑 เมนูเลือกรายงานสไตล์ List สบายตา */
         .report-menu-item {
             display: flex;
             align-items: center;
@@ -118,13 +129,17 @@
             border-radius: 16px;
             transition: all 0.2s ease;
         }
-        .report-menu-item:active {
-            background: #f1f5f9;
-            transform: scale(0.98);
-        }
+        .report-menu-item:active { background: #f1f5f9; transform: scale(0.98); }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col justify-between overflow-hidden p-3 pb-28 select-none relative">
+
+    <!-- 👑 Side Admin Floating Trigger Button (ลูกศรบอกสิทธิ์แอดมินลอยขอบขวา) -->
+    <button type="button" onclick="openAdminDrawer()" class="admin-side-trigger">
+        <i class="fa-solid fa-chevron-left text-xs animate-pulse"></i>
+        <i class="fa-solid fa-user-shield text-sm"></i>
+        <span class="text-[9px] font-black tracking-tighter" style="writing-mode: vertical-rl;">ADMIN</span>
+    </button>
 
     <!-- 1. Header ส่วนหัว -->
     <header class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-950 text-white shadow-md rounded-2xl p-3 shrink-0 border-b-2 border-emerald-600 mt-1">
@@ -253,7 +268,7 @@
 
     </main>
 
-    <!-- 4. FLOATING NATIVE BOTTOM NAVIGATION BAR (ลอยสูง + ขอบทองสวยงาม) -->
+    <!-- 4. FLOATING NATIVE BOTTOM NAVIGATION BAR -->
     <nav class="native-bottom-nav">
         <button id="navHome" type="button" class="nav-item-btn active" onclick="switchNavTab('home')">
             <div class="nav-icon-box">
@@ -284,13 +299,40 @@
         </button>
     </nav>
 
-    <!-- 🏛️ 1. BOTTOM SHEET DRAWER: ศูนย์รวมรายงานฝ่ายบริหาร (เมนูแบบ List คลีนๆ) -->
+    <!-- 👑 ADMIN DRAWER BACKDROP (โซนตั้งค่าแอดมิน) -->
+    <div id="adminDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('adminDrawerBackdrop')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-slate-900 text-amber-400 rounded-2xl flex items-center justify-center text-xl shrink-0">👑</div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 leading-tight">ผู้ดูแลระบบ (Admin Console)</h3>
+                        <p class="text-[11px] text-amber-700 font-bold">การจัดการหลังบ้านและวิเคราะห์ภาพรวม</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDrawer('adminDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
+            </div>
+
+            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+                <a href="apps/school-app/executive.html" class="report-menu-item">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg">📊</span>
+                        <div>
+                            <div class="font-black text-slate-800 text-xs">1. แดชบอร์ดผู้บริหารภาพรวม</div>
+                            <div class="text-[10px] text-slate-500">รายงานสารสนเทศและสถิติตัวเลขหลัก</div>
+                        </div>
+                    </div>
+                    <span class="bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0">เปิด</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🏛️ 1. BOTTOM SHEET DRAWER: รายงานฝ่ายบริหาร (เลื่อนดูได้ไม่จำกัด) -->
     <div id="execDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('execDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
-            <div class="swipe-handle-area">
-                <div class="swipe-handle"></div>
-            </div>
-            
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
             <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-xl shrink-0">📁</div>
@@ -302,7 +344,7 @@
                 <button type="button" onclick="closeDrawer('execDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs max-h-[60vh]">
                 <a href="apps/school-app/executive.html" class="report-menu-item">
                     <div class="flex items-center gap-3">
                         <span class="text-lg">📊</span>
@@ -332,13 +374,10 @@
         </div>
     </div>
 
-    <!-- 📚 2. BOTTOM SHEET DRAWER: ศูนย์รวมรายงานฝ่ายวิชาการ -->
+    <!-- 📚 2. BOTTOM SHEET DRAWER: รายงานฝ่ายวิชาการ -->
     <div id="academicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('academicDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
-            <div class="swipe-handle-area">
-                <div class="swipe-handle"></div>
-            </div>
-            
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
             <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-sky-100 text-sky-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🎓</div>
@@ -350,7 +389,7 @@
                 <button type="button" onclick="closeDrawer('academicDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs max-h-[60vh]">
                 <a href="apps/school-app/academic.html" class="report-menu-item">
                     <div class="flex items-center gap-3">
                         <span class="text-lg">📚</span>
@@ -380,13 +419,10 @@
         </div>
     </div>
 
-    <!-- 🛡️ 3. BOTTOM SHEET DRAWER: ศูนย์รวมรายงานฝ่ายปกครอง (ตรงตามภาพที่ส่งมา) -->
+    <!-- 🛡️ 3. BOTTOM SHEET DRAWER: รายงานฝ่ายปกครอง -->
     <div id="disciplineDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('disciplineDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
-            <div class="swipe-handle-area">
-                <div class="swipe-handle"></div>
-            </div>
-            
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
             <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-xl shrink-0">📁</div>
@@ -398,7 +434,7 @@
                 <button type="button" onclick="closeDrawer('disciplineDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs max-h-[60vh]">
                 <a href="apps/school-app/student-affairs.html" class="report-menu-item">
                     <div class="flex items-center gap-3">
                         <span class="text-lg">📋</span>
@@ -439,13 +475,10 @@
         </div>
     </div>
 
-    <!-- 🏥 4. BOTTOM SHEET DRAWER: ศูนย์รวมรายงานห้องพยาบาล -->
+    <!-- 🏥 4. BOTTOM SHEET DRAWER: รายงานห้องพยาบาล -->
     <div id="clinicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('clinicDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
-            <div class="swipe-handle-area">
-                <div class="swipe-handle"></div>
-            </div>
-            
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
             <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🏥</div>
@@ -457,7 +490,7 @@
                 <button type="button" onclick="closeDrawer('clinicDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs max-h-[60vh]">
                 <a href="apps/school-app/clinic.html" class="report-menu-item">
                     <div class="flex items-center gap-3">
                         <span class="text-lg">💊</span>
@@ -478,6 +511,7 @@
 
     <!-- ⚡ Global UI Control Script -->
     <script>
+        window.openAdminDrawer = function() { openDrawerById('adminDrawerBackdrop'); };
         window.openExecutiveDrawer = function() { switchNavTab('exec'); openDrawerById('execDrawerBackdrop'); };
         window.openAcademicDrawer = function() { switchNavTab('academic'); openDrawerById('academicDrawerBackdrop'); };
         window.openDisciplineDrawer = function() { switchNavTab('discipline'); openDrawerById('disciplineDrawerBackdrop'); };
@@ -501,8 +535,11 @@
             });
         }
 
+        // สลับสถานะ Active ของ Bottom Navigation ชัดเจน
         window.switchNavTab = function(tab) {
-            document.querySelectorAll('.nav-item-btn').forEach(function(btn) { btn.classList.remove('active'); });
+            var btns = document.querySelectorAll('.nav-item-btn');
+            btns.forEach(function(btn) { btn.classList.remove('active'); });
+
             if (tab === 'home') {
                 document.getElementById('navHome').classList.add('active');
                 closeAllDrawers();
@@ -570,13 +607,12 @@
         });
     </script>
 
-    <!-- Main Auth & Data Module -->
+    <!-- Main Auth Module -->
     <script type="module">
         import { db } from './core/supabase-client.js';
         import { checkAuthAndRoute, logoutUser } from './core/auth-manager.js';[cite: 6]
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // โหลดชื่อโปรไฟล์ทันทีจาก LocalStorage ป้องกันชื่อค้าง
             const cachedName = localStorage.getItem('user_name');
             const cachedRole = localStorage.getItem('user_role');
             if (cachedName) {
