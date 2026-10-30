@@ -1,100 +1,91 @@
 import { db } from './supabase-client.js';
 
-/**
- * 🔍 1. ฟังก์ชันตรวจสอบบทบาท (Role Detection) จาก Input (ID หรือ Email)
- */
-export async function identifyUserRole(inputIdentifier, password = '') {
-    const cleanInput = inputIdentifier.trim().toLowerCase();
-    
-    // A. เช็กว่าเป็นครูหรือไม่ (ไอดีขึ้นต้นด้วย T หรือใช้อีเมลครู)
-    if (cleanInput.startsWith('t') || cleanInput.includes('kru') || cleanInput.includes('teacher')) {
-        // ค้นหาในตาราง teachers
-        try {
-            const { data, error } = await db.from('teachers')
-                .select('*')
-                .or(`teacher_id.ilike.${cleanInput},email.ilike.${cleanInput}`)
-                .maybeSingle();
-                
-            if (data) {
-                return { role: 'teacher', userData: data, redirectUrl: 'apps/school-app/teacher.html' };
-            }
-        } catch (e) {
-            console.error('Teacher lookup error:', e);
-        }
-    }
-
-    // B. เช็กว่าเป็นนักเรียนหรือผู้ปกครอง (รหัสนักเรียนเป็นตัวเลข 5 หลัก)
+export async function checkAuthAndRoute() {
     try {
-        const { data: student, error } = await db.from('students')
-            .select('*')
-            .or(`student_id.eq.${cleanInput},email.ilike.${cleanInput}`)
+        let { data: { session } } = await db.auth.getSession();
+
+        if (!session) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const retry = await db.auth.getSession();
+            session = retry.data?.session;
+        }
+
+        // กรณีไม่มี Session ผู้ใช้
+        if (!session || !session.user) {
+            if (localStorage.getItem('parent_session')) {
+                return { role: 'parent', target: 'apps/parent-app/parent.html' };
+            }
+            return { role: 'unauthenticated', target: 'login.html' };
+        }
+
+        const userEmail = (session.user.email || '').toLowerCase().trim();
+        const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || userEmail;
+        const cleanId = userEmail.split('@')[0].toLowerCase();
+
+        // 1. ตรวจสอบตาราง users (ครู / ผู้บริหาร / แอดมิน)
+        const { data: teacherProfile } = await db.from('users')
+            .select('user_id, role, prefix, first_name, last_name')
+            .eq('email', userEmail)
             .maybeSingle();
 
-        if (student) {
-            // เช็กว่าเป็นผู้ปกครองเข้าใช้งานหรือไม่ (ถ้ามี flag หรือ password ผู้ปกครอง)
-            if (password && student.parent_password && password === student.parent_password) {
-                return { role: 'parent', userData: student, redirectUrl: 'apps/parent-app/parent.html' };
+        if (teacherProfile) {
+            const fullName = `${teacherProfile.prefix || ''}${teacherProfile.first_name || ''} ${teacherProfile.last_name || ''}`.trim() || googleName;
+            
+            // ป้องกันปัญหาตัวพิมพ์เล็ก/ใหญ่ (TEACHER / ADMIN)
+            const role = (teacherProfile.role || 'teacher').toLowerCase().trim();
+
+            localStorage.setItem('user_role', role);
+            localStorage.setItem('user_id', teacherProfile.user_id || cleanId);
+            localStorage.setItem('teacher_id', teacherProfile.user_id || cleanId);
+            localStorage.setItem('user_email', userEmail);
+            localStorage.setItem('user_name', fullName);
+            localStorage.setItem('user_logged_in', 'true');
+
+            // แยกเป้าหมายให้ชัดเจน:
+            // - ถ้าเป็น admin หรือ executive ➔ ให้อยู่หน้า Smart Hub (landing.html)
+            // - ถ้าเป็น teacher ➔ ให้ไปหน้าครู (apps/school-app/teacher.html)
+            if (role === 'admin' || role === 'executive') {
+                return { role: role, target: 'landing.html', name: fullName };
+            } else {
+                return { role: 'teacher', target: 'apps/school-app/teacher.html', name: fullName };
             }
-            return { role: 'student', userData: student, redirectUrl: 'apps/student-app/student.html' };
         }
-    } catch (e) {
-        console.error('Student lookup error:', e);
-    }
 
-    return { role: null, userData: null, redirectUrl: null };
-}
+        // 2. ตรวจสอบตาราง students (นักเรียน)
+        const { data: studentProfile } = await db.from('students')
+            .select('student_id, prefix, first_name, last_name')
+            .or(`email.eq.${userEmail},student_id.eq.${cleanId}`)
+            .maybeSingle();
 
-/**
- * 💾 2. บันทึก Session ลง LocalStorage แบบเป็นมาตรฐานเดียวกันทั้งระบบ
- */
-export function saveUserSession(role, userData) {
-    localStorage.clear(); // ล้าง Session เก่าก่อนบันทึกใหม่
-    
-    localStorage.setItem('user_role', role);
-    localStorage.setItem('user_logged_in', 'true');
+        if (studentProfile) {
+            const fullName = `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || googleName;
 
-    if (role === 'teacher') {
-        localStorage.setItem('teacher_id', userData.teacher_id);
-        localStorage.setItem('teacher_email', userData.email || '');
-        localStorage.setItem('user_name', `${userData.prefix || ''}${userData.first_name} ${userData.last_name}`);
-    } else if (role === 'student' || role === 'parent') {
-        localStorage.setItem('student_id', userData.student_id);
-        localStorage.setItem('student_email', userData.email || '');
-        localStorage.setItem('student_class', userData.classroom || userData.class || '');
-        localStorage.setItem('user_name', `${userData.prefix || ''}${userData.first_name} ${userData.last_name}`);
-    }
-}
+            localStorage.setItem('user_role', 'student');
+            localStorage.setItem('user_id', studentProfile.student_id);
+            localStorage.setItem('student_id', studentProfile.student_id);
+            localStorage.setItem('user_email', userEmail);
+            localStorage.setItem('user_name', fullName);
+            localStorage.setItem('user_logged_in', 'true');
 
-/**
- * 🔒 3. ฟังก์ชันดักตรวจการเข้าถึงหน้า (ใช้ใส่ไว้ในแต่ละหน้าเพื่อป้องกันคนพิมพ์ URL เข้ามาตรงๆ)
- */
-export function protectPage(allowedRoles = []) {
-    const role = localStorage.getItem('user_role');
-    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+            return { role: 'student', target: 'apps/student-app/student.html', name: fullName };
+        }
 
-    if (!isLoggedIn || !role) {
-        window.location.href = '/login.html';
-        return;
-    }
+        // กรณีเป็น Guest
+        localStorage.setItem('user_role', 'guest');
+        return { role: 'guest', target: 'landing.html', name: googleName };
 
-    if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-        alert('⚠️ คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
-        redirectToRoleDashboard(role);
+    } catch (err) {
+        console.error('Auth Manager Error:', err);
+        return { role: 'error', target: 'login.html' };
     }
 }
 
-export function redirectToRoleDashboard(role) {
-    switch (role) {
-        case 'teacher':
-            window.location.href = '/apps/school-app/teacher.html';
-            break;
-        case 'student':
-            window.location.href = '/apps/student-app/student.html';
-            break;
-        case 'parent':
-            window.location.href = '/apps/parent-app/parent.html';
-            break;
-        default:
-            window.location.href = '/login.html';
-    }
+// ฟังก์ชัน Logout กลางสำหรับล้างข้อมูลทุกอย่าง
+export async function logoutUser() {
+    try {
+        await db.auth.signOut();
+    } catch (e) {}
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace('login.html');
 }
