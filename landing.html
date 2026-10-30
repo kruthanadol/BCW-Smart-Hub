@@ -498,108 +498,66 @@
     </div>
 
     <!-- Main JS Routing Module -->
+<!-- Main JS Routing Module (เรียกใช้งานผ่าน auth-manager.js) -->
     <script type="module">
-        import { db } from './core/supabase-client.js';
+        import { checkAuthAndRoute, logoutUser } from './core/auth-manager.js';[cite: 6]
 
-        let chartObj = null;
+        document.addEventListener('DOMContentLoaded', async () => {
+            // เรียกตรวจสอบสิทธิ์ผ่านระบบกลาง
+            const auth = await checkAuthAndRoute();
 
-        document.addEventListener('DOMContentLoaded', () => {
-            processCentralRouting();
+            // 1. ถ้าไม่ได้ล็อกอิน สั่งส่งกลับไปหน้า login.html
+            if (auth.role === 'unauthenticated') {
+                window.location.replace('login.html');
+                return;
+            }
+
+            // 2. ถ้าเป็นครูผู้สอนปกติ (TEACHER) สั่งส่งไปหน้าครู[cite: 6]
+            if (auth.role === 'teacher') {
+                window.location.replace(auth.target);
+                return;
+            }
+
+            // 3. ถ้าเป็นนักเรียน (STUDENT) สั่งส่งไปหน้านักเรียน
+            if (auth.role === 'student') {
+                window.location.replace(auth.target);
+                return;
+            }
+
+            // 4. ถ้าเป็น ADMIN / EXECUTIVE ให้อยู่หน้า BCW Smart Hub นี้ทันที
+            const nameElem = document.getElementById('userDisplayName');
+            if (nameElem) nameElem.innerText = auth.name || 'ผู้บริหาร/แอดมิน';
+
             updateThaiClock();
             setInterval(updateThaiClock, 1000);
-            setupTouchSwipeToClose();
         });
 
-        async function processCentralRouting() {
-            try {
-                let { data: { session } } = await db.auth.getSession();
-        
-                if (!session) {
-                    await new Promise(resolve => setTimeout(resolve, 600));
-                    const retry = await db.auth.getSession();
-                    session = retry.data?.session;
-                }
-        
-                if (session && session.user) {
-                    localStorage.removeItem('parent_session');
-        
-                    const userEmail = (session.user.email || '').toLowerCase().trim();
-                    const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || userEmail;
-                    const cleanId = userEmail.split('@')[0].toLowerCase();
-        
-                    // 1. ตรวจสอบตาราง users (ครู / ผู้บริหาร / แอดมิน)
-                    const { data: teacherProfile } = await db.from('users')
-                        .select('user_id, role, prefix, first_name, last_name')
-                        .eq('email', userEmail)
-                        .maybeSingle();
-        
-                    if (teacherProfile) {
-                        const fullName = `${teacherProfile.prefix || ''}${teacherProfile.first_name || ''} ${teacherProfile.last_name || ''}`.trim() || googleName;
-                        
-                        // 💡 จุดสำคัญ: แปลงค่า role จาก Supabase ให้เป็นตัวพิมพ์เล็กเสมอ ไม่ว่าจะส่งมาเป็น TEACHER หรือ teacher
-                        const role = (teacherProfile.role || '').toLowerCase().trim();
-        
-                        localStorage.setItem('user_role', role);
-                        localStorage.setItem('user_id', teacherProfile.user_id || cleanId);
-                        localStorage.setItem('teacher_id', teacherProfile.user_id || cleanId);
-                        localStorage.setItem('user_email', userEmail);
-                        localStorage.setItem('user_name', fullName);
-                        localStorage.setItem('user_logged_in', 'true');
-        
-                        updateLandingUI(fullName, role.toUpperCase(), `ID: ${teacherProfile.user_id || cleanId}`);
-        
-                        // 🎯 เช็กเงื่อนไขการแยกหน้า:
-                        // - ถ้าเป็นครูผู้สอนทั่วไป (teacher) ➔ ส่งไปหน้า apps/school-app/teacher.html
-                        // - ถ้าเป็นผู้บริหารหรือแอดมิน (admin/executive) ➔ ให้อยู่หน้า Smart Hub (landing.html)
-                        if (role === 'teacher') {
-                            window.location.replace('apps/school-app/teacher.html');
-                            return;
-                        }
-        
-                        loadLandingRealStats();
-                        return;
-                    }
-        
-                    // 2. ตรวจสอบตาราง students (นักเรียน)
-                    const { data: studentProfile } = await db.from('students')
-                        .select('student_id, prefix, first_name, last_name')
-                        .or(`email.eq.${userEmail},student_id.eq.${cleanId}`)
-                        .maybeSingle();
-        
-                    if (studentProfile) {
-                        const fullName = `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || googleName;
-        
-                        localStorage.setItem('user_role', 'student');
-                        localStorage.setItem('user_id', studentProfile.student_id);
-                        localStorage.setItem('student_id', studentProfile.student_id);
-                        localStorage.setItem('user_email', userEmail);
-                        localStorage.setItem('user_name', fullName);
-                        localStorage.setItem('user_logged_in', 'true');
-        
-                        window.location.replace('apps/student-app/student.html');
-                        return;
-                    }
-        
-                    // 3. กรณีล็อกอินผ่าน Google แต่ไม่มีชื่อในตารางใดๆ
-                    localStorage.setItem('user_role', 'guest');
-                    updateLandingUI(googleName, 'GUEST', `ID: ${cleanId}`);
-                    loadLandingRealStats();
-                    return;
-                }
-        
-                if (localStorage.getItem('parent_session')) {
-                    window.location.replace('apps/parent-app/parent.html');
-                    return;
-                }
-        
-                window.location.replace('login.html');
-        
-            } catch (err) {
-                console.error('Routing Error:', err);
-                window.location.replace('login.html');
-            }
+        function updateThaiClock() {
+            const now = new Date();
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+
+            const dateElem = document.getElementById('thaiDateStr');
+            if (dateElem) dateElem.innerText = `วัน${thaiDays[now.getDay()]}ที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
+
+            const clockElem = document.getElementById('liveClock');
+            if (clockElem) clockElem.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
         }
 
+        // ปุ่มควบคุม Bottom Sheet Drawers
+        window.openExecutiveDrawer = function() { document.getElementById('execDrawerBackdrop')?.classList.add('active'); };
+        window.openAcademicDrawer = function() { document.getElementById('academicDrawerBackdrop')?.classList.add('active'); };
+        window.openDisciplineDrawer = function() { document.getElementById('academicDrawerBackdrop')?.classList.add('active'); };
+        window.openClinicDrawer = function() { document.getElementById('academicDrawerBackdrop')?.classList.add('active'); };
+        window.closeDrawer = function(id) { document.getElementById(id)?.classList.remove('active'); };
+
+        // ผูกปุ่ม Logout เข้ากับสคริปต์กลาง
+        window.handleLogout = function() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                logoutUser();
+            }
+        };
+  
         async function loadLandingRealStats() {
             try {
                 const today = new Date().toISOString().split('T')[0];
