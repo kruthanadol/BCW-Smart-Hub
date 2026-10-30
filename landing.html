@@ -510,93 +510,95 @@
             setupTouchSwipeToClose();
         });
 
-      async function processCentralRouting() {
-        try {
-            // 1. ล้างค่า Session ค้างเก่าของนักเรียน/ผู้ปกครอง เพื่อป้องกันการจำ Role ผิด
-            const currentRole = localStorage.getItem('user_role');
-            
-            let { data: { session } } = await db.auth.getSession();
-    
-            if (!session) {
-                await new Promise(resolve => setTimeout(resolve, 600));
-                const retry = await db.auth.getSession();
-                session = retry.data?.session;
-            }
-    
-            if (session && session.user) {
-                localStorage.removeItem('parent_session');
-    
-                const userEmail = (session.user.email || '').toLowerCase();
-                const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || userEmail;
-                const cleanId = userEmail.split('@')[0].toLowerCase();
-    
-                // 🔍 [ลำดับที่ 1]: ตรวจสอบตาราง users ก่อนเสมอ (สำหรับ ครู / แอดมิน / ผู้บริหาร)
-                const { data: teacherProfile } = await db.from('users')
-                    .select('user_id, role, prefix, first_name, last_name')
-                    .eq('email', userEmail)
-                    .maybeSingle();
-    
-                if (teacherProfile) {
-                    const fullName = `${teacherProfile.prefix || ''}${teacherProfile.first_name || ''} ${teacherProfile.last_name || ''}`.trim() || googleName;
-                    const role = teacherProfile.role ? teacherProfile.role.toLowerCase() : 'teacher';
-    
-                    localStorage.setItem('user_role', role);
-                    localStorage.setItem('user_id', teacherProfile.user_id || cleanId);
-                    localStorage.setItem('teacher_id', teacherProfile.user_id || cleanId);
-                    localStorage.setItem('user_email', userEmail);
-                    localStorage.setItem('user_name', fullName);
-                    localStorage.setItem('user_logged_in', 'true');
-    
-                    // ปรับแต่ง UI หัวเว็บตามชื่อและสิทธิ์ที่ถูกต้อง
-                    updateLandingUI(fullName, role.toUpperCase(), `ID: ${teacherProfile.user_id || cleanId}`);
-    
-                    // หากเป็นครู ให้ส่งไปหน้าครู หากเป็น Admin/Executive ให้อยู่หน้า Smart Hub
-                    if (role === 'teacher') {
-                        window.location.replace('apps/school-app/teacher.html');
+        async function processCentralRouting() {
+            try {
+                let { data: { session } } = await db.auth.getSession();
+        
+                if (!session) {
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                    const retry = await db.auth.getSession();
+                    session = retry.data?.session;
+                }
+        
+                if (session && session.user) {
+                    localStorage.removeItem('parent_session');
+        
+                    const userEmail = (session.user.email || '').toLowerCase().trim();
+                    const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || userEmail;
+                    const cleanId = userEmail.split('@')[0].toLowerCase();
+        
+                    // 1. ตรวจสอบตาราง users (ครู / ผู้บริหาร / แอดมิน)
+                    const { data: teacherProfile } = await db.from('users')
+                        .select('user_id, role, prefix, first_name, last_name')
+                        .eq('email', userEmail)
+                        .maybeSingle();
+        
+                    if (teacherProfile) {
+                        const fullName = `${teacherProfile.prefix || ''}${teacherProfile.first_name || ''} ${teacherProfile.last_name || ''}`.trim() || googleName;
+                        
+                        // 💡 จุดสำคัญ: แปลงค่า role จาก Supabase ให้เป็นตัวพิมพ์เล็กเสมอ ไม่ว่าจะส่งมาเป็น TEACHER หรือ teacher
+                        const role = (teacherProfile.role || '').toLowerCase().trim();
+        
+                        localStorage.setItem('user_role', role);
+                        localStorage.setItem('user_id', teacherProfile.user_id || cleanId);
+                        localStorage.setItem('teacher_id', teacherProfile.user_id || cleanId);
+                        localStorage.setItem('user_email', userEmail);
+                        localStorage.setItem('user_name', fullName);
+                        localStorage.setItem('user_logged_in', 'true');
+        
+                        updateLandingUI(fullName, role.toUpperCase(), `ID: ${teacherProfile.user_id || cleanId}`);
+        
+                        // 🎯 เช็กเงื่อนไขการแยกหน้า:
+                        // - ถ้าเป็นครูผู้สอนทั่วไป (teacher) ➔ ส่งไปหน้า apps/school-app/teacher.html
+                        // - ถ้าเป็นผู้บริหารหรือแอดมิน (admin/executive) ➔ ให้อยู่หน้า Smart Hub (landing.html)
+                        if (role === 'teacher') {
+                            window.location.replace('apps/school-app/teacher.html');
+                            return;
+                        }
+        
+                        loadLandingRealStats();
                         return;
                     }
-    
+        
+                    // 2. ตรวจสอบตาราง students (นักเรียน)
+                    const { data: studentProfile } = await db.from('students')
+                        .select('student_id, prefix, first_name, last_name')
+                        .or(`email.eq.${userEmail},student_id.eq.${cleanId}`)
+                        .maybeSingle();
+        
+                    if (studentProfile) {
+                        const fullName = `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || googleName;
+        
+                        localStorage.setItem('user_role', 'student');
+                        localStorage.setItem('user_id', studentProfile.student_id);
+                        localStorage.setItem('student_id', studentProfile.student_id);
+                        localStorage.setItem('user_email', userEmail);
+                        localStorage.setItem('user_name', fullName);
+                        localStorage.setItem('user_logged_in', 'true');
+        
+                        window.location.replace('apps/student-app/student.html');
+                        return;
+                    }
+        
+                    // 3. กรณีล็อกอินผ่าน Google แต่ไม่มีชื่อในตารางใดๆ
+                    localStorage.setItem('user_role', 'guest');
+                    updateLandingUI(googleName, 'GUEST', `ID: ${cleanId}`);
                     loadLandingRealStats();
                     return;
                 }
-    
-                // 🔍 [ลำดับที่ 2]: ถ้าไม่เจอในตาราง users ค่อยมาเช็กตาราง students (สำหรับนักเรียน)
-                const { data: studentProfile } = await db.from('students')
-                    .select('student_id, prefix, first_name, last_name')
-                    .or(`email.eq.${userEmail},student_id.eq.${cleanId}`)
-                    .maybeSingle();
-    
-                if (studentProfile) {
-                    const fullName = `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || googleName;
-    
-                    localStorage.setItem('user_role', 'student');
-                    localStorage.setItem('user_id', studentProfile.student_id);
-                    localStorage.setItem('student_id', studentProfile.student_id);
-                    localStorage.setItem('user_email', userEmail);
-                    localStorage.setItem('user_name', fullName);
-                    localStorage.setItem('user_logged_in', 'true');
-    
-                    window.location.replace('apps/student-app/student.html');
+        
+                if (localStorage.getItem('parent_session')) {
+                    window.location.replace('apps/parent-app/parent.html');
                     return;
                 }
-    
-                // กรณีล็อกอิน Google ผ่าน แต่ไม่มีข้อมูลทั้งใน users และ students
-                updateLandingUI(googleName, 'GUEST', `ID: ${cleanId}`);
-                return;
+        
+                window.location.replace('login.html');
+        
+            } catch (err) {
+                console.error('Routing Error:', err);
+                window.location.replace('login.html');
             }
-    
-            if (localStorage.getItem('parent_session')) {
-                window.location.replace('apps/parent-app/parent.html');
-                return;
-            }
-    
-            window.location.replace('login.html');
-    
-        } catch (err) {
-            console.error('Routing Error:', err);
-            window.location.replace('login.html');
         }
-    }
 
         async function loadLandingRealStats() {
             try {
