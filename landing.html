@@ -234,7 +234,7 @@
 
     </main>
 
-    <!-- 4. NATIVE BOTTOM NAVIGATION BAR -->
+    <!-- 4. NATIVE BOTTOM NAVIGATION BAR (พร้อมลิงก์ครบถ้วน) -->
     <nav class="native-bottom-nav">
         <button type="button" class="nav-item-btn active" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
             <div class="nav-icon-box">
@@ -458,39 +458,82 @@
         </div>
     </div>
 
-    <!-- Main JS Routing & Core Module -->
+    <!-- ⚡ Global UI Functions (ทำงานก่อน สคริปต์ Auth เพื่อป้องกัน UI ค้าง) -->
+    <script>
+        window.openExecutiveDrawer = function() { openDrawerById('execDrawerBackdrop'); };
+        window.openAcademicDrawer = function() { openDrawerById('academicDrawerBackdrop'); };
+        window.openDisciplineDrawer = function() { openDrawerById('disciplineDrawerBackdrop'); };
+        window.openClinicDrawer = function() { openDrawerById('clinicDrawerBackdrop'); };
+
+        function openDrawerById(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.add('active');
+        }
+
+        window.closeDrawer = function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+        };
+
+        function startClock() {
+            var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            var thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+
+            function update() {
+                var now = new Date();
+                var dateElem = document.getElementById('thaiDateStr');
+                if (dateElem) dateElem.innerText = 'วัน' + thaiDays[now.getDay()] + 'ที่ ' + now.getDate() + ' ' + thaiMonths[now.getMonth()] + ' พ.ศ. ' + (now.getFullYear() + 543);
+
+                var clockElem = document.getElementById('liveClock');
+                if (clockElem) clockElem.innerText = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+            }
+            update();
+            setInterval(update, 1000);
+        }
+        document.addEventListener('DOMContentLoaded', startClock);
+    </script>
+
+    <!-- Main Auth Module -->
     <script type="module">
         import { db } from './core/supabase-client.js';
         import { checkAuthAndRoute, logoutUser } from './core/auth-manager.js';[cite: 6]
 
-        let chartObj = null;
-
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. ตรวจสอบสิทธิ์ผ่าน Auth Manager สคริปต์กลาง[cite: 6]
-            const auth = await checkAuthAndRoute();
-
-            if (auth.role === 'unauthenticated') {
-                window.location.replace('login.html');
-                return;
+            // อ่านค่าชื่อที่บันทึกไว้แสดงผลเบื้องต้นก่อน
+            const cachedName = localStorage.getItem('user_name');
+            const cachedRole = localStorage.getItem('user_role');
+            if (cachedName) {
+                document.getElementById('userDisplayName').innerText = cachedName;
+            }
+            if (cachedRole) {
+                document.getElementById('userRoleBadge').innerText = cachedRole.toUpperCase() + ' • BUACHEDWITTAYA SCHOOL';
             }
 
-            if (auth.role === 'teacher') {
-                window.location.replace(auth.target);
-                return;
+            try {
+                const auth = await checkAuthAndRoute();
+
+                if (auth.role === 'unauthenticated') {
+                    window.location.replace('login.html');
+                    return;
+                }
+
+                if (auth.role === 'teacher') {
+                    window.location.replace(auth.target);
+                    return;
+                }
+
+                if (auth.role === 'student') {
+                    window.location.replace(auth.target);
+                    return;
+                }
+
+                if (auth.name) {
+                    document.getElementById('userDisplayName').innerText = auth.name;
+                }
+            } catch (e) {
+                console.warn('Auth Routing Non-blocking Warning:', e);
             }
 
-            if (auth.role === 'student') {
-                window.location.replace(auth.target);
-                return;
-            }
-
-            // แสดงชื่อบนหัวเว็บ
-            const nameElem = document.getElementById('userDisplayName');
-            if (nameElem) nameElem.innerText = auth.name || 'ผู้บริหาร/แอดมิน';
-
-            // 2. โหลดนาฬิกา + สถิติ
-            updateThaiClock();
-            setInterval(updateThaiClock, 1000);
             loadLandingRealStats();
             setupTouchSwipeToClose();
         });
@@ -518,59 +561,11 @@
                 if (pCount) pCount.innerText = present.toLocaleString();
                 if (pPercent) pPercent.innerText = `(${percent}%)`;
 
-                renderAttendanceChart(present, total - present);
-
             } catch (err) {
                 console.warn('Load Stats Warning:', err);
             }
         }
 
-        function renderAttendanceChart(present, absent) {
-            const ctx = document.getElementById('attendanceChartPreview')?.getContext('2d');
-            if (!ctx) return;
-
-            if (chartObj) chartObj.destroy();
-
-            chartObj = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['มาเรียน', 'ขาด/สาย'],
-                    datasets: [{
-                        data: [present, absent],
-                        backgroundColor: ['#10b981', '#f43f5e'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-
-        function updateThaiClock() {
-            const now = new Date();
-            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
-
-            const dateElem = document.getElementById('thaiDateStr');
-            if (dateElem) dateElem.innerText = `วัน${thaiDays[now.getDay()]}ที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
-
-            const clockElem = document.getElementById('liveClock');
-            if (clockElem) clockElem.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-        }
-
-        // 📱 ปุ่มควบคุม Drawer แต่ละฝ่าย (แก้ไขไอดีตรงเป้าหมายแล้ว)
-        window.openExecutiveDrawer = function() { openDrawer('execDrawerBackdrop'); };
-        window.openAcademicDrawer = function() { openDrawer('academicDrawerBackdrop'); };
-        window.openDisciplineDrawer = function() { openDrawer('disciplineDrawerBackdrop'); };
-        window.openClinicDrawer = function() { openDrawer('clinicDrawerBackdrop'); };
-
-        function openDrawer(id) { document.getElementById(id)?.classList.add('active'); }
-        window.closeDrawer = function(id) { document.getElementById(id)?.classList.remove('active'); };
-
-        // นิ้วปัดสไลด์ลงปิด Drawer
         function setupTouchSwipeToClose() {
             document.querySelectorAll('.bottom-sheet-card').forEach(card => {
                 let startY = 0, currentY = 0;
@@ -589,7 +584,6 @@
             });
         }
 
-        // ปุ่ม Logout
         window.handleLogout = function() {
             if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
                 logoutUser();
