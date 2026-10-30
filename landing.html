@@ -64,6 +64,7 @@
             transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
             max-height: 88vh;
             display: flex; flex-direction: column;
+            touch-action: none;
         }
         .bottom-sheet-backdrop.active .bottom-sheet-card { transform: translateY(0); }
 
@@ -89,19 +90,18 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 18px; transition: all 0.2s ease; margin-bottom: 2px;
         }
-        .nav-item-btn.active { color: #0f172a; }
+        .nav-item-btn.active { color: #0284c7; }
         .nav-item-btn.active .nav-icon-box {
-            background: #e0e7ff; color: #4338ca;
-            box-shadow: 0 2px 8px rgba(67, 56, 202, 0.15);
-        }
-        .nav-item-btn.active.exec-nav .nav-icon-box {
-            background: #0284c7; color: #ffffff;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+            background: #e0f2fe; color: #0284c7;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.2);
         }
 
+        .swipe-handle-area {
+            width: 100%; padding: 12px 0 6px 0;
+            display: flex; justify-content: center; cursor: grab;
+        }
         .swipe-handle {
-            width: 48px; height: 5px; background-color: #cbd5e1;
-            border-radius: 99px; margin: 10px auto 4px auto; shrink-0;
+            width: 48px; height: 5px; background-color: #cbd5e1; border-radius: 99px;
         }
     </style>
 </head>
@@ -234,30 +234,30 @@
 
     </main>
 
-    <!-- 4. NATIVE BOTTOM NAVIGATION BAR (พร้อมลิงก์ครบถ้วน) -->
+    <!-- 4. NATIVE BOTTOM NAVIGATION BAR (มีระบบ Active เด้งสวยงาม) -->
     <nav class="native-bottom-nav">
-        <button type="button" class="nav-item-btn active" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <button id="navHome" type="button" class="nav-item-btn active" onclick="switchNavTab('home')">
             <div class="nav-icon-box">
                 <i class="fa-solid fa-house"></i>
             </div>
             <span>หน้าหลัก</span>
         </button>
 
-        <button type="button" class="nav-item-btn" onclick="openDisciplineDrawer()">
+        <button id="navDiscipline" type="button" class="nav-item-btn" onclick="switchNavTab('discipline')">
             <div class="nav-icon-box">
                 <i class="fa-solid fa-shield-halved"></i>
             </div>
             <span>งานกิจการ</span>
         </button>
 
-        <button type="button" class="nav-item-btn" onclick="openAcademicDrawer()">
+        <button id="navAcademic" type="button" class="nav-item-btn" onclick="switchNavTab('academic')">
             <div class="nav-icon-box">
                 <i class="fa-solid fa-graduation-cap"></i>
             </div>
             <span>งานวิชาการ</span>
         </button>
 
-        <button type="button" class="nav-item-btn exec-nav" onclick="openExecutiveDrawer()">
+        <button id="navExec" type="button" class="nav-item-btn" onclick="switchNavTab('exec')">
             <div class="nav-icon-box">
                 <i class="fa-solid fa-chart-pie"></i>
             </div>
@@ -268,13 +268,15 @@
     <!-- 🏛️ 1. BOTTOM SHEET DRAWER: รายงานผู้บริหาร -->
     <div id="execDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('execDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
-            <div class="swipe-handle"></div>
+            <div class="swipe-handle-area">
+                <div class="swipe-handle"></div>
+            </div>
             
-            <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center shrink-0">
+            <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🏛️</div>
                     <div>
-                        <h3 class="text-sm font-black text-slate-900 leading-tight">รายงานสรุปสารสนเทศผู้บริหาร</h3>
+                        <h3 class="text-sm font-black text-slate-900 leading-tight">รายงานสารสนเทศผู้บริหาร</h3>
                         <p class="text-[11px] text-slate-400 font-bold">เอานิ้วปัดสไลด์ลง 👇 เพื่อเก็บหน้าต่างนี้ได้</p>
                     </div>
                 </div>
@@ -331,9 +333,11 @@
     <!-- 📚 2. BOTTOM SHEET DRAWER: รายงานสรุปผลงานวิชาการ -->
     <div id="academicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('academicDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
-            <div class="swipe-handle"></div>
+            <div class="swipe-handle-area">
+                <div class="swipe-handle"></div>
+            </div>
             
-            <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center shrink-0">
+            <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-sky-100 text-sky-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🎓</div>
                     <div>
@@ -366,12 +370,23 @@
                         <div class="flex justify-between"><span>ระดับ ม.ปลาย:</span><span class="font-bold text-emerald-700">85.8% (ตรงเวลา)</span></div>
                     </div>
                 </div>
+
+                <div class="bg-rose-50/60 border border-rose-200/80 p-3.5 rounded-2xl space-y-1.5">
+                    <div class="flex justify-between items-center font-black text-rose-950">
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> วิชาติดขัด/ค้างส่ง</span>
+                        <span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full text-[10px]">3 วิชา</span>
+                    </div>
+                    <div class="space-y-1 text-slate-600 font-semibold pt-1">
+                        <div class="flex justify-between"><span>คณิตศาสตร์ ม.3:</span><span class="font-bold text-rose-600">ค้างส่ง 15%</span></div>
+                        <div class="flex justify-between"><span>ภาษาอังกฤษ ม.2:</span><span class="font-bold text-rose-600">ค้างส่ง 12%</span></div>
+                    </div>
+                </div>
             </div>
 
             <div class="p-4 border-t border-slate-100 flex gap-2 shrink-0 bg-white">
                 <a href="apps/school-app/academic.html" class="flex-1 bg-sky-700 hover:bg-sky-800 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-md">
                     <i class="fa-solid fa-list-check"></i>
-                    <span>ดูตารางภาระงานทั้งหมด</span>
+                    <span>เข้าสู่ระบบงานวิชาการ</span>
                 </a>
                 <button type="button" onclick="closeDrawer('academicDrawerBackdrop')" class="bg-slate-100 text-slate-600 font-bold px-4 py-3 rounded-2xl text-xs">ปิด</button>
             </div>
@@ -381,9 +396,11 @@
     <!-- 🛡️ 3. BOTTOM SHEET DRAWER: รายงานฝ่ายปกครอง -->
     <div id="disciplineDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('disciplineDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
-            <div class="swipe-handle"></div>
+            <div class="swipe-handle-area">
+                <div class="swipe-handle"></div>
+            </div>
             
-            <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center shrink-0">
+            <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-indigo-100 text-indigo-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🛡️</div>
                     <div>
@@ -425,9 +442,11 @@
     <!-- 🏥 4. BOTTOM SHEET DRAWER: รายงานห้องพยาบาล -->
     <div id="clinicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('clinicDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
-            <div class="swipe-handle"></div>
+            <div class="swipe-handle-area">
+                <div class="swipe-handle"></div>
+            </div>
             
-            <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center shrink-0">
+            <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🏥</div>
                     <div>
@@ -458,14 +477,16 @@
         </div>
     </div>
 
-    <!-- ⚡ Global UI Functions (ทำงานก่อน สคริปต์ Auth เพื่อป้องกัน UI ค้าง) -->
+    <!-- ⚡ Global Control Script -->
     <script>
-        window.openExecutiveDrawer = function() { openDrawerById('execDrawerBackdrop'); };
-        window.openAcademicDrawer = function() { openDrawerById('academicDrawerBackdrop'); };
-        window.openDisciplineDrawer = function() { openDrawerById('disciplineDrawerBackdrop'); };
+        // ฟังก์ชันควบคุมการเปิด Drawer + Bottom Nav Active State
+        window.openExecutiveDrawer = function() { switchNavTab('exec'); openDrawerById('execDrawerBackdrop'); };
+        window.openAcademicDrawer = function() { switchNavTab('academic'); openDrawerById('academicDrawerBackdrop'); };
+        window.openDisciplineDrawer = function() { switchNavTab('discipline'); openDrawerById('disciplineDrawerBackdrop'); };
         window.openClinicDrawer = function() { openDrawerById('clinicDrawerBackdrop'); };
 
         function openDrawerById(id) {
+            closeAllDrawers();
             var el = document.getElementById(id);
             if (el) el.classList.add('active');
         }
@@ -473,8 +494,34 @@
         window.closeDrawer = function(id) {
             var el = document.getElementById(id);
             if (el) el.classList.remove('active');
+            switchNavTab('home');
         };
 
+        function closeAllDrawers() {
+            document.querySelectorAll('.bottom-sheet-backdrop').forEach(function(el) {
+                el.classList.remove('active');
+            });
+        }
+
+        // สลับสถานะ Active ของ Bottom Navigation
+        window.switchNavTab = function(tab) {
+            document.querySelectorAll('.nav-item-btn').forEach(function(btn) { btn.classList.remove('active'); });
+            if (tab === 'home') {
+                document.getElementById('navHome').classList.add('active');
+                closeAllDrawers();
+            } else if (tab === 'discipline') {
+                document.getElementById('navDiscipline').classList.add('active');
+                openDrawerById('disciplineDrawerBackdrop');
+            } else if (tab === 'academic') {
+                document.getElementById('navAcademic').classList.add('active');
+                openDrawerById('academicDrawerBackdrop');
+            } else if (tab === 'exec') {
+                document.getElementById('navExec').classList.add('active');
+                openDrawerById('execDrawerBackdrop');
+            }
+        };
+
+        // นาฬิกาแบบ Realtime
         function startClock() {
             var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
             var thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
@@ -490,16 +537,49 @@
             update();
             setInterval(update, 1000);
         }
-        document.addEventListener('DOMContentLoaded', startClock);
+
+        // ระบบนิ้วปัดสไลด์ลงปิด Drawer (Touch Swipe Handle)
+        function initSwipeToClose() {
+            document.querySelectorAll('.bottom-sheet-card').forEach(function(card) {
+                var startY = 0, currentY = 0;
+                card.addEventListener('touchstart', function(e) {
+                    startY = e.touches[0].clientY;
+                }, { passive: true });
+
+                card.addEventListener('touchmove', function(e) {
+                    currentY = e.touches[0].clientY;
+                    var diffY = currentY - startY;
+                    if (diffY > 0) {
+                        card.style.transform = 'translateY(' + diffY + 'px)';
+                    }
+                }, { passive: true });
+
+                card.addEventListener('touchend', function() {
+                    var diffY = currentY - startY;
+                    card.style.transform = '';
+                    if (diffY > 100) {
+                        var backdrop = card.closest('.bottom-sheet-backdrop');
+                        if (backdrop) backdrop.classList.remove('active');
+                        switchNavTab('home');
+                    }
+                    startY = 0; currentY = 0;
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            startClock();
+            initSwipeToClose();
+        });
     </script>
 
-    <!-- Main Auth Module -->
+    <!-- Main Auth & Data Module -->
     <script type="module">
         import { db } from './core/supabase-client.js';
         import { checkAuthAndRoute, logoutUser } from './core/auth-manager.js';[cite: 6]
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // อ่านค่าชื่อที่บันทึกไว้แสดงผลเบื้องต้นก่อน
+            // โหลดชื่อโปรไฟล์ทันทีจาก Cache
             const cachedName = localStorage.getItem('user_name');
             const cachedRole = localStorage.getItem('user_role');
             if (cachedName) {
@@ -531,11 +611,10 @@
                     document.getElementById('userDisplayName').innerText = auth.name;
                 }
             } catch (e) {
-                console.warn('Auth Routing Non-blocking Warning:', e);
+                console.warn('Auth Routing Warning:', e);
             }
 
             loadLandingRealStats();
-            setupTouchSwipeToClose();
         });
 
         async function loadLandingRealStats() {
@@ -564,24 +643,6 @@
             } catch (err) {
                 console.warn('Load Stats Warning:', err);
             }
-        }
-
-        function setupTouchSwipeToClose() {
-            document.querySelectorAll('.bottom-sheet-card').forEach(card => {
-                let startY = 0, currentY = 0;
-                card.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
-                card.addEventListener('touchmove', e => {
-                    currentY = e.touches[0].clientY;
-                    const diffY = currentY - startY;
-                    if (diffY > 0 && card.scrollTop === 0) card.style.transform = `translateY(${diffY}px)`;
-                }, { passive: true });
-                card.addEventListener('touchend', () => {
-                    const diffY = currentY - startY;
-                    card.style.transform = '';
-                    if (diffY > 120) card.closest('.bottom-sheet-backdrop')?.classList.remove('active');
-                    startY = 0; currentY = 0;
-                });
-            });
         }
 
         window.handleLogout = function() {
