@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         body {
@@ -45,7 +44,7 @@
             display: flex; align-items: center; justify-content: center; font-size: 20px;
         }
 
-        /* 📱 Bottom Sheet Drawer */
+        /* 📱 Bottom Sheet Drawer (ปรับให้รองรับการปัดสไลด์) */
         .bottom-sheet-backdrop {
             position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
@@ -62,22 +61,25 @@
             z-index: 1001;
             transform: translateY(100%);
             transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-            max-height: 88vh;
+            max-height: 85vh;
             display: flex; flex-direction: column;
-            touch-action: none;
         }
         .bottom-sheet-backdrop.active .bottom-sheet-card { transform: translateY(0); }
 
-        /* 📱 Bottom Navigation Bar */
+        /* 👑 ✨ 📱 FLOATING BOTTOM NAVIGATION BAR (แถบเมนูลอย + ขอบสีทอง) ✨ 👑 */
         .native-bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            height: 68px;
-            background: rgba(255, 255, 255, 0.96);
-            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border-top: 1px solid #e2e8f0;
+            position: fixed; 
+            bottom: 12px; 
+            left: 12px; 
+            right: 12px;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 2px solid #f59e0b; /* ขอบทอง Amber/Gold */
+            border-radius: 28px;
             display: flex; align-items: center; justify-content: space-around;
-            padding: 0 12px; z-index: 900;
-            box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06);
+            padding: 0 8px; z-index: 900;
+            box-shadow: 0 8px 30px rgba(217, 119, 6, 0.22), 0 4px 12px rgba(15, 23, 42, 0.08);
         }
         .nav-item-btn {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -86,28 +88,38 @@
             transition: all 0.2s ease;
         }
         .nav-item-btn .nav-icon-box {
-            width: 42px; height: 32px; border-radius: 16px;
+            width: 40px; height: 30px; border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 18px; transition: all 0.2s ease; margin-bottom: 2px;
+            font-size: 17px; transition: all 0.2s ease; margin-bottom: 2px;
         }
-        .nav-item-btn.active { color: #0284c7; }
+        .nav-item-btn.active { color: #d97706; } /* ข้อความทอง */
         .nav-item-btn.active .nav-icon-box {
-            background: #e0f2fe; color: #0284c7;
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.2);
+            background: #fef3c7; color: #b45309; /* พื้นหลังไอคอนสว่างทอง */
+            box-shadow: 0 2px 10px rgba(217, 119, 6, 0.25);
+            border: 1px solid #fcd34d;
         }
 
         .swipe-handle-area {
-            width: 100%; padding: 12px 0 6px 0;
-            display: flex; justify-content: center; cursor: grab;
+            width: 100%; padding: 10px 0 4px 0;
+            display: flex; justify-content: center; cursor: grab; shrink-0;
         }
         .swipe-handle {
-            width: 48px; height: 5px; background-color: #cbd5e1; border-radius: 99px;
+            width: 44px; height: 5px; background-color: #cbd5e1; border-radius: 99px;
+        }
+
+        /* การ์ดรายการรายงานใน Drawer */
+        .report-doc-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 12px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col justify-between overflow-hidden p-3 pb-20 select-none relative">
+<body class="h-screen w-screen flex flex-col justify-between overflow-hidden p-3 pb-24 select-none relative">
 
-    <!-- 1. Header ส่วนหัวเว็บไซต์ -->
+    <!-- 1. Header ส่วนหัว -->
     <header class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-950 text-white shadow-md rounded-2xl p-3 shrink-0 border-b-2 border-emerald-600 mt-1">
         <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
             <div class="flex items-center gap-2.5 min-w-0 flex-1">
@@ -234,7 +246,7 @@
 
     </main>
 
-    <!-- 4. NATIVE BOTTOM NAVIGATION BAR (มีระบบ Active เด้งสวยงาม) -->
+    <!-- 4. FLOATING NATIVE BOTTOM NAVIGATION BAR (ลอย + ขอบทอง) -->
     <nav class="native-bottom-nav">
         <button id="navHome" type="button" class="nav-item-btn active" onclick="switchNavTab('home')">
             <div class="nav-icon-box">
@@ -265,7 +277,7 @@
         </button>
     </nav>
 
-    <!-- 🏛️ 1. BOTTOM SHEET DRAWER: รายงานผู้บริหาร -->
+    <!-- 🏛️ 1. BOTTOM SHEET DRAWER: ศูนย์รวมรายงานฝ่ายบริหาร -->
     <div id="execDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('execDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area">
@@ -274,63 +286,38 @@
             
             <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🏛️</div>
+                    <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-xl shrink-0">📄</div>
                     <div>
-                        <h3 class="text-sm font-black text-slate-900 leading-tight">รายงานสารสนเทศผู้บริหาร</h3>
-                        <p class="text-[11px] text-slate-400 font-bold">เอานิ้วปัดสไลด์ลง 👇 เพื่อเก็บหน้าต่างนี้ได้</p>
+                        <h3 class="text-sm font-black text-slate-900 leading-tight">ศูนย์รวมรายงานสารสนเทศผู้บริหาร</h3>
+                        <p class="text-[11px] text-amber-700 font-bold">เลือกพิมพ์รายงานและส่งออกเอกสารเสนอผู้บริหาร</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('execDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-3 overflow-y-auto flex-1">
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <div class="bg-emerald-50/80 border border-emerald-200 p-3 rounded-2xl">
-                        <span class="text-[10px] font-bold text-emerald-900 block">อัตราการมาเรียนวันนี้</span>
-                        <div id="exec_rate_present" class="text-xl font-black text-emerald-600 mt-0.5">0.0%</div>
-                    </div>
-                    <div class="bg-rose-50/80 border border-rose-200 p-3 rounded-2xl">
-                        <span class="text-[10px] font-bold text-rose-900 block">เสี่ยงติด มส. (&lt;80%)</span>
-                        <div id="exec_risk_ms" class="text-xl font-black text-rose-600 mt-0.5">0 คน</div>
-                    </div>
-                    <div class="bg-amber-50/80 border border-amber-200 p-3 rounded-2xl">
-                        <span class="text-[10px] font-bold text-amber-900 block">คะแนนพฤติกรรมเฉลี่ย</span>
-                        <div id="exec_avg_score" class="text-xl font-black text-amber-600 mt-0.5">100 / 100</div>
-                    </div>
-                    <div class="bg-indigo-50/80 border border-indigo-200 p-3 rounded-2xl">
-                        <span class="text-[10px] font-bold text-indigo-900 block">ขอออกนอก รรร. (Gatepass)</span>
-                        <div id="exec_gatepass_total" class="text-xl font-black text-indigo-600 mt-0.5">0 รายการ</div>
-                    </div>
+            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+                <div class="report-doc-card">
+                    <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold text-[10px]">รายงานที่ 1</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">1. รายงานสถิติการมาเรียนภาพรวมประจำวัน</h4>
+                    <p class="text-[11px] text-slate-500 font-medium">สรุปยอดมา สาย ลา ขาด ของนักเรียนทั้งโรงเรียนประจำวัน</p>
+                    <a href="apps/school-app/executive.html" class="mt-2.5 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-center block">🖨️ พิมพ์รายงาน</a>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-2xl">
-                        <span class="text-xs font-bold text-slate-800 block mb-1">📊 สัดส่วนการเข้าเรียน</span>
-                        <div class="h-32 flex items-center justify-center"><canvas id="attendanceChartPreview"></canvas></div>
-                    </div>
-                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-2xl space-y-1.5">
-                        <span class="text-xs font-bold text-slate-800 block">🚦 สถิติไฟจราจรความปลอดภัย</span>
-                        <div class="text-xs font-bold space-y-1">
-                            <div class="flex justify-between bg-emerald-100/80 p-1.5 rounded-xl"><span class="text-emerald-950">🟢 ในโรงเรียน</span><span id="exec_traffic_green" class="text-emerald-900">0 คน</span></div>
-                            <div class="flex justify-between bg-sky-100/80 p-1.5 rounded-xl"><span class="text-sky-950">🔵 ออกนอก รรร.</span><span id="exec_traffic_blue" class="text-sky-900">0 คน</span></div>
-                            <div class="flex justify-between bg-purple-100/80 p-1.5 rounded-xl"><span class="text-purple-950">🟣 ผู้ปกครองยื่นลา</span><span id="exec_traffic_purple" class="text-purple-900">0 คน</span></div>
-                            <div class="flex justify-between bg-rose-100/80 p-1.5 rounded-xl"><span class="text-rose-950">🔴 ขาดเรียน</span><span id="exec_traffic_red" class="text-rose-900">0 คน</span></div>
-                        </div>
-                    </div>
+                <div class="report-doc-card">
+                    <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold text-[10px]">รายงานที่ 2</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">2. รายงานสรุปพฤติกรรมและการตัดคะแนนรวม</h4>
+                    <p class="text-[11px] text-slate-500 font-medium">สรุปสถิตินักเรียนกลุ่มเฝ้าระวังและการลงโทษตามระเบียบ</p>
+                    <a href="apps/school-app/executive.html" class="mt-2.5 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-center block">🖨️ พิมพ์รายงาน</a>
                 </div>
             </div>
 
-            <div class="p-4 border-t border-slate-100 flex gap-2 shrink-0 bg-white">
-                <a href="apps/school-app/executive.html" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-md">
-                    <i class="fa-solid fa-list-check"></i>
-                    <span>เข้าแดชบอร์ดผู้บริหารเต็มรูปแบบ</span>
-                </a>
-                <button type="button" onclick="closeDrawer('execDrawerBackdrop')" class="bg-slate-100 text-slate-600 font-bold px-4 py-3 rounded-2xl text-xs">ปิด</button>
+            <div class="p-3 border-t border-slate-100 shrink-0 bg-white">
+                <a href="apps/school-app/executive.html" class="w-full bg-sky-600 text-white font-bold py-2.5 rounded-xl text-xs text-center block shadow-md">เข้าสู่แอปพลิเคชันผู้บริหารเต็มรูปแบบ</a>
             </div>
         </div>
     </div>
 
-    <!-- 📚 2. BOTTOM SHEET DRAWER: รายงานสรุปผลงานวิชาการ -->
+    <!-- 📚 2. BOTTOM SHEET DRAWER: ศูนย์รวมรายงานฝ่ายวิชาการ -->
     <div id="academicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('academicDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area">
@@ -339,61 +326,38 @@
             
             <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-sky-100 text-sky-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🎓</div>
+                    <div class="w-10 h-10 bg-sky-100 text-sky-800 rounded-2xl flex items-center justify-center text-xl shrink-0">📚</div>
                     <div>
-                        <h3 class="text-sm font-black text-slate-900 leading-tight">รายงานสรุปผลงานวิชาการ</h3>
-                        <p class="text-[11px] text-slate-400 font-bold">เอานิ้วปัดสไลด์ลง 👇 เพื่อเก็บหน้าต่างนี้ได้</p>
+                        <h3 class="text-sm font-black text-slate-900 leading-tight">ศูนย์รวมรายงานฝ่ายวิชาการ</h3>
+                        <p class="text-[11px] text-sky-700 font-bold">เอกสารรายงานผลการเรียนและการส่งงาน</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('academicDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-3 overflow-y-auto flex-1 text-xs">
-                <div class="bg-indigo-50/60 border border-indigo-200/80 p-3.5 rounded-2xl space-y-1.5">
-                    <div class="flex justify-between items-center font-black text-indigo-950">
-                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-book-open text-indigo-600"></i> สถิติการสั่งการบ้าน</span>
-                        <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full text-[10px]">48 รายการ</span>
-                    </div>
-                    <div class="space-y-1 text-slate-600 font-semibold pt-1">
-                        <div class="flex justify-between"><span>วิทยาศาสตร์/คณิตฯ:</span><span class="font-bold text-slate-900">22 งาน</span></div>
-                        <div class="flex justify-between"><span>ภาษาต่างประเทศ:</span><span class="font-bold text-slate-900">14 งาน</span></div>
-                    </div>
+            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+                <div class="report-doc-card">
+                    <span class="bg-sky-100 text-sky-900 px-2 py-0.5 rounded-md font-bold text-[10px]">รายงานที่ 1</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">1. รายงานสรุปอัตราการสั่งการบ้านและการส่งงาน</h4>
+                    <p class="text-[11px] text-slate-500 font-medium">สรุปการติดตามการส่งงานรายกลุ่มสาระและรายห้องเรียน</p>
+                    <a href="apps/school-app/academic.html" class="mt-2.5 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-center block">🖨️ พิมพ์รายงาน</a>
                 </div>
 
-                <div class="bg-emerald-50/60 border border-emerald-200/80 p-3.5 rounded-2xl space-y-1.5">
-                    <div class="flex justify-between items-center font-black text-emerald-950">
-                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> อัตราการส่งงานนักเรียน</span>
-                        <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-[10px]">88.5%</span>
-                    </div>
-                    <div class="space-y-1 text-slate-600 font-semibold pt-1">
-                        <div class="flex justify-between"><span>ระดับ ม.ต้น:</span><span class="font-bold text-emerald-700">91.2% (ตรงเวลา)</span></div>
-                        <div class="flex justify-between"><span>ระดับ ม.ปลาย:</span><span class="font-bold text-emerald-700">85.8% (ตรงเวลา)</span></div>
-                    </div>
-                </div>
-
-                <div class="bg-rose-50/60 border border-rose-200/80 p-3.5 rounded-2xl space-y-1.5">
-                    <div class="flex justify-between items-center font-black text-rose-950">
-                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> วิชาติดขัด/ค้างส่ง</span>
-                        <span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full text-[10px]">3 วิชา</span>
-                    </div>
-                    <div class="space-y-1 text-slate-600 font-semibold pt-1">
-                        <div class="flex justify-between"><span>คณิตศาสตร์ ม.3:</span><span class="font-bold text-rose-600">ค้างส่ง 15%</span></div>
-                        <div class="flex justify-between"><span>ภาษาอังกฤษ ม.2:</span><span class="font-bold text-rose-600">ค้างส่ง 12%</span></div>
-                    </div>
+                <div class="report-doc-card">
+                    <span class="bg-sky-100 text-sky-900 px-2 py-0.5 rounded-md font-bold text-[10px]">รายงานที่ 2</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">2. รายงานรายชื่อนักเรียนเสี่ยงติด มส. (&lt;80%)</h4>
+                    <p class="text-[11px] text-slate-500 font-medium">รายชื่อเด็กที่มีเวลาเรียนไม่ครบเงื่อนไขเสนอผู้บริหาร</p>
+                    <a href="apps/school-app/academic.html" class="mt-2.5 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-center block">🖨️ พิมพ์รายงาน</a>
                 </div>
             </div>
 
-            <div class="p-4 border-t border-slate-100 flex gap-2 shrink-0 bg-white">
-                <a href="apps/school-app/academic.html" class="flex-1 bg-sky-700 hover:bg-sky-800 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-md">
-                    <i class="fa-solid fa-list-check"></i>
-                    <span>เข้าสู่ระบบงานวิชาการ</span>
-                </a>
-                <button type="button" onclick="closeDrawer('academicDrawerBackdrop')" class="bg-slate-100 text-slate-600 font-bold px-4 py-3 rounded-2xl text-xs">ปิด</button>
+            <div class="p-3 border-t border-slate-100 shrink-0 bg-white">
+                <a href="apps/school-app/academic.html" class="w-full bg-sky-700 text-white font-bold py-2.5 rounded-xl text-xs text-center block shadow-md">เข้าสู่แอปพลิเคชันวิชาการ</a>
             </div>
         </div>
     </div>
 
-    <!-- 🛡️ 3. BOTTOM SHEET DRAWER: รายงานฝ่ายปกครอง -->
+    <!-- 🛡️ 3. BOTTOM SHEET DRAWER: ศูนย์รวมรายงานฝ่ายปกครอง (ตรงตามตัวอย่างภาพ) -->
     <div id="disciplineDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('disciplineDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area">
@@ -402,44 +366,45 @@
             
             <div class="px-5 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-indigo-100 text-indigo-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🛡️</div>
+                    <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-xl shrink-0">📁</div>
                     <div>
-                        <h3 class="text-sm font-black text-slate-900 leading-tight">รายงานสถิติกิจการนักเรียน</h3>
-                        <p class="text-[11px] text-slate-400 font-bold">เอานิ้วปัดสไลด์ลง 👇 เพื่อเก็บหน้าต่างนี้ได้</p>
+                        <h3 class="text-sm font-black text-slate-900 leading-tight">ศูนย์รวมรายงานกิจการนักเรียน / ฝ่ายปกครอง</h3>
+                        <p class="text-[11px] text-amber-700 font-bold">เลือกพิมพ์รายงานและส่งออกเอกสารเสนอผู้บริหาร</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('disciplineDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-3 overflow-y-auto flex-1 text-xs">
-                <div class="bg-indigo-50/60 border border-indigo-200/80 p-3.5 rounded-2xl space-y-1.5">
-                    <div class="flex justify-between items-center font-black text-indigo-950">
-                        <span>คะแนนความประพฤติเฉลี่ย</span>
-                        <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full text-[10px]">100 / 100</span>
-                    </div>
-                    <p class="text-[11px] text-slate-600">นักเรียนติดกลุ่มเฝ้าระวังคะแนนต่ำกว่า 50: <strong class="text-rose-600">0 คน</strong></p>
+            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+                <div class="report-doc-card">
+                    <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold text-[10px]">รายงานที่ 1</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">1. รายงานสรุปคะแนนพฤติกรรมรายห้อง</h4>
+                    <p class="text-[11px] text-slate-500 font-medium">สรุปคะแนนคงเหลือเฉลี่ยแยกตามห้องเรียน ม.1 - ม.6</p>
+                    <a href="apps/school-app/student-affairs.html" class="mt-2.5 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-center block">🖨️ พิมพ์รายงาน</a>
                 </div>
 
-                <div class="bg-sky-50/60 border border-sky-200/80 p-3.5 rounded-2xl space-y-1.5">
-                    <div class="flex justify-between items-center font-black text-sky-950">
-                        <span>ใบขอออกนอก รรร. (Gatepass)</span>
-                        <span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full text-[10px]">อนุมัติแล้ว 0</span>
-                    </div>
-                    <p class="text-[11px] text-slate-600">รายการรออนุมัติจากผู้ปกครอง: <strong class="text-amber-600">0 รายการ</strong></p>
+                <div class="report-doc-card">
+                    <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold text-[10px]">รายงานที่ 2</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">2. รายงานรายชื่อนักเรียนกลุ่มเสี่ยง (&lt; 80 คะแนน)</h4>
+                    <p class="text-[11px] text-slate-500 font-medium">รายชื่อเด็กติดเงื่อนไขวิกฤตที่จะต้องทำกิจกรรมซ่อมแซมคะแนน</p>
+                    <a href="apps/school-app/student-affairs.html" class="mt-2.5 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-center block">🖨️ พิมพ์รายงาน</a>
+                </div>
+
+                <div class="report-doc-card">
+                    <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold text-[10px]">รายงานที่ 3</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">3. รายงานประวัติการทำความดีและจิตอาสา</h4>
+                    <p class="text-[11px] text-slate-500 font-medium">สรุปการเพิ่มคะแนนความประพฤติและยกย่องเชิดชูเกียรติ</p>
+                    <a href="apps/school-app/student-affairs.html" class="mt-2.5 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-center block">🖨️ พิมพ์รายงาน</a>
                 </div>
             </div>
 
-            <div class="p-4 border-t border-slate-100 flex gap-2 shrink-0 bg-white">
-                <a href="apps/school-app/student-affairs.html" class="flex-1 bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-md">
-                    <i class="fa-solid fa-shield-halved"></i>
-                    <span>เข้าสู่ระบบงานปกครอง</span>
-                </a>
-                <button type="button" onclick="closeDrawer('disciplineDrawerBackdrop')" class="bg-slate-100 text-slate-600 font-bold px-4 py-3 rounded-2xl text-xs">ปิด</button>
+            <div class="p-3 border-t border-slate-100 shrink-0 bg-white">
+                <a href="apps/school-app/student-affairs.html" class="w-full bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs text-center block shadow-md">เข้าสู่ระบบงานปกครอง</a>
             </div>
         </div>
     </div>
 
-    <!-- 🏥 4. BOTTOM SHEET DRAWER: รายงานห้องพยาบาล -->
+    <!-- 🏥 4. BOTTOM SHEET DRAWER: ศูนย์รวมรายงานห้องพยาบาล -->
     <div id="clinicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('clinicDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area">
@@ -450,36 +415,30 @@
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🏥</div>
                     <div>
-                        <h3 class="text-sm font-black text-slate-900 leading-tight">รายงานสรุปห้องพยาบาล</h3>
-                        <p class="text-[11px] text-slate-400 font-bold">เอานิ้วปัดสไลด์ลง 👇 เพื่อเก็บหน้าต่างนี้ได้</p>
+                        <h3 class="text-sm font-black text-slate-900 leading-tight">ศูนย์รวมรายงานห้องพยาบาล</h3>
+                        <p class="text-[11px] text-amber-700 font-bold">รายงานสถิติสุขภาพและการสถิติการใช้บริการ</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('clinicDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-3 overflow-y-auto flex-1 text-xs">
-                <div class="bg-amber-50/60 border border-amber-200/80 p-3.5 rounded-2xl space-y-1.5">
-                    <div class="flex justify-between items-center font-black text-amber-950">
-                        <span>นักเรียนพักพยาบาลวันนี้</span>
-                        <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px]">0 คน</span>
-                    </div>
-                    <p class="text-[11px] text-slate-600">อาการยอดฮิต: ไข้หวัด / ปวดศีรษะ</p>
+            <div class="p-4 space-y-2 overflow-y-auto flex-1 text-xs">
+                <div class="report-doc-card">
+                    <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold text-[10px]">รายงานที่ 1</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">1. รายงานสถิติการใช้บริการห้องพยาบาลประจำวัน</h4>
+                    <p class="text-[11px] text-slate-500 font-medium">สรุปจำนวนนักเรียนที่เข้าพักและแจกจ่ายยา</p>
+                    <a href="apps/school-app/clinic.html" class="mt-2.5 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-center block">🖨️ พิมพ์รายงาน</a>
                 </div>
             </div>
 
-            <div class="p-4 border-t border-slate-100 flex gap-2 shrink-0 bg-white">
-                <a href="apps/school-app/clinic.html" class="flex-1 bg-amber-700 hover:bg-amber-800 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-md">
-                    <i class="fa-solid fa-house-medical"></i>
-                    <span>เข้าสู่ระบบห้องพยาบาล</span>
-                </a>
-                <button type="button" onclick="closeDrawer('clinicDrawerBackdrop')" class="bg-slate-100 text-slate-600 font-bold px-4 py-3 rounded-2xl text-xs">ปิด</button>
+            <div class="p-3 border-t border-slate-100 shrink-0 bg-white">
+                <a href="apps/school-app/clinic.html" class="w-full bg-amber-700 text-white font-bold py-2.5 rounded-xl text-xs text-center block shadow-md">เข้าสู่ระบบห้องพยาบาล</a>
             </div>
         </div>
     </div>
 
-    <!-- ⚡ Global Control Script -->
+    <!-- ⚡ Global UI Script (ทำงานได้ชัวร์ 100%) -->
     <script>
-        // ฟังก์ชันควบคุมการเปิด Drawer + Bottom Nav Active State
         window.openExecutiveDrawer = function() { switchNavTab('exec'); openDrawerById('execDrawerBackdrop'); };
         window.openAcademicDrawer = function() { switchNavTab('academic'); openDrawerById('academicDrawerBackdrop'); };
         window.openDisciplineDrawer = function() { switchNavTab('discipline'); openDrawerById('disciplineDrawerBackdrop'); };
@@ -503,7 +462,6 @@
             });
         }
 
-        // สลับสถานะ Active ของ Bottom Navigation
         window.switchNavTab = function(tab) {
             document.querySelectorAll('.nav-item-btn').forEach(function(btn) { btn.classList.remove('active'); });
             if (tab === 'home') {
@@ -521,7 +479,6 @@
             }
         };
 
-        // นาฬิกาแบบ Realtime
         function startClock() {
             var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
             var thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
@@ -538,15 +495,17 @@
             setInterval(update, 1000);
         }
 
-        // ระบบนิ้วปัดสไลด์ลงปิด Drawer (Touch Swipe Handle)
+        // ระบบลากปัดสไลด์ลงล่างเพื่อปิด (Swipe down handle)
         function initSwipeToClose() {
-            document.querySelectorAll('.bottom-sheet-card').forEach(function(card) {
+            document.querySelectorAll('.swipe-handle-area').forEach(function(handle) {
+                var card = handle.closest('.bottom-sheet-card');
                 var startY = 0, currentY = 0;
-                card.addEventListener('touchstart', function(e) {
+
+                handle.addEventListener('touchstart', function(e) {
                     startY = e.touches[0].clientY;
                 }, { passive: true });
 
-                card.addEventListener('touchmove', function(e) {
+                handle.addEventListener('touchmove', function(e) {
                     currentY = e.touches[0].clientY;
                     var diffY = currentY - startY;
                     if (diffY > 0) {
@@ -554,10 +513,10 @@
                     }
                 }, { passive: true });
 
-                card.addEventListener('touchend', function() {
+                handle.addEventListener('touchend', function() {
                     var diffY = currentY - startY;
                     card.style.transform = '';
-                    if (diffY > 100) {
+                    if (diffY > 80) {
                         var backdrop = card.closest('.bottom-sheet-backdrop');
                         if (backdrop) backdrop.classList.remove('active');
                         switchNavTab('home');
@@ -579,7 +538,6 @@
         import { checkAuthAndRoute, logoutUser } from './core/auth-manager.js';[cite: 6]
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // โหลดชื่อโปรไฟล์ทันทีจาก Cache
             const cachedName = localStorage.getItem('user_name');
             const cachedRole = localStorage.getItem('user_role');
             if (cachedName) {
