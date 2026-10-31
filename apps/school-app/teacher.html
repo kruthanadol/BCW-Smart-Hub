@@ -327,27 +327,36 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // บล็อกสคริปต์ดึงโปรไฟล์ครูผู้สอน (กล่องที่ 2)
         document.addEventListener('DOMContentLoaded', async () => {
-            autoSelectCurrentSubject();
-            await checkAuthAndInit();
-        });
-
-        // เปิด/พับเก็บการ์ดสถิติสแกนประตู
-        function toggleStatsDrawer() {
-            const trafficSec = document.getElementById('section-traffic');
-            const chevron = document.getElementById('statsChevron');
-            const btnText = document.getElementById('btnStatsText');
-
-            if (trafficSec.classList.contains('hidden')) {
-                trafficSec.classList.remove('hidden');
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
-                if (btnText) btnText.innerText = 'ซ่อนสถิติสแกนประตู';
-            } else {
-                trafficSec.classList.add('hidden');
-                if (chevron) chevron.style.transform = 'rotate(0deg)';
-                if (btnText) btnText.innerText = 'ดูสถิติสแกนประตู';
+            try {
+                // 1. ค้นหาข้อมูลครูธนดลจากตาราง users
+                const { data: teacher, error } = await db
+                    .from('users')
+                    .select('*')
+                    .or('email.eq.kruthanadol@buached.ac.th,full_name.ilike.%ธนดล%')
+                    .maybeSingle();
+        
+                if (teacher) {
+                    const nameEl = document.getElementById('teacherDisplayName') || document.querySelector('.teacher-name');
+                    const codeEl = document.getElementById('teacherDisplayCode') || document.querySelector('.teacher-code');
+                    const avatarImg = document.getElementById('teacherAvatarImg') || document.querySelector('.teacher-avatar');
+        
+                    // อัปเดตชื่อ และรหัสครู
+                    if (nameEl) nameEl.innerText = teacher.full_name || 'นายธนดล คำเสนอ';
+                    if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id || 'T024'}`;
+        
+                    // อัปเดต URL รูปถ่ายโปรไฟล์
+                    const profileUrl = teacher.avatar_url || teacher.image_url;
+                    if (profileUrl && avatarImg) {
+                        avatarImg.src = profileUrl;
+                        avatarImg.classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                console.warn('Teacher profile sync warning:', err);
             }
-        }
+        });
 
         function toggleStatsDrawerFromNav(btnElement) {
             const trafficSec = document.getElementById('section-traffic');
