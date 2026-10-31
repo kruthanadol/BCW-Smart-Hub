@@ -14,12 +14,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        /* ข้อ 1: ล็อกหน้าจอมือถือไม่ให้เลื่อนหลุดโครงสร้าง */
+        @media (max-width: 1023px) {
+            html, body {
+                height: 100vh !important;
+                width: 100vw !important;
+                overflow: hidden !important;
+                touch-action: manipulation;
+            }
+        }
+
         body {
             font-family: 'Kanit', sans-serif;
             background-color: #f8fafc;
             color: #0f172a;
             min-height: 100vh;
-            touch-action: manipulation;
         }
         
         .stat-card-clean {
@@ -29,35 +38,30 @@
             transition: all 0.2s ease;
         }
 
-        /* 💻 ข้อ 1 & 4: โครงสร้างการ์ด Desktop 8 ใบใหญ่เดิม ฟอนต์ใหญ่ อ่านง่าย 100% */
-        .desktop-card-grid {
-            display: grid;
-            grid-template-columns: repeat(1, minmax(0, 1fr));
-            gap: 1.25rem;
-        }
-        @media (min-width: 768px) {
-            .desktop-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
+        /* 💻 ข้อ 1: โครงสร้างการ์ด Desktop 8 ใบดั้งเดิม 100% ล็อกด้วย Media Query */
         @media (min-width: 1024px) {
-            .desktop-card-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        }
-
-        .desktop-app-card {
-            background: #ffffff;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 24px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
-            transition: all 0.25s ease;
-        }
-        .desktop-app-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-            border-color: #cbd5e1;
+            .desktop-card-grid {
+                display: grid !important;
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                gap: 1.25rem !important;
+            }
+            .desktop-app-card {
+                background: #ffffff;
+                border: 1.5px solid #e2e8f0;
+                border-radius: 24px;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                position: relative;
+                box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+                transition: all 0.25s ease;
+            }
+            .desktop-app-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+                border-color: #cbd5e1;
+            }
         }
 
         /* 📱 Mobile App Grid */
@@ -65,34 +69,34 @@
             background: #ffffff;
             border: 1.5px solid #e2e8f0;
             border-radius: 20px;
-            padding: 12px 6px;
+            padding: 10px 4px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            gap: 6px;
+            gap: 4px;
             box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
             transition: all 0.2s ease;
         }
         .mobile-app-card:active { transform: scale(0.95); }
         .mobile-app-icon {
-            width: 48px; height: 48px; border-radius: 16px;
-            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            width: 44px; height: 44px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
         }
 
-        /* 📱 Bottom Sheet Drawer (ข้อ 5: แสดงรายงานเสนอผู้บริหารครบถ้วน) */
+        /* 📱 Bottom Sheet Drawer (ข้อ 4: ลอยเหนือเมนูล่าง ไม่ปิดทับ) */
         .bottom-sheet-backdrop {
-            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5);
-            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-            z-index: 10000; opacity: 0; pointer-events: none;
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            z-index: 9990; opacity: 0; pointer-events: none;
             transition: opacity 0.3s ease;
         }
         .bottom-sheet-backdrop.active { opacity: 1; pointer-events: auto; }
 
         .bottom-sheet-card {
             position: fixed; 
-            bottom: 84px; 
+            bottom: 84px; /* ลอยเหนือบอร์ดเมนูล่าง 84px ให้มองเห็นแถบเมนูขอบทองเสมอ */
             left: 12px; 
             right: 12px;
             max-width: 600px;
@@ -101,16 +105,16 @@
             border-radius: 28px;
             border: 1.5px solid #e2e8f0;
             box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
-            z-index: 10001;
+            z-index: 9995;
             transform: translateY(120%);
             transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-            max-height: 75vh;
+            max-height: 60vh; /* จำกัดความสูงรองรับการเลื่อนสโครล */
             display: flex; flex-direction: column;
             overflow: hidden;
         }
         .bottom-sheet-backdrop.active .bottom-sheet-card { transform: translateY(0); }
 
-        /* 👑 FLOATING BOTTOM NAVIGATION BAR (ข้อ 5: Active สวยงาม ลื่นไหล) */
+        /* 👑 FLOATING BOTTOM NAVIGATION BAR (ข้อ 4: z-index สูงสุด ลอยเด่นสวยงาม) */
         .native-bottom-nav {
             position: fixed; 
             bottom: 14px; 
@@ -124,7 +128,7 @@
             border: 2px solid #f59e0b;
             border-radius: 28px;
             display: flex; align-items: center; justify-content: space-around;
-            padding: 0 8px; z-index: 9999;
+            padding: 0 8px; z-index: 10010;
             box-shadow: 0 10px 30px rgba(217, 119, 6, 0.28), 0 4px 12px rgba(15, 23, 42, 0.08);
         }
         .nav-item-btn {
@@ -147,7 +151,7 @@
             transform: translateY(-2px);
         }
 
-        /* 👑 ปุ่ม ADMIN ลอยสมูทอยู่ตรงกลาง */
+        /* 👑 ข้อ 5: ปุ่ม ADMIN ลอยตรงกลางระดับกล่อง AI สรุป */
         .admin-side-trigger {
             position: fixed; right: 0; top: 290px;
             background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
@@ -159,8 +163,9 @@
             cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
             transition: all 0.2s ease;
         }
+        .admin-side-trigger:active { transform: scale(0.92); }
 
-        /* Admin Glassmorphism Drawer โปร่งแสงกระจกฝ้า */
+        /* Admin Glassmorphism Drawer เขียวโปร่งแสงกระจกฝ้า */
         .admin-side-drawer {
             position: fixed; top: 0; right: 0; bottom: 0;
             width: 340px; max-width: 85vw;
@@ -193,31 +198,26 @@
             border-radius: 16px;
             transition: all 0.2s ease;
         }
-        .report-menu-item:hover {
-            background: #ffffff;
-            border-color: #cbd5e1;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-        }
 
-        /* ข้อ 6: ซอฟต์การ์ดไร้กรอบ ไร้เส้นขอบ แข็งๆ ดูมีมิตินุ่มนวล */
+        /* ข้อ 3: ซอฟต์การ์ดไร้กรอบ นุ่มนวล สมูทเวลากล่อง ADMIN บัง */
         .ai-soft-card {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(10px);
-            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
             border: none !important;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-3 md:p-6 pb-24 md:pb-8 relative">
+<body class="min-h-screen flex flex-col justify-between p-3 md:p-6 pb-24 md:pb-8 relative select-none">
 
-    <!-- ปุ่ม ADMIN ลอยขอบขวา -->
-    <button type="button" onclick="openAdminDrawer()" class="admin-side-trigger" title="แผงควบคุมผู้ดูแลระบบ">
+    <!-- ข้อ 5: ปุ่ม ADMIN (ล็อกสิทธิ์เฉพาะผู้ดูแลระบบ) -->
+    <button type="button" onclick="handleAdminTriggerClick()" class="admin-side-trigger" title="แผงควบคุมผู้ดูแลระบบ">
         <i class="fa-solid fa-chevron-left text-[10px] animate-pulse"></i>
         <i class="fa-solid fa-user-shield text-xs"></i>
         <span class="text-[8px] font-black tracking-widest uppercase mt-0.5" style="writing-mode: vertical-rl;">ADMIN</span>
     </button>
 
-    <!-- ข้อ 2: Header หลักแบบสมบูรณ์ 3 บรรทัด (ภาษาไทย + ภาษาอังกฤษครบถ้วน)[cite: 1, 11] -->
+    <!-- ข้อ 2: Header หลักครบ 3 บรรทัด (ไทย + อังกฤษ)[cite: 1] -->
     <header class="max-w-7xl mx-auto w-full bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-950 text-white shadow-xl rounded-3xl p-4 md:p-6 shrink-0 border-b-4 border-emerald-500 mt-1">
         <div class="flex justify-between items-center gap-4">
             <div class="flex items-center gap-4 min-w-0 flex-1">
@@ -228,11 +228,9 @@
                     <h1 class="text-lg md:text-2xl font-black text-amber-400 tracking-wider leading-none uppercase truncate">
                         BCW SMART HUB
                     </h1>
-                    <!-- ภาษาไทย[cite: 1, 11] -->
                     <div class="text-sm md:text-base font-extrabold text-white leading-tight truncate mt-1">
                         โรงเรียนบัวเชดวิทยา
                     </div>
-                    <!-- ภาษาอังกฤษ (ไม่ได้ลบ)[cite: 1, 11] -->
                     <div class="text-xs font-bold text-emerald-300 tracking-wide uppercase truncate mt-0.5">
                         BUACHEDWITTAYA SCHOOL ECOSYSTEM
                     </div>
@@ -256,7 +254,7 @@
         </div>
     </header>
 
-    <!-- ข้อ 3: ย่อขนาดเฉพาะ "กล่องชื่อผู้เข้าใช้" ให้สั้น กะทัดรัด (Fit Content) ไม่ยืดกว้าง 100%[cite: 11] -->
+    <!-- ข้อ 2: ย่อเฉพาะ "กล่องชื่อผู้เข้าใช้" ให้สั้น กะทัดรัด (Fit Content) -->
     <div class="max-w-7xl mx-auto w-full mt-3 flex justify-start">
         <div class="bg-white border-2 border-emerald-600 shadow-sm rounded-2xl p-2 px-4 inline-flex items-center gap-3">
             <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-950 text-amber-400 border border-amber-400 flex items-center justify-center font-black text-sm shrink-0 shadow-sm">
@@ -275,7 +273,7 @@
     <!-- 2. Main Content Area -->
     <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-around my-4 space-y-4">
 
-        <!-- ข้อ 4: สถิติ 4 กล่อง คืนค่าขนาดปกติ อ่านง่าย สบายตา[cite: 9, 11] -->
+        <!-- ข้อ 3: กล่องสถิติ 4 กล่อง ขนาดปกติ อ่านง่าย ชัดเจน -->
         <div id="section-summary-stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
             <div class="stat-card-clean rounded-2xl p-3.5 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -324,7 +322,7 @@
             </div>
         </div>
 
-        <!-- ข้อ 6: กล่อง AI สรุปภาพรวม ไร้ขอบ (No-border) มิตินุ่มนวล เวลาปุ่ม ADMIN บังจะสมูทมาก[cite: 11] -->
+        <!-- ข้อ 3: ซอฟต์การ์ด AI ไร้กรอบ นุ่มนวล สะอาดตา -->
         <div id="aiSummaryBanner" class="block md:hidden ai-soft-card rounded-2xl p-3.5 my-1">
             <div class="flex items-center gap-2 mb-1">
                 <span class="bg-emerald-100 text-emerald-800 font-black text-xs px-2.5 py-0.5 rounded-full">🤖 AI Real-Time Insights</span>
@@ -337,7 +335,7 @@
 
         <!-- 3. เมนูแอปพลิเคชันหลัก -->
         
-        <!-- 📱 GRID ฝั่งมือถือ (8 ไอคอน) -->
+        <!-- 📱 GRID ฝั่งมือถือ (8 ไอคอน - ข้อ 6: เปลี่ยนชื่อเป็น กิจการ) -->
         <div id="mobileAppGrid" class="mobile-app-grid md:hidden grid grid-cols-4 gap-2.5 flex-1 content-center">
             <a href="apps/school-app/executive.html" class="mobile-app-card cursor-pointer border-emerald-300 bg-emerald-50/30">
                 <div class="mobile-app-icon bg-emerald-100 text-emerald-800 border border-emerald-300">🏛️</div>
@@ -380,7 +378,7 @@
             </a>
         </div>
 
-        <!-- 💻 ข้อ 1 & 4: GRID ฝั่งคอมพิวเตอร์/แท็บเล็ต ล็อคคืนค่าการ์ด 8 ใบดั้งเดิม 100%[cite: 9, 11] -->
+        <!-- 💻 ข้อ 1: GRID ฝั่งคอมพิวเตอร์/แท็บเล็ต ล็อคคืนค่าการ์ด 8 ใบดั้งเดิม 100% -->
         <div id="desktopAppGrid" class="hidden md:grid desktop-card-grid my-4">
             
             <div class="desktop-app-card border-emerald-300">
@@ -596,7 +594,7 @@
         </div>
     </div>
 
-    <!-- ข้อ 5: 📚 1. BOTTOM SHEET DRAWER: รายงานฝ่ายวิชาการ (รวมรายงานเสนอผู้บริหารครบถ้วน + ปุ่มพิมพ์ทำงานจริง)[cite: 7, 8] -->
+    <!-- ข้อ 4: 📚 1. BOTTOM SHEET DRAWER: รายงานฝ่ายวิชาการ (แสดงครบถ้วน + สโครลได้ + พิมพ์ตรง)[cite: 5] -->
     <div id="academicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('academicDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -605,13 +603,13 @@
                     <div class="w-10 h-10 bg-sky-100 text-sky-800 rounded-2xl flex items-center justify-center text-xl shrink-0">🎓</div>
                     <div>
                         <h3 class="text-sm font-black text-slate-900 leading-tight">ศูนย์รวมรายงานฝ่ายวิชาการ (เสนอผู้บริหาร)</h3>
-                        <p class="text-[11px] text-sky-700 font-bold">พิมพ์รายงานผลการเรียน สถิติ มส. และทะเบียนวัดผล</p>
+                        <p class="text-[11px] text-sky-700 font-bold">เลือกสั่งพิมพ์รายงานผลการเรียน สถิติ มส. และทะเบียนวัดผล</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('academicDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-2.5 overflow-y-auto flex-1 text-xs max-h-[60vh]">
+            <div class="p-4 space-y-2.5 overflow-y-auto flex-1 text-xs max-h-[58vh]">
                 <div class="report-menu-item">
                     <div class="flex items-center gap-3 min-w-0">
                         <span class="text-xl shrink-0">📚</span>
@@ -620,7 +618,7 @@
                             <div class="text-[10px] text-slate-500 truncate">สรุปการติดตามภาระงานรายกลุ่มสาระการเรียนรู้</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
@@ -633,7 +631,7 @@
                             <div class="text-[10px] text-slate-500 truncate">รายชื่อเด็กขาดเรียนเกินสิทธิ์กำหนดแยกรายชั้น/รายวิชา</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
@@ -646,7 +644,7 @@
                             <div class="text-[10px] text-slate-500 truncate">สรุปคะแนนประเมินคุณลักษณะอันพึงประสงค์รายห้อง</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
@@ -659,19 +657,15 @@
                             <div class="text-[10px] text-slate-500 truncate">สรุปเกรดเฉลี่ยแยกตามระดับชั้น ม.1 - ม.6</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
             </div>
-
-            <div class="p-3 border-t border-slate-100 shrink-0 bg-white">
-                <a href="apps/school-app/academic.html" class="w-full bg-sky-700 hover:bg-sky-800 text-white font-bold py-2.5 rounded-xl text-xs text-center block shadow-md">เข้าสู่ระบบงานวิชาการเต็มรูปแบบ</a>
-            </div>
         </div>
     </div>
 
-    <!-- ข้อ 5: 🛡️ 2. BOTTOM SHEET DRAWER: รายงานฝ่ายกิจการนักเรียน (รวมรายงานเสนอผู้บริหารครบถ้วน + ปุ่มพิมพ์ทำงานจริง)[cite: 7, 8] -->
+    <!-- ข้อ 4: 🛡️ 2. BOTTOM SHEET DRAWER: รายงานฝ่ายกิจการนักเรียน (แสดงครบถ้วน + สโครลได้ + พิมพ์ตรง)[cite: 5] -->
     <div id="disciplineDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('disciplineDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -680,13 +674,13 @@
                     <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-xl shrink-0">📁</div>
                     <div>
                         <h3 class="text-sm font-black text-slate-900 leading-tight">ศูนย์รวมรายงานกิจการนักเรียน (เสนอผู้บริหาร)</h3>
-                        <p class="text-[11px] text-amber-700 font-bold">พิมพ์รายงานคะแนนความประพฤติ สถิติมาสาย และกลุ่มเสี่ยง</p>
+                        <p class="text-[11px] text-amber-700 font-bold">เลือกพิมพ์รายงานคะแนนความประพฤติ สถิติมาสาย และกลุ่มเสี่ยง</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('disciplineDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-2.5 overflow-y-auto flex-1 text-xs max-h-[60vh]">
+            <div class="p-4 space-y-2.5 overflow-y-auto flex-1 text-xs max-h-[58vh]">
                 <div class="report-menu-item">
                     <div class="flex items-center gap-3 min-w-0">
                         <span class="text-xl shrink-0">📋</span>
@@ -695,7 +689,7 @@
                             <div class="text-[10px] text-slate-500 truncate">สรุปคะแนนคงเหลือเฉลี่ยแยกตามห้องเรียน ม.1 - ม.6</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
@@ -708,7 +702,7 @@
                             <div class="text-[10px] text-slate-500 truncate">รายชื่อเด็กติดเงื่อนไขวิกฤตทำกิจกรรมซ่อมแซม</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
@@ -721,7 +715,7 @@
                             <div class="text-[10px] text-slate-500 truncate">สรุปการเพิ่มคะแนนความประพฤติเชิดชูเกียรติ</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
@@ -734,19 +728,15 @@
                             <div class="text-[10px] text-slate-500 truncate">สถิติการมาสายและการขาดกิจกรรมหน้าเสาธง</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
             </div>
-
-            <div class="p-3 border-t border-slate-100 shrink-0 bg-white">
-                <a href="apps/school-app/student-affairs.html" class="w-full bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-2.5 rounded-xl text-xs text-center block shadow-md">เข้าสู่ระบบงานกิจการนักเรียนเต็มรูปแบบ</a>
-            </div>
         </div>
     </div>
 
-    <!-- ข้อ 5: 📈 3. BOTTOM SHEET DRAWER: รายงานกราฟสถิติผู้บริหาร (เปิดสไลด์เสนอผู้บริหาร)[cite: 6, 7] -->
+    <!-- ข้อ 4: 📈 3. BOTTOM SHEET DRAWER: รายงานกราฟสถิติผู้บริหาร (แสดงครบถ้วน + สโครลได้ + พิมพ์ตรง) -->
     <div id="execDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('execDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -761,7 +751,7 @@
                 <button type="button" onclick="closeDrawer('execDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-sm flex items-center justify-center">✕</button>
             </div>
 
-            <div class="p-4 space-y-2.5 overflow-y-auto flex-1 text-xs max-h-[60vh]">
+            <div class="p-4 space-y-2.5 overflow-y-auto flex-1 text-xs max-h-[58vh]">
                 <div class="report-menu-item">
                     <div class="flex items-center gap-3 min-w-0">
                         <span class="text-xl shrink-0">📈</span>
@@ -770,7 +760,7 @@
                             <div class="text-[10px] text-slate-500 truncate">แนวโน้มการสแกนบัตรเข้าโรงเรียนภาพรวมสะสม</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
@@ -783,7 +773,7 @@
                             <div class="text-[10px] text-slate-500 truncate">สรุปสถิติความผิดระเบียบโรงเรียนประจำปีการศึกษา</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
@@ -796,20 +786,26 @@
                             <div class="text-[10px] text-slate-500 truncate">ภาพรวมจำแนกตามกลุ่มโรคและการเบิกจ่ายยา</div>
                         </div>
                     </div>
-                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1">
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shrink-0 flex items-center gap-1 shadow-sm">
                         <i class="fa-solid fa-print"></i> พิมพ์
                     </button>
                 </div>
-            </div>
-
-            <div class="p-3 border-t border-slate-100 shrink-0 bg-white">
-                <a href="apps/school-app/executive.html" class="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-xl text-xs text-center block shadow-md">เข้าสู่แดชบอร์ดผู้บริหารเต็มรูปแบบ (executive.html)</a>
             </div>
         </div>
     </div>
 
     <!-- ⚡ Global UI Control Script -->
     <script>
+        // ข้อ 5: ตรวจสอบสิทธิ์ปุ่ม ADMIN (เฉพาะ admin/superadmin เท่านั้น)
+        window.handleAdminTriggerClick = function() {
+            const role = localStorage.getItem('user_role') || 'guest';
+            if (role === 'admin' || role === 'superadmin') {
+                openAdminDrawer();
+            } else {
+                alert('⚠️ เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่มีสิทธิ์เข้าถึงส่วนนี้');
+            }
+        };
+
         window.openAdminDrawer = function() { openDrawerById('adminDrawerBackdrop'); };
         window.openAcademicDrawer = function() { switchNavTab('academic'); openDrawerById('academicDrawerBackdrop'); };
         window.openDisciplineDrawer = function() { switchNavTab('discipline'); openDrawerById('disciplineDrawerBackdrop'); };
@@ -833,7 +829,7 @@
             });
         }
 
-        // ข้อ 5: ระบบเปลี่ยน Active State ปุ่มล่างสมูทลื่นไหล
+        // ข้อ 4: ระบบ Active State แถบปุ่มล่าง ลื่นไหล เด้งสีทองทันทีที่เลือก
         window.switchNavTab = function(tab) {
             var btns = document.querySelectorAll('.nav-item-btn');
             btns.forEach(function(btn) { btn.classList.remove('active'); });
