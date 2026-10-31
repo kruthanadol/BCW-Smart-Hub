@@ -327,37 +327,60 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // บล็อกสคริปต์ดึงโปรไฟล์ครูผู้สอน (กล่องที่ 2)
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                // 1. ค้นหาข้อมูลครูธนดลจากตาราง users
-                const { data: teacher, error } = await db
+                // 1. ดึง teacher_id จากการล็อกอิน (ตัวอย่างล็อกอินด้วย T011)
+                const currentTeacherId = localStorage.getItem('teacher_id') || 'T011';
+        
+                // 2. Query ข้อมูลครูจากตาราง users ด้วย teacher_id เป็นหลัก
+                const { data: teacher, error: teacherErr } = await db
                     .from('users')
                     .select('*')
-                    .or('email.eq.kruthanadol@buached.ac.th,full_name.ilike.%ธนดล%')
+                    .eq('teacher_id', currentTeacherId)
                     .maybeSingle();
         
                 if (teacher) {
+                    // แสดงข้อมูลครูและรูปโปรไฟล์
                     const nameEl = document.getElementById('teacherDisplayName') || document.querySelector('.teacher-name');
                     const codeEl = document.getElementById('teacherDisplayCode') || document.querySelector('.teacher-code');
                     const avatarImg = document.getElementById('teacherAvatarImg') || document.querySelector('.teacher-avatar');
         
-                    // อัปเดตชื่อ และรหัสครู
-                    if (nameEl) nameEl.innerText = teacher.full_name || 'นายธนดล คำเสนอ';
-                    if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id || 'T024'}`;
+                    if (nameEl) nameEl.innerText = teacher.full_name;
+                    if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id}`;
         
-                    // อัปเดต URL รูปถ่ายโปรไฟล์
-                    const profileUrl = teacher.avatar_url || teacher.image_url;
-                    if (profileUrl && avatarImg) {
-                        avatarImg.src = profileUrl;
+                    if (teacher.avatar_url && avatarImg) {
+                        avatarImg.src = teacher.avatar_url;
                         avatarImg.classList.remove('hidden');
+                    }
+        
+                    // 3. ดึงรายชื่อนักเรียนตามห้องประจำชั้นของครูท่านนี้ (เช่น ม.2/2)
+                    if (teacher.advisor_classroom) {
+                        loadStudentsByClassroom(teacher.advisor_classroom);
                     }
                 }
             } catch (err) {
-                console.warn('Teacher profile sync warning:', err);
+                console.warn('Error loading teacher portal data:', err);
             }
         });
-
+        
+        // ฟังก์ชันดึงรายชื่อนักเรียนตามห้องประจำชั้น
+        async function loadStudentsByClassroom(classroom) {
+            try {
+                const { data: students, error } = await db
+                    .from('students')
+                    .select('*')
+                    .eq('classroom', classroom)
+                    .order('student_no', { ascending: true });
+        
+                if (students && students.length > 0) {
+                    console.log(`โหลดรายชื่อนักเรียนห้อง ${classroom} เรียบร้อย:`, students);
+                    // แสดงผลรายชื่อนักเรียนลงตารางในหน้าเว็บ
+                    renderStudentList(students);
+                }
+            } catch (err) {
+                console.warn('Error loading students:', err);
+            }
+        }
         function toggleStatsDrawerFromNav(btnElement) {
             const trafficSec = document.getElementById('section-traffic');
             if (trafficSec.classList.contains('hidden')) {
