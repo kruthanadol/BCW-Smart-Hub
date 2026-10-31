@@ -1198,22 +1198,19 @@
         });
     </script>
 
-    <!-- Main Auth Module & Supabase Data Binding -->
+<!-- Main Auth Module & Supabase Data Binding -->
     <script type="module">
         import { db } from './core/supabase-client.js';
         import { checkAuthAndRoute, logoutUser } from './core/auth-manager.js';
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // 1. อ่านค่า Cache ดั้งเดิมขึ้นมาก่อน
             const cachedName = localStorage.getItem('user_name');
             const cachedRole = localStorage.getItem('user_role');
             const cachedAvatar = localStorage.getItem('user_avatar');
 
-            if (cachedName) {
-                document.getElementById('userDisplayName').innerText = cachedName;
-            }
-            if (cachedRole) {
-                document.getElementById('userRoleBadge').innerText = cachedRole.toUpperCase();
-            }
+            if (cachedName) document.getElementById('userDisplayName').innerText = cachedName;
+            if (cachedRole) document.getElementById('userRoleBadge').innerText = cachedRole.toUpperCase();
             if (cachedAvatar) {
                 const img = document.getElementById('userAvatarImg');
                 img.src = cachedAvatar;
@@ -1222,43 +1219,85 @@
             }
 
             try {
+                // 2. ดึงข้อมูล Auth จริงจาก Supabase
                 const auth = await checkAuthAndRoute();
 
-                if (auth.role === 'unauthenticated') {
-                    document.getElementById('userDisplayName').innerText = 'Thanadol Kamsamer';
-                    document.getElementById('userRoleBadge').innerText = 'GUEST';
-                    return;
-                }
+                // 3. Query ค้นหาข้อมูลครูธนดลจาก Email kruthanadol@buached.ac.th หรือชื่อ 'ธนดล'
+                const { data: teacherData, error } = await db
+                    .from('users') // หรือ 'teachers' ตามชื่อ table ในระบบ
+                    .select('*')
+                    .or('email.eq.kruthanadol@buached.ac.th,full_name.ilike.%ธนดล%')
+                    .single();
 
-                if (auth.name) {
-                    document.getElementById('userDisplayName').innerText = auth.name;
-                }
-                if (auth.role) {
-                    document.getElementById('userRoleBadge').innerText = auth.role.toUpperCase();
-                }
+                if (teacherData) {
+                    // อัปเดตข้อมูลผู้ใช้บนหน้า UI
+                    const userRole = (teacherData.role || 'TEACHER').toUpperCase();
+                    const userName = teacherData.full_name || 'นายธนดล คำเสมอ';
+                    const avatarUrl = teacherData.avatar_url || teacherData.image_url;
 
-                // ดึงรูปถ่ายโปรไฟล์ของครูจาก Database มาแสดงผล
-                let avatarUrl = auth.avatar_url || localStorage.getItem('user_avatar');
-                if (!avatarUrl && auth.email) {
-                    const { data: teacherData } = await db.from('teachers').select('avatar_url, image_url').eq('email', auth.email).single();
-                    if (teacherData) {
-                        avatarUrl = teacherData.avatar_url || teacherData.image_url;
+                    document.getElementById('userDisplayName').innerText = userName;
+                    document.getElementById('userRoleBadge').innerText = userRole;
+
+                    // บันทึกลง LocalStorage
+                    localStorage.setItem('user_name', userName);
+                    localStorage.setItem('user_role', userRole.toLowerCase());
+
+                    // ถ้ามี URL รูปภาพให้ดึงมาแสดงผลทันที
+                    if (avatarUrl) {
+                        const img = document.getElementById('userAvatarImg');
+                        img.src = avatarUrl;
+                        img.classList.remove('hidden');
+                        document.getElementById('userAvatarIcon').classList.add('hidden');
+                        localStorage.setItem('user_avatar', avatarUrl);
                     }
-                }
-
-                if (avatarUrl) {
-                    const img = document.getElementById('userAvatarImg');
-                    img.src = avatarUrl;
-                    img.classList.remove('hidden');
-                    document.getElementById('userAvatarIcon').classList.add('hidden');
-                    localStorage.setItem('user_avatar', avatarUrl);
+                } else if (auth && auth.role !== 'unauthenticated') {
+                    if (auth.name) document.getElementById('userDisplayName').innerText = auth.name;
+                    if (auth.role) document.getElementById('userRoleBadge').innerText = auth.role.toUpperCase();
                 }
             } catch (e) {
-                console.warn('Auth Routing Warning:', e);
+                console.warn('Auth Sync Warning:', e);
             }
 
             loadLandingRealStats();
         });
+
+        async function loadLandingRealStats() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const { count: studentCount } = await db.from('students').select('id', { count: 'exact', head: true });
+                const total = studentCount || 0;
+                
+                const c1 = document.getElementById('total_students_count');
+                if (c1) c1.innerText = total.toLocaleString();
+
+                const { count: presentCount } = await db.from('attendance_logs')
+                    .select('id', { count: 'exact', head: true })
+                    .gte('check_date', today)
+                    .in('status', ['present', 'late', 'GREEN']);
+
+                const present = presentCount || 0;
+                const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
+
+                const pCount = document.getElementById('statPresentCountLanding');
+                const pPercent = document.getElementById('statPresentPercentLanding');
+                if (pCount) pCount.innerText = present.toLocaleString();
+                if (pPercent) pPercent.innerText = `(${percent}%)`;
+
+                const aiText = document.getElementById('aiSummaryText');
+                if (aiText) {
+                    aiText.innerHTML = `สรุปประจำวัน: นักเรียนมาเรียนแล้ว <strong class="text-emerald-700">${present.toLocaleString()} คน (${percent}%)</strong> จากทั้งหมด ${total.toLocaleString()} คน บันทึกข้อมูลเรียบร้อยดี`;
+                }
+            } catch (err) {
+                console.warn('Load Stats Warning:', err);
+            }
+        }
+
+        window.handleLogout = function() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                logoutUser();
+            }
+        };
+    </script>
 
         async function loadLandingRealStats() {
             try {
