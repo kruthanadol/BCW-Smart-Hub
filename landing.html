@@ -1204,60 +1204,38 @@
         import { checkAuthAndRoute, logoutUser } from './core/auth-manager.js';
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. อ่านค่า Cache ดั้งเดิมขึ้นมาก่อน
-            const cachedName = localStorage.getItem('user_name');
-            const cachedRole = localStorage.getItem('user_role');
-            const cachedAvatar = localStorage.getItem('user_avatar');
-
-            if (cachedName) document.getElementById('userDisplayName').innerText = cachedName;
-            if (cachedRole) document.getElementById('userRoleBadge').innerText = cachedRole.toUpperCase();
-            if (cachedAvatar) {
-                const img = document.getElementById('userAvatarImg');
-                img.src = cachedAvatar;
-                img.classList.remove('hidden');
-                document.getElementById('userAvatarIcon').classList.add('hidden');
-            }
-
+            // 1. ดึงข้อมูล Profile ของครูธนดลจากตาราง users โดยตรง
             try {
-                // 2. ดึงข้อมูล Auth จริงจาก Supabase
-                const auth = await checkAuthAndRoute();
-
-                // 3. Query ค้นหาข้อมูลครูธนดลจาก Email kruthanadol@buached.ac.th หรือชื่อ 'ธนดล'
-                const { data: teacherData, error } = await db
-                    .from('users') // หรือ 'teachers' ตามชื่อ table ในระบบ
+                const { data: userData, error } = await db
+                    .from('users')
                     .select('*')
-                    .or('email.eq.kruthanadol@buached.ac.th,full_name.ilike.%ธนดล%')
-                    .single();
+                    .eq('email', 'kruthanadol@buached.ac.th')
+                    .maybeSingle();
 
-                if (teacherData) {
-                    // อัปเดตข้อมูลผู้ใช้บนหน้า UI
-                    const userRole = (teacherData.role || 'TEACHER').toUpperCase();
-                    const userName = teacherData.full_name || 'นายธนดล คำเสมอ';
-                    const avatarUrl = teacherData.avatar_url || teacherData.image_url;
+                if (userData) {
+                    // อัปเดตชื่อและ Role บน UI
+                    document.getElementById('userDisplayName').innerText = userData.full_name || 'นายธนดล คำเสนอ';
+                    document.getElementById('userRoleBadge').innerText = (userData.role || 'ADMIN').toUpperCase();
 
-                    document.getElementById('userDisplayName').innerText = userName;
-                    document.getElementById('userRoleBadge').innerText = userRole;
+                    // ตรวจสอบ URL รูปภาพจากคอลัมน์ avatar_url หรือ image_url
+                    const profileImgUrl = userData.avatar_url || userData.image_url;
 
-                    // บันทึกลง LocalStorage
-                    localStorage.setItem('user_name', userName);
-                    localStorage.setItem('user_role', userRole.toLowerCase());
-
-                    // ถ้ามี URL รูปภาพให้ดึงมาแสดงผลทันที
-                    if (avatarUrl) {
+                    if (profileImgUrl) {
                         const img = document.getElementById('userAvatarImg');
-                        img.src = avatarUrl;
+                        const icon = document.getElementById('userAvatarIcon');
+                        
+                        img.src = profileImgUrl;
                         img.classList.remove('hidden');
-                        document.getElementById('userAvatarIcon').classList.add('hidden');
-                        localStorage.setItem('user_avatar', avatarUrl);
+                        if (icon) icon.classList.add('hidden');
+                        
+                        localStorage.setItem('user_avatar', profileImgUrl);
                     }
-                } else if (auth && auth.role !== 'unauthenticated') {
-                    if (auth.name) document.getElementById('userDisplayName').innerText = auth.name;
-                    if (auth.role) document.getElementById('userRoleBadge').innerText = auth.role.toUpperCase();
                 }
-            } catch (e) {
-                console.warn('Auth Sync Warning:', e);
+            } catch (err) {
+                console.warn('Data Fetch Error:', err);
             }
 
+            // โหลดสถิติตามปกติ
             loadLandingRealStats();
         });
 
@@ -1297,6 +1275,7 @@
                 logoutUser();
             }
         };
+    </script>
 
         async function loadLandingRealStats() {
             try {
