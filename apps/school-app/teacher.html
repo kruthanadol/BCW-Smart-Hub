@@ -327,60 +327,71 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                // 1. ดึง teacher_id จากการล็อกอิน (ตัวอย่างล็อกอินด้วย T011)
-                const currentTeacherId = localStorage.getItem('teacher_id') || 'T011';
+        <script type="module">
+            import { db } from './core/supabase-client.js';
         
-                // 2. Query ข้อมูลครูจากตาราง users ด้วย teacher_id เป็นหลัก
-                const { data: teacher, error: teacherErr } = await db
-                    .from('users')
-                    .select('*')
-                    .eq('teacher_id', currentTeacherId)
-                    .maybeSingle();
+            document.addEventListener('DOMContentLoaded', async () => {
+                try {
+                    // 1. ดึงรหัสครูจาก LocalStorage หรือแปลงรหัสให้เป็นมาตรฐาน T011
+                    let rawTeacherId = localStorage.getItem('teacher_id') || localStorage.getItem('user_id') || 'T011';
+                    
+                    // ปรับตัวพิมพ์ใหญ่ และแปลงรหัส t11 -> T011
+                    let cleanTeacherId = rawTeacherId.toUpperCase();
+                    if (cleanTeacherId === 'T11') cleanTeacherId = 'T011';
         
-                if (teacher) {
-                    // แสดงข้อมูลครูและรูปโปรไฟล์
-                    const nameEl = document.getElementById('teacherDisplayName') || document.querySelector('.teacher-name');
-                    const codeEl = document.getElementById('teacherDisplayCode') || document.querySelector('.teacher-code');
-                    const avatarImg = document.getElementById('teacherAvatarImg') || document.querySelector('.teacher-avatar');
+                    // 2. ค้นหาข้อมูลครูจากตาราง users ใน Supabase
+                    const { data: teacher, error } = await db
+                        .from('users')
+                        .select('*')
+                        .or(`teacher_id.eq.${cleanTeacherId},teacher_id.eq.T011,email.eq.info@buached.ac.th`)
+                        .maybeSingle();
         
-                    if (nameEl) nameEl.innerText = teacher.full_name;
-                    if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id}`;
+                    if (teacher) {
+                        // อัปเดต ชื่อ และ รหัสครู บน UI
+                        const nameEl = document.getElementById('teacherDisplayName') || document.querySelector('.teacher-name');
+                        const codeEl = document.getElementById('teacherDisplayCode') || document.querySelector('.teacher-code');
+                        const avatarImg = document.getElementById('teacherAvatarImg') || document.querySelector('.teacher-avatar');
         
-                    if (teacher.avatar_url && avatarImg) {
-                        avatarImg.src = teacher.avatar_url;
-                        avatarImg.classList.remove('hidden');
+                        if (nameEl) nameEl.innerText = teacher.full_name || 'นายทองสลอน ระยับ';
+                        if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id || 'T011'}`;
+        
+                        // อัปเดต รูปโปรไฟล์ครู
+                        if (teacher.avatar_url && avatarImg) {
+                            avatarImg.src = teacher.avatar_url;
+                            avatarImg.classList.remove('hidden');
+                        }
+        
+                        // 3. โหลดรายชื่อนักเรียนประจำห้อง (เช่น ม.2/2 หรือ ม.5/1)
+                        const targetRoom = teacher.advisor_classroom || 'ม.2/2';
+                        loadStudentsList(targetRoom);
                     }
+                } catch (err) {
+                    console.warn('Sync teacher T011 error:', err);
+                }
+            });
         
-                    // 3. ดึงรายชื่อนักเรียนตามห้องประจำชั้นของครูท่านนี้ (เช่น ม.2/2)
-                    if (teacher.advisor_classroom) {
-                        loadStudentsByClassroom(teacher.advisor_classroom);
+            // ฟังก์ชันดึงและแสดงรายชื่อนักเรียน
+            async function loadStudentsList(classroom) {
+                try {
+                    const { data: students, error } = await db
+                        .from('students')
+                        .select('*')
+                        .eq('classroom', classroom)
+                        .order('student_no', { ascending: true });
+        
+                    if (students && students.length > 0) {
+                        console.log(`โหลดข้อมูลนักเรียนห้อง ${classroom} สำเร็จ:`, students);
+                        // เรียกฟังก์ชันแสดงผลนักเรียนเข้าตาราง
+                        if (typeof renderStudentTable === 'function') {
+                            renderStudentTable(students);
+                        }
                     }
+                } catch (err) {
+                    console.warn('Load students error:', err);
                 }
-            } catch (err) {
-                console.warn('Error loading teacher portal data:', err);
             }
-        });
-        
-        // ฟังก์ชันดึงรายชื่อนักเรียนตามห้องประจำชั้น
-        async function loadStudentsByClassroom(classroom) {
-            try {
-                const { data: students, error } = await db
-                    .from('students')
-                    .select('*')
-                    .eq('classroom', classroom)
-                    .order('student_no', { ascending: true });
-        
-                if (students && students.length > 0) {
-                    console.log(`โหลดรายชื่อนักเรียนห้อง ${classroom} เรียบร้อย:`, students);
-                    // แสดงผลรายชื่อนักเรียนลงตารางในหน้าเว็บ
-                    renderStudentList(students);
-                }
-            } catch (err) {
-                console.warn('Error loading students:', err);
-            }
-        }
+
+    
         function toggleStatsDrawerFromNav(btnElement) {
             const trafficSec = document.getElementById('section-traffic');
             if (trafficSec.classList.contains('hidden')) {
