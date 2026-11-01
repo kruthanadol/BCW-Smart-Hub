@@ -597,7 +597,7 @@
         </button>
     </nav>
 
-    <!-- Global Dropdown & Control Scripts -->
+<!-- Global Dropdown & Control Scripts -->
     <script>
         function toggleSideDrawer() {
             const overlay = document.getElementById('drawerOverlay');
@@ -671,18 +671,17 @@
         }
     </script>
 
-    <!-- Integration with Modular Pure Zero-Mock ParentService & Auth Guard -->
+    <!-- Integration with Supabase Database & Auth Guard -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
         import { requireAuth, logout } from '../../core/auth-manager.js';
-        import { ParentService } from '../../modules/parent/parent.service.js';
 
         let currentStudentId = '';
         let CURRENT_PARENT_USER = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Auth Guard เช็กสิทธิ์ผู้ปกครองล็อกอินจริง ( Zero-Mock Policy )
-            CURRENT_PARENT_USER = requireAuth(['parent', 'executive', 'admin', 'superadmin'], '../../login.html');
+            // 🔒 1. Auth Guard เช็กสิทธิ์ผู้ปกครองล็อกอินจริง
+            CURRENT_PARENT_USER = requireAuth(['parent', 'admin', 'superadmin'], '../../login.html');
             if (!CURRENT_PARENT_USER) return;
 
             await initParentPortal(CURRENT_PARENT_USER);
@@ -691,41 +690,54 @@
 
         async function initParentPortal(user) {
             try {
-                // ดึงรายชื่อบุตรหลานในปกครองจริงจาก DB Supabase
-                const children = await ParentService.getParentStudents(user.userId || user.parentId);
+                // ดึงข้อมูลรหัสนักเรียนจาก Session ที่เข้าสู่ระบบ
+                const targetStudentId = user.studentId || user.userId || '';
                 const childModalList = document.getElementById('childModalList');
 
-                if (children && children.length > 0) {
-                    currentStudentId = children[0].student_id;
+                if (targetStudentId) {
+                    // ดึงข้อมูลนักเรียนจากตาราง students
+                    const { data: student, error } = await db.from('students')
+                        .select('*')
+                        .or(`student_id.eq.${targetStudentId},id.eq.${targetStudentId}`)
+                        .maybeSingle();
 
-                    if (childModalList) {
-                        childModalList.innerHTML = children.map(c => `
-                            <button onclick="window.selectChildOption('${c.student_id}', '${c.first_name || ''} ${c.last_name || ''}')" class="w-full text-left p-2.5 rounded-xl hover:bg-indigo-50 font-medium transition flex justify-between items-center border border-transparent hover:border-indigo-100">
-                                <span>${c.prefix || ''}${c.first_name || ''} ${c.last_name || ''} (${c.student_id})</span>
-                                <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                            </button>
-                        `).join('');
+                    if (student) {
+                        currentStudentId = student.student_id || student.id;
+                        const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+
+                        if (childModalList) {
+                            childModalList.innerHTML = `
+                                <button onclick="window.selectChildOption('${currentStudentId}', '${fullName}')" class="w-full text-left p-2.5 rounded-xl hover:bg-indigo-50 font-medium transition flex justify-between items-center border border-transparent hover:border-indigo-100">
+                                    <span>${fullName} (${currentStudentId})</span>
+                                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                </button>
+                            `;
+                        }
+
+                        if (document.getElementById('customChildText')) {
+                            document.getElementById('customChildText').innerText = `${fullName} (${currentStudentId})`;
+                        }
+                        if (document.getElementById('childSelector')) {
+                            document.getElementById('childSelector').value = currentStudentId;
+                        }
+                        
+                        const subHeaderName = document.getElementById('subHeaderStudentName');
+                        if (subHeaderName) subHeaderName.innerText = fullName;
+                    } else {
+                        currentStudentId = targetStudentId;
+                        if (childModalList) {
+                            childModalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบข้อมูลบุตรหลานในระบบ</p>`;
+                        }
+                        if (document.getElementById('customChildText')) {
+                            document.getElementById('customChildText').innerText = `-- รหัส: ${currentStudentId} --`;
+                        }
                     }
-
-                    const firstStudentName = `${children[0].prefix || ''}${children[0].first_name || ''} ${children[0].last_name || ''}`.trim();
-                    document.getElementById('customChildText').innerText = `${firstStudentName} (${currentStudentId})`;
-                    document.getElementById('childSelector').value = currentStudentId;
-                    
-                    const subHeaderName = document.getElementById('subHeaderStudentName');
-                    if (subHeaderName) subHeaderName.innerText = firstStudentName;
-
-                } else {
-                    currentStudentId = user.studentId || '';
-                    if (childModalList) {
-                        childModalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบข้อมูลบุตรหลานในปกครองในระบบ</p>`;
-                    }
-                    document.getElementById('customChildText').innerText = "-- ไม่พบบุตรหลาน --";
                 }
 
                 window.selectChildOption = (id, name) => {
                     currentStudentId = id;
-                    document.getElementById('childSelector').value = id;
-                    document.getElementById('customChildText').innerText = `${name} (${id})`;
+                    if (document.getElementById('childSelector')) document.getElementById('childSelector').value = id;
+                    if (document.getElementById('customChildText')) document.getElementById('customChildText').innerText = `${name} (${id})`;
                     
                     const subHeaderName = document.getElementById('subHeaderStudentName');
                     if (subHeaderName) subHeaderName.innerText = name;
@@ -745,21 +757,47 @@
             if (!currentStudentId) return;
 
             try {
-                const dayName = document.getElementById('dayFilter')?.value || 'Monday';
-                const data = await ParentService.getDashboardData(currentStudentId, dayName);
+                // 1. ดึงข้อมูลนักเรียนจริงจากตาราง students
+                const { data: student } = await db.from('students')
+                    .select('*')
+                    .or(`student_id.eq.${currentStudentId},id.eq.${currentStudentId}`)
+                    .maybeSingle();
 
-                if (data && data.student) {
-                    if (document.getElementById('student-fullname')) document.getElementById('student-fullname').textContent = data.student.fullName || 'นักเรียน';
-                    if (document.getElementById('student-class')) document.getElementById('student-class').textContent = data.student.classroom || '-';
-                    if (document.getElementById('student-no')) document.getElementById('student-no').textContent = data.student.studentNo || '-';
-                    if (document.getElementById('student-behavior-score')) document.getElementById('student-behavior-score').textContent = data.student.behaviorScore ?? 100;
+                if (student) {
+                    const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                    if (document.getElementById('student-fullname')) document.getElementById('student-fullname').textContent = fullName || 'นักเรียน';
+                    if (document.getElementById('student-class')) document.getElementById('student-class').textContent = student.classroom || '-';
+                    if (document.getElementById('student-no')) document.getElementById('student-no').textContent = student.student_no || '-';
 
-                    if (data.student.avatarUrl && document.getElementById('student-avatar')) {
-                        document.getElementById('student-avatar').src = data.student.avatarUrl;
+                    if (student.avatar_url && document.getElementById('student-avatar')) {
+                        document.getElementById('student-avatar').src = student.avatar_url;
+                    }
+
+                    // 2. ดึงคะแนนพฤติกรรมสะสมจากตาราง behavior_logs
+                    const { data: logs } = await db.from('behavior_logs')
+                        .select('score, points')
+                        .eq('student_id', currentStudentId);
+
+                    let totalScore = 100;
+                    if (logs && logs.length > 0) {
+                        const totalDeducted = logs.reduce((sum, l) => sum + (l.score || l.points || 0), 0);
+                        totalScore = Math.max(0, 100 - totalDeducted);
+                    }
+
+                    if (document.getElementById('student-behavior-score')) {
+                        document.getElementById('student-behavior-score').textContent = totalScore;
+                    }
+
+                    // 3. ดึงตารางเรียนจาก course_assignments / schedules ตามห้องเรียน
+                    if (student.classroom) {
+                        const dayName = document.getElementById('dayFilter')?.value || 'Monday';
+                        const { data: schedule } = await db.from('course_assignments')
+                            .select('*')
+                            .eq('class_name', student.classroom);
+
+                        renderSchedule(schedule || [], dayName);
                     }
                 }
-
-                renderSchedule(data ? data.schedule : [], dayName);
 
             } catch (err) {
                 console.error('[ParentPortal] Load Dashboard Error:', err);
@@ -775,15 +813,15 @@
                 return;
             }
 
-            container.innerHTML = scheduleList.map(s => `
+            container.innerHTML = scheduleList.map((s, idx) => `
                 <div class="flex items-center justify-between p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl mb-2">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
-                            <span class="text-xs sm:text-sm font-extrabold">${s.period || 1}</span>
+                            <span class="text-xs sm:text-sm font-extrabold">${idx + 1}</span>
                         </div>
                         <div>
                             <h4 class="text-xs font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
-                            <p class="text-[10px] text-slate-500 font-semibold">ห้องเรียน: ${s.room || 'ไม่ระบุ'}</p>
+                            <p class="text-[10px] text-slate-500 font-semibold">ห้องเรียน: ${s.class_name || 'ไม่ระบุ'}</p>
                         </div>
                     </div>
                 </div>`).join('');
@@ -799,31 +837,45 @@
             openModalBtns.forEach(btn => btn?.addEventListener('click', () => leaveModal?.classList.remove('hidden')));
             closeModalBtns.forEach(btn => btn?.addEventListener('click', () => leaveModal?.classList.add('hidden')));
 
+            // ยื่นใบลาออนไลน์บันทึกลงตาราง attendance_logs หรือ gate_pass_logs จริง
             document.getElementById('leaveForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const leaveData = {
-                    student_id: currentStudentId,
-                    leave_type: document.getElementById('leaveType').value,
-                    start_date: document.getElementById('startDate').value,
-                    end_date: document.getElementById('endDate').value,
-                    reason: document.getElementById('leaveReason').value,
-                    parent_phone: document.getElementById('parentPhone').value,
-                    parent_pin: document.getElementById('parentPin').value
-                };
+                try {
+                    const leaveType = document.getElementById('leaveType').value;
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    const reason = document.getElementById('leaveReason').value;
 
-                const res = await ParentService.submitLeaveRequest(leaveData);
-                if (res.success) {
+                    const { error } = await db.from('attendance_logs').insert([{
+                        student_id: currentStudentId,
+                        status: 'leave',
+                        method: 'parent_leave_request',
+                        period_no: 1,
+                        recorded_at: new Date().toISOString(),
+                        subject_name: `แจ้งลา (${leaveType}): ${reason} [${startDate} ถึง ${endDate}]`
+                    }]);
+
+                    if (error) throw error;
+
                     alert('🎉 ยื่นใบลาออนไลน์ส่งถึงครูเรียบร้อยแล้ว!');
                     document.getElementById('leaveForm').reset();
                     leaveModal?.classList.add('hidden');
                     loadDashboardData();
-                } else {
-                    alert('เกิดข้อผิดพลาด: ' + (res.message || 'ไม่สามารถยื่นใบลาได้'));
+                } catch (err) {
+                    console.error('Submit Leave Error:', err);
+                    alert('เกิดข้อผิดพลาดในการยื่นใบลา: ' + err.message);
                 }
             });
 
-            document.getElementById('btnLogout')?.addEventListener('click', () => {
-                logout('../../login.html');
+            // ปุ่มออกจากระบบ
+            document.querySelectorAll('#btnLogout, .btn-logout, [onclick*="logout"]').forEach(btn => {
+                btn.removeAttribute('onclick');
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                        logout('../../login.html');
+                    }
+                });
             });
         }
     </script>
