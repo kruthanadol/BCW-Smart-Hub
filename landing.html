@@ -1198,54 +1198,42 @@
         });
     </script>
 
-<!-- Main Auth Module & Supabase Data Binding -->
+<!-- Main Auth Module & Supabase Data Binding (ฉบับปรับปรุงเชื่อมต่อทั้งระบบ) -->
 <script type="module">
     import { db } from './core/supabase-client.js';
     import { checkAuthAndRoute, logoutUser } from './core/auth-manager.js';
 
     document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            // 1. ค้นหาข้อมูลครูธนดลจากตาราง users
-            const { data: userData, error } = await db
-                .from('users')
-                .select('*')
-                .or('email.eq.kruthanadol@buached.ac.th,full_name.ilike.%ธนดล%')
-                .maybeSingle();
-
-            if (userData) {
-                const userName = userData.full_name || 'นายธนดล คำเสมอ';
-                const userRole = (userData.role || 'ADMIN').toUpperCase();
-                const profileImgUrl = userData.avatar_url || userData.image_url;
-
-                // อัปเดต UI หน้าเว็บ
-                document.getElementById('userDisplayName').innerText = userName;
-                document.getElementById('userRoleBadge').innerText = userRole;
-
-                // 💡 จุดสำคัญ: บันทึกสิทธิ์และชื่อไว้ใน LocalStorage เพื่อให้ปุ่ม ADMIN เช็กผ่าน
-                localStorage.setItem('user_name', userName);
-                localStorage.setItem('user_role', userRole.toLowerCase()); // บันทึกเป็น 'admin'
-
-                // แสดงผลรูปโปรไฟล์
-                if (profileImgUrl) {
-                    const img = document.getElementById('userAvatarImg');
-                    const icon = document.getElementById('userAvatarIcon');
-                    
-                    img.src = profileImgUrl;
-                    img.classList.remove('hidden');
-                    if (icon) icon.classList.add('hidden');
-                    
-                    localStorage.setItem('user_avatar', profileImgUrl);
-                }
-            } else {
-                // กรณีหาไม่เจอ ให้บันทึกสิทธิ์ Admin สำรองไว้
-                localStorage.setItem('user_role', 'admin');
-            }
-        } catch (err) {
-            console.warn('Data Fetch Error:', err);
-            localStorage.setItem('user_role', 'admin');
+        // 1. ตรวจสอบ Session และ Routing กลาง
+        const authResult = await checkAuthAndRoute();
+        
+        // หากไม่มี Session ให้กลับไปหน้า Login
+        if (authResult.role === 'unauthenticated') {
+            window.location.replace('login.html');
+            return;
         }
 
-        // โหลดสถิติต่างๆ
+        // 2. ดึงข้อมูลผู้ใช้จาก LocalStorage มาแสดงผลบน UI
+        const userName = localStorage.getItem('user_name') || authResult.name || 'ผู้ใช้งานระบบ';
+        const rawRole = localStorage.getItem('user_role') || authResult.role || 'GUEST';
+        const userRole = rawRole.toUpperCase();
+        const userAvatar = localStorage.getItem('user_avatar');
+
+        const nameEl = document.getElementById('userDisplayName');
+        const badgeEl = document.getElementById('userRoleBadge');
+        const imgEl = document.getElementById('userAvatarImg');
+        const iconEl = document.getElementById('userAvatarIcon');
+
+        if (nameEl) nameEl.innerText = userName;
+        if (badgeEl) badgeEl.innerText = userRole;
+
+        if (userAvatar && imgEl) {
+            imgEl.src = userAvatar;
+            imgEl.classList.remove('hidden');
+            if (iconEl) iconEl.classList.add('hidden');
+        }
+
+        // 3. โหลดข้อมูลสถิติ Real-time
         loadLandingRealStats();
     });
 
@@ -1253,12 +1241,14 @@
         try {
             const today = new Date().toISOString().split('T')[0];
 
+            // ดึงจำนวนนักเรียนทั้งหมด
             const { count: studentCount } = await db.from('students').select('id', { count: 'exact', head: true });
             const total = studentCount || 0;
             
             const c1 = document.getElementById('total_students_count');
             if (c1) c1.innerText = total.toLocaleString();
 
+            // ดึงสถิติเข้าเรียนวันนี้
             const { count: presentCount } = await db.from('attendance_logs')
                 .select('id', { count: 'exact', head: true })
                 .gte('check_date', today)
@@ -1282,6 +1272,7 @@
         }
     }
 
+    // ฟังก์ชันออกจากระบบกลาง
     window.handleLogout = function() {
         if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
             logoutUser();
