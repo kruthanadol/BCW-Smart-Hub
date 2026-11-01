@@ -120,7 +120,7 @@
         </div>
     </div>
 
-    <script type="module">
+<script type="module">
         import { db } from './core/supabase-client.js';
 
         // 1. Google SSO Login
@@ -129,7 +129,6 @@
                 localStorage.clear();
                 sessionStorage.clear();
 
-                // สร้าง Dynamic Redirect URL ไปที่ landing.html เพื่อให้รองรับ Subfolder ของ GitHub Pages
                 const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
                 const targetUrl = baseUrl + '/landing.html';
 
@@ -159,70 +158,82 @@
 
             try {
                 const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
-                const cleanId = inputVal.split('@')[0].toLowerCase();
+                let rawId = inputVal.split('@')[0].toUpperCase();
+                
+                // Normalize รหัสครู T11 / t11 -> T011 ให้ตรงกับฐานข้อมูล
+                let cleanId = rawId === 'T11' ? 'T011' : rawId;
 
                 localStorage.clear();
                 sessionStorage.clear();
 
-                // ค้นหาในตาราง users ก่อน (ครู/แอดมิน)
+                // 1. ค้นหาในตาราง users ก่อน (ครู / แอดมิน)
                 const { data: userData } = await db.from('users')
-                    .select('user_id, role, prefix, first_name, last_name')
-                    .or(`email.eq.${fullEmail},user_id.eq.${cleanId}`)
+                    .select('teacher_id, user_id, full_name, role, avatar_url')
+                    .or(`email.eq.${fullEmail},teacher_id.eq.${cleanId},teacher_id.eq.T011`)
                     .maybeSingle();
 
                 if (userData) {
-                    const fullName = `${userData.prefix || ''}${userData.first_name || ''} ${userData.last_name || ''}`.trim();
-                    localStorage.setItem('user_role', 'teacher');
-                    localStorage.setItem('user_id', userData.user_id || cleanId);
-                    localStorage.setItem('teacher_id', userData.user_id || cleanId);
+                    const fullName = userData.full_name || cleanId;
+                    const teacherId = userData.teacher_id || userData.user_id || 'T011';
+                    const role = (userData.role || 'teacher').toLowerCase();
+
+                    localStorage.setItem('user_role', role);
+                    localStorage.setItem('role', role);
+                    localStorage.setItem('user_id', teacherId);
+                    localStorage.setItem('teacher_id', teacherId);
                     localStorage.setItem('user_email', fullEmail);
+                    localStorage.setItem('user_name', fullName);
                     localStorage.setItem('user_logged_in', 'true');
 
-                    alert(`ยินดีต้อนรับคุณครู ${fullName || cleanId}`);
-                    window.location.replace('apps/school-app/teacher.html');
+                    alert(`ยินดีต้อนรับคุณครู ${fullName}`);
+                    window.location.replace('landing.html');
                     return;
                 }
 
-                // ค้นหาในตาราง students (นักเรียน)
+                // 2. ค้นหาในตาราง students (นักเรียน)
                 const { data: studentData } = await db.from('students')
-                    .select('student_id, prefix, first_name, last_name')
+                    .select('student_id, prefix, first_name, last_name, classroom')
                     .or(`email.eq.${fullEmail},student_id.eq.${cleanId}`)
                     .maybeSingle();
 
                 if (studentData) {
                     const fullName = `${studentData.prefix || ''}${studentData.first_name || ''} ${studentData.last_name || ''}`.trim();
+                    const studentId = studentData.student_id || cleanId;
+
                     localStorage.setItem('user_role', 'student');
-                    localStorage.setItem('user_id', studentData.student_id);
-                    localStorage.setItem('student_id', studentData.student_id);
+                    localStorage.setItem('role', 'student');
+                    localStorage.setItem('user_id', studentId);
+                    localStorage.setItem('student_id', studentId);
                     localStorage.setItem('user_email', fullEmail);
+                    localStorage.setItem('user_name', fullName);
+                    localStorage.setItem('classroom', studentData.classroom || '');
                     localStorage.setItem('user_logged_in', 'true');
 
-                    alert(`ยินดีต้อนรับนักเรียน ${fullName || cleanId}`);
-                    window.location.replace('apps/student-app/student.html');
+                    alert(`ยินดีต้อนรับนักเรียน ${fullName || studentId}`);
+                    window.location.replace('landing.html');
                     return;
                 }
 
-                // กรณีไม่พบในฐานข้อมูล ใช้ Fallback เช็กตัวเลข
+                // กรณี Fallback หากหาไม่พบใน DB
                 const isStudent = /^\d+$/.test(cleanId);
                 if (isStudent) {
                     localStorage.setItem('user_role', 'student');
+                    localStorage.setItem('role', 'student');
                     localStorage.setItem('user_id', cleanId);
                     localStorage.setItem('student_id', cleanId);
                     localStorage.setItem('user_email', fullEmail);
                     localStorage.setItem('user_logged_in', 'true');
-
                     alert(`ยินดีต้อนรับนักเรียน ${cleanId}`);
-                    window.location.replace('apps/student-app/student.html');
                 } else {
                     localStorage.setItem('user_role', 'teacher');
+                    localStorage.setItem('role', 'teacher');
                     localStorage.setItem('user_id', cleanId);
                     localStorage.setItem('teacher_id', cleanId);
                     localStorage.setItem('user_email', fullEmail);
                     localStorage.setItem('user_logged_in', 'true');
-
                     alert(`ยินดีต้อนรับคุณครู ${cleanId}`);
-                    window.location.replace('apps/school-app/teacher.html');
                 }
+                window.location.replace('landing.html');
 
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการล็อกอิน: ' + err.message);
@@ -263,6 +274,7 @@
                     sessionStorage.clear();
 
                     localStorage.setItem('user_role', 'parent');
+                    localStorage.setItem('role', 'parent');
                     localStorage.setItem('user_logged_in', 'true');
                     localStorage.setItem('parent_session', JSON.stringify({
                         role: 'parent',
@@ -271,7 +283,7 @@
                     }));
 
                     alert(`ยินดีต้อนรับผู้ปกครองของ ${fullName}`);
-                    window.location.replace('apps/parent-app/parent.html');
+                    window.location.replace('landing.html');
                 } else {
                     alert('รหัสผ่านผู้ปกครองไม่ถูกต้อง');
                 }
@@ -283,8 +295,6 @@
                     btnSubmit.innerText = '👨‍👩‍👧‍👦 เข้าสู่ระบบสำหรับผู้ปกครอง';
                 }
             }
-            const auth = await checkAuthAndRoute();
-            window.location.replace(auth.target); // ส่งตัวผู้ใช้ไปยังหน้าปลายทางทีเดียวจบ!
         };
     </script>
 </body>
