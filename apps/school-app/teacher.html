@@ -323,13 +323,11 @@
 
 <!-- Complete JavaScript Logic Section (ครบทุกฟังก์ชัน 100% ไม่ตัดออก) -->
     <script type="module">
-        import { db } from './core/supabase-client.js';
+        import { db } from '../../core/supabase-client.js';
+        import { logoutUser } from '../../core/auth-manager.js';
 
         // 1. เริ่มทำงานเมื่อโหลดหน้าเว็บเสร็จสมบูรณ์
         document.addEventListener('DOMContentLoaded', async () => {
-            // ผูกระบบ Logout
-            setupLogout();
-            
             // โหลดโปรไฟล์ครู T011
             await loadTeacherProfile();
             
@@ -341,31 +339,14 @@
         // ----------------------------------------------------
         // 2. ระบบ ออกจากระบบ (Logout System)
         // ----------------------------------------------------
-        function setupLogout() {
-            const logoutBtn = document.getElementById('logoutBtn') || document.querySelector('button:has(.fa-right-from-bracket)');
-            if (logoutBtn) {
-                logoutBtn.onclick = async (e) => {
-                    e.preventDefault();
-                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                        localStorage.clear();
-                        sessionStorage.clear();
-                        try { await db.auth.signOut(); } catch (err) {}
-                        window.location.href = '../../landing.html';
-                    }
-                };
-            }
-        }
-
         window.handleLogout = function() {
             if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = '../../landing.html';
+                logoutUser();
             }
         };
 
         // ----------------------------------------------------
-        // 3. ระบบดึงโปรไฟล์ครูผู้สอน (Teacher Profile)
+        // 3. ระบบดึงโปรไฟล์ครูผู้สอน (อ่าน LocalStorage กลาง)
         // ----------------------------------------------------
         async function loadTeacherProfile() {
             try {
@@ -373,22 +354,27 @@
                 let cleanId = rawId.trim().toUpperCase();
                 if (cleanId === 'T11') cleanId = 'T011';
 
+                const storedName = localStorage.getItem('user_name');
+                const storedAvatar = localStorage.getItem('user_avatar');
+
                 const { data: teacher } = await db
                     .from('users')
-                    .select('*')
+                    .select('teacher_id, user_id, full_name, avatar_url, role')
                     .or(`teacher_id.eq.${cleanId},teacher_id.eq.T011,email.eq.info@buached.ac.th`)
                     .maybeSingle();
 
-                if (teacher) {
-                    const nameEl = document.getElementById('headerTeacherName');
-                    const codeEl = document.getElementById('teacherCodeDisplay');
-                    const avatarImg = document.getElementById('headerTeacherAvatar');
+                const nameEl = document.getElementById('headerTeacherName');
+                const codeEl = document.getElementById('teacherCodeDisplay');
+                const avatarImg = document.getElementById('headerTeacherAvatar');
 
-                    if (nameEl) nameEl.innerText = teacher.full_name || 'นายทองสลอน ระยับ';
-                    if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id || 'T011'}`;
-                    if (teacher.avatar_url && avatarImg) {
-                        avatarImg.src = teacher.avatar_url;
-                    }
+                const finalName = teacher?.full_name || storedName || 'นายทองสลอน ระยับ';
+                const finalCode = teacher?.teacher_id || teacher?.user_id || cleanId || 'T011';
+                const finalAvatar = teacher?.avatar_url || storedAvatar;
+
+                if (nameEl) nameEl.innerText = finalName;
+                if (codeEl) codeEl.innerText = `รหัส: ${finalCode}`;
+                if (finalAvatar && avatarImg) {
+                    avatarImg.src = finalAvatar;
                 }
             } catch (err) {
                 console.error('Profile Load Error:', err);
