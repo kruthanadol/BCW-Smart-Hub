@@ -122,10 +122,10 @@
             </div>
 
             <!-- ปุ่มออกจากระบบ -->
-        <button id="logoutBtn" class="text-xs bg-rose-600/90 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-xl font-bold transition border border-rose-500/50 flex items-center gap-1 cursor-pointer shrink-0">
-            <i class="fa-solid fa-right-from-bracket text-xs"></i>
-            <span class="hidden sm:inline">ออกจากระบบ</span>
-        </button>
+            <button onclick="window.handleLogout()" class="text-xs bg-rose-600/90 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-xl font-bold transition border border-rose-500/50 flex items-center gap-1 cursor-pointer shrink-0">
+                <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                <span class="hidden sm:inline">ออกจากระบบ</span>
+            </button>
         </div>
     </header>
 
@@ -321,25 +321,25 @@
         </div>
     </div>
 
-<!-- Complete JavaScript Logic Section (รวมฟังก์ชันครบถ้วน + โครงสร้างถูกต้อง) -->
+<!-- Complete JavaScript Logic Section (ครบทุกฟังก์ชัน 100% ไม่ตัดออก) -->
     <script type="module">
         import { db } from './core/supabase-client.js';
 
         // 1. เริ่มทำงานเมื่อโหลดหน้าเว็บเสร็จสมบูรณ์
         document.addEventListener('DOMContentLoaded', async () => {
-            // ระบบ Logout
+            // ผูกระบบ Logout
             setupLogout();
             
-            // ดึงข้อมูลโปรไฟล์ครู T011
+            // โหลดโปรไฟล์ครู T011
             await loadTeacherProfile();
             
-            // เลือกรอบวิชาอัตโนมัติและแสดงรายชื่อนักเรียน
+            // เลือกรอบวิชาตามเวลา และดึงรายชื่อนักเรียน
             autoSelectCurrentSubject();
-            renderStudents();
+            await renderStudents();
         });
 
         // ----------------------------------------------------
-        // 2. ฟังก์ชันระบบ ออกจากระบบ (Logout)
+        // 2. ระบบ ออกจากระบบ (Logout System)
         // ----------------------------------------------------
         function setupLogout() {
             const logoutBtn = document.getElementById('logoutBtn') || document.querySelector('button:has(.fa-right-from-bracket)');
@@ -356,8 +356,16 @@
             }
         }
 
+        window.handleLogout = function() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = '../../landing.html';
+            }
+        };
+
         // ----------------------------------------------------
-        // 3. ฟังก์ชันดึงข้อมูลโปรไฟล์ครู (T011)
+        // 3. ระบบดึงโปรไฟล์ครูผู้สอน (Teacher Profile)
         // ----------------------------------------------------
         async function loadTeacherProfile() {
             try {
@@ -388,20 +396,27 @@
         }
 
         // ----------------------------------------------------
-        // 4. ผูกฟังก์ชันเข้ากับ Window (เพื่อให้ปุ่ม HTML onclick เรียกใช้ได้)
+        // 4. ระบบการเลื่อนหน้าจอ และ แถบสถิติประตู (UI Helpers)
         // ----------------------------------------------------
-        window.handleLogout = function() {
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.href = '../../landing.html';
+        window.toggleStatsDrawer = function() {
+            const trafficSec = document.getElementById('section-traffic');
+            const btnText = document.getElementById('btnStatsText');
+            const chevron = document.getElementById('statsChevron');
+            
+            if (trafficSec) {
+                trafficSec.classList.toggle('hidden');
+                const isHidden = trafficSec.classList.contains('hidden');
+                if (btnText) btnText.innerText = isHidden ? 'ดูสถิติสแกนประตู' : 'ซ่อนสถิติสแกนประตู';
+                if (chevron) chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
         };
 
         window.toggleStatsDrawerFromNav = function(btnElement) {
             const trafficSec = document.getElementById('section-traffic');
             if (trafficSec && trafficSec.classList.contains('hidden')) {
-                trafficSec.classList.remove('hidden');
+                window.toggleStatsDrawer();
             }
-            scrollToTeacherSection('section-traffic', btnElement);
+            window.scrollToTeacherSection('section-traffic', btnElement);
         };
 
         window.scrollToTeacherSection = function(sectionId, btnElement) {
@@ -415,6 +430,9 @@
             }
         };
 
+        // ----------------------------------------------------
+        // 5. ระบบเลือกวิชาและห้องเรียน (Subject Selector)
+        // ----------------------------------------------------
         window.toggleSubjectModal = function() {
             const modal = document.getElementById('subjectModal');
             if (modal) modal.classList.toggle('hidden');
@@ -423,7 +441,7 @@
         window.selectSubjectOption = function(val, labelText) {
             document.getElementById('subjectSelect').value = val;
             document.getElementById('customSubjectText').innerText = labelText;
-            toggleSubjectModal();
+            window.toggleSubjectModal();
             renderStudents();
         };
 
@@ -447,7 +465,7 @@
         }
 
         // ----------------------------------------------------
-        // 5. ระบบดึงรายชื่อและแสดงตารางเช็กชื่อนักเรียน
+        // 6. ระบบตารางเช็กชื่อนักเรียน + ดึงข้อมูล Real-time
         // ----------------------------------------------------
         async function renderStudents() {
             const tbody = document.getElementById('studentList');
@@ -473,6 +491,8 @@
                     tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-xs text-slate-400">ไม่พบข้อมูลนักเรียนในห้อง ${className}</td></tr>`;
                     return;
                 }
+
+                const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
 
                 tbody.innerHTML = students.map((s, idx) => {
                     const studentId = s.student_id || s.id;
@@ -509,7 +529,7 @@
                         defaultStatus = 'leave';
                     }
 
-                    const avatarUrl = s.avatar_url || `https://wfpopolzgxbglgmzjafg.supabase.co/storage/v1/object/public/avatars/${studentId}.webp`;
+                    const avatarUrl = s.avatar_url || `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.webp`;
 
                     return `
                         <tr class="hover:bg-slate-50 transition">
@@ -563,12 +583,12 @@
                                             <input type="radio" name="att_${studentId}" value="truant" class="accent-purple-600 w-4 h-4">
                                         </label>
                                     </div>
-                                    <input type="text" id="note_mobile_${studentId}" value="${autoNoteText}" onchange="syncNote('${studentId}', this.value)" placeholder="ระบุหมายเหตุ..." class="w-full p-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
+                                    <input type="text" id="note_mobile_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุหมายเหตุ..." class="w-full p-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
                                 </div>
                             </td>
 
                             <td class="p-3 hidden sm:table-cell">
-                                <input type="text" id="note_${studentId}" value="${autoNoteText}" onchange="syncNote('${studentId}', this.value)" placeholder="ระบุเหตุผล/หมายเหตุ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
+                                <input type="text" id="note_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุเหตุผล/หมายเหตุ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
                             </td>
                         </tr>
                     `;
@@ -579,6 +599,11 @@
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs text-rose-500">เกิดข้อผิดพลาดในการดึงข้อมูลจากฐานข้อมูล</td></tr>';
             }
         }
+
+        // ----------------------------------------------------
+        // 7. ฟังก์ชันปุ่มตัวช่วยเช็กชื่อและการบ้าน
+        // ----------------------------------------------------
+        window.renderStudents = renderStudents;
 
         window.syncNote = function(studentId, val) {
             const mInput = document.getElementById(`note_mobile_${studentId}`);
