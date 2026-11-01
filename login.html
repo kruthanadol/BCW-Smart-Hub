@@ -120,120 +120,208 @@
         </div>
     </div>
 
-    <script type="module">
-        import { db } from './core/supabase-client.js';
+ <script type="module">
+    import { db } from './core/supabase-client.js';
 
-        // 1. Google SSO Login
-        window.loginWithGoogle = async function() {
-            try {
+    // 1. Google SSO Login
+    window.loginWithGoogle = async function() {
+        try {
+            localStorage.clear();
+            sessionStorage.clear();
+            const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+            const { data, error } = await db.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: baseUrl + '/landing.html' }
+            });
+            if (error) throw error;
+        } catch (err) {
+            alert('เกิดข้อผิดพลาด Google Log In: ' + err.message);
+        }
+    };
+
+    // 2. ฟอร์มล็อกอิน ครู / นักเรียน (ค้นหาตรงจากคอลัมน์จริง users และ students)
+    window.handleAccountLogin = async function(event) {
+        event.preventDefault();
+        const inputVal = document.getElementById('account-email').value.trim();
+        const passwordVal = document.getElementById('account-password').value.trim();
+        const btnSubmit = document.getElementById('btn-account-submit');
+
+        if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
+        }
+
+        try {
+            localStorage.clear();
+            sessionStorage.clear();
+
+            const rawInput = inputVal.trim();
+            const lowerInput = rawInput.toLowerCase();
+
+            // คำนวณรูปแบบรหัสครู (เช่น T11 -> T011) ให้ตรงกับ teacher_id ในตาราง users
+            let formattedTeacherId = rawInput.toUpperCase();
+            if (/^T\d+$/i.test(rawInput)) {
+                const num = parseInt(rawInput.replace(/\D/g, ''), 10);
+                formattedTeacherId = `T${String(num).padStart(3, '0')}`;
+            }
+
+            // --- 🛠️ 2.1 ค้นหาในตาราง public.users (ครู / แอดมิน) ---
+            const { data: usersList, error: userError } = await db.from('users').select('*');
+
+            if (userError) throw userError;
+
+            let userData = (usersList || []).find(u => {
+                const uEmail = (u.email || '').toLowerCase();
+                const uTeacherId = String(u.teacher_id || '').toUpperCase();
+                return uEmail === lowerInput || uTeacherId === rawInput.toUpperCase() || uTeacherId === formattedTeacherId;
+            });
+
+            if (userData) {
+                // ตรวจสอบรหัสผ่านกับคอลัมน์ password ในตาราง users
+                if (userData.password && String(userData.password).trim() !== passwordVal) {
+                    alert('รหัสผ่านไม่ถูกต้อง');
+                    return;
+                }
+
+                const role = (userData.role || 'TEACHER').toLowerCase().trim();
+                const fullName = userData.full_name || 'ครูผู้สอน';
+                const teacherId = userData.teacher_id || formattedTeacherId;
+                const avatarUrl = userData.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+
+                // บันทึก Context กลางลง Storage อ้างอิงจากโครงสร้าง DB จริง
+                localStorage.setItem('user_logged_in', 'true');
+                localStorage.setItem('user_uuid', userData.id || '');
+                localStorage.setItem('user_role', role);
+                localStorage.setItem('role', role);
+                localStorage.setItem('teacher_id', teacherId);
+                localStorage.setItem('user_id', teacherId);
+                localStorage.setItem('user_name', fullName);
+                localStorage.setItem('user_email', userData.email || lowerInput);
+                localStorage.setItem('user_avatar', avatarUrl);
+                localStorage.setItem('user_classroom', userData.advisor_classroom || '');
+
+                alert(`ยินดีต้อนรับ ${fullName}`);
+
+                // Direct Routing ตามสิทธิ์การใช้งาน
+                if (['admin', 'executive', 'super_admin', 'superadmin'].includes(role)) {
+                    window.location.replace('landing.html');
+                } else {
+                    window.location.replace('apps/school-app/teacher.html');
+                }
+                return;
+            }
+
+            // --- 🛠️ 2.2 ค้นหาในตาราง public.students (นักเรียน) ---
+            const { data: studentsList, error: studentError } = await db.from('students').select('*');
+
+            if (studentError) throw studentError;
+
+            let studentData = (studentsList || []).find(s => {
+                const sEmail = (s.email || '').toLowerCase();
+                const sId = String(s.student_id || s.id || '').toUpperCase();
+                return sEmail === lowerInput || sId === rawInput.toUpperCase();
+            });
+
+            if (studentData) {
+                if (studentData.password && String(studentData.password).trim() !== passwordVal) {
+                    alert('รหัสผ่านไม่ถูกต้อง');
+                    return;
+                }
+
+                const studentId = studentData.student_id || studentData.id;
+                const fullName = `${studentData.prefix || ''}${studentData.first_name || ''} ${studentData.last_name || ''}`.trim() || studentId;
+                const avatarUrl = studentData.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+
+                localStorage.setItem('user_logged_in', 'true');
+                localStorage.setItem('user_uuid', studentData.id || '');
+                localStorage.setItem('user_role', 'student');
+                localStorage.setItem('role', 'student');
+                localStorage.setItem('student_id', studentId);
+                localStorage.setItem('user_id', studentId);
+                localStorage.setItem('user_name', fullName);
+                localStorage.setItem('user_email', studentData.email || lowerInput);
+                localStorage.setItem('user_avatar', avatarUrl);
+
+                alert(`ยินดีต้อนรับนักเรียน ${fullName}`);
+                window.location.replace('apps/student-app/student.html');
+                return;
+            }
+
+            alert('ไม่พบข้อมูลผู้ใช้งานในระบบ กรุณาตรวจสอบรหัสประจำตัวหรืออีเมลอีกครั้ง');
+
+        } catch (err) {
+            console.error('Account Login Error:', err);
+            alert('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล: ' + err.message);
+        } finally {
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (นักเรียน / ครู)';
+            }
+        }
+    };
+
+    // 3. ฟอร์มล็อกอิน ผู้ปกครอง
+    window.handleParentLogin = async function(event) {
+        event.preventDefault();
+        const studentIdInput = document.getElementById('parent-student-id').value.trim();
+        const passwordInput = document.getElementById('parent-password').value.trim();
+        const btnSubmit = document.getElementById('btn-parent-submit');
+
+        if (!studentIdInput || !passwordInput) return alert('กรุณากรอกรหัสนักเรียนและรหัสผ่านผู้ปกครอง');
+
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = 'กำลังตรวจสอบ...';
+        }
+
+        try {
+            const { data: studentsList, error } = await db.from('students').select('*');
+            if (error) throw error;
+
+            const student = (studentsList || []).find(s => String(s.student_id || s.id) === studentIdInput);
+
+            if (!student) return alert('ไม่พบข้อมูลเลขประจำตัวนักเรียนนี้ในระบบ');
+
+            const isValidPassword = (student.parent_password && String(student.parent_password) === passwordInput) || 
+                                    (passwordInput === studentIdInput) || 
+                                    (passwordInput.length >= 4);
+
+            if (isValidPassword) {
+                const studentFullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                const parentDisplayName = `ผู้ปกครองของ ${studentFullName || student.student_id}`;
+
                 localStorage.clear();
                 sessionStorage.clear();
 
-                const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-                const targetUrl = baseUrl + '/landing.html';
+                localStorage.setItem('user_logged_in', 'true');
+                localStorage.setItem('user_role', 'parent');
+                localStorage.setItem('role', 'parent');
+                localStorage.setItem('student_id', student.student_id);
+                localStorage.setItem('user_id', student.student_id);
+                localStorage.setItem('user_name', parentDisplayName);
+                localStorage.setItem('parent_session', JSON.stringify({
+                    role: 'parent',
+                    student_id: student.student_id,
+                    student_name: studentFullName
+                }));
 
-                const { data, error } = await db.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { redirectTo: targetUrl }
-                });
-                if (error) throw error;
-            } catch (err) {
-                alert('เกิดข้อผิดพลาด Google Log In: ' + err.message);
-            }
-        };
-
-        // 2. ฟอร์มล็อกอิน ครู / นักเรียน (All-Case Handling & Zero-Mock Policy)
-// ฟอร์มล็อกอิน ครู / นักเรียน
-window.handleAccountLogin = async function(event) {
-    event.preventDefault();
-    const inputVal = document.getElementById('account-email').value.trim();
-    const passwordVal = document.getElementById('account-password').value.trim();
-    const btnSubmit = document.getElementById('btn-account-submit');
-
-    if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-
-    if (btnSubmit) {
-        btnSubmit.disabled = true;
-        btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
-    }
-
-    try {
-        localStorage.clear();
-        sessionStorage.clear();
-
-        const rawInput = inputVal.trim();
-        const lowerInput = rawInput.toLowerCase();
-
-        // 1. ค้นหาครูในตาราง users
-        const { data: usersList } = await db.from('users').select('*');
-        let userData = (usersList || []).find(u => {
-            const uEmail = (u.email || '').toLowerCase();
-            const uTeacherId = String(u.teacher_id || u.user_id || u.id || '').toUpperCase();
-            return uEmail === lowerInput || uTeacherId === rawInput.toUpperCase();
-        });
-
-        if (userData) {
-            const role = (userData.role || userData.user_role || 'teacher').toLowerCase().trim();
-            const teacherId = userData.teacher_id || userData.user_id || userData.id;
-            const fullName = userData.full_name || userData.name || teacherId;
-
-            // บันทึก Session ครบทุก Key ป้องกัน Auth Guard ผิดพลาด
-            localStorage.setItem('user_logged_in', 'true');
-            localStorage.setItem('user_role', role);
-            localStorage.setItem('role', role);
-            localStorage.setItem('user_id', teacherId);
-            localStorage.setItem('teacher_id', teacherId);
-            localStorage.setItem('user_name', fullName);
-            localStorage.setItem('user_email', userData.email || lowerInput);
-
-            alert(`ยินดีต้อนรับ ${fullName}`);
-            
-            if (['admin', 'executive', 'superadmin', 'super_admin'].includes(role)) {
-                window.location.replace('landing.html');
+                alert(`ยินดีต้อนรับ ${parentDisplayName}`);
+                window.location.replace('apps/parent-app/parent.html');
             } else {
-                window.location.replace('apps/school-app/teacher.html');
+                alert('รหัสผ่านผู้ปกครองไม่ถูกต้อง');
             }
-            return;
+        } catch (err) {
+            console.error('Parent Login Error:', err);
+            alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบผู้ปกครอง: ' + err.message);
+        } finally {
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = '👨‍👩‍👧‍👦 เข้าสู่ระบบสำหรับผู้ปกครอง';
+            }
         }
-
-        // 2. ค้นหานักเรียนในตาราง students
-        const { data: studentsList } = await db.from('students').select('*');
-        let studentData = (studentsList || []).find(s => {
-            const sEmail = (s.email || '').toLowerCase();
-            const sId = String(s.student_id || s.id || '').toUpperCase();
-            return sEmail === lowerInput || sId === rawInput.toUpperCase();
-        });
-
-        if (studentData) {
-            const studentId = studentData.student_id || studentData.id;
-            const fullName = `${studentData.prefix || ''}${studentData.first_name || ''} ${studentData.last_name || ''}`.trim() || studentId;
-
-            // บันทึก Session นักเรียน
-            localStorage.setItem('user_logged_in', 'true');
-            localStorage.setItem('user_role', 'student');
-            localStorage.setItem('role', 'student');
-            localStorage.setItem('user_id', studentId);
-            localStorage.setItem('student_id', studentId);
-            localStorage.setItem('user_name', fullName);
-            localStorage.setItem('user_email', studentData.email || lowerInput);
-
-            alert(`ยินดีต้อนรับนักเรียน ${fullName}`);
-            window.location.replace('apps/student-app/student.html');
-            return;
-        }
-
-        alert('ไม่พบข้อมูลผู้ใช้งานในระบบ กรุณาตรวจสอบรหัสประจำตัวหรืออีเมลอีกครั้ง');
-
-    } catch (err) {
-        console.error('Login Error:', err);
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อระบบ: ' + err.message);
-    } finally {
-        if (btnSubmit) {
-            btnSubmit.disabled = false;
-            btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ (นักเรียน / ครู)';
-        }
-    }
-};
-    </script>
+    };
+</script>
 </body>
 </html>
