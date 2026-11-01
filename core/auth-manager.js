@@ -5,34 +5,52 @@ import { cleanStr } from './supabase-client.js';
  * ดึงข้อมูลผู้ใช้งานปัจจุบันจาก Session/LocalStorage กลาง (Shared Context)
  * @returns {Object|null} ข้อมูลผู้ใช้ { userId, role, name, avatar, email, isLoggedIn }
  */
+// core/auth-manager.js
+
 export function getCurrentUser() {
-    try {
-        const isLoggedIn = localStorage.getItem('user_logged_in') === 'true' || 
-                           sessionStorage.getItem('user_logged_in') === 'true';
+    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+    if (!isLoggedIn) return null;
 
-        if (!isLoggedIn) return null;
+    return {
+        userId: localStorage.getItem('user_id'),
+        teacherId: localStorage.getItem('teacher_id'),
+        studentId: localStorage.getItem('student_id'),
+        name: localStorage.getItem('user_name'),
+        email: localStorage.getItem('user_email'),
+        role: (localStorage.getItem('user_role') || localStorage.getItem('role') || '').toLowerCase(),
+        avatar: localStorage.getItem('user_avatar')
+    };
+}
 
-        const role = localStorage.getItem('user_role') || localStorage.getItem('role') || '';
-        const userId = cleanStr(localStorage.getItem('user_id') || localStorage.getItem('teacher_id') || localStorage.getItem('student_id') || '');
-        const name = localStorage.getItem('user_name') || '';
-        const avatar = localStorage.getItem('user_avatar') || '';
-        const email = localStorage.getItem('user_email') || '';
+export function requireAuth(allowedRoles = [], redirectUrl = '../../login.html') {
+    const user = getCurrentUser();
 
-        // Default SVG Avatar มาตรฐานเมื่อผู้ใช้ไม่มีรูปใน DB
-        const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23cbd5e1"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`;
-
-        return {
-            userId: userId,
-            role: role.toLowerCase().trim(),
-            name: name,
-            avatar: avatar || defaultAvatar,
-            email: email,
-            isLoggedIn: true
-        };
-    } catch (e) {
-        console.error('Error reading current user session:', e);
+    // หากยังไม่ได้ล็อกอิน ให้ไปหน้า login
+    if (!user || !user.role) {
+        window.location.replace(redirectUrl);
         return null;
     }
+
+    // ปรับรูปแบบ Role ให้เป็นอักษรเล็กเพื่อเปรียบเทียบ
+    const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
+    const userRole = user.role.toLowerCase();
+
+    // ถ้าเป็นแอดมินหรือผู้บริหาร ให้เข้าได้ทุกหน้า
+    const isPowerUser = ['admin', 'superadmin', 'super_admin', 'executive'].includes(userRole);
+
+    if (allowedRoles.length > 0 && !normalizedAllowed.includes(userRole) && !isPowerUser) {
+        alert('🔒 คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+        window.location.replace(redirectUrl);
+        return null;
+    }
+
+    return user;
+}
+
+export function logout(redirectUrl = '../../login.html') {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace(redirectUrl);
 }
 
 /**
