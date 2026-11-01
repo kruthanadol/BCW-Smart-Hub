@@ -1204,36 +1204,26 @@
     import { checkAuthAndRoute, logoutUser } from './core/auth-manager.js';
 
     document.addEventListener('DOMContentLoaded', async () => {
-        // 1. ตรวจสอบ Session และ Routing กลาง
-        const authResult = await checkAuthAndRoute();
+        const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
         
-        // หากไม่มี Session ให้กลับไปหน้า Login
-        if (authResult.role === 'unauthenticated') {
-            window.location.replace('login.html');
-            return;
+        // หากไม่ได้ล็อกอิน ให้ตรวจสอบ Auth Router
+        if (!isLoggedIn) {
+            const authResult = await checkAuthAndRoute();
+            if (authResult.role === 'unauthenticated') {
+                window.location.replace('login.html');
+                return;
+            }
         }
-
-        // 2. ดึงข้อมูลผู้ใช้จาก LocalStorage มาแสดงผลบน UI
-        const userName = localStorage.getItem('user_name') || authResult.name || 'ผู้ใช้งานระบบ';
-        const rawRole = localStorage.getItem('user_role') || authResult.role || 'GUEST';
-        const userRole = rawRole.toUpperCase();
-        const userAvatar = localStorage.getItem('user_avatar');
-
+    
+        // แสดงโปรไฟล์บนหน้า Landing ตาม LocalStorage กลาง
+        const userName = localStorage.getItem('user_name') || 'ผู้ใช้งานระบบ';
+        const rawRole = localStorage.getItem('user_role') || 'GUEST';
+        
         const nameEl = document.getElementById('userDisplayName');
         const badgeEl = document.getElementById('userRoleBadge');
-        const imgEl = document.getElementById('userAvatarImg');
-        const iconEl = document.getElementById('userAvatarIcon');
-
         if (nameEl) nameEl.innerText = userName;
-        if (badgeEl) badgeEl.innerText = userRole;
-
-        if (userAvatar && imgEl) {
-            imgEl.src = userAvatar;
-            imgEl.classList.remove('hidden');
-            if (iconEl) iconEl.classList.add('hidden');
-        }
-
-        // 3. โหลดข้อมูลสถิติ Real-time
+        if (badgeEl) badgeEl.innerText = rawRole.toUpperCase();
+    
         loadLandingRealStats();
     });
 
