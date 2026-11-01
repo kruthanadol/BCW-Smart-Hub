@@ -305,26 +305,25 @@
     <!-- Complete Pure Zero-Mock Script Logic -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
-        import { requireAuth, logout } from '../../core/auth-manager.js';
+    import { requireAuth, logout } from '../../core/auth-manager.js';
 
-        let CURRENT_TEACHER_USER = null;
+    let CURRENT_TEACHER_USER = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Auth Guard เช็กสิทธิ์ครูผู้ใช้จริง
-            CURRENT_TEACHER_USER = requireAuth(['teacher', 'executive', 'admin', 'superadmin'], '../../login.html');
-            if (!CURRENT_TEACHER_USER) return;
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 🔒 เช็กสิทธิ์ครูผู้ใช้จริง (รองรับ teacher, executive, admin, superadmin)
+        CURRENT_TEACHER_USER = requireAuth(['teacher', 'staff', 'executive', 'admin', 'superadmin'], '../../login.html');
+        if (!CURRENT_TEACHER_USER) return;
 
-            // 2. แสดงผลโปรไฟล์จริง
-            loadTeacherProfile(CURRENT_TEACHER_USER);
-            
-            // 3. ดึงวิชาสอนจริงจาก DB ตาม teacher_id
-            await loadRealSubjectSchedules(CURRENT_TEACHER_USER.teacherId || CURRENT_TEACHER_USER.userId);
+        // แสดงโปรไฟล์
+        loadTeacherProfile(CURRENT_TEACHER_USER);
+        
+        // ดึงวิชาสอนจริงจาก DB
+        await loadRealSubjectSchedules(CURRENT_TEACHER_USER.teacherId || CURRENT_TEACHER_USER.userId);
 
-            // 4. ผูกปุ่ม Logout
-            document.getElementById('btnLogout')?.addEventListener('click', () => {
-                logout('../../login.html');
-            });
+        document.getElementById('btnLogout')?.addEventListener('click', () => {
+            logout('../../login.html');
         });
+    });
 
         function loadTeacherProfile(user) {
             const nameEl = document.getElementById('headerTeacherName');
