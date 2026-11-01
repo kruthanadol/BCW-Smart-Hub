@@ -7,38 +7,46 @@ import { cleanStr } from './supabase-client.js';
  */
 // core/auth-manager.js
 
+// core/auth-manager.js
+
 export function getCurrentUser() {
-    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true' || sessionStorage.getItem('user_logged_in') === 'true';
     if (!isLoggedIn) return null;
 
+    // ดึงค่าอย่างยืดหยุ่นไม่ว่าจะเก็บบันทึกด้วย Key ไหน
+    const role = (localStorage.getItem('user_role') || localStorage.getItem('role') || '').toLowerCase().trim();
+    const userId = localStorage.getItem('user_id') || localStorage.getItem('student_id') || localStorage.getItem('teacher_id');
+
     return {
-        userId: localStorage.getItem('user_id'),
-        teacherId: localStorage.getItem('teacher_id'),
-        studentId: localStorage.getItem('student_id'),
-        name: localStorage.getItem('user_name'),
-        email: localStorage.getItem('user_email'),
-        role: (localStorage.getItem('user_role') || localStorage.getItem('role') || '').toLowerCase(),
-        avatar: localStorage.getItem('user_avatar')
+        userId: userId,
+        teacherId: localStorage.getItem('teacher_id') || userId,
+        studentId: localStorage.getItem('student_id') || userId,
+        name: localStorage.getItem('user_name') || 'ผู้ใช้งาน',
+        email: localStorage.getItem('user_email') || '',
+        role: role,
+        avatar: localStorage.getItem('user_avatar') || ''
     };
 }
 
 export function requireAuth(allowedRoles = [], redirectUrl = '../../login.html') {
     const user = getCurrentUser();
 
-    // หากยังไม่ได้ล็อกอิน ให้ไปหน้า login
+    // 1. ถ้ายังไม่ได้ล็อกอิน ให้กลับไปหน้า login
     if (!user || !user.role) {
+        console.warn('Auth Failed: No session found');
         window.location.replace(redirectUrl);
         return null;
     }
 
-    // ปรับรูปแบบ Role ให้เป็นอักษรเล็กเพื่อเปรียบเทียบ
-    const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
     const userRole = user.role.toLowerCase();
+    const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
 
-    // ถ้าเป็นแอดมินหรือผู้บริหาร ให้เข้าได้ทุกหน้า
+    // 2. สิทธิ์ระดับสูง (Admin / Executive / Superadmin) เข้าถึงได้ทุกหน้า
     const isPowerUser = ['admin', 'superadmin', 'super_admin', 'executive'].includes(userRole);
 
+    // 3. ตรวจสอบสิทธิ์ถ้าไม่ตรงให้ปฏิเสธการเข้าถึง
     if (allowedRoles.length > 0 && !normalizedAllowed.includes(userRole) && !isPowerUser) {
+        console.warn(`Auth Failed: Role ${userRole} not allowed in [${allowedRoles.join(', ')}]`);
         alert('🔒 คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
         window.location.replace(redirectUrl);
         return null;
@@ -52,7 +60,6 @@ export function logout(redirectUrl = '../../login.html') {
     sessionStorage.clear();
     window.location.replace(redirectUrl);
 }
-
 /**
  * ตรวจสอบสิทธิ์การเข้าใช้งานทั่วไป (Auth Guard สำหรับหน้า Portal ต่างๆ)
  * @param {Array<string>|string} allowedRoles - บทบาทที่อนุญาต เช่น ['teacher', 'admin']
