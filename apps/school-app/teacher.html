@@ -327,116 +327,134 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+<!-- Complete JavaScript Logic Section (รวมฟังก์ชันครบถ้วน + โครงสร้างถูกต้อง) -->
     <script type="module">
-    import { db } from './core/supabase-client.js';
+        import { db } from './core/supabase-client.js';
 
-    // 1. ผูกฟังก์ชัน Logout เมื่อ DOM พร้อม
-    document.addEventListener('DOMContentLoaded', () => {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    try { await db.auth.signOut(); } catch (err) {}
-                    window.location.href = '../../landing.html';
-                }
-            });
-        }
+        // 1. เริ่มทำงานเมื่อโหลดหน้าเว็บเสร็จสมบูรณ์
+        document.addEventListener('DOMContentLoaded', async () => {
+            // ระบบ Logout
+            setupLogout();
+            
+            // ดึงข้อมูลโปรไฟล์ครู T011
+            await loadTeacherProfile();
+            
+            // เลือกรอบวิชาอัตโนมัติและแสดงรายชื่อนักเรียน
+            autoSelectCurrentSubject();
+            renderStudents();
+        });
 
-        // 2. ดึงข้อมูลครู T011
-        loadTeacherProfile();
-    });
-
-    async function loadTeacherProfile() {
-        try {
-            let rawId = localStorage.getItem('teacher_id') || localStorage.getItem('user_id') || 'T011';
-            let cleanId = rawId.trim().toUpperCase();
-            if (cleanId === 'T11') cleanId = 'T011';
-
-            const { data: teacher } = await db
-                .from('users')
-                .select('*')
-                .or(`teacher_id.eq.${cleanId},teacher_id.eq.T011,email.eq.info@buached.ac.th`)
-                .maybeSingle();
-
-            if (teacher) {
-                // อัปเดตผ่าน ID จริงใน teacher.html
-                const nameEl = document.getElementById('headerTeacherName');
-                const codeEl = document.getElementById('teacherCodeDisplay');
-                const avatarImg = document.getElementById('headerTeacherAvatar');
-
-                if (nameEl) nameEl.innerText = teacher.full_name || 'นายทองสลอน ระยับ';
-                if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id || 'T011'}`;
-                if (teacher.avatar_url && avatarImg) {
-                    avatarImg.src = teacher.avatar_url;
-                }
+        // ----------------------------------------------------
+        // 2. ฟังก์ชันระบบ ออกจากระบบ (Logout)
+        // ----------------------------------------------------
+        function setupLogout() {
+            const logoutBtn = document.getElementById('logoutBtn') || document.querySelector('button:has(.fa-right-from-bracket)');
+            if (logoutBtn) {
+                logoutBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        try { await db.auth.signOut(); } catch (err) {}
+                        window.location.href = '../../landing.html';
+                    }
+                };
             }
-        } catch (err) {
-            console.error('Profile Load Error:', err);
         }
-    }
 
-        function toggleStatsDrawerFromNav(btnElement) {
+        // ----------------------------------------------------
+        // 3. ฟังก์ชันดึงข้อมูลโปรไฟล์ครู (T011)
+        // ----------------------------------------------------
+        async function loadTeacherProfile() {
+            try {
+                let rawId = localStorage.getItem('teacher_id') || localStorage.getItem('user_id') || 'T011';
+                let cleanId = rawId.trim().toUpperCase();
+                if (cleanId === 'T11') cleanId = 'T011';
+
+                const { data: teacher } = await db
+                    .from('users')
+                    .select('*')
+                    .or(`teacher_id.eq.${cleanId},teacher_id.eq.T011,email.eq.info@buached.ac.th`)
+                    .maybeSingle();
+
+                if (teacher) {
+                    const nameEl = document.getElementById('headerTeacherName');
+                    const codeEl = document.getElementById('teacherCodeDisplay');
+                    const avatarImg = document.getElementById('headerTeacherAvatar');
+
+                    if (nameEl) nameEl.innerText = teacher.full_name || 'นายทองสลอน ระยับ';
+                    if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id || 'T011'}`;
+                    if (teacher.avatar_url && avatarImg) {
+                        avatarImg.src = teacher.avatar_url;
+                    }
+                }
+            } catch (err) {
+                console.error('Profile Load Error:', err);
+            }
+        }
+
+        // ----------------------------------------------------
+        // 4. ผูกฟังก์ชันเข้ากับ Window (เพื่อให้ปุ่ม HTML onclick เรียกใช้ได้)
+        // ----------------------------------------------------
+        window.handleLogout = function() {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '../../landing.html';
+        };
+
+        window.toggleStatsDrawerFromNav = function(btnElement) {
             const trafficSec = document.getElementById('section-traffic');
-            if (trafficSec.classList.contains('hidden')) {
-                toggleStatsDrawer();
+            if (trafficSec && trafficSec.classList.contains('hidden')) {
+                trafficSec.classList.remove('hidden');
             }
             scrollToTeacherSection('section-traffic', btnElement);
-        }
+        };
 
-        function scrollToTeacherSection(sectionId, btnElement) {
+        window.scrollToTeacherSection = function(sectionId, btnElement) {
             const target = document.getElementById(sectionId);
             if (target) {
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
                 if (btnElement) {
                     document.querySelectorAll('.teacher-nav-btn').forEach(btn => btn.classList.remove('active'));
                     btnElement.classList.add('active');
                 }
             }
-        }
+        };
 
-        function handleLogout() {
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.href = '../../landing.html';
-        }
-
-        function toggleSubjectModal() {
+        window.toggleSubjectModal = function() {
             const modal = document.getElementById('subjectModal');
             if (modal) modal.classList.toggle('hidden');
-        }
+        };
 
-        function selectSubjectOption(val, labelText) {
+        window.selectSubjectOption = function(val, labelText) {
             document.getElementById('subjectSelect').value = val;
             document.getElementById('customSubjectText').innerText = labelText;
             toggleSubjectModal();
             renderStudents();
-        }
+        };
 
         function autoSelectCurrentSubject() {
-            const now = new Date();
-            const hour = now.getHours();
+            const hour = new Date().getHours();
             let val = "ค32201|ม.5/1";
             let label = "คณิตศาสตร์เพิ่มเติม (ค32201) - ห้อง ม.5/1";
 
             if (hour >= 8 && hour < 10) {
-                val = "ค32201|ม.5/1";
-                label = "คณิตศาสตร์เพิ่มเติม (ค32201) - ห้อง ม.5/1";
+                val = "ค32201|ม.5/1"; label = "คณิตศาสตร์เพิ่มเติม (ค32201) - ห้อง ม.5/1";
             } else if (hour >= 10 && hour < 12) {
-                val = "ค32101|ม.5/1";
-                label = "คณิตศาสตร์พื้นฐาน (ค32101) - ห้อง ม.5/1";
+                val = "ค32101|ม.5/1"; label = "คณิตศาสตร์พื้นฐาน (ค32101) - ห้อง ม.5/1";
             } else if (hour >= 13) {
-                val = "ค32101|ม.5/2";
-                label = "คณิตศาสตร์พื้นฐาน (ค32101) - ห้อง ม.5/2";
+                val = "ค32101|ม.5/2"; label = "คณิตศาสตร์พื้นฐาน (ค32101) - ห้อง ม.5/2";
             }
 
-            document.getElementById('subjectSelect').value = val;
-            document.getElementById('customSubjectText').innerText = label;
+            const subjectInput = document.getElementById('subjectSelect');
+            const customText = document.getElementById('customSubjectText');
+            if (subjectInput) subjectInput.value = val;
+            if (customText) customText.innerText = label;
         }
 
+        // ----------------------------------------------------
+        // 5. ระบบดึงรายชื่อและแสดงตารางเช็กชื่อนักเรียน
+        // ----------------------------------------------------
         async function renderStudents() {
             const tbody = document.getElementById('studentList');
             if (!tbody) return;
@@ -444,8 +462,9 @@
             const selectEl = document.getElementById('subjectSelect');
             const className = selectEl?.value.split('|')[1] || 'ม.5/1';
 
-            document.getElementById('tableHeaderTitle').innerText = `รายชื่อนักเรียนประจำห้อง ${className}`;
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs text-slate-400">กำลังดึงข้อมูลนักเรียนและซิงค์การแจ้งเตือน Real-time...</td></tr>';
+            const headerTitle = document.getElementById('tableHeaderTitle');
+            if (headerTitle) headerTitle.innerText = `รายชื่อนักเรียนประจำห้อง ${className}`;
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs text-slate-400">กำลังดึงข้อมูลนักเรียนและซิงค์ข้อมูล Real-time...</td></tr>';
 
             try {
                 const resStudents = await db.from('students').select('*').eq('classroom', className).order('student_no', { ascending: true });
@@ -496,7 +515,7 @@
                         defaultStatus = 'leave';
                     }
 
-                    const avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.webp`;
+                    const avatarUrl = s.avatar_url || `https://wfpopolzgxbglgmzjafg.supabase.co/storage/v1/object/public/avatars/${studentId}.webp`;
 
                     return `
                         <tr class="hover:bg-slate-50 transition">
@@ -567,23 +586,23 @@
             }
         }
 
-        function syncNote(studentId, val) {
+        window.syncNote = function(studentId, val) {
             const mInput = document.getElementById(`note_mobile_${studentId}`);
             const dInput = document.getElementById(`note_${studentId}`);
             if (mInput) mInput.value = val;
             if (dInput) dInput.value = val;
-        }
+        };
 
-        function applyBatchLeave() {
+        window.applyBatchLeave = function() {
             const reason = prompt('กรอกเหตุผลการลายกห้อง:');
             if (!reason) return;
             document.querySelectorAll('input[type="radio"][value="leave"]').forEach(r => r.checked = true);
             document.querySelectorAll('input[id^="note_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
             document.querySelectorAll('input[id^="note_mobile_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
             alert('ปรับสถานะให้ทั้งห้องเรียบร้อยแล้ว');
-        }
+        };
 
-        function openManualLeaveModal() {
+        window.openManualLeaveModal = function() {
             const studentId = prompt('กรอกรหัสนักเรียน:');
             if (!studentId) return;
             const reason = prompt('กรอกเหตุผลการลา:');
@@ -595,14 +614,14 @@
             const leaveRadio = document.querySelector(`input[name="att_${studentId}"][value="leave"]`);
             if (leaveRadio) leaveRadio.checked = true;
             alert('บันทึกใบลาเรียบร้อยแล้ว');
-        }
+        };
 
-        function markAll(status) {
+        window.markAll = function(status) {
             document.querySelectorAll(`input[type="radio"][value="${status}"]`).forEach(r => r.checked = true);
-        }
+        };
 
-        function submitAttendance() { alert('บันทึกข้อมูลการเช็กชื่อเรียบร้อยแล้ว!'); }
-        function saveHomework(e) { e.preventDefault(); alert('สั่งการบ้านเรียบร้อยแล้ว'); }
+        window.submitAttendance = function() { alert('บันทึกข้อมูลการเช็กชื่อเรียบร้อยแล้ว!'); };
+        window.saveHomework = function(e) { if(e) e.preventDefault(); alert('สั่งการบ้านเรียบร้อยแล้ว'); };
     </script>
 </body>
 </html>
