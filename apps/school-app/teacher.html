@@ -122,10 +122,10 @@
             </div>
 
             <!-- ปุ่มออกจากระบบ -->
-            <button onclick="handleLogout()" class="text-xs bg-rose-600/90 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-xl font-bold transition border border-rose-500/50 flex items-center gap-1 cursor-pointer shrink-0">
-                <i class="fa-solid fa-right-from-bracket text-xs"></i>
-                <span class="hidden sm:inline">ออกจากระบบ</span>
-            </button>
+        <button id="logoutBtn" class="text-xs bg-rose-600/90 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-xl font-bold transition border border-rose-500/50 flex items-center gap-1 cursor-pointer shrink-0">
+            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            <span class="hidden sm:inline">ออกจากระบบ</span>
+        </button>
         </div>
     </header>
 
@@ -328,69 +328,57 @@
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         <script type="module">
-        import { db } from './core/supabase-client.js';
+<script type="module">
+    import { db } from './core/supabase-client.js';
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            // ==========================================
-            // 1. ระบบกดปุ่ม "ออกจากระบบ" (Logout Fix)
-            // ==========================================
-            const logoutBtn = document.getElementById('logoutBtn') || document.querySelector('button:has(.fa-sign-out-alt), .bg-rose-600, [onclick*="logout"]');
-            
-            // ผูก Event ให้ปุ่มออกจากระบบทำงานแน่นอน
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                        // เคลียร์ข้อมูล Session ทั้งหมด
-                        localStorage.clear();
-                        sessionStorage.clear();
-                        try {
-                            await db.auth.signOut();
-                        } catch (err) {
-                            console.warn('Supabase signout warning:', err);
-                        }
-                        // เด้งกลับหน้า Login
-                        window.location.href = 'index.html';
-                    }
-                });
-            }
-        
-            // ==========================================
-            // 2. ดึงข้อมูลผู้ใช้งาน (Teacher Profile Fix)
-            // ==========================================
-            try {
-                // ดึงค่ารหัสครูที่ล็อกอินเข้ามา (รองรับทั้ง t11, T11, T011)
-                let rawId = localStorage.getItem('teacher_id') || localStorage.getItem('user_id') || 'T011';
-                let cleanId = rawId.trim().toUpperCase();
-                if (cleanId === 'T11') cleanId = 'T011';
-        
-                // Query ข้อมูลจาก Supabase
-                const { data: teacher, error } = await db
-                    .from('users')
-                    .select('*')
-                    .or(`teacher_id.eq.${cleanId},teacher_id.eq.T011,email.eq.info@buached.ac.th`)
-                    .maybeSingle();
-        
-                if (teacher) {
-                    // แสดงชื่อ และ รหัสครู
-                    const nameEl = document.getElementById('teacherDisplayName') || document.querySelector('.teacher-name');
-                    const codeEl = document.getElementById('teacherDisplayCode') || document.querySelector('.teacher-code');
-                    const avatarImg = document.getElementById('teacherAvatarImg') || document.querySelector('.teacher-avatar');
-        
-                    if (nameEl) nameEl.innerText = teacher.full_name || 'นายทองสลอน ระยับ';
-                    if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id || 'T011'}`;
-        
-                    // แสดงรูปโปรไฟล์
-                    if (teacher.avatar_url && avatarImg) {
-                        avatarImg.src = teacher.avatar_url;
-                        avatarImg.classList.remove('hidden');
-                    }
+    // 1. ผูกฟังก์ชัน Logout เมื่อ DOM พร้อม
+    document.addEventListener('DOMContentLoaded', () => {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    try { await db.auth.signOut(); } catch (err) {}
+                    window.location.href = '../../landing.html';
                 }
-            } catch (err) {
-                console.error('Error loading teacher data:', err);
+            });
+        }
+
+        // 2. ดึงข้อมูลครู T011
+        loadTeacherProfile();
+    });
+
+    async function loadTeacherProfile() {
+        try {
+            let rawId = localStorage.getItem('teacher_id') || localStorage.getItem('user_id') || 'T011';
+            let cleanId = rawId.trim().toUpperCase();
+            if (cleanId === 'T11') cleanId = 'T011';
+
+            const { data: teacher } = await db
+                .from('users')
+                .select('*')
+                .or(`teacher_id.eq.${cleanId},teacher_id.eq.T011,email.eq.info@buached.ac.th`)
+                .maybeSingle();
+
+            if (teacher) {
+                // อัปเดตผ่าน ID จริงใน teacher.html
+                const nameEl = document.getElementById('headerTeacherName');
+                const codeEl = document.getElementById('teacherCodeDisplay');
+                const avatarImg = document.getElementById('headerTeacherAvatar');
+
+                if (nameEl) nameEl.innerText = teacher.full_name || 'นายทองสลอน ระยับ';
+                if (codeEl) codeEl.innerText = `รหัส: ${teacher.teacher_id || 'T011'}`;
+                if (teacher.avatar_url && avatarImg) {
+                    avatarImg.src = teacher.avatar_url;
+                }
             }
-        });
-    
+        } catch (err) {
+            console.error('Profile Load Error:', err);
+        }
+    }
+
         function toggleStatsDrawerFromNav(btnElement) {
             const trafficSec = document.getElementById('section-traffic');
             if (trafficSec.classList.contains('hidden')) {
