@@ -1,623 +1,204 @@
 <!DOCTYPE html>
-<html lang="th" class="scroll-smooth">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>BCW Smart HUB - BCW Student Portal</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="../../assets/images/logo_bcw.png">
-
-    <!-- Tailwind CSS CDN & Fonts -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCW Student Connect - ระบบสำหรับนักเรียน</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- QRCode Generator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
-    <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f1f5f9; color: #1e293b; overflow-x: hidden; }
-        .table-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
-        .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-
-        /* 🔒 ระยะเว้นขอบป้องกัน Header บังเนื้อหาเวลา Scroll ไปยังส่วนต่างๆ */
-        main section, main > div {
-            scroll-margin-top: 75px;
-        }
-
-        /* 🔒 Modal Glassmorphism Overlay */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.55);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 9999; opacity: 0; visibility: hidden;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            padding: 16px;
-        }
-        .modal-overlay.active { opacity: 1; visibility: visible; }
-        .modal-content {
-            width: 100%; max-width: 480px; background: #ffffff;
-            border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            transform: scale(0.92) translateY(10px);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            overflow: hidden;
-        }
-        .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
-
-        .modal-header {
-            padding: 18px 20px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-            border-bottom: 1px solid #fed7aa; display: flex; align-items: center; justify-content: space-between;
-        }
-        .header-title-group { display: flex; align-items: center; gap: 12px; }
-        .header-icon {
-            width: 42px; height: 42px; background: #ea580c; color: #ffffff;
-            border-radius: 12px; display: flex; align-items: center; justify-content: center;
-            font-size: 18px; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.25);
-        }
-        .modal-header h3 { font-size: 17px; font-weight: 800; color: #9a3412; margin: 0; line-height: 1.2; }
-        .modal-header p { font-size: 13px; color: #c2410c; margin-top: 2px; font-weight: 500; }
-        .btn-close-modal {
-            background: rgba(255, 255, 255, 0.8); border: none; width: 34px; height: 34px;
-            border-radius: 50%; color: #9a3412; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s;
-        }
-        .btn-close-modal:hover { background: #ea580c; color: #ffffff; }
-
-        .modal-body { padding: 20px; }
-        .form-group-custom { margin-bottom: 16px; text-align: left; }
-        .form-group-custom label { display: block; font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 6px; }
-        .form-group-custom label i { color: #ea580c; margin-right: 4px; }
-        .input-custom {
-            width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 12px;
-            font-size: 15px; font-weight: 500; color: #1e293b; background-color: #f8fafc;
-            outline: none; transition: all 0.2s;
-        }
-        .input-custom:focus { border-color: #ea580c; background-color: #ffffff; box-shadow: 0 0 0 3.5px rgba(234, 88, 12, 0.15); }
-        .form-row-custom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
-        .btn-cancel-custom { padding: 10px 18px; border-radius: 12px; border: 1px solid #cbd5e1; background: #ffffff; color: #64748b; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .btn-cancel-custom:hover { background: #f1f5f9; color: #334155; }
-        .btn-submit-custom { padding: 10px 20px; border-radius: 12px; border: none; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: #ffffff; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3); transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-        .btn-submit-custom:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(234, 88, 12, 0.4); }
-
-        .day-option-btn { width: 100%; padding: 12px 16px; border-radius: 14px; border: 1.5px solid #e2e8f0; background: #f8fafc; color: #334155; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; }
-        .day-option-btn:hover, .day-option-btn.selected { border-color: #0284c7; background: #f0f9ff; color: #0369a1; }
-
-        /* 📱 1. ป๊อปอัปแจ้งคาบเรียนใสแบบแก้วลอยตัว (Glassmorphism Widget) */
-        .glass-next-class {
-            position: fixed;
-            top: 70px;
-            right: 12px;
-            z-index: 40;
-            background: rgba(255, 255, 255, 0.82);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12);
-            border-radius: 16px;
-            padding: 8px 12px;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            max-width: 260px;
-            pointer-events: auto;
-        }
-
-        /* ซ่อนละมุนเมื่อมีการเลื่อนหน้าจอ */
-        .glass-next-class.is-scrolling {
-            opacity: 0;
-            transform: translateY(-10px) scale(0.95);
-            pointer-events: none;
-        }
-
-        /* 📱 3. สไตล์ปุ่ม Bottom Navigation Bar แบบลอยตัว Raised Active */
-        @media (max-width: 768px) {
-            body {
-                padding-bottom: 80px !important;
-                -webkit-tap-highlight-color: transparent;
-            }
-
-            .mobile-bottom-nav {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                height: 65px;
-                background: rgba(255, 255, 255, 0.96);
-                backdrop-filter: blur(16px);
-                -webkit-backdrop-filter: blur(16px);
-                border-top: 1px solid #e2e8f0;
-                display: flex;
-                align-items: center;
-                justify-content: space-around;
-                z-index: 999;
-                box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
-            }
-
-            .nav-tab-btn {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                color: #64748b;
-                font-size: 11px;
-                font-weight: 700;
-                background: none;
-                border: none;
-                width: 25%;
-                height: 100%;
-                cursor: pointer;
-                transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-                position: relative;
-            }
-            
-            /* ✨ สไตล์ปุ่มยื่นคำขอกระจกใสมีมิติ (Frosted Glass Button) */
-            .btn-glass-request {
-                background: rgba(255, 255, 255, 0.12) !important;
-                backdrop-filter: blur(10px) !important;
-                -webkit-backdrop-filter: blur(10px) !important;
-                border: 1px solid rgba(255, 255, 255, 0.25) !important;
-                color: #ffffff !important;
-                box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.2), inset 0 1px 1px 0 rgba(255, 255, 255, 0.35) !important;
-                transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            }
-            
-            /* เอฟเฟกต์เมื่อแตะหรือชี้ปุ่ม (Raised Elevation) */
-            .btn-glass-request:hover, .btn-glass-request:active {
-                background: rgba(255, 255, 255, 0.22) !important;
-                border-color: rgba(255, 255, 255, 0.45) !important;
-                transform: translateY(-1.5px) scale(1.02);
-                box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.3), inset 0 1px 2px 0 rgba(255, 255, 255, 0.5) !important;
-            }
-            
-            .btn-glass-request i {
-                color: #fbbf24; /* ไอคอนสีทองซอฟต์ ไม่แย่งซีน */
-                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-            }
-
-            /* ✨ สถานะ Active ยกตัวลอยขึ้นพร้อมเงาเฉพาะจุด */
-            .nav-tab-btn.active {
-                color: #4f46e5;
-                transform: translateY(-6px);
-            }
-
-            .nav-tab-btn.active i {
-                font-size: 20px;
-                filter: drop-shadow(0 4px 6px rgba(79, 70, 229, 0.35));
-            }
-
-            .nav-tab-btn i {
-                font-size: 18px;
-                margin-bottom: 2px;
-                transition: all 0.2s;
-            }
-
-            .nav-tab-btn.highlight-btn i {
-                width: 40px;
-                height: 40px;
-                background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-                color: #ffffff;
-                border-radius: 14px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 17px;
-                box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
-            }
-        }
-
-        @media (min-width: 769px) {
-            .mobile-bottom-nav { display: none !important; }
-            .glass-next-class { top: 80px; right: 24px; }
-        }
-    </style>
+    <style>body { font-family: 'Kanit', sans-serif; }</style>
 </head>
-<body class="min-h-screen flex flex-col justify-between">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <!-- 1. Header Zone / Navbar ด้านบนสุด -->
-    <header class="bg-indigo-950 text-white shadow-md sticky top-0 z-50 border-b border-indigo-800">
-        <div class="max-w-4xl mx-auto px-3 sm:px-4 py-2 flex justify-between items-center gap-2">
-            <!-- Brand Logo & Title 3 บรรทัดมาตรฐาน -->
-            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <div class="bg-white p-1 sm:p-1.5 rounded-2xl shadow-md shrink-0">
-                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-10 h-10 sm:w-11 sm:h-11 object-contain" onerror="this.src='https://via.placeholder.com/40'">
+    <!-- Header -->
+    <header class="bg-indigo-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-1 rounded-full shadow">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-10 h-10 object-contain" onerror="this.src='https://via.placeholder.com/40'">
                 </div>
-                <div class="min-w-0 flex flex-col justify-center">
-                    <h1 class="text-[14px] sm:text-base font-black text-amber-400 tracking-wider leading-tight uppercase truncate">BCW SMART HUB</h1>
-                    <p class="text-[13px] sm:text-[14px] font-extrabold text-white leading-tight truncate">BCW Student Portal</p>
-                    <p class="text-[11px] sm:text-xs text-indigo-200 leading-tight truncate">โรงเรียนบัวเชดวิทยา</p>
+                <div>
+                    <h1 class="text-base font-bold leading-tight">BCW Student Portal</h1>
+                    <p class="text-[11px] text-indigo-300">ระบบติดตามการเรียน พฤติกรรม และออกนอกสถานศึกษา (โรงเรียนบัวเชดวิทยา)</p>
                 </div>
             </div>
-
-            <!-- Action Buttons / Gatepass Status Group -->
-            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                
-                <!-- 📱 2. ส่วนแสดงเวลาถอยหลังการขอออกนอกโรงเรียน (ไม่เด่นเกินหัวเว็บ) -->
-                <div id="topGatepassTimerBadge" class="hidden bg-indigo-900/90 border border-amber-400/60 rounded-xl px-2.5 py-1 text-left flex items-center gap-2 shadow-xs">
-                    <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs shrink-0">
-                        <i class="fa-solid fa-clock-rotate-left animate-spin" style="animation-duration: 4s;"></i>
-                    </div>
-                    <div class="leading-none">
-                        <span class="text-[9px] text-amber-300/90 font-bold block">เวลาคงเหลือ</span>
-                        <span id="topGatepassCountdown" class="text-xs sm:text-sm font-black text-amber-400 font-mono">00:00:00</span>
-                    </div>
-                </div>
-
-                <!-- ปุ่มยื่นขออนุญาตออกนอกโรงเรียน (สไตล์กระจกใสมีมิติ) -->
-                <button id="btnOpenGatepass" type="button" onclick="openGatepassModal()" class="btn-glass-request text-xs sm:text-sm px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0">
-                    <i class="fa-solid fa-door-open text-sm"></i>
-                    <span class="hidden sm:inline text-slate-100">ขอออกนอกโรงเรียน</span>
-                    <span class="sm:hidden text-slate-100">ยื่นคำขอ</span>
-                </button>
-
-                <!-- ปุ่มออกจากระบบ -->
-                <button id="btnLogout" class="text-xs sm:text-sm bg-indigo-900/90 hover:bg-rose-600 text-white px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl font-bold transition border border-indigo-700 flex items-center gap-1.5 cursor-pointer">
-                    <i class="fa-solid fa-right-from-bracket text-sm"></i>
-                    <span class="hidden sm:inline">ออกจากระบบ</span>
-                </button>
-            </div>
+            <button id="btnLogout" class="text-xs bg-indigo-800 hover:bg-rose-600 px-3 py-1.5 rounded-xl font-semibold transition border border-indigo-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
         </div>
     </header>
 
-    <!-- 📱 1. ป๊อปอัปแก้วลอยตัว แสดงคาบเรียนถัดไป 2 คาบ (Next Class Glass Widget) -->
-    <div id="glassNextClassWidget" class="glass-next-class hidden">
-        <div class="flex items-center justify-between border-b border-slate-200/60 pb-1 mb-1.5">
-            <span class="text-[10px] font-extrabold text-indigo-900 flex items-center gap-1">
-                <i class="fa-solid fa-bolt text-amber-500"></i> คาบเรียนถัดไป
-            </span>
-            <span id="widgetCurrentPeriodText" class="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.2 rounded-md">คาบปัจจุบัน: -</span>
-        </div>
-        <div id="glassNextClassBody" class="space-y-1">
-            <p class="text-[10px] text-slate-400 text-center py-1">กำลังโหลดตารางเรียน...</p>
-        </div>
-    </div>
-
     <!-- Main Content -->
-    <main class="max-w-4xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 flex-1 space-y-4 sm:space-y-5">
+    <main class="max-w-4xl mx-auto w-full px-4 py-6 flex-1 space-y-5">
 
         <!-- 1. Student Profile Overview -->
-        <section id="section-profile" class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex flex-col sm:flex-row items-center gap-3.5 sm:gap-4 text-center sm:text-left w-full sm:w-auto">
-                <div class="relative shrink-0">
-                    <img id="student-avatar" src="https://via.placeholder.com/100?text=Student" alt="Student Photo" class="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl object-cover ring-4 ring-indigo-50 shadow-sm border border-slate-100">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                <div class="relative">
+                    <img id="student-avatar" src="https://via.placeholder.com/100?text=Student" alt="Student Photo" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover ring-4 ring-indigo-50 shadow-md border border-slate-100">
                     <span id="badge-status-dot" class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
                 </div>
-                <div class="space-y-1 min-w-0">
-                    <h2 id="student-fullname" class="text-lg sm:text-xl font-extrabold text-slate-800 leading-tight">กำลังโหลดข้อมูล...</h2>
-                    <p class="text-sm sm:text-xs text-slate-500 font-medium leading-relaxed">
-                        ชั้น: <span id="student-class" class="font-bold text-indigo-600">-</span> &bull; 
-                        เลขที่: <span id="student-no" class="font-bold text-slate-700">-</span> &bull; 
-                        รหัสประจำตัว: <span id="student-id" class="font-bold text-slate-700">-</span>
-                    </p>
-                    <span id="student-academic-status" class="inline-block mt-1 text-xs sm:text-[10px] bg-emerald-100 text-emerald-800 font-bold px-3 py-0.5 rounded-full">
-                        🟢 สถานะ: เชื่อมต่อสำเร็จ
-                    </span>
+                <div class="space-y-0.5">
+                    <h2 id="student-fullname" class="text-base font-bold text-slate-800">กำลังเชื่อมต่อระบบ...</h2>
+                    <p class="text-xs text-slate-500">ชั้น: <span id="student-class" class="font-bold text-indigo-600">-</span> &bull; เลขที่: <span id="student-no">-</span> &bull; รหัสประจำตัว: <span id="student-id">-</span></p>
+                    <span id="student-academic-status" class="inline-block mt-1 text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">สถานะ: เชื่อมต่อสำเร็จ</span>
                 </div>
             </div>
-            
-            <div class="bg-indigo-50/80 p-3.5 sm:p-3 rounded-2xl border border-indigo-100 w-full sm:w-auto text-center sm:text-right shrink-0">
-                <span class="text-xs sm:text-[10px] text-indigo-900 block font-bold">คะแนนพฤติกรรมคงเหลือ</span>
-                <div class="flex sm:block justify-center items-baseline gap-1 mt-0.5">
-                    <span id="student-behavior-score" class="text-3xl sm:text-3xl font-black text-indigo-700">--</span>
-                    <span class="text-sm sm:text-xs text-slate-500 font-semibold">/ 100 คะแนน</span>
+            <div class="text-right bg-indigo-50/70 p-3 rounded-2xl border border-indigo-100 min-w-[120px] w-full sm:w-auto">
+                <span class="text-[10px] text-slate-500 block font-semibold text-center sm:text-right">คะแนนพฤติกรรมคงเหลือ</span>
+                <div class="text-center sm:text-right">
+                    <span id="student-behavior-score" class="text-2xl font-black text-indigo-700">--</span>
+                    <span class="text-xs text-slate-400 font-normal">/ 100</span>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- 2. ACTIVE DIGITAL PASS CARD -->
-        <section id="activePassCard" class="bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-md border border-indigo-700 space-y-3 hidden">
-            <div class="flex justify-between items-center border-b border-indigo-700/60 pb-2">
-                <span class="text-sm sm:text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                    <i class="fa-solid fa-shield-halved"></i> บัตรผ่านประตูดิจิทัล (การอนุมัติล่าสุด)
-                </span>
-                <span id="passStatusBadge" class="bg-amber-400 text-slate-950 text-xs sm:text-[10px] font-black px-2.5 py-0.5 rounded-md">รอการอนุมัติ</span>
-            </div>
-            <div class="text-center py-1 space-y-2">
-                <div class="flex justify-center my-1">
-                    <div id="qrcodeContainer" class="p-2 bg-white rounded-xl shadow border border-indigo-300 min-w-[120px] min-h-[120px] flex items-center justify-center"></div>
+        <!-- 🚪 2. ระบบยื่นขอออกนอกสถานศึกษาออนไลน์ & บัตรผ่านประตูดิจิทัล (GATEPASS SYSTEM) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Active Digital Pass Card -->
+            <div id="activePassCard" class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-indigo-700 space-y-3 hidden">
+                <div class="flex justify-between items-center border-b border-indigo-700/60 pb-2">
+                    <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved"></i> บัตรผ่านประตูดิจิทัล (Digital Gatepass)
+                    </span>
+                    <span id="passStatusBadge" class="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md">รอการอนุมัติ</span>
                 </div>
-                <p id="passReason" class="text-sm sm:text-xs font-bold text-white">เหตุผล: --</p>
-                <p id="passTimeRange" class="text-xs sm:text-[11px] text-indigo-200 font-medium">เวลาอนุญาต: -- ถึง --</p>
+                <div class="text-center py-2">
+                    <div class="flex justify-center my-2">
+                        <div id="qrcodeContainer" class="p-2.5 bg-white rounded-xl shadow border-2 border-indigo-400"></div>
+                    </div>
+                    <p id="passReason" class="text-xs font-bold text-white mb-0.5">เหตุผล: --</p>
+                    <p id="passTimeRange" class="text-[11px] text-indigo-200">เวลาอนุญาต: -- ถึง --</p>
+                </div>
             </div>
-        </section>
+
+            <!-- Gatepass Request Form -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5 border-b pb-2">
+                    <i class="fa-solid fa-door-open text-amber-600"></i> ยื่นขออนุญาตออกนอกบริเวณโรงเรียน
+                </h3>
+                <form id="gatepassForm" class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">เหตุผลในการขอออกนอกสถานศึกษา <span class="text-rose-500">*</span></label>
+                        <select id="requestReasonSelect" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none focus:border-indigo-600" required>
+                            <option value="">-- เลือกเหตุผล --</option>
+                            <option value="ผู้ปกครองมารับกลับบ้าน/ทำธุระ">ผู้ปกครองมารับกลับบ้าน / ทำธุระครอบครัว</option>
+                            <option value="ไปพบแพทย์/โรงพยาบาล">ไปพบแพทย์ / ทำหัตถการโรงพยาบาล</option>
+                            <option value="เป็นตัวแทนโรงเรียนร่วมกิจกรรมภายนอก">เป็นตัวแทนโรงเรียนร่วมกิจกรรมภายนอก</option>
+                            <option value="other">อื่นๆ (ระบุเพิ่มเติม)</option>
+                        </select>
+                    </div>
+
+                    <div id="customReasonBox" class="hidden">
+                        <input type="text" id="customReasonInput" placeholder="ระบุรายละเอียดเหตุผล..." class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-600">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">เวลาที่ขอออก <span class="text-rose-500">*</span></label>
+                            <input type="time" id="exitTimeInput" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700" required>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">เวลากลับ (ประมาณ)</label>
+                            <input type="time" id="returnTimeInput" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-paper-plane"></i> ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครอง
+                    </button>
+                </form>
+            </div>
+        </div>
 
         <!-- 3. 📅 ตารางเรียนประจำวัน -->
-        <section id="section-schedule" class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3.5">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                <h3 class="text-sm sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-days text-sky-600 text-base"></i> ตารางเรียนประจำวัน
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-sky-600"></i> ตารางเรียนประจำวัน
                 </h3>
-
-                <button type="button" onclick="openDayPickerModal()" class="text-xs sm:text-xs bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-3 py-1.5 rounded-xl font-extrabold flex items-center gap-1.5 transition cursor-pointer">
-                    <i class="fa-regular fa-calendar text-sky-600"></i>
-                    <span id="currentDayText">วันอังคาร</span>
-                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
-                </button>
+                <select id="dayFilter" class="text-xs bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="Monday">วันจันทร์</option>
+                    <option value="Tuesday">วันอังคาร</option>
+                    <option value="Wednesday">วันพุธ</option>
+                    <option value="Thursday">วันพฤหัสบดี</option>
+                    <option value="Friday">วันศุกร์</option>
+                </select>
             </div>
-            
-            <div id="scheduleContainer" class="space-y-2.5">
-                <p class="text-sm sm:text-xs text-slate-400 text-center py-3">กำลังโหลดตารางเรียน...</p>
+            <div id="scheduleContainer" class="space-y-2">
+                <p class="text-xs text-slate-400 text-center py-3">กำลังโหลดตารางเรียน...</p>
             </div>
-        </section>
+        </div>
 
-        <!-- 4. 👩‍🏫 ครูที่ปรึกษาประจำห้อง -->
-        <section id="section-advisors" class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3.5">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                <h3 class="text-sm sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-chalkboard-user text-indigo-600 text-base"></i> ครูที่ปรึกษาประจำห้อง
+        <!-- 4. 👩‍🏫 กล่องแสดงรูปครูที่ปรึกษาประจำห้อง -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user text-indigo-600"></i> ครูที่ปรึกษาประจำห้อง
                 </h3>
-                <span id="advisorCountBadge" class="text-xs sm:text-[10px] bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full font-bold">0 คน</span>
+                <span id="advisorCountBadge" class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold">0 คน</span>
             </div>
             <div id="advisorsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <p class="text-sm sm:text-xs text-slate-400 text-center col-span-2 py-3">กำลังดึงข้อมูลครูที่ปรึกษา...</p>
+                <p class="text-xs text-slate-400 text-center col-span-2 py-3">กำลังดึงข้อมูลครูที่ปรึกษา...</p>
             </div>
-        </section>
+        </div>
 
         <!-- 5. ⚠️ เวลาเรียนสะสมทุกวิชา & สถานะสิทธิ์สอบ (มส.) -->
-        <section id="section-academic" class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3.5">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                <h3 class="text-sm sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-graduation-cap text-indigo-600 text-base"></i> เวลาเรียนสะสมทุกรายวิชา (ฝ่ายวิชาการ)
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap text-indigo-600"></i> เวลาเรียนสะสมทุกรายวิชา (ฝ่ายวิชาการ)
                 </h3>
-                <span class="text-xs sm:text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold">ข้อมูล Real-time</span>
+                <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">ข้อมูลเรียลไทม์</span>
             </div>
-            <div id="studentAcademicContainer" class="space-y-3">
-                <p class="text-sm sm:text-xs text-slate-400 text-center py-3">กำลังโหลดข้อมูลเวลาเรียน...</p>
+            <div id="studentAcademicContainer" class="space-y-2.5">
+                <p class="text-xs text-slate-400 text-center py-3">กำลังโหลดข้อมูลเวลาเรียน...</p>
             </div>
-        </section>
+        </div>
 
-        <!-- 6. ⚖️ ประวัติคะแนนพฤติกรรม -->
-        <section id="section-behavior" class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3.5">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                <h3 class="text-sm sm:text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-scale-balanced text-amber-500 text-base"></i> ประวัติการหักคะแนน & การซ่อมความดี (+คะแนน)
+        <!-- 6. ⚖️ การ์ดประวัติคะแนนพฤติกรรม -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced text-amber-500"></i> ประวัติการหักคะแนน & การซ่อมความดี (+คะแนน)
                 </h3>
-                <span class="text-xs sm:text-[10px] bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full font-bold">ฝ่ายปกครอง</span>
+                <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">ฝ่ายปกครอง</span>
             </div>
-            <div id="behaviorHistoryList" class="space-y-2.5">
-                <p class="text-sm sm:text-xs text-slate-400 text-center py-3">กำลังโหลดประวัติพฤติกรรม...</p>
+            <div id="behaviorHistoryList" class="space-y-2">
+                <p class="text-xs text-slate-400 text-center py-3">กำลังโหลดประวัติพฤติกรรม...</p>
             </div>
-        </section>
+        </div>
 
         <!-- 7. 📚 การบ้าน & 🏥 สุขภาพ -->
-        <section id="section-extras" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3.5">
-                <h3 class="text-sm sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5 border-b pb-2.5">
-                    <i class="fa-solid fa-book text-indigo-600 text-base"></i> งานที่ได้รับมอบหมาย / การบ้าน
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-book text-indigo-600"></i> งานที่ได้รับมอบหมาย
                 </h3>
-                <div id="studentHomeworkList" class="space-y-2.5">
-                    <p class="text-sm sm:text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>
-                </div>
+                <div id="studentHomeworkList" class="space-y-2"></div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-5 space-y-3.5">
-                <h3 class="text-sm sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5 border-b pb-2.5">
-                    <i class="fa-solid fa-heart-pulse text-rose-500 text-base"></i> บันทึกสุขภาพ / ห้องพยาบาล
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-heart-pulse text-rose-500"></i> บันทึกสุขภาพ / ห้องพยาบาล
                 </h3>
-                <div id="studentClinicList" class="space-y-2.5">
-                    <p class="text-sm sm:text-xs text-slate-400 text-center py-2">ไม่มีประวัติห้องพยาบาล</p>
-                </div>
+                <div id="studentClinicList" class="space-y-2"></div>
             </div>
-        </section>
+        </div>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs sm:text-xs py-3.5 mt-4">
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3">
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Student Portal System
     </footer>
 
-    <!-- 📱 3. แถบ Bottom Navigation Bar สำหรับมือถือ (พร้อม Raised Active Effect) -->
-    <nav class="mobile-bottom-nav">
-        <button type="button" class="nav-tab-btn active" onclick="scrollToSection('section-profile', this)">
-            <i class="fa-solid fa-user"></i>
-            <span>โปรไฟล์</span>
-        </button>
-        <button type="button" class="nav-tab-btn" onclick="scrollToSection('section-schedule', this)">
-            <i class="fa-solid fa-calendar-days"></i>
-            <span>ตารางเรียน</span>
-        </button>
-        <button type="button" class="nav-tab-btn highlight-btn" onclick="openGatepassModal()">
-            <i class="fa-solid fa-door-open"></i>
-            <span>ขอออก</span>
-        </button>
-        <button type="button" class="nav-tab-btn" onclick="scrollToSection('section-behavior', this)">
-            <i class="fa-solid fa-scale-balanced"></i>
-            <span>พฤติกรรม</span>
-        </button>
-    </nav>
-
-    <!-- 🔒 1. Modal Pop-up ยื่นขอออกนอกสถานศึกษา -->
-    <div id="gatepass-modal" class="modal-overlay" onclick="closeGatepassModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <div class="header-title-group">
-                    <div class="header-icon">
-                        <i class="fa-solid fa-id-card-clip"></i>
-                    </div>
-                    <div>
-                        <h3>ยื่นขออนุญาตออกนอกบริเวณโรงเรียน</h3>
-                        <p>ส่งคำขออนุมัติไปยังครูผู้ดูแล / ฝ่ายปกครอง</p>
-                    </div>
-                </div>
-                <button type="button" class="btn-close-modal" onclick="closeGatepassModalDirect()">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <form id="gatepassForm" class="modal-body">
-                <div class="form-group-custom">
-                    <label for="requestReasonSelect"><i class="fa-solid fa-circle-info"></i> เหตุผลในการขอออกนอกสถานศึกษา <span class="text-rose-500">*</span></label>
-                    <select id="requestReasonSelect" class="input-custom" required>
-                        <option value="">-- เลือกเหตุผล --</option>
-                        <option value="ผู้ปกครองมารับกลับบ้าน/ทำธุระ">ผู้ปกครองมารับกลับบ้าน / ทำธุระครอบครัว</option>
-                        <option value="ไปพบแพทย์/โรงพยาบาล">ไปพบแพทย์ / ทำหัตถการโรงพยาบาล</option>
-                        <option value="เป็นตัวแทนโรงเรียนร่วมกิจกรรมภายนอก">เป็นตัวแทนโรงเรียนร่วมกิจกรรมภายนอก</option>
-                        <option value="other">อื่นๆ (ระบุเพิ่มเติม)</option>
-                    </select>
-                </div>
-
-                <div id="customReasonBox" class="form-group-custom hidden">
-                    <label for="customReasonInput"><i class="fa-solid fa-pen-to-square"></i> ระบุเหตุผลเพิ่มเติม</label>
-                    <input type="text" id="customReasonInput" placeholder="กรอกรายละเอียดเหตุผล..." class="input-custom">
-                </div>
-
-                <div class="form-row-custom">
-                    <div class="form-group-custom">
-                        <label for="exitTimeInput"><i class="fa-regular fa-clock"></i> เวลาขอออก <span class="text-rose-500">*</span></label>
-                        <input type="time" id="exitTimeInput" class="input-custom" required>
-                    </div>
-                    <div class="form-group-custom">
-                        <label for="returnTimeInput"><i class="fa-solid fa-rotate-left"></i> เวลากลับ (ประมาณ)</label>
-                        <input type="time" id="returnTimeInput" class="input-custom">
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel-custom" onclick="closeGatepassModalDirect()">ยกเลิก</button>
-                    <button type="submit" class="btn-submit-custom">
-                        <i class="fa-solid fa-paper-plane"></i> ส่งคำขออนุมัติ
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 🔒 2. Modal Pop-up สำหรับเลือกวันตารางเรียน -->
-    <div id="day-picker-modal" class="modal-overlay" onclick="closeDayPickerModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-header" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-color: #bae6fd;">
-                <div class="header-title-group">
-                    <div class="header-icon" style="background: #0284c7;">
-                        <i class="fa-solid fa-calendar-day"></i>
-                    </div>
-                    <div>
-                        <h3 style="color: #0369a1;">เลือกวันสำหรับดูตารางเรียน</h3>
-                        <p style="color: #0284c7;">เลือกวันที่ต้องการตรวจสอบรายวิชาเรียน</p>
-                    </div>
-                </div>
-                <button type="button" class="btn-close-modal" style="color: #0369a1;" onclick="closeDayPickerModalDirect()">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <div class="modal-body space-y-2.5">
-                <button type="button" class="day-option-btn" onclick="selectScheduleDay('Monday', 'วันจันทร์')">
-                    <span>📅 วันจันทร์</span>
-                    <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
-                </button>
-                <button type="button" class="day-option-btn" onclick="selectScheduleDay('Tuesday', 'วันอังคาร')">
-                    <span>📅 วันอังคาร</span>
-                    <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
-                </button>
-                <button type="button" class="day-option-btn" onclick="selectScheduleDay('Wednesday', 'วันพุธ')">
-                    <span>📅 วันพุธ</span>
-                    <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
-                </button>
-                <button type="button" class="day-option-btn" onclick="selectScheduleDay('Thursday', 'วันพฤหัสบดี')">
-                    <span>📅 วันพฤหัสบดี</span>
-                    <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
-                </button>
-                <button type="button" class="day-option-btn" onclick="selectScheduleDay('Friday', 'วันศุกร์')">
-                    <span>📅 วันศุกร์</span>
-                    <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ⚙️ JavaScript ควบคุม UI & Interaction -->
-    <script>
-        function openGatepassModal() {
-            const modal = document.getElementById('gatepass-modal');
-            if (modal) {
-                modal.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            }
-        }
-
-        function closeGatepassModalDirect() {
-            const modal = document.getElementById('gatepass-modal');
-            if (modal) {
-                modal.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        }
-
-        function closeGatepassModal(event) {
-            if (event.target.id === 'gatepass-modal') closeGatepassModalDirect();
-        }
-
-        function openDayPickerModal() {
-            const modal = document.getElementById('day-picker-modal');
-            if (modal) {
-                modal.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            }
-        }
-
-        function closeDayPickerModalDirect() {
-            const modal = document.getElementById('day-picker-modal');
-            if (modal) {
-                modal.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        }
-
-        function closeDayPickerModal(event) {
-            if (event.target.id === 'day-picker-modal') closeDayPickerModalDirect();
-        }
-
-        function selectScheduleDay(dayKey, dayLabel) {
-            document.getElementById('currentDayText').innerText = dayLabel;
-            closeDayPickerModalDirect();
-            if (window.onScheduleDayChange) window.onScheduleDayChange(dayKey);
-        }
-
-        // 📱 4. แก้ปัญหา Smooth Scroll โดน Header บังเนื้อหา + ไฮไลท์ปุ่ม Active สวยงาม
-        function scrollToSection(sectionId, btnElement) {
-            const target = document.getElementById(sectionId);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-                // เปลี่ยนสถานะ Active ลอยตัว
-                if (btnElement) {
-                    document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
-                    btnElement.classList.add('active');
-                }
-            }
-        }
-
-        // 📱 1. สคริปต์ตรวจจับการ Scroll เพื่อซ่อน/แสดง ป๊อปอัปกระจกแจ้งคาบเรียน
-        let scrollTimeout;
-        window.addEventListener('scroll', () => {
-            const glassWidget = document.getElementById('glassNextClassWidget');
-            if (!glassWidget) return;
-
-            // ถ้า Scroll ลงเกิน 60px ให้จางหายไป
-            if (window.scrollY > 60) {
-                glassWidget.classList.add('is-scrolling');
-            } else {
-                glassWidget.classList.remove('is-scrolling');
-            }
-
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                // หยุดเลื่อนหน้าจอเกิน 1.5 วินาที ค่อยๆ ลอยกลับมาถ้าหยุดช่วงบน
-                if (window.scrollY < 200) {
-                    glassWidget.classList.remove('is-scrolling');
-                }
-            }, 1500);
-        });
-    </script>
-
-<!-- Module Integration Script (ครบ 100% ทุกฟังก์ชัน + Auth Pipeline กลาง) -->
+    <!-- Module Integration Script -->
     <script type="module">
-        import { db } from '../../core/supabase-client.js';
-        import { logoutUser } from '../../core/auth-manager.js';
         import {
             getStudentProfile,
             submitGatepassRequest,
@@ -629,188 +210,98 @@
             getStudentHomeworks,
             getStudentClinicRecords
         } from '../../modules/student/student.service.js';
+        import { requireAuth, logout } from '../../core/auth-manager.js';
 
-        let CURRENT_STUDENT_ID = null;
+        let CURRENT_STUDENT_ID = '';
         let currentStudentClass = '';
-        let SELECTED_SCHEDULE_DAY = 'Monday';
-        let gatepassTimerInterval = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await initStudentPortal();
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Auth Guard ตรวจสอบสิทธิ์สตรีมนักเรียน (ส่งกลับหน้า login หากไม่มี Session)
+            const user = requireAuth(['student'], '../../login.html');
+            if (!user) return;
+
+            CURRENT_STUDENT_ID = user.userId;
+            initStudentPortal(user);
             setupEventListeners();
         });
 
-        // 1. ตรวจสอบสิทธิ์และเริ่มทำงานระบบ Portal นักเรียน
-        async function initStudentPortal() {
-            try {
-                let studentId = localStorage.getItem('student_id') || localStorage.getItem('user_id');
-                let userEmail = localStorage.getItem('user_email') || '';
+        async function initStudentPortal(user) {
+            // ดึงข้อมูลโปรไฟล์นักเรียนจาก Supabase DB
+            const student = await getStudentProfile(CURRENT_STUDENT_ID);
 
-                if (!studentId && !userEmail) {
-                    alert('🔒 กรุณาเข้าสู่ระบบก่อนใช้งานแอปนักเรียน');
-                    window.location.replace('../../login.html');
-                    return;
-                }
+            const fullName = user.name || (student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : 'นักเรียน');
+            currentStudentClass = student?.classroom || student?.class || 'ม.1/1';
+            const studentNo = student?.number_no ?? student?.no ?? '-';
 
-                // ดึงข้อมูลนักเรียนจากฐานข้อมูล Supabase
-                const { data: studentProfile } = await db
-                    .from('students')
-                    .select('*')
-                    .or(`email.eq.${userEmail},student_id.eq.${studentId}`)
-                    .maybeSingle();
+            document.getElementById('student-fullname').innerText = fullName;
+            document.getElementById('student-class').innerText = currentStudentClass;
+            document.getElementById('student-no').innerText = studentNo;
+            document.getElementById('student-id').innerText = CURRENT_STUDENT_ID;
+            document.getElementById('student-behavior-score').innerText = student?.behavior_score ?? 100;
 
-                if (studentProfile) {
-                    CURRENT_STUDENT_ID = studentProfile.student_id;
-                    currentStudentClass = studentProfile.classroom || studentProfile.class_name || '';
-
-                    const fullName = `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() || 'นักเรียน';
-                    const studentNo = studentProfile.student_no || studentProfile.no || '-';
-
-                    document.getElementById('student-fullname').innerText = fullName;
-                    document.getElementById('student-class').innerText = currentStudentClass || 'ไม่ระบุห้อง';
-                    document.getElementById('student-no').innerText = studentNo;
-                    document.getElementById('student-id').innerText = CURRENT_STUDENT_ID;
-                    document.getElementById('student-behavior-score').innerText = studentProfile.behavior_score ?? 100;
-
-                    const avatarImg = document.getElementById('student-avatar');
-                    if (avatarImg && studentProfile.avatar_url) {
-                        avatarImg.src = studentProfile.avatar_url;
-                    }
-                } else {
-                    CURRENT_STUDENT_ID = studentId;
-                }
-
-                // ตั้งค่าวันปัจจุบันสำหรับตารางเรียน
-                const dayMap = {
-                    'Sunday': { key: 'Monday', label: 'วันจันทร์' },
-                    'Monday': { key: 'Monday', label: 'วันจันทร์' },
-                    'Tuesday': { key: 'Tuesday', label: 'วันอังคาร' },
-                    'Wednesday': { key: 'Wednesday', label: 'วันพุธ' },
-                    'Thursday': { key: 'Thursday', label: 'วันพฤหัสบดี' },
-                    'Friday': { key: 'Friday', label: 'วันศุกร์' },
-                    'Saturday': { key: 'Monday', label: 'วันจันทร์' }
-                };
-                const currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-                const defaultDay = dayMap[currentDayName] || { key: 'Monday', label: 'วันจันทร์' };
-                
-                SELECTED_SCHEDULE_DAY = defaultDay.key;
-                const dayText = document.getElementById('currentDayText');
-                if (dayText) dayText.innerText = defaultDay.label;
-
-                // ดึงข้อมูลย่อยทุกส่วนแบบ Parallel
-                await Promise.all([
-                    renderActiveGatepass(),
-                    renderStudentSchedule(),
-                    renderClassAdvisors(currentStudentClass),
-                    renderAcademicData(CURRENT_STUDENT_ID),
-                    renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
-                    renderHomeworkData(currentStudentClass),
-                    renderClinicData(CURRENT_STUDENT_ID)
-                ]);
-
-            } catch (err) {
-                console.error('Error in Student Portal Init:', err);
+            const avatarImg = document.getElementById('student-avatar');
+            if (avatarImg) {
+                avatarImg.src = user.avatar || student?.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
             }
+
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const todayName = days[new Date().getDay()];
+            if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(todayName)) {
+                document.getElementById('dayFilter').value = todayName;
+            }
+
+            await Promise.all([
+                renderActiveGatepass(),
+                renderStudentSchedule(),
+                renderClassAdvisors(currentStudentClass),
+                renderAcademicData(CURRENT_STUDENT_ID),
+                renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
+                renderHomeworkData(currentStudentClass),
+                renderClinicData(CURRENT_STUDENT_ID)
+            ]);
         }
 
-        // 2. ระบบบัตรผ่านประตูดิจิทัล (Active Gatepass) & Countdown Timer
         async function renderActiveGatepass() {
-            if (!CURRENT_STUDENT_ID) return;
             const pass = await getActiveGatepass(CURRENT_STUDENT_ID);
             const activeCard = document.getElementById('activePassCard');
             const qrContainer = document.getElementById('qrcodeContainer');
-            const topTimerBadge = document.getElementById('topGatepassTimerBadge');
-            const btnOpenGatepass = document.getElementById('btnOpenGatepass');
 
             if (pass) {
-                if (activeCard) activeCard.classList.remove('hidden');
+                activeCard.classList.remove('hidden');
                 document.getElementById('passReason').innerText = `เหตุผล: ${pass.reason || '-'}`;
                 document.getElementById('passTimeRange').innerText = `เวลาอนุญาต: ${pass.exit_time} ถึง ${pass.return_time}`;
 
                 const statusBadge = document.getElementById('passStatusBadge');
-                if (qrContainer) qrContainer.innerHTML = "";
+                qrContainer.innerHTML = "";
 
                 if (pass.status === 'pending') {
-                    if (statusBadge) {
-                        statusBadge.className = "bg-amber-400 text-slate-950 text-xs sm:text-[10px] font-black px-2.5 py-0.5 rounded-md";
-                        statusBadge.innerText = "⏳ รอครู/ฝ่ายปกครองอนุมัติ";
-                    }
-                    if (qrContainer) qrContainer.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">เมื่อครูอนุมัติแล้ว<br>QR Code จะแสดงที่นี่</p>`;
-                    if (topTimerBadge) topTimerBadge.classList.add('hidden');
-                    if (btnOpenGatepass) btnOpenGatepass.classList.remove('hidden');
+                    statusBadge.className = "bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md";
+                    statusBadge.innerText = "⏳ รอครู/ฝ่ายปกครองอนุมัติ";
+                    qrContainer.innerHTML = `<p class="text-[11px] text-slate-500 p-2">เมื่อครูอนุมัติแล้ว<br>QR Code สำหรับสแกนประตูจะขึ้นตรงนี้</p>`;
                 } else if (pass.status === 'approved' || pass.status === 'out') {
-                    if (statusBadge) {
-                        statusBadge.className = "bg-emerald-400 text-slate-950 text-xs sm:text-[10px] font-black px-2.5 py-0.5 rounded-md";
-                        statusBadge.innerText = pass.status === 'out' ? "🚪 อยู่นอกโรงเรียน" : "✅ อนุมัติแล้ว (สแกนผ่านประตูได้)";
-                    }
+                    statusBadge.className = "bg-emerald-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md";
+                    statusBadge.innerText = pass.status === 'out' ? "🚪 อยู่นอกโรงเรียน" : "✅ อนุมัติแล้ว (สแกนผ่านประตูได้)";
 
-                    if (typeof QRCode !== 'undefined' && qrContainer) {
+                    if (typeof QRCode !== 'undefined') {
                         new QRCode(qrContainer, {
                             text: `GATEPASS:${pass.id}:${pass.student_id}`,
-                            width: 100, height: 100
+                            width: 110,
+                            height: 110
                         });
-                    }
-
-                    if (pass.return_time) {
-                        if (topTimerBadge) topTimerBadge.classList.remove('hidden');
-                        if (btnOpenGatepass) btnOpenGatepass.classList.add('hidden');
-                        startCountDownTimer(pass.return_time);
                     }
                 }
             } else {
-                if (activeCard) activeCard.classList.add('hidden');
-                if (topTimerBadge) topTimerBadge.classList.add('hidden');
-                if (btnOpenGatepass) btnOpenGatepass.classList.remove('hidden');
-                if (gatepassTimerInterval) clearInterval(gatepassTimerInterval);
+                activeCard.classList.add('hidden');
             }
         }
 
-        function startCountDownTimer(returnTimeStr) {
-            if (gatepassTimerInterval) clearInterval(gatepassTimerInterval);
-
-            function updateTimer() {
-                const now = new Date();
-                const [targetHour, targetMinute] = returnTimeStr.split(':').map(Number);
-                const targetTime = new Date();
-                targetTime.setHours(targetHour, targetMinute, 0, 0);
-
-                let diffMs = targetTime - now;
-                const countdownEl = document.getElementById('topGatepassCountdown');
-                if (!countdownEl) return;
-
-                if (diffMs <= 0) {
-                    countdownEl.innerText = "หมดเวลา";
-                    countdownEl.className = "text-xs sm:text-sm font-black text-rose-400 font-mono animate-pulse";
-                    clearInterval(gatepassTimerInterval);
-                    return;
-                }
-
-                const hrs = String(Math.floor(diffMs / (1000 * 60 * 60))).padStart(2, '0');
-                const mins = String(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
-                const secs = String(Math.floor((diffMs % (1000 * 60)) / 1000)).padStart(2, '0');
-
-                countdownEl.innerText = `${hrs}:${mins}:${secs}`;
-            }
-
-            updateTimer();
-            gatepassTimerInterval = setInterval(updateTimer, 1000);
-        }
-
-        // 3. ระบบตารางเรียน & ป๊อปอัปแจ้งคาบเรียนถัดไป (Glass Widget)
         async function renderStudentSchedule() {
+            const day = document.getElementById('dayFilter').value;
             const container = document.getElementById('scheduleContainer');
-            if (!container) return;
-
-            if (!currentStudentClass) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่พบข้อมูลห้องเรียนของนักเรียน</div>`;
-                return;
-            }
-
-            const schedules = await getStudentScheduleWithTeachers(currentStudentClass, SELECTED_SCHEDULE_DAY);
+            const schedules = await getStudentScheduleWithTeachers(currentStudentClass, day);
 
             if (!schedules || schedules.length === 0) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${currentStudentClass})</div>`;
-                updateNextClassWidget([]);
+                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้</div>`;
                 return;
             }
 
@@ -819,109 +310,64 @@
                 return `
                     <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl hover:border-indigo-200 transition">
                         <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
-                                <span class="text-[9px] text-indigo-500 uppercase leading-none">คาบ</span>
-                                <span class="text-sm font-extrabold leading-tight">${s.period_no || s.period || 1}</span>
+                            <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center">
+                                <span class="text-[8px] text-indigo-500 uppercase leading-none">คาบ</span>
+                                <span class="text-sm font-extrabold leading-tight">${s.period_no || 1}</span>
                             </div>
-                            <div class="min-w-0">
-                                <h4 class="text-xs font-bold text-slate-800 truncate">${s.course_name || s.subject_name} <span class="text-slate-400 font-normal">(${s.course_code || s.subject_code || ''})</span></h4>
-                                <p class="text-[10px] text-slate-500 truncate"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.room_no || s.room || 'ไม่ระบุ'}</p>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-800">${s.course_name} <span class="text-slate-400 font-normal">(${s.course_code})</span></h4>
+                                <p class="text-[10px] text-slate-400"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.room_no || 'ไม่ระบุ'}</p>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shadow-xs shrink-0">
-                            <img src="${teacherAvatar}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-6 h-6 rounded-md object-cover">
+                        <div class="flex items-center gap-2 bg-white border border-slate-200/60 px-2 py-1 rounded-lg shadow-sm">
+                            <img src="${teacherAvatar}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-6 h-6 rounded-md object-cover ring-1 ring-slate-100">
                             <div class="text-left hidden sm:block">
-                                <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_name || 'ผู้สอน'}</p>
+                                <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_name}</p>
                                 <p class="text-[8px] text-slate-400">ผู้สอน</p>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
-
-            updateNextClassWidget(schedules);
         }
 
-        function updateNextClassWidget(schedules) {
-            const widget = document.getElementById('glassNextClassWidget');
-            const widgetBody = document.getElementById('glassNextClassBody');
-            const widgetCurrentText = document.getElementById('widgetCurrentPeriodText');
-            if (!widget || !widgetBody) return;
-
-            if (!schedules || schedules.length === 0) {
-                widget.classList.add('hidden');
-                return;
-            }
-
-            const currentHour = new Date().getHours();
-            let currentPeriod = 1;
-            if (currentHour >= 9) currentPeriod = 2;
-            if (currentHour >= 10) currentPeriod = 3;
-            if (currentHour >= 11) currentPeriod = 4;
-            if (currentHour >= 12) currentPeriod = 5;
-            if (currentHour >= 13) currentPeriod = 6;
-            if (currentHour >= 14) currentPeriod = 7;
-            if (currentHour >= 15) currentPeriod = 8;
-
-            if (widgetCurrentText) widgetCurrentText.innerText = `คาบปัจจุบัน: คาบ ${currentPeriod}`;
-            const nextClasses = schedules.filter(s => (s.period_no || s.period || 1) > currentPeriod).slice(0, 2);
-
-            if (nextClasses.length === 0) {
-                widget.classList.add('hidden');
-                return;
-            }
-
-            widget.classList.remove('hidden');
-            widgetBody.innerHTML = nextClasses.map(nc => `
-                <div class="flex items-center justify-between gap-2 text-[11px] bg-white/70 p-1.5 rounded-lg border border-slate-100">
-                    <span class="font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">คาบ ${nc.period_no || nc.period}</span>
-                    <span class="font-bold text-slate-800 truncate">${nc.course_code || nc.subject_code || ''} ${nc.course_name || nc.subject_name || ''}</span>
-                    <span class="text-[10px] text-rose-600 font-bold shrink-0"><i class="fa-solid fa-location-dot mr-0.5"></i>${nc.room_no || nc.room || '312'}</span>
-                </div>
-            `).join('');
-        }
-
-        // 4. ระบบแสดงครูที่ปรึกษาประจำห้อง
         async function renderClassAdvisors(className) {
             const container = document.getElementById('advisorsContainer');
             const badge = document.getElementById('advisorCountBadge');
-            if (!container) return;
-
-            if (!className) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ไม่พบข้อมูลห้องเรียน</p>`;
-                if (badge) badge.innerText = '0 คน';
-                return;
-            }
-
             const advisors = await getClassAdvisors(className);
+
             if (!advisors || advisors.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษาประจำห้อง ${className}</p>`;
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษาประจำห้องนี้</p>`;
                 if (badge) badge.innerText = '0 คน';
                 return;
             }
 
             if (badge) badge.innerText = `${advisors.length} คน`;
-            container.innerHTML = advisors.map(adv => `
-                <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-xs">
-                    <img src="${adv.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-12 h-12 rounded-xl object-cover ring-2 ring-white shrink-0">
-                    <div class="overflow-hidden space-y-0.5 min-w-0">
-                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${adv.advisor_type === 'main' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}">
-                            ${adv.advisor_type === 'main' ? 'ที่ปรึกษาหลัก' : 'ที่ปรึกษาสมทบ'}
-                        </span>
-                        <h4 class="text-xs font-bold text-slate-800 truncate mt-1">${adv.teacher_name}</h4>
-                        <p class="text-[10px] text-slate-500 truncate"><i class="fa-regular fa-envelope mr-1"></i>${adv.email || adv.teacher_id}</p>
+
+            container.innerHTML = advisors.map(adv => {
+                const avatarUrl = adv.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+                const isMain = adv.advisor_type === 'main';
+
+                return `
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-sm hover:border-indigo-200 transition">
+                        <img src="${avatarUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-12 h-12 rounded-xl object-cover ring-2 ring-white shadow-sm">
+                        <div class="overflow-hidden space-y-0.5">
+                            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${isMain ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}">
+                                ${isMain ? 'ที่ปรึกษาหลัก' : 'ที่ปรึกษาสมทบ'}
+                            </span>
+                            <h4 class="text-xs font-bold text-slate-800 truncate mt-1">${adv.teacher_name}</h4>
+                            <p class="text-[10px] text-slate-400 truncate"><i class="fa-regular fa-envelope mr-1"></i>${adv.email || adv.teacher_id}</p>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
-        // 5. ระบบติดตามเวลาเรียนสะสม & เตือนเสี่ยง มส.
         async function renderAcademicData(studentId) {
             const container = document.getElementById('studentAcademicContainer');
-            if (!container || !studentId) return;
-
             const risks = await getStudentAcademicRisks(studentId);
+
             if (!risks || risks.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">เวลาเรียนปกติทุกรายวิชา (ไม่พบความเสี่ยง มส.)</p>`;
                 return;
@@ -947,10 +393,10 @@
                     <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
                         <div class="flex justify-between items-center gap-2">
                             <div>
-                                <span class="font-bold text-slate-800 text-xs block">${item.subject_name || item.course_code}</span>
-                                <span class="text-[10px] text-slate-500">ขาดเรียน ${item.absent_count || 0} คาบ</span>
+                                <span class="font-bold text-slate-800 block">${item.subject_name || item.course_code}</span>
+                                <span class="text-[10px] text-slate-400">ขาดเรียน ${item.absent_count || 0} คาบ</span>
                             </div>
-                            <span class="${badgeStyle} text-[10px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap">${statusText} (${percent}%)</span>
+                            <span class="${badgeStyle} text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap">${statusText} (${percent}%)</span>
                         </div>
                         <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                             <div class="${barColor} h-full rounded-full transition-all duration-300" style="width: ${percent}%;"></div>
@@ -960,12 +406,10 @@
             }).join('');
         }
 
-        // 6. ระบบประวัติคะแนนพฤติกรรม / การซ่อมความดี
         async function renderBehaviorScoreAndHistory(studentId) {
             const container = document.getElementById('behaviorHistoryList');
-            if (!container || !studentId) return;
-
             const logs = await getStudentBehaviorLogs(studentId);
+
             if (!logs || logs.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">ไม่มีประวัติการหักคะแนนพฤติกรรม</p>`;
                 return;
@@ -977,27 +421,20 @@
 
                 return `
                     <div class="p-3 ${isDeduction ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'} border rounded-xl text-xs flex justify-between items-center">
-                        <div class="space-y-0.5 min-w-0">
-                            <span class="font-bold text-xs ${isDeduction ? 'text-rose-900' : 'text-emerald-900'} block truncate">
+                        <div class="space-y-0.5">
+                            <span class="font-bold ${isDeduction ? 'text-rose-900' : 'text-emerald-900'} block">
                                 <i class="fa-solid ${isDeduction ? 'fa-minus-circle' : 'fa-plus-circle'} mr-1"></i>${item.action || item.reason || 'บันทึกพฤติกรรม'}
                             </span>
                             <span class="text-[10px] text-slate-500">${new Date(item.created_at).toLocaleDateString('th-TH')}</span>
                         </div>
-                        <span class="text-sm font-black ${isDeduction ? 'text-rose-600' : 'text-emerald-600'} shrink-0 ml-2">${isDeduction ? '-' : '+'}${pts}</span>
+                        <span class="text-sm font-black ${isDeduction ? 'text-rose-600' : 'text-emerald-600'}">${isDeduction ? '-' : '+'}${pts}</span>
                     </div>
                 `;
             }).join('');
         }
 
-        // 7. ระบบการบ้าน & ห้องพยาบาล
         async function renderHomeworkData(className) {
             const container = document.getElementById('studentHomeworkList');
-            if (!container) return;
-
-            if (!className) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
-                return;
-            }
             const list = await getStudentHomeworks(className);
 
             if (!list || list.length === 0) {
@@ -1006,8 +443,8 @@
             }
 
             container.innerHTML = list.map(h => `
-                <div class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-xs space-y-1">
-                    <span class="font-bold text-xs text-indigo-900 block">${h.title}</span>
+                <div class="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-xs space-y-1">
+                    <span class="font-bold text-indigo-900 block">${h.title}</span>
                     <div class="flex justify-between text-[10px] text-slate-500">
                         <span>วิชา: ${h.subject_code || '-'}</span>
                         <span class="text-rose-600 font-bold">ส่ง: ${h.due_date || '-'}</span>
@@ -1018,38 +455,32 @@
 
         async function renderClinicData(studentId) {
             const container = document.getElementById('studentClinicList');
-            if (!container || !studentId) return;
-
             const list = await getStudentClinicRecords(studentId);
+
             if (!list || list.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติห้องพยาบาล</p>`;
                 return;
             }
 
             container.innerHTML = list.map(c => `
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-0.5">
-                    <span class="font-bold text-xs text-slate-700 block">${c.symptom || 'ปฐมพยาบาล'}</span>
-                    <p class="text-[10px] text-slate-500">${c.created_at ? new Date(c.created_at).toLocaleDateString('th-TH') : '-'} &bull; รักษา: ${c.treatment || 'พักผ่อน'}</p>
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-0.5">
+                    <span class="font-bold text-slate-700 block">${c.symptom || 'ปฐมพยาบาล'}</span>
+                    <p class="text-[10px] text-slate-400">${c.created_at ? new Date(c.created_at).toLocaleDateString('th-TH') : '-'} &bull; รักษา: ${c.treatment || 'พักผ่อน'}</p>
                 </div>
             `).join('');
         }
 
-        // 8. Event Listeners & ฟอร์มยื่นคำขอ
         function setupEventListeners() {
-            window.onScheduleDayChange = (dayKey) => {
-                SELECTED_SCHEDULE_DAY = dayKey;
-                renderStudentSchedule();
-            };
+            document.getElementById('dayFilter')?.addEventListener('change', renderStudentSchedule);
 
             document.getElementById('requestReasonSelect')?.addEventListener('change', (e) => {
                 const customBox = document.getElementById('customReasonBox');
-                const customInput = document.getElementById('customReasonInput');
                 if (e.target.value === 'other') {
                     customBox.classList.remove('hidden');
-                    if (customInput) customInput.required = true;
+                    document.getElementById('customReasonInput').required = true;
                 } else {
                     customBox.classList.add('hidden');
-                    if (customInput) customInput.required = false;
+                    document.getElementById('customReasonInput').required = false;
                 }
             });
 
@@ -1071,23 +502,15 @@
                 if (result.success) {
                     alert('🎉 ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครองเรียบร้อยแล้ว!');
                     document.getElementById('gatepassForm').reset();
-                    
-                    if (window.closeGatepassModalDirect) {
-                        window.closeGatepassModalDirect();
-                    }
-
                     await renderActiveGatepass();
                 } else {
                     alert('เกิดข้อผิดพลาด: ' + result.message);
                 }
             });
 
-            // ปุ่ม Logout กลาง
-            document.getElementById('btnLogout')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                    logoutUser();
-                }
+            // ปุ่มออกจากระบบอย่างปลอดภัย
+            document.getElementById('btnLogout')?.addEventListener('click', () => {
+                logout('../../login.html');
             });
         }
     </script>
