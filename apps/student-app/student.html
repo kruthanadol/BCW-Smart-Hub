@@ -528,7 +528,7 @@
         </div>
     </div>
 
-    <!-- ⚙️ JavaScript ควบคุม UI & Interaction -->
+<!-- ⚙️ JavaScript ควบคุม UI & Interaction -->
     <script>
         function openGatepassModal() {
             const modal = document.getElementById('gatepass-modal');
@@ -611,17 +611,6 @@
     <script type="module">
         import { db } from '../../core/supabase-client.js';
         import { requireAuth, logout } from '../../core/auth-manager.js';
-        import {
-            getStudentProfile,
-            submitGatepassRequest,
-            getActiveGatepass,
-            getStudentScheduleWithTeachers,
-            getClassAdvisors,
-            getStudentAcademicRisks,
-            getStudentBehaviorLogs,
-            getStudentHomeworks,
-            getStudentClinicRecords
-        } from '../../modules/student/student.service.js';
 
         let CURRENT_STUDENT_ID = null;
         let currentStudentClass = '';
@@ -629,8 +618,8 @@
         let gatepassTimerInterval = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Auth Guard เช็กสิทธิ์นักเรียนล็อกอินจริง ( Zero-Mock Policy )
-            const user = requireAuth(['student'], '../../login.html');
+            // 🔒 1. Auth Guard เช็กสิทธิ์นักเรียนล็อกอินจริง
+            const user = requireAuth(['student', 'admin', 'superadmin'], '../../login.html');
             if (!user) return;
 
             CURRENT_STUDENT_ID = user.studentId || user.userId;
@@ -641,17 +630,20 @@
         async function initStudentPortal(user) {
             try {
                 // ดึงข้อมูลนักเรียนจริงจาก Supabase
-                const studentProfile = await getStudentProfile(CURRENT_STUDENT_ID);
+                const { data: studentProfile } = await db.from('students')
+                    .select('*')
+                    .or(`student_id.eq.${CURRENT_STUDENT_ID},id.eq.${CURRENT_STUDENT_ID}`)
+                    .maybeSingle();
 
                 const fullName = user.name || (studentProfile ? `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() : 'นักเรียน');
                 currentStudentClass = studentProfile?.classroom || studentProfile?.class_name || studentProfile?.class || '';
                 const studentNo = studentProfile?.student_no ?? studentProfile?.no ?? '-';
 
-                document.getElementById('student-fullname').innerText = fullName;
-                document.getElementById('student-class').innerText = currentStudentClass || 'ไม่ระบุห้อง';
-                document.getElementById('student-no').innerText = studentNo;
-                document.getElementById('student-id').innerText = CURRENT_STUDENT_ID;
-                document.getElementById('student-behavior-score').innerText = studentProfile?.behavior_score ?? 100;
+                if (document.getElementById('student-fullname')) document.getElementById('student-fullname').innerText = fullName;
+                if (document.getElementById('student-class')) document.getElementById('student-class').innerText = currentStudentClass || 'ไม่ระบุห้อง';
+                if (document.getElementById('student-no')) document.getElementById('student-no').innerText = studentNo;
+                if (document.getElementById('student-id')) document.getElementById('student-id').innerText = CURRENT_STUDENT_ID;
+                if (document.getElementById('student-behavior-score')) document.getElementById('student-behavior-score').innerText = studentProfile?.behavior_score ?? 100;
 
                 const avatarImg = document.getElementById('student-avatar');
                 if (avatarImg) {
@@ -693,7 +685,15 @@
 
         async function renderActiveGatepass() {
             if (!CURRENT_STUDENT_ID) return;
-            const pass = await getActiveGatepass(CURRENT_STUDENT_ID);
+            
+            const { data: pass } = await db.from('gate_pass_logs')
+                .select('*')
+                .eq('student_id', CURRENT_STUDENT_ID)
+                .in('status', ['pending', 'approved', 'out'])
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
             const activeCard = document.getElementById('activePassCard');
             const qrContainer = document.getElementById('qrcodeContainer');
             const topTimerBadge = document.getElementById('topGatepassTimerBadge');
@@ -701,8 +701,8 @@
 
             if (pass) {
                 if (activeCard) activeCard.classList.remove('hidden');
-                document.getElementById('passReason').innerText = `เหตุผล: ${pass.reason || '-'}`;
-                document.getElementById('passTimeRange').innerText = `เวลาอนุญาต: ${pass.exit_time} ถึง ${pass.return_time}`;
+                if (document.getElementById('passReason')) document.getElementById('passReason').innerText = `เหตุผล: ${pass.reason || '-'}`;
+                if (document.getElementById('passTimeRange')) document.getElementById('passTimeRange').innerText = `เวลาอนุญาต: ${pass.exit_time} ถึง ${pass.return_time}`;
 
                 const statusBadge = document.getElementById('passStatusBadge');
                 if (qrContainer) qrContainer.innerHTML = "";
@@ -783,7 +783,9 @@
                 return;
             }
 
-            const schedules = await getStudentScheduleWithTeachers(currentStudentClass, SELECTED_SCHEDULE_DAY);
+            const { data: schedules } = await db.from('course_assignments')
+                .select('*')
+                .eq('class_name', currentStudentClass);
 
             if (!schedules || schedules.length === 0) {
                 container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${currentStudentClass})</div>`;
@@ -791,25 +793,25 @@
                 return;
             }
 
-            container.innerHTML = schedules.map(s => {
-                const teacherAvatar = s.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            container.innerHTML = schedules.map((s, idx) => {
+                const teacherAvatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
                 return `
                     <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl hover:border-indigo-200 transition">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
                                 <span class="text-[9px] text-indigo-500 uppercase leading-none">คาบ</span>
-                                <span class="text-sm font-extrabold leading-tight">${s.period_no || s.period || 1}</span>
+                                <span class="text-sm font-extrabold leading-tight">${idx + 1}</span>
                             </div>
                             <div class="min-w-0">
-                                <h4 class="text-xs font-bold text-slate-800 truncate">${s.course_name || s.subject_name} <span class="text-slate-400 font-normal">(${s.course_code || s.subject_code || ''})</span></h4>
-                                <p class="text-[10px] text-slate-500 truncate"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.room_no || s.room || 'ไม่ระบุ'}</p>
+                                <h4 class="text-xs font-bold text-slate-800 truncate">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
+                                <p class="text-[10px] text-slate-500 truncate"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.class_name || 'ไม่ระบุ'}</p>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shadow-xs shrink-0">
-                            <img src="${teacherAvatar}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-6 h-6 rounded-md object-cover">
+                            <img src="${teacherAvatar}" class="w-6 h-6 rounded-md object-cover">
                             <div class="text-left hidden sm:block">
-                                <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_name || 'ผู้สอน'}</p>
+                                <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_id || 'ผู้สอน'}</p>
                                 <p class="text-[8px] text-slate-400">ผู้สอน</p>
                             </div>
                         </div>
@@ -837,12 +839,9 @@
             if (currentHour >= 10) currentPeriod = 3;
             if (currentHour >= 11) currentPeriod = 4;
             if (currentHour >= 12) currentPeriod = 5;
-            if (currentHour >= 13) currentPeriod = 6;
-            if (currentHour >= 14) currentPeriod = 7;
-            if (currentHour >= 15) currentPeriod = 8;
 
             if (widgetCurrentText) widgetCurrentText.innerText = `คาบปัจจุบัน: คาบ ${currentPeriod}`;
-            const nextClasses = schedules.filter(s => (s.period_no || s.period || 1) > currentPeriod).slice(0, 2);
+            const nextClasses = schedules.slice(currentPeriod, currentPeriod + 2);
 
             if (nextClasses.length === 0) {
                 widget.classList.add('hidden');
@@ -850,11 +849,11 @@
             }
 
             widget.classList.remove('hidden');
-            widgetBody.innerHTML = nextClasses.map(nc => `
+            widgetBody.innerHTML = nextClasses.map((nc, i) => `
                 <div class="flex items-center justify-between gap-2 text-[11px] bg-white/70 p-1.5 rounded-lg border border-slate-100">
-                    <span class="font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">คาบ ${nc.period_no || nc.period}</span>
-                    <span class="font-bold text-slate-800 truncate">${nc.course_code || nc.subject_code || ''} ${nc.course_name || nc.subject_name || ''}</span>
-                    <span class="text-[10px] text-rose-600 font-bold shrink-0"><i class="fa-solid fa-location-dot mr-0.5"></i>${nc.room_no || nc.room || '312'}</span>
+                    <span class="font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">คาบ ${currentPeriod + i + 1}</span>
+                    <span class="font-bold text-slate-800 truncate">${nc.course_code || nc.subject_name || ''}</span>
+                    <span class="text-[10px] text-rose-600 font-bold shrink-0"><i class="fa-solid fa-location-dot mr-0.5"></i>${nc.class_name || 'ห้องเรียน'}</span>
                 </div>
             `).join('');
         }
@@ -870,7 +869,10 @@
                 return;
             }
 
-            const advisors = await getClassAdvisors(className);
+            const { data: advisors } = await db.from('class_advisors')
+                .select('*')
+                .eq('class_name', className);
+
             if (!advisors || advisors.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษาประจำห้อง ${className}</p>`;
                 if (badge) badge.innerText = '0 คน';
@@ -880,13 +882,12 @@
             if (badge) badge.innerText = `${advisors.length} คน`;
             container.innerHTML = advisors.map(adv => `
                 <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-xs">
-                    <img src="${adv.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-12 h-12 rounded-xl object-cover ring-2 ring-white shrink-0">
+                    <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-12 h-12 rounded-xl object-cover ring-2 ring-white shrink-0">
                     <div class="overflow-hidden space-y-0.5 min-w-0">
                         <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${adv.advisor_type === 'main' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}">
-                            ${adv.advisor_type === 'main' ? 'ที่ปรึกษาหลัก' : 'ที่ปรึกษาสมทบ'}
+                            ${adv.advisor_type === 'main' ? 'ที่ปรึกษาหลัก' : 'ที่ปรึกษา'}
                         </span>
-                        <h4 class="text-xs font-bold text-slate-800 truncate mt-1">${adv.teacher_name}</h4>
-                        <p class="text-[10px] text-slate-500 truncate"><i class="fa-regular fa-envelope mr-1"></i>${adv.email || adv.teacher_id}</p>
+                        <h4 class="text-xs font-bold text-slate-800 truncate mt-1">รหัสครู: ${adv.teacher_id}</h4>
                     </div>
                 </div>
             `).join('');
@@ -896,14 +897,17 @@
             const container = document.getElementById('studentAcademicContainer');
             if (!container || !studentId) return;
 
-            const risks = await getStudentAcademicRisks(studentId);
+            const { data: risks } = await db.from('academic_attendance_summary')
+                .select('*')
+                .eq('student_id', studentId);
+
             if (!risks || risks.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">เวลาเรียนปกติทุกรายวิชา (ไม่พบความเสี่ยง มส.)</p>`;
                 return;
             }
 
             container.innerHTML = risks.map(item => {
-                const percent = item.attendance_percentage ?? 100;
+                const percent = item.attendance_percent ?? 100;
                 let badgeStyle = 'bg-emerald-100 text-emerald-800';
                 let barColor = 'bg-emerald-500';
                 let statusText = 'ปกติ';
@@ -922,7 +926,7 @@
                     <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
                         <div class="flex justify-between items-center gap-2">
                             <div>
-                                <span class="font-bold text-slate-800 text-xs block">${item.subject_name || item.course_code}</span>
+                                <span class="font-bold text-slate-800 text-xs block">${item.subject_name || item.subject_code}</span>
                                 <span class="text-[10px] text-slate-500">ขาดเรียน ${item.absent_count || 0} คาบ</span>
                             </div>
                             <span class="${badgeStyle} text-[10px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap">${statusText} (${percent}%)</span>
@@ -939,23 +943,27 @@
             const container = document.getElementById('behaviorHistoryList');
             if (!container || !studentId) return;
 
-            const logs = await getStudentBehaviorLogs(studentId);
+            const { data: logs } = await db.from('behavior_logs')
+                .select('*')
+                .eq('student_id', studentId)
+                .order('created_at', { ascending: false });
+
             if (!logs || logs.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">ไม่มีประวัติการหักคะแนนพฤติกรรม</p>`;
                 return;
             }
 
             container.innerHTML = logs.map(item => {
-                const isDeduction = (item.points || item.score_deducted || 0) < 0 || item.type === 'deduct';
-                const pts = Math.abs(item.points || item.score_deducted || 0);
+                const isDeduction = (item.points || item.score || 0) < 0 || item.type === 'deduct';
+                const pts = Math.abs(item.points || item.score || 0);
 
                 return `
                     <div class="p-3 ${isDeduction ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'} border rounded-xl text-xs flex justify-between items-center">
                         <div class="space-y-0.5 min-w-0">
                             <span class="font-bold text-xs ${isDeduction ? 'text-rose-900' : 'text-emerald-900'} block truncate">
-                                <i class="fa-solid ${isDeduction ? 'fa-minus-circle' : 'fa-plus-circle'} mr-1"></i>${item.action || item.reason || 'บันทึกพฤติกรรม'}
+                                <i class="fa-solid ${isDeduction ? 'fa-minus-circle' : 'fa-plus-circle'} mr-1"></i>${item.action || item.note || 'บันทึกพฤติกรรม'}
                             </span>
-                            <span class="text-[10px] text-slate-500">${new Date(item.created_at).toLocaleDateString('th-TH')}</span>
+                            <span class="text-[10px] text-slate-500">${item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : '-'}</span>
                         </div>
                         <span class="text-sm font-black ${isDeduction ? 'text-rose-600' : 'text-emerald-600'} shrink-0 ml-2">${isDeduction ? '-' : '+'}${pts}</span>
                     </div>
@@ -971,7 +979,10 @@
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
                 return;
             }
-            const list = await getStudentHomeworks(className);
+
+            const { data: list } = await db.from('academic_assignments')
+                .select('*')
+                .eq('class_room', className);
 
             if (!list || list.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
@@ -980,10 +991,10 @@
 
             container.innerHTML = list.map(h => `
                 <div class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-xs space-y-1">
-                    <span class="font-bold text-xs text-indigo-900 block">${h.title}</span>
+                    <span class="font-bold text-xs text-indigo-900 block">${h.task_title || 'การบ้าน'}</span>
                     <div class="flex justify-between text-[10px] text-slate-500">
-                        <span>วิชา: ${h.subject_code || '-'}</span>
-                        <span class="text-rose-600 font-bold">ส่ง: ${h.due_date || '-'}</span>
+                        <span>วิชา: ${h.subject_name || '-'}</span>
+                        <span class="text-rose-600 font-bold">กำหนดส่ง: ${h.due_date || '-'}</span>
                     </div>
                 </div>
             `).join('');
@@ -993,7 +1004,11 @@
             const container = document.getElementById('studentClinicList');
             if (!container || !studentId) return;
 
-            const list = await getStudentClinicRecords(studentId);
+            const { data: list } = await db.from('clinic_records')
+                .select('*')
+                .eq('student_id', studentId)
+                .order('created_at', { ascending: false });
+
             if (!list || list.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติห้องพยาบาล</p>`;
                 return;
@@ -1002,7 +1017,7 @@
             container.innerHTML = list.map(c => `
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-0.5">
                     <span class="font-bold text-xs text-slate-700 block">${c.symptom || 'ปฐมพยาบาล'}</span>
-                    <p class="text-[10px] text-slate-500">${c.created_at ? new Date(c.created_at).toLocaleDateString('th-TH') : '-'} &bull; รักษา: ${c.treatment || 'พักผ่อน'}</p>
+                    <p class="text-[10px] text-slate-500">${c.created_at ? new Date(c.created_at).toLocaleDateString('th-TH') : '-'} &bull; สถานะ: ${c.status || 'ปกติ'}</p>
                 </div>
             `).join('');
         }
@@ -1025,22 +1040,24 @@
                 }
             });
 
+            // ยื่นขอ Gatepass บันทึกลงตาราง gate_pass_logs จริง
             document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const selectVal = document.getElementById('requestReasonSelect').value;
-                const customVal = document.getElementById('customReasonInput').value;
-                const reasonText = selectVal === 'other' ? customVal : selectVal;
-                const studentName = document.getElementById('student-fullname').innerText;
+                try {
+                    const selectVal = document.getElementById('requestReasonSelect').value;
+                    const customVal = document.getElementById('customReasonInput').value;
+                    const reasonText = selectVal === 'other' ? customVal : selectVal;
 
-                const result = await submitGatepassRequest({
-                    studentId: CURRENT_STUDENT_ID,
-                    studentName: studentName,
-                    reason: reasonText,
-                    exitTime: document.getElementById('exitTimeInput').value,
-                    returnTime: document.getElementById('returnTimeInput').value
-                });
+                    const { error } = await db.from('gate_pass_logs').insert([{
+                        student_id: CURRENT_STUDENT_ID,
+                        reason: reasonText,
+                        exit_time: document.getElementById('exitTimeInput').value,
+                        return_time: document.getElementById('returnTimeInput').value,
+                        status: 'pending'
+                    }]);
 
-                if (result.success) {
+                    if (error) throw error;
+
                     alert('🎉 ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครองเรียบร้อยแล้ว!');
                     document.getElementById('gatepassForm').reset();
                     
@@ -1049,14 +1066,21 @@
                     }
 
                     await renderActiveGatepass();
-                } else {
-                    alert('เกิดข้อผิดพลาด: ' + result.message);
+                } catch (err) {
+                    console.error('Submit Gatepass Error:', err);
+                    alert('เกิดข้อผิดพลาดในการยื่นขออนุญาต: ' + err.message);
                 }
             });
 
-            document.getElementById('btnLogout')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                logout('../../login.html');
+            // ปุ่มออกจากระบบ (Logout)
+            document.querySelectorAll('#btnLogout, .btn-logout, [onclick*="logout"]').forEach(btn => {
+                btn.removeAttribute('onclick');
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                        logout('../../login.html');
+                    }
+                });
             });
         }
     </script>
