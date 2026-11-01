@@ -142,7 +142,7 @@
             }
         };
 
-        // 2. ฟอร์มล็อกอิน ครู / นักเรียน
+// ฟอร์มล็อกอิน ครู / นักเรียน
         window.handleAccountLogin = async function(event) {
             event.preventDefault();
             const inputVal = document.getElementById('account-email').value.trim();
@@ -159,14 +159,12 @@
             try {
                 const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
                 let rawId = inputVal.split('@')[0].toUpperCase();
-                
-                // Normalize รหัสครู T11 / t11 -> T011 ให้ตรงกับฐานข้อมูล
                 let cleanId = rawId === 'T11' ? 'T011' : rawId;
 
                 localStorage.clear();
                 sessionStorage.clear();
 
-                // 1. ค้นหาในตาราง users ก่อน (ครู / แอดมิน)
+                // 1. ค้นหาในตาราง users (ครู/แอดมิน)
                 const { data: userData } = await db.from('users')
                     .select('teacher_id, user_id, full_name, role, avatar_url')
                     .or(`email.eq.${fullEmail},teacher_id.eq.${cleanId},teacher_id.eq.T011`)
@@ -186,7 +184,7 @@
                     localStorage.setItem('user_logged_in', 'true');
 
                     alert(`ยินดีต้อนรับคุณครู ${fullName}`);
-                    window.location.replace('landing.html');
+                    window.location.replace('apps/school-app/teacher.html');
                     return;
                 }
 
@@ -206,34 +204,30 @@
                     localStorage.setItem('student_id', studentId);
                     localStorage.setItem('user_email', fullEmail);
                     localStorage.setItem('user_name', fullName);
-                    localStorage.setItem('classroom', studentData.classroom || '');
                     localStorage.setItem('user_logged_in', 'true');
 
                     alert(`ยินดีต้อนรับนักเรียน ${fullName || studentId}`);
-                    window.location.replace('landing.html');
+                    window.location.replace('apps/student-app/student.html');
                     return;
                 }
 
-                // กรณี Fallback หากหาไม่พบใน DB
+                // Fallback กรณีไม่พบในฐานข้อมูล
                 const isStudent = /^\d+$/.test(cleanId);
                 if (isStudent) {
                     localStorage.setItem('user_role', 'student');
                     localStorage.setItem('role', 'student');
                     localStorage.setItem('user_id', cleanId);
                     localStorage.setItem('student_id', cleanId);
-                    localStorage.setItem('user_email', fullEmail);
                     localStorage.setItem('user_logged_in', 'true');
-                    alert(`ยินดีต้อนรับนักเรียน ${cleanId}`);
+                    window.location.replace('apps/student-app/student.html');
                 } else {
                     localStorage.setItem('user_role', 'teacher');
                     localStorage.setItem('role', 'teacher');
                     localStorage.setItem('user_id', cleanId);
                     localStorage.setItem('teacher_id', cleanId);
-                    localStorage.setItem('user_email', fullEmail);
                     localStorage.setItem('user_logged_in', 'true');
-                    alert(`ยินดีต้อนรับคุณครู ${cleanId}`);
+                    window.location.replace('apps/school-app/teacher.html');
                 }
-                window.location.replace('landing.html');
 
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการล็อกอิน: ' + err.message);
