@@ -305,25 +305,32 @@
     <!-- Complete Pure Zero-Mock Script Logic -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
-    import { requireAuth, logout } from '../../core/auth-manager.js';
+        import { requireAuth, logout } from '../../core/auth-manager.js';
 
-    let CURRENT_TEACHER_USER = null;
+        let CURRENT_TEACHER_USER = null;
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        // 🔒 เช็กสิทธิ์ครูผู้ใช้จริง (รองรับ teacher, executive, admin, superadmin)
-        CURRENT_TEACHER_USER = requireAuth(['teacher', 'staff', 'executive', 'admin', 'superadmin'], '../../login.html');
-        if (!CURRENT_TEACHER_USER) return;
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 🔒 1. เช็กสิทธิ์ครูผู้ใช้จริง (รองรับ teacher, executive, admin, superadmin)
+            CURRENT_TEACHER_USER = requireAuth(['teacher', 'staff', 'executive', 'admin', 'superadmin'], '../../login.html');
+            if (!CURRENT_TEACHER_USER) return;
 
-        // แสดงโปรไฟล์
-        loadTeacherProfile(CURRENT_TEACHER_USER);
-        
-        // ดึงวิชาสอนจริงจาก DB
-        await loadRealSubjectSchedules(CURRENT_TEACHER_USER.teacherId || CURRENT_TEACHER_USER.userId);
+            // 👤 2. แสดงผลโปรไฟล์ครู
+            loadTeacherProfile(CURRENT_TEACHER_USER);
+            
+            // 📚 3. ดึงวิชาสอนจริงจาก DB (ตาราง schedules)
+            await loadRealSubjectSchedules(CURRENT_TEACHER_USER.teacherId || CURRENT_TEACHER_USER.userId);
 
-        document.getElementById('btnLogout')?.addEventListener('click', () => {
-            logout('../../login.html');
+            // 🚪 4. ผูกปุ่ม Logout
+            document.querySelectorAll('#btnLogout, .btn-logout, [onclick*="logout"]').forEach(btn => {
+                btn.removeAttribute('onclick');
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                        logout('../../login.html');
+                    }
+                });
+            });
         });
-    });
 
         function loadTeacherProfile(user) {
             const nameEl = document.getElementById('headerTeacherName');
@@ -332,7 +339,11 @@
 
             if (nameEl) nameEl.innerText = user.name || 'ครูผู้สอน';
             if (codeEl) codeEl.innerText = `รหัส: ${user.teacherId || user.userId || '-'}`;
-            if (avatarImg) avatarImg.src = user.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            if (avatarImg) {
+                avatarImg.src = user.avatar && user.avatar !== '' 
+                    ? user.avatar 
+                    : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            }
         }
 
         // ----------------------------------------------------
@@ -467,9 +478,9 @@
                 const resStudents = await db.from('students').select('*').eq('classroom', className).order('student_no', { ascending: true });
                 const students = resStudents.data || [];
 
-                const resNurse = await db.from('nurse_records').select('*');
-                const resAffairs = await db.from('out_school_permits').select('*');
-                const resLeave = await db.from('leave_requests').select('*');
+                const resNurse = await db.from('clinic_records').select('*');
+                const resAffairs = await db.from('gate_pass_logs').select('*');
+                const resLeave = await db.from('attendance_logs').select('*');
                 const resAbsent = await db.from('attendance_logs').select('student_id, status');
 
                 if (students.length === 0) {
