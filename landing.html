@@ -302,28 +302,68 @@
     
     <!-- 🔒 Unified Auth & Landing Portal Script -->
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            startClock();
-        
-            const session = await AuthService.checkSession();
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. เริ่มระบบนาฬิกาหน้าเว็บ
+        if (typeof startClock === 'function') startClock();
+    
+        const client = window.supabase || window.db;
+        if (!client) {
+            console.error('Supabase Client Not Initialized');
+            window.location.replace('login.html');
+            return;
+        }
+    
+        // 2. ตรวจสอบการรับค่า Token จาก Google SSO (ป้องกันการโดนเตะออกทันที)
+        let session = null;
+        try {
+            // ให้เวลา Supabase อ่าน Access Token จาก URL Hash เล็กน้อย
+            const { data } = await client.auth.getSession();
+            session = data?.session;
+    
+            // หากยังไม่ได้ Session ให้ลองฟัง Event จาก Auth State Change
             if (!session) {
-                window.location.replace('login.html');
-                return;
+                session = await new Promise((resolve) => {
+                    const { data: authListener } = client.auth.onAuthStateChange((event, s) => {
+                        if (s) {
+                            authListener?.subscription?.unsubscribe();
+                            resolve(s);
+                        }
+                    });
+                    // หน่วงเวลาไม่เกิน 1.5 วินาที
+                    setTimeout(() => resolve(null), 1500);
+                });
             }
-        
-            // ส่ง session.user ทั้งก้อน เพื่อให้ดึงได้ทั้ง ID และ Email
-            const profile = await AuthService.getUserProfile(session.user);
-            const userRole = (profile?.role || 'student').toLowerCase().trim();
-        
+        } catch (err) {
+            console.error('Session Resolution Error:', err);
+        }
+    
+        // 3. ถ้าไม่มี Session จริงๆ ค่อยส่งกลับไปหน้า login.html
+        if (!session) {
+            console.warn('🔒 Unauthorized access. Redirecting to login.html');
+            window.location.replace('login.html');
+            return;
+        }
+    
+        // 4. หากมี Session ล็อกอินสำเร็จแล้ว ดึงข้อมูล Profile และแสดงผล Badge/หน้าจอ
+        console.log('✅ Logged in successfully as:', session.user.email);
+        const profile = await AuthService.getUserProfile(session.user);
+        const userRole = (profile?.role || 'student').toLowerCase().trim();
+    
+        if (typeof renderLandingProfile === 'function') {
             renderLandingProfile(session.user, profile, userRole);
-        
-            if (userRole === 'admin' || userRole === 'superadmin') {
-                const btnAdmin = document.getElementById('btnAdminSideTrigger');
-                if (btnAdmin) btnAdmin.classList.remove('hidden');
-            }
-        
+        }
+    
+        // แสดงปุ่ม Admin Side Panel สำหรับ Super Admin / Executive
+        if (userRole === 'admin' || userRole === 'superadmin') {
+            const btnAdmin = document.getElementById('btnAdminSideTrigger');
+            if (btnAdmin) btnAdmin.classList.remove('hidden');
+        }
+    
+        // โหลดข้อมูลสถิติ
+        if (typeof loadLandingRealStats === 'function') {
             await loadLandingRealStats();
-        });
+        }
+    });
     
             function renderLandingProfile(authUser, profile, userRole) {
                 const nameEl = document.getElementById('userDisplayName');
