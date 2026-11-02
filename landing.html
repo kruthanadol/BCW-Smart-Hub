@@ -540,34 +540,38 @@
         };
 
         // 2. ดึง Session และ binding รูปโปรไฟล์ + ชื่อผู้ใช้จาก Google SSO
-        document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', async () => {
             if (typeof startClock === 'function') startClock();
-            initSwipeGestures();
+            if (typeof initSwipeGestures === 'function') initSwipeGestures();
         
             const client = window.supabase || window.db;
             if (!client) return;
         
             let session = null;
             try {
+                // ดึง Session ปัจจุบัน
                 const { data } = await client.auth.getSession();
                 session = data?.session;
-            } catch (e) {}
-
-            if (!session) {
-                session = await new Promise((resolve) => {
-                    const { data: authListener } = client.auth.onAuthStateChange((event, s) => {
-                        if (s) {
-                            authListener?.subscription?.unsubscribe();
-                            resolve(s);
-                        }
-                    });
-                    setTimeout(() => resolve(null), 2000);
-                });
+            } catch (e) {
+                console.warn('Session Error:', e);
             }
-        
+
+            // หากมี Hash `#access_token=...` ค้างใน URL ให้ลบออกจาก Address Bar เพื่อไม่ให้เกิด Stale Warning
+            if (window.location.hash && window.location.hash.includes('access_token')) {
+                window.history.replaceState(null, null, window.location.pathname);
+            }
+
+            // ถ้ามี Session สมบูรณ์ ให้ดึง Profile
             if (session && session.user) {
-                console.log('✅ พบ Session ผู้ใช้งาน:', session.user.email);
-                
+                console.log('✅ พบ Session ล่าสุด:', session.user.email);
+                localStorage.setItem('user_email', session.user.email);
+                if (session.user.user_metadata?.full_name) {
+                    localStorage.setItem('user_name', session.user.user_metadata.full_name);
+                }
+                if (session.user.user_metadata?.avatar_url) {
+                    localStorage.setItem('user_avatar', session.user.user_metadata.avatar_url);
+                }
+
                 let profile = null;
                 if (window.AuthService && typeof AuthService.getUserProfile === 'function') {
                     profile = await AuthService.getUserProfile(session.user);
@@ -577,10 +581,12 @@
                 renderLandingProfile(session.user, profile, userRole);
                 await loadLandingRealStats();
             } else {
-                // กรณีไม่มี Session จริง ให้แสดงผลจาก Google Metadata หรือ Fallback
-                const fallbackRole = localStorage.getItem('user_role') || 'TEACHER';
+                // กรณี Token หมดอายุ (401) หรือกดรีเฟรช ให้ดึงจาก Storage ที่บันทึกไว้
+                const fallbackRole = localStorage.getItem('user_role') || 'teacher';
                 const fallbackName = localStorage.getItem('user_name') || localStorage.getItem('user_email') || 'ครูประจำวิชา';
-                renderLandingProfile(null, { display_name: fallbackName, role: fallbackRole }, fallbackRole);
+                const fallbackAvatar = localStorage.getItem('user_avatar') || '';
+                
+                renderLandingProfile(null, { display_name: fallbackName, avatar_url: fallbackAvatar, role: fallbackRole }, fallbackRole);
             }
         });
             
@@ -605,8 +611,8 @@
                 }
             }
 
-            const avatarUrl = authUser?.user_metadata?.avatar_url || profile?.avatar_url;
-            if (avatarUrl) {
+            const avatarUrl = authUser?.user_metadata?.avatar_url || profile?.avatar_url || localStorage.getItem('user_avatar');
+            if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
                 if (avatarImg) {
                     avatarImg.src = avatarUrl;
                     avatarImg.classList.remove('hidden');
