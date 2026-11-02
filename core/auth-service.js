@@ -1,4 +1,5 @@
 // core/auth-service.js
+// core/auth-service.js
 (function() {
     const AuthService = {
         // 1. Google SSO Login
@@ -9,15 +10,21 @@
                     throw new Error('ยังไม่ได้เชื่อมต่อ Supabase SDK');
                 }
 
+                // สร้าง Target URL สำหรับกลับมาที่ landing.html
                 const currentOrigin = window.location.origin;
                 const pathname = window.location.pathname;
                 const basePath = pathname.substring(0, pathname.lastIndexOf('/'));
                 const targetUrl = `${currentOrigin}${basePath}/landing.html`;
 
+                console.log('🔗 Redirecting to:', targetUrl);
+
                 const { data, error } = await client.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                        redirectTo: targetUrl
+                        redirectTo: targetUrl,
+                        queryParams: {
+                            prompt: 'select_account' // บังคับให้เลือกบัญชีทุกครั้ง
+                        }
                     }
                 });
                 if (error) throw error;
@@ -26,6 +33,83 @@
                 alert('เกิดข้อผิดพลาดในการเชื่อมต่อ Google: ' + err.message);
             }
         },
+
+        // 2. LINE Login
+        async loginWithLine(liffId) {
+            alert('ระบบ LINE Login กำลังเตรียมความพร้อม');
+        },
+
+        // 3. Check Session (ปิด Domain Gatekeeper ชั่วคราวเพื่อทดสอบ)
+        async checkSession() {
+            try {
+                const client = window.supabase || window.db;
+                if (!client || !client.auth) return null;
+
+                const { data: { session }, error } = await client.auth.getSession();
+                
+                if (error) {
+                    console.error('Session Error:', error.message);
+                    return null;
+                }
+
+                if (!session) {
+                    console.warn('ไม่พบ Session ปัจจุบัน');
+                    return null;
+                }
+
+                console.log('✅ พบ Session ผู้ใช้:', session.user.email);
+                return session;
+            } catch (err) {
+                console.error('Check Session Error:', err);
+                return null;
+            }
+        },
+
+        // 4. Get Profile
+        async getUserProfile(user) {
+            try {
+                const client = window.supabase || window.db;
+                if (!client) return { role: 'student' };
+
+                const userId = typeof user === 'object' ? user.id : user;
+                const userEmail = typeof user === 'object' ? (user.email || '') : user;
+
+                // ตรวจสอบ hardcoded admin หลัก
+                if (userEmail === 'kruthanadol@buached.ac.th') {
+                    return { role: 'admin', display_name: 'ครูธนดล คำเสนอ' };
+                }
+
+                let { data } = await client
+                    .from('auth_identities')
+                    .select('*')
+                    .or(`internal_user_id.eq.${userId},provider_user_id.eq.${userEmail}`)
+                    .maybeSingle();
+
+                if (data && data.role) return data;
+
+                return { role: 'teacher', display_name: userEmail.split('@')[0] };
+            } catch (err) {
+                console.error('Get Profile Error:', err.message);
+                return { role: 'teacher' };
+            }
+        },
+
+        // 5. Logout
+        async logout() {
+            try {
+                const client = window.supabase || window.db;
+                if (client && client.auth) {
+                    await client.auth.signOut();
+                }
+            } catch (e) {}
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace('login.html');
+        }
+    };
+
+    window.AuthService = AuthService;
+})();
 
         // 2. LINE Login
         async loginWithLine(liffId) {
