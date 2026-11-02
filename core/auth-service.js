@@ -8,20 +8,36 @@ const AuthService = {
     /**
      * 1. เข้าสู่ระบบด้วย Google SSO (สำหรับครู/นักเรียน)
      */
-    async loginWithGoogle() {
-        try {
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}/apps/landing-app/landing.html`
-                }
-            });
-            if (error) throw error;
-        } catch (err) {
-            console.error('Google Login Error:', err.message);
-            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ Google: ' + err.message);
+// ในไฟล์ core/auth-service.js
+async loginWithGoogle() {
+    try {
+        const client = window.supabase || window.db;
+        if (!client || !client.auth) {
+            throw new Error('ยังไม่ได้เชื่อมต่อ Supabase SDK');
         }
-    },
+
+        // ดึง Base URL ของเว็บไซต์ปัจจุบันอัตโนมัติ (รองรับทั้ง localhost และ GitHub Pages)
+        const currentOrigin = window.location.origin;
+        const pathname = window.location.pathname;
+        
+        // ตัดชื่อไฟล์ /login.html ออกเพื่อให้ได้ Path โฟลเดอร์หลัก
+        const basePath = pathname.substring(0, pathname.lastIndexOf('/'));
+        
+        // กำหนดปลายทางเป็น landing.html ในโฟลเดอร์เดียวกัน
+        const targetUrl = `${currentOrigin}${basePath}/landing.html`;
+
+        const { data, error } = await client.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: targetUrl
+            }
+        });
+        if (error) throw error;
+    } catch (err) {
+        console.error('Google Login Error:', err.message);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ Google: ' + err.message);
+    }
+}
 
     /**
      * 2. เข้าสู่ระบบด้วย LINE Login / LIFF (สำหรับผู้ปกครอง/มือถือ)
