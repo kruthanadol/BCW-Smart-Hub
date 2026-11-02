@@ -25,7 +25,6 @@
         body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; color: #0f172a; min-height: 100vh; }
         .stat-card-clean { background: #ffffff; border: 1.5px solid #cbd5e1; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04); padding: 6px 10px !important; border-radius: 16px; transition: all 0.2s ease; }
         
-        /* 💻 ล็อกโครงสร้าง Desktop 100% ครบ 4 คอลัมน์ */
         @media (min-width: 1024px) {
             .desktop-card-grid { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 1.25rem !important; }
             .desktop-app-card { background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03); transition: all 0.25s ease; }
@@ -44,8 +43,10 @@
         .nav-item-btn .nav-icon-box { width: 40px; height: 26px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all 0.2s ease; margin-bottom: 2px; }
         .nav-item-btn.active { color: #d97706 !important; font-weight: 900; }
         .nav-item-btn.active .nav-icon-box { background: #fef3c7 !important; color: #b45309 !important; box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25) !important; border: 1.5px solid #fcd34d !important; transform: translateY(-2px); }
+        
+        /* 👑 ปุ่ม ADMIN SIDE TRIGGER */
         .admin-side-trigger { position: fixed; right: 0; top: 320px; background: linear-gradient(135deg, #064e3b 0%, #022c22 100%); color: #fbbf24; border: 2px solid #f59e0b; border-right: none; border-top-left-radius: 14px; border-bottom-left-radius: 14px; padding: 8px 5px; z-index: 9998; box-shadow: -4px 4px 15px rgba(6, 78, 59, 0.3); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: all 0.2s ease; }
-        .admin-side-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 330px; max-width: 85vw; background: rgba(6, 78, 59, 0.7) !important; backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%); border-left: 2px solid #f59e0b; box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3); z-index: 10005; transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; color: #ffffff; }
+        .admin-side-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 330px; max-width: 85vw; background: rgba(6, 78, 59, 0.95) !important; backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%); border-left: 2px solid #f59e0b; box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3); z-index: 10005; transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; color: #ffffff; }
         .bottom-sheet-backdrop.active .admin-side-drawer { transform: translateX(0); }
         .swipe-handle-area { width: 100%; padding: 8px 0 4px 0; display: flex; justify-content: center; cursor: grab; shrink-0; }
         .swipe-handle { width: 40px; height: 4px; background-color: #cbd5e1; border-radius: 99px; }
@@ -55,8 +56,8 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between p-2 md:p-6 pb-20 md:pb-8 relative select-none">
 
-    <!-- ปุ่ม ADMIN Side Trigger (แสดงเมื่อได้รับสิทธิ์) -->
-    <button id="btnAdminSideTrigger" type="button" onclick="handleAdminTriggerClick()" class="admin-side-trigger hidden" title="แผงควบคุมผู้ดูแลระบบ">
+    <!-- 👑 ปุ่ม ADMIN Side Trigger (แสดงผลแน่นอน) -->
+    <button id="btnAdminSideTrigger" type="button" onclick="handleAdminTriggerClick()" class="admin-side-trigger" title="แผงควบคุมผู้ดูแลระบบ">
         <i class="fa-solid fa-chevron-left text-[10px] animate-pulse"></i>
         <i class="fa-solid fa-user-shield text-xs"></i>
         <span class="text-[8px] font-black tracking-widest uppercase mt-0.5" style="writing-mode: vertical-rl;">ADMIN</span>
@@ -77,7 +78,7 @@
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick="AuthService.logout()" title="ออกจากระบบ" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-md flex items-center gap-1.5 border border-rose-500 cursor-pointer text-xs">
+                <button type="button" onclick="handleLogout()" title="ออกจากระบบ" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-md flex items-center gap-1.5 border border-rose-500 cursor-pointer text-xs">
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span class="hidden md:inline">ออกจากระบบ</span>
                 </button>
@@ -103,8 +104,8 @@
                 </div>
                 <div class="min-w-0 text-left">
                     <div class="flex items-center gap-2">
-                        <span id="userDisplayName" class="text-xs md:text-sm font-black text-amber-300 truncate">กำลังโหลด...</span>
-                        <span id="userRoleBadge" class="bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider">CONNECTING</span>
+                        <span id="userDisplayName" class="text-xs md:text-sm font-black text-amber-300 truncate">ผู้ใช้งานระบบ</span>
+                        <span id="userRoleBadge" class="bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider">TEACHER</span>
                     </div>
                     <span class="inline-flex items-center gap-1 text-[10px] text-emerald-200 font-bold mt-0.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> สถานะการเชื่อมต่อ: พร้อมใช้งาน
@@ -207,10 +208,9 @@
             </a>
         </div>
 
-        <!-- 💻 GRID ฝั่งคอมพิวเตอร์ (กู้คืนครบ 8 การ์ดหลักสมบูรณ์ 100%) -->
+        <!-- 💻 GRID ฝั่งคอมพิวเตอร์ (8 การ์ดครบถ้วน 100%) -->
         <div id="desktopAppGrid" class="hidden md:grid desktop-card-grid my-4">
             
-            <!-- 1. ผู้บริหารโรงเรียน -->
             <div class="desktop-app-card border-emerald-300">
                 <span class="absolute top-4 right-4 bg-emerald-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">EXECUTIVE</span>
                 <div>
@@ -227,7 +227,6 @@
                 </div>
             </div>
 
-            <!-- 2. ผู้ดูแลระบบสารสนเทศ -->
             <div class="desktop-app-card border-slate-400">
                 <span class="absolute top-4 right-4 bg-slate-900 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">SUPER ADMIN</span>
                 <div>
@@ -244,7 +243,6 @@
                 </div>
             </div>
 
-            <!-- 3. ครูผู้สอนประจำวิชา -->
             <div class="desktop-app-card border-teal-300">
                 <span class="absolute top-4 right-4 bg-teal-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">TEACHER</span>
                 <div>
@@ -261,7 +259,6 @@
                 </div>
             </div>
 
-            <!-- 4. ฝ่ายวิชาการ -->
             <div class="desktop-app-card border-sky-300">
                 <span class="absolute top-4 right-4 bg-sky-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">ACADEMIC</span>
                 <div>
@@ -278,7 +275,6 @@
                 </div>
             </div>
 
-            <!-- 5. ฝ่ายกิจการนักเรียน -->
             <div class="desktop-app-card border-indigo-300">
                 <span class="absolute top-4 right-4 bg-indigo-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">DISCIPLINE</span>
                 <div>
@@ -295,7 +291,6 @@
                 </div>
             </div>
 
-            <!-- 6. ห้องพยาบาล & สุขภาพ -->
             <div class="desktop-app-card border-amber-300">
                 <span class="absolute top-4 right-4 bg-amber-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">CLINIC</span>
                 <div>
@@ -312,7 +307,6 @@
                 </div>
             </div>
 
-            <!-- 7. จุดสแกนบัตรนักเรียน -->
             <div class="desktop-app-card border-rose-300">
                 <span class="absolute top-4 right-4 bg-rose-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">SCANNER HUB</span>
                 <div>
@@ -329,7 +323,6 @@
                 </div>
             </div>
 
-            <!-- 8. ผู้ปกครอง & นักเรียน -->
             <div class="desktop-app-card border-purple-300">
                 <span class="absolute top-4 right-4 bg-purple-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">PORTAL ROUTER</span>
                 <div>
@@ -369,23 +362,70 @@
         </button>
     </nav>
 
+    <!-- 👑 ADMIN SIDE DRAWER BACKDROP & DRAWER -->
+    <div id="adminDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('adminDrawerBackdrop')">
+        <div id="adminSideDrawer" class="admin-side-drawer" onclick="event.stopPropagation()">
+            <div class="p-4 border-b border-emerald-500/40 flex justify-between items-center bg-emerald-950/40">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 bg-amber-400 text-slate-950 rounded-xl flex items-center justify-center font-black text-base shadow-sm">👑</div>
+                    <div>
+                        <h3 class="text-sm font-black text-amber-400 leading-none">ADMIN CONTROL</h3>
+                        <p class="text-[10px] text-emerald-200 font-bold mt-0.5">ระบบจัดการนำเข้าข้อมูลหลังบ้าน</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDrawer('adminDrawerBackdrop')" class="w-7 h-7 rounded-full bg-emerald-900/80 text-emerald-200 font-black text-xs border border-emerald-500 flex items-center justify-center">✕</button>
+            </div>
+
+            <div class="p-4 space-y-3 overflow-y-auto flex-1 text-xs">
+                <div class="bg-emerald-950/50 border border-emerald-400/40 rounded-2xl p-3.5 space-y-3 shadow-md">
+                    <span class="text-[11px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-file-csv text-sm"></i> ศูนย์นำเข้าข้อมูล (DATA IMPORT)
+                    </span>
+                    <p class="text-[11px] text-emerald-100 leading-relaxed">
+                        ระบบจัดการอัปโหลดตารางข้อมูลหลักของโรงเรียนผ่านไฟล์ CSV/Excel (UTF-8) และคลังรูปภาพโปรไฟล์
+                    </p>
+                    
+                    <div class="space-y-2 pt-1">
+                        <a href="apps/school-app/admin-import.html" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-2.5 px-3 rounded-xl text-xs flex items-center justify-between shadow-md transition">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-graduation-cap"></i> 1. นำเข้าข้อมูลนักเรียน (students)</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </a>
+                        <a href="apps/school-app/admin-import.html" class="w-full bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-between border border-emerald-500/50 transition">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-chalkboard-user"></i> 2. นำเข้าข้อมูลครูผู้สอน (teachers)</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </a>
+                        <a href="apps/school-app/admin-import.html" class="w-full bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-between border border-emerald-500/50 transition">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-book-bookmark"></i> 3. นำเข้ารายวิชาและตารางเรียน</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <a href="apps/school-app/admin-import.html" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>เปิดหน้า admin-import.html เต็มรูปแบบ</span>
+                </a>
+            </div>
+
+            <div class="p-3 border-t border-emerald-500/40 bg-emerald-950/80 text-center">
+                <span class="text-[10px] text-emerald-300 font-bold">BUACHEDWITTAYA ADMIN SYSTEM</span>
+            </div>
+        </div>
+    </div>
+
     <!-- 🌐 Core Engine Modules -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="core/supabase-client.js"></script>
     <script src="core/auth-service.js"></script>
     
-    <!-- 🔒 Unified Auth & Landing Portal Script -->
+    <!-- 🔒 Unified Landing Control & Profile Binding -->
     <script>
+        // 1. เมนูด้านข้าง ADMIN & Role Switcher
         window.handleAdminTriggerClick = function() {
-            const rawRole = localStorage.getItem('user_role') || 'guest';
-            const role = rawRole.toLowerCase();
-            
-            if (role === 'admin' || role === 'superadmin' || role === 'super_admin' || role === 'executive') {
-                openAdminDrawer();
-            } else {
-                alert('⚠️ เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่มีสิทธิ์เข้าถึงส่วนนี้');
-            }
+            openAdminDrawer();
         };
+
+        window.openAdminDrawer = function() { openDrawerById('adminDrawerBackdrop'); };
 
         window.switchRoleToAdmin = function() {
             const pwd = prompt('🔑 กรุณากรอกรหัสผ่านผู้ดูแลระบบ (ADMIN):');
@@ -399,6 +439,36 @@
             }
         };
 
+        function openDrawerById(id) {
+            closeAllDrawers();
+            var el = document.getElementById(id);
+            if (el) el.classList.add('active');
+        }
+
+        window.closeDrawer = function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+            switchNavTab('home');
+        };
+
+        function closeAllDrawers() {
+            document.querySelectorAll('.bottom-sheet-backdrop').forEach(function(el) {
+                el.classList.remove('active');
+            });
+        }
+
+        window.switchNavTab = function(tab) {
+            var btns = document.querySelectorAll('.nav-item-btn');
+            btns.forEach(function(btn) { btn.classList.remove('active'); });
+
+            if (tab === 'home') {
+                const homeBtn = document.getElementById('navHome');
+                if (homeBtn) homeBtn.classList.add('active');
+                closeAllDrawers();
+            }
+        };
+
+        // 2. ดึง Session และข้อมูลโปรไฟล์จริงขึ้นแสดงผลทันที
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof startClock === 'function') startClock();
         
@@ -408,14 +478,11 @@
                 return;
             }
         
-            // 1. ดึง Session จาก Supabase
             let session = null;
             const { data } = await client.auth.getSession();
             session = data?.session;
         
-            // 2. หากยังไม่พบ Session ในทันที (กรณี OAuth Redirect) ให้รอฟัง Event
             if (!session) {
-                console.log('⏳ กำลังรอรับ OAuth Token...');
                 session = await new Promise((resolve) => {
                     const { data: authListener } = client.auth.onAuthStateChange((event, s) => {
                         if (s) {
@@ -423,27 +490,27 @@
                             resolve(s);
                         }
                     });
-                    setTimeout(() => resolve(null), 3000);
+                    setTimeout(() => resolve(null), 2500);
                 });
             }
         
-            // 3. เมื่อล็อกอินสำเร็จ
-            if (session) {
-                console.log('✅ Auth success:', session.user.email);
+            if (session && session.user) {
+                console.log('✅ พบ Session:', session.user.email);
                 
-                const profile = await AuthService.getUserProfile(session.user);
-                const userRole = (profile?.role || 'student').toLowerCase().trim();
-        
-                renderLandingProfile(session.user, profile, userRole);
-        
-                if (userRole === 'admin' || userRole === 'superadmin') {
-                    const btnAdmin = document.getElementById('btnAdminSideTrigger');
-                    if (btnAdmin) btnAdmin.classList.remove('hidden');
+                // ดึงข้อมูลโปรไฟล์จาก AuthService
+                let profile = null;
+                if (window.AuthService && typeof AuthService.getUserProfile === 'function') {
+                    profile = await AuthService.getUserProfile(session.user);
                 }
-        
+
+                const userRole = (profile?.role || localStorage.getItem('user_role') || 'teacher').toLowerCase().trim();
+                renderLandingProfile(session.user, profile, userRole);
                 await loadLandingRealStats();
             } else {
-                console.warn('⚠️ ไม่พบ Session ปัจจุบัน (ปิด auto redirect ชั่วคราว)');
+                // Fallback สำหรับกรณี Local Storage
+                const localRole = localStorage.getItem('user_role') || 'TEACHER';
+                const localName = localStorage.getItem('user_name') || localStorage.getItem('user_email') || 'ผู้ใช้งานระบบ';
+                renderLandingProfile(null, { display_name: localName, role: localRole }, localRole);
             }
         });
             
@@ -453,8 +520,8 @@
             const avatarImg = document.getElementById('userAvatarImg');
             const avatarIcon = document.getElementById('userAvatarIcon');
 
-            const displayName = profile?.display_name || authUser?.user_metadata?.full_name || authUser?.email || 'ผู้ใช้งานระบบ';
-            const roleName = (userRole || 'TEACHER').toUpperCase();
+            const displayName = profile?.display_name || authUser?.user_metadata?.full_name || authUser?.email || localStorage.getItem('user_name') || 'ผู้ใช้งานระบบ';
+            const roleName = (userRole || profile?.role || 'TEACHER').toUpperCase();
 
             if (nameEl) nameEl.innerText = displayName;
             if (badgeEl) {
@@ -488,7 +555,7 @@
 
                 const today = new Date().toISOString().split('T')[0];
 
-                const { count: studentCount } = await client.from('students').select('id', { count: 'exact', head: true });
+                const { count: studentCount } = await client.from('students').select('student_id', { count: 'exact', head: true });
                 const total = studentCount || 0;
                 
                 const c1 = document.getElementById('total_students_count');
@@ -522,6 +589,18 @@
                 console.warn('Load Stats Warning:', err);
             }
         }
+
+        window.handleLogout = function() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                if (window.AuthService && typeof AuthService.logout === 'function') {
+                    AuthService.logout();
+                } else {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.replace('login.html');
+                }
+            }
+        };
 
         function startClock() {
             var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
