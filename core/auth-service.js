@@ -59,7 +59,7 @@ const AuthService = {
         }
     },
 
-    // 4. Fetch User Profile & Role (ค้นหาแบบหลายตารางครอบคลุมทุกบทบาท)
+    // 4. Fetch User Profile & Role (ค้นหาครอบคลุมทุกตาราง)
     async getUserProfile(user) {
         try {
             const client = window.supabase || window.db;
@@ -125,7 +125,7 @@ const AuthService = {
         }
     },
 
-    // 5. Routing ทุกบทบาทไปที่ landing.html
+    // 5. Unified Routing -> ส่งทุก Role ไปที่ landing.html
     async handleRoleRouting(session) {
         if (!session) {
             if (!window.location.pathname.endsWith('login.html')) {
