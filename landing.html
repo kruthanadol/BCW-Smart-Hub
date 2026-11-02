@@ -304,53 +304,48 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             startClock();
-
-            // 1. ตรวจสอบ Active Session
+        
             const session = await AuthService.checkSession();
-            
             if (!session) {
                 window.location.replace('login.html');
                 return;
             }
-
-            // 2. ดึงข้อมูล Profile & Role จาก auth_identities
-            const profile = await AuthService.getUserProfile(session.user.id);
-            const userRole = (profile?.role || session.user.user_metadata?.role || 'student').toLowerCase().trim();
-
-            // 3. แสดงผล Profile และบทบาทผู้ใช้งาน (รวมศูนย์ทุก Role อยู่หน้านี้ทั้งหมด)
+        
+            // ส่ง session.user ทั้งก้อน เพื่อให้ดึงได้ทั้ง ID และ Email
+            const profile = await AuthService.getUserProfile(session.user);
+            const userRole = (profile?.role || 'student').toLowerCase().trim();
+        
             renderLandingProfile(session.user, profile, userRole);
-
-            // 4. ควบคุมความปลอดภัยและการแสดงผล UI ตามสิทธิ์ (Role-Based Visibility)
-            if (userRole === 'admin') {
+        
+            if (userRole === 'admin' || userRole === 'superadmin') {
                 const btnAdmin = document.getElementById('btnAdminSideTrigger');
                 if (btnAdmin) btnAdmin.classList.remove('hidden');
             }
-
-            // 5. ดึงข้อมูลสถิติประจำวันจาก Supabase
+        
             await loadLandingRealStats();
         });
-
-        function renderLandingProfile(authUser, profile, userRole) {
-            const nameEl = document.getElementById('userDisplayName');
-            const badgeEl = document.getElementById('userRoleBadge');
-            const avatarImg = document.getElementById('userAvatarImg');
-            const avatarIcon = document.getElementById('userAvatarIcon');
-
-            const displayName = profile?.display_name || authUser.user_metadata?.full_name || authUser.email || 'ผู้ใช้งานระบบ';
-            const roleName = userRole.toUpperCase();
-
-            if (nameEl) nameEl.innerText = displayName;
-            if (badgeEl) {
-                badgeEl.innerText = roleName;
-                // ปรับสี Badge ตามสิทธิ์
-                if (roleName === 'ADMIN') {
-                    badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                } else if (roleName === 'TEACHER') {
-                    badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                } else {
-                    badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+    
+            function renderLandingProfile(authUser, profile, userRole) {
+                const nameEl = document.getElementById('userDisplayName');
+                const badgeEl = document.getElementById('userRoleBadge');
+                const avatarImg = document.getElementById('userAvatarImg');
+                const avatarIcon = document.getElementById('userAvatarIcon');
+    
+                const displayName = profile?.display_name || authUser.user_metadata?.full_name || authUser.email || 'ผู้ใช้งานระบบ';
+                const roleName = userRole.toUpperCase();
+    
+                if (nameEl) nameEl.innerText = displayName;
+                if (badgeEl) {
+                    badgeEl.innerText = roleName;
+                    // ปรับสี Badge ตามสิทธิ์
+                    if (roleName === 'ADMIN') {
+                        badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                    } else if (roleName === 'TEACHER') {
+                        badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                    } else {
+                        badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                    }
                 }
-            }
 
             const avatarUrl = authUser.user_metadata?.avatar_url || profile?.avatar_url;
             if (avatarUrl) {
