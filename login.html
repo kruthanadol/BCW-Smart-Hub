@@ -3,126 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เข้าสู่ระบบ - BCW SMART HUB</title>
-    <!-- Tailwind CSS & FontAwesome -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-</head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+    <title>BCW Smart HUB - เข้าสู่ระบบ</title>
+    
+    <link rel="icon" type="image/png" href="assets/images/logo_bcw.png">
+    <link rel="apple-touch-icon" href="assets/images/logo_bcw.png">
 
-    <!-- Card Login Container -->
-    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 p-8 space-y-6">
+    <!-- SDK & Font Setup -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif, system-ui; }
+        html, body { 
+            overflow: hidden !important; 
+            width: 100vw; height: 100vh; height: 100dvh; 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            touch-action: none; background-color: #0f172a; 
+            display: flex; align-items: center; justify-content: center; padding: 12px; 
+        }
+        .login-card { 
+            width: 100%; max-width: 480px; background: #ffffff; 
+            border-radius: 20px; overflow: hidden; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+            border: 1px solid rgba(255, 255, 255, 0.1); touch-action: auto;
+        }
+        .card-header { 
+            background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%); 
+            padding: 16px 18px; color: white; display: flex; align-items: center; justify-content: flex-start;
+            gap: 14px; border-bottom: 4px solid #facc15; box-shadow: inset 0 -2px 10px rgba(0,0,0,0.15);
+        }
+        .logo-wrapper {
+            width: 60px; height: 60px; background: #ffffff; border-radius: 16px; padding: 5px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(250, 204, 21, 0.8); flex-shrink: 0;
+        }
+        .school-logo { width: 100%; height: 100%; object-fit: contain; }
+        .brand-text { display: flex; flex-direction: column; justify-content: center; text-align: left; min-width: 0; }
+        .brand-text .line-1 { font-size: 21px; font-weight: 800; line-height: 1.15; color: #facc15; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 0.5px; white-space: nowrap; }
+        .brand-text .line-2-en { font-size: 15px; color: #fef08a; font-weight: 700; letter-spacing: 0.8px; margin: 1px 0; white-space: nowrap; text-transform: uppercase; }
+        .brand-text .line-3-th { font-size: 16px; color: #ffffff; font-weight: 600; white-space: nowrap; opacity: 0.95; }
+        .card-body { padding: 16px 16px; text-align: center; }
         
-        <!-- Header / Logo -->
-        <div class="text-center space-y-2">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/30 mb-2">
-                <i class="fa-solid fa-graduation-cap text-3xl"></i>
+        /* ปุ่ม SSO */
+        .sso-group { display: flex; flex-direction: column; gap: 10px; }
+        .btn-google-sso { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
+        .btn-google-sso:hover { background-color: #f8fafc; border-color: #059669; }
+        .btn-line-login { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 11px; background-color: #06C755; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: all 0.2s ease; }
+        .btn-line-login:hover { background-color: #05b34c; }
+        
+        .google-icon { width: 26px; height: 26px; }
+        .btn-text-group { display: flex; flex-direction: column; align-items: flex-start; }
+        .main-text { font-size: 15px; font-weight: 700; color: #1e293b; }
+        .sub-text { font-size: 13px; color: #64748b; }
+        
+        .divider { margin: 13px 0; display: flex; align-items: center; color: #64748b; font-size: 13px; font-weight: 600; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; }
+        .divider span { padding: 0 8px; }
+        
+        .form-group { text-align: left; margin-bottom: 8px; }
+        .form-input { 
+            width: 100%; padding: 11px 14px; border: 1.5px solid #cbd5e1; 
+            border-radius: 10px; font-size: 15px; outline: none; font-weight: 600; 
+            background-color: #f8fafc; transition: all 0.2s;
+        }
+        .form-input:focus { border-color: #059669; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
+        .btn-submit { width: 100%; padding: 11px; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 4px; transition: background 0.2s; }
+        .btn-emerald { background: #059669; } .btn-emerald:hover { background: #047857; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="card-header">
+            <div class="logo-wrapper">
+                <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
             </div>
-            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">BCW SMART HUB</h1>
-            <p class="text-xs text-slate-500 font-medium">ระบบสารสนเทศเพื่อการบริหารจัดการโรงเรียน</p>
-        </div>
-
-        <!-- Section 1: ปุ่มเข้าสู่ระบบแบบ SSO (Google & LINE) -->
-        <div class="space-y-3 pt-2">
-            
-            <!-- ปุ่ม Google SSO (สำหรับครู / นักเรียน / งานเอกสารคอมพิวเตอร์) -->
-            <button onclick="loginWithGoogle()" 
-                    type="button"
-                    class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-700 font-medium py-3 px-4 rounded-xl border border-slate-300 shadow-sm transition-all duration-200 active:scale-[0.99]">
-                <svg class="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                <span class="text-sm">เข้าสู่ระบบด้วย Google (@buached.ac.th)</span>
-            </button>
-
-            <!-- ปุ่ม LINE Login (สำหรับผู้ปกครอง / ใช้งานด่วนบนมือถือ) -->
-            <button onclick="loginWithLine()" 
-                    type="button"
-                    class="w-full flex items-center justify-center gap-3 bg-[#06C755] hover:bg-[#05b34c] text-white font-medium py-3 px-4 rounded-xl shadow-sm transition-all duration-200 active:scale-[0.99]">
-                <i class="fa-brands fa-line text-2xl"></i>
-                <span class="text-sm">เข้าสู่ระบบด้วย LINE</span>
-            </button>
-
-        </div>
-
-        <!-- Divider เส้นแบ่ง -->
-        <div class="relative flex py-1 items-center">
-            <div class="flex-grow border-t border-slate-200"></div>
-            <span class="flex-shrink mx-4 text-xs text-slate-400 font-normal">หรือใช้อีเมล / รหัสผ่าน</span>
-            <div class="flex-grow border-t border-slate-200"></div>
-        </div>
-
-        <!-- Section 2: ฟอร์ม Fallback (สำหรับระบบเดิมหรือผู้ไม่มี SSO) -->
-        <form id="login-form" onsubmit="handleEmailLogin(event)" class="space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">อีเมล หรือ รหัสประจำตัว</label>
-                <input type="text" id="username" required 
-                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all"
-                       placeholder="เช่น name@buached.ac.th">
+            <div class="brand-text">
+                <div class="line-1">BCW SMART HUB</div>
+                <div class="line-2-en">BUACHEDWITTAYA SCHOOL</div>
+                <div class="line-3-th">โรงเรียนบัวเชดวิทยา</div>
             </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">รหัสผ่าน</label>
-                <input type="password" id="password" required 
-                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all"
-                       placeholder="••••••••">
-            </div>
-            <button type="submit" 
-                    class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 rounded-xl text-sm transition-all duration-200 active:scale-[0.99]">
-                เข้าสู่ระบบ
-            </button>
-        </form>
-
-        <!-- Footer -->
-        <div class="text-center pt-2">
-            <p class="text-[11px] text-slate-400">
-                หากพบปัญหาการใช้งาน ติดต่อฝ่าย ICT โรงเรียนบัวเชดวิทยา
-            </p>
         </div>
 
+        <div class="card-body">
+            <!-- 1. Dual-Login SSO Section (Google + LINE) -->
+            <div class="sso-group">
+                <!-- ปุ่ม Google SSO (ครู / นักเรียน) -->
+                <button id="btn-google-login" type="button" class="btn-google-sso" onclick="AuthService.loginWithGoogle()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
+                    <div class="btn-text-group">
+                        <span class="main-text">เข้าสู่ระบบด้วย Google</span>
+                        <span class="sub-text">สำหรับ นักเรียน / ครู (@buached.ac.th)</span>
+                    </div>
+                </button>
+
+                <!-- ปุ่ม LINE Login (ผู้ปกครอง / มือถือ) -->
+                <button id="btn-line-login" type="button" class="btn-line-login" onclick="AuthService.loginWithLine('YOUR-LIFF-ID')">
+                    <i class="fa-brands fa-line text-2xl"></i>
+                    <div class="btn-text-group">
+                        <span class="main-text text-white">เข้าสู่ระบบด้วย LINE</span>
+                        <span class="sub-text text-emerald-100">สำหรับ ผู้ปกครอง / การใช้งานด่วน</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="divider"><span>หรือ เข้าสู่ระบบด้วยอีเมล / รหัสผ่าน</span></div>
+
+            <!-- 2. Fallback Account Login Form (สำหรับผู้ใช้เดิม) -->
+            <form id="account-login-form" onsubmit="handleAccountLogin(event)">
+                <div class="form-group">
+                    <input type="text" id="account-email" class="form-input" placeholder="✉️ อีเมลโรงเรียน / รหัสประจำตัว" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="account-password" class="form-input" placeholder="🔒 รหัสผ่าน" required>
+                </div>
+                <button type="submit" id="btn-account-submit" class="btn-submit btn-emerald">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ
+                </button>
+            </form>
+        </div>
     </div>
 
-    <!-- Scripts เชื่อมต่อ Supabase Auth -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../core/supabase-client.js"></script>
+    <!-- 3. Core Core Scripts Architecture -->
+    <script src="core/supabase-client.js"></script>
+    <script src="core/auth-service.js"></script>
+    
     <script>
-        // 1. เข้าสู่ระบบด้วย Google SSO ผ่าน Supabase Auth
-        async function loginWithGoogle() {
-            try {
-                const { data, error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: window.location.origin + '/apps/landing-app/landing.html'
-                    }
-                });
-                if (error) throw error;
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + err.message);
+        // ฟังก์ชันรองรับกรณีใช้ Email/Password ผ่าน Supabase Native Auth
+        async function handleAccountLogin(event) {
+            event.preventDefault();
+            const inputVal = document.getElementById('account-email').value.trim();
+            const passwordVal = document.getElementById('account-password').value.trim();
+            const btnSubmit = document.getElementById('btn-account-submit');
+
+            if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
             }
-        }
-
-        // 2. เข้าสู่ระบบด้วย LINE Login / LIFF
-        function loginWithLine() {
-            // นำไปยัง URL ของ LIFF App หรือ LINE OAuth Channel
-            window.location.href = "https://liff.line.me/YOUR-LIFF-ID";
-        }
-
-        // 3. เข้าสู่ระบบด้วย Email/Password (Supabase Auth Native)
-        async function handleEmailLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: fullEmail,
+                    password: passwordVal
+                });
+
                 if (error) throw error;
 
-                // ล็อกอินผ่าน นำไปหน้า landing.html
-                window.location.replace('../landing-app/landing.html');
+                // ล็อกอินสำเร็จ ส่งต่อไปยัง landing.html เพื่อตรวจสอบสิทธิ์
+                window.location.replace('landing.html');
             } catch (err) {
-                alert('การเข้าสู่ระบบไม่สำเร็จ: Check email/password อีกครั้ง');
+                console.error('Account Login Error:', err);
+                alert('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมลและรหัสผ่านอีกครั้ง');
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ';
+                }
             }
         }
     </script>
