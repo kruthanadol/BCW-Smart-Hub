@@ -60,25 +60,73 @@ const AuthService = {
     },
 
     // 4. Fetch Role from auth_identities (ปรับใช้ internal_user_id ตาม Schema จริง)
-    async getUserProfile(userId) {
-        try {
-            const client = window.supabase || window.db;
-            if (!client) return null;
+// core/auth-service.js (ปรับเฉพาะส่วน getUserProfile)
 
-            // ดึง Role จาก auth_identities โดยใช้ internal_user_id หรือ provider_user_id
-            const { data, error } = await client
-                .from('auth_identities')
-                .select('internal_user_id, role, provider, provider_user_id')
-                .or(`internal_user_id.eq.${userId},provider_user_id.eq.${userId}`)
+async getUserProfile(user) {
+    try {
+        const client = window.supabase || window.db;
+        if (!client) return null;
+
+        // รองรับทั้งกรณีส่ง user object มา หรือส่ง string ID/Email
+        const userId = typeof user === 'object' ? user.id : user;
+        const userEmail = typeof user === 'object' ? (user.email || '') : user;
+
+        // 1. ค้นหาจาก auth_identities (เช็กทั้ง internal_user_id, provider_user_id และ email)
+        let { data, error } = await client
+            .from('auth_identities')
+            .select('*')
+            .or(`internal_user_id.eq.${userId},provider_user_id.eq.${userEmail},provider_user_id.eq.${userId}`)
+            .maybeSingle();
+
+        if (data && data.role) {
+            return data;
+        }
+
+        // 2. Fallback: ถ้าค้นหาใน auth_identities ไม่เจอ ให้ลองค้นหาในตาราง teachers (สำหรับครู/แอดมิน)
+        if (userEmail) {
+            const { data: teacherData } = await client
+                .from('teachers')
+                .select('teacher_id, teacher_name, email, role')
+                .eq('email', userEmail)
                 .maybeSingle();
 
-            if (error) throw error;
-            return data;
-        } catch (err) {
-            console.error('Get Profile Error:', err.message);
-            return null;
+            if (teacherData) {
+                return {
+                    internal_user_id: teacherData.teacher_id,
+                    display_name: teacherData.teacher_name,
+                    role: teacherData.role || (userEmail === 'kruthanadol@buached.ac.th' ? 'admin' : 'teacher')
+                };
+            }
+
+            // 3. Fallback: ค้นหาในตารางนักเรียน (students)
+            const { data: studentData } = await client
+                .from('students')
+                .select('student_id, title, first_name, last_name, email')
+                .eq('email', userEmail)
+                .maybeSingle();
+
+            if (studentData) {
+                return {
+                    internal_user_id: studentData.student_id,
+                    display_name: `${studentData.title || ''}${studentData.first_name} ${studentData.last_name}`.trim(),
+                    role: 'student'
+                };
+            }
         }
-    },
+
+        // 4. Default Fallback พิเศษสำหรับ Admin ตามบัญชีหลัก
+        if (userEmail === 'kruthanadol@buached.ac.th') {
+            return { role: 'admin', display_name: 'ครูธนดล คำเสนอ' };
+        } else if (userEmail === 'info@buached.ac.th') {
+            return { role: 'teacher', display_name: 'ประชาสัมพันธ์ บัวเชดวิทยา' };
+        }
+
+        return { role: 'student' };
+    } catch (err) {
+        console.error('Get Profile Error:', err.message);
+        return { role: 'student' };
+    }
+}
 
     // 5. Unified Routing -> ส่งทุก Role ไปที่ landing.html
     async handleRoleRouting(session) {
