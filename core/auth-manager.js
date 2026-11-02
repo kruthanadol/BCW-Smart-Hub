@@ -1,16 +1,12 @@
 // core/auth-manager.js
-import { cleanStr } from './supabase-client.js';
 
 /**
- * ดึงข้อมูลผู้ใช้งานปัจจุบันจาก Session/LocalStorage กลาง (Shared Context)
- * @returns {Object|null} ข้อมูลผู้ใช้ { userId, role, name, avatar, email, isLoggedIn }
+ * 1. อ่านข้อมูล Session ของผู้ใช้ปัจจุบันจาก LocalStorage / SessionStorage
  */
-// core/auth-manager.js
-
-// core/auth-manager.js
-
 export function getCurrentUser() {
-    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true' || sessionStorage.getItem('user_logged_in') === 'true';
+    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true' || 
+                       sessionStorage.getItem('user_logged_in') === 'true';
+    
     if (!isLoggedIn) return null;
 
     const role = (localStorage.getItem('user_role') || localStorage.getItem('role') || '').toLowerCase().trim();
@@ -21,7 +17,7 @@ export function getCurrentUser() {
         userId: userId,
         teacherId: localStorage.getItem('teacher_id') || userId,
         studentId: localStorage.getItem('student_id') || userId,
-        name: localStorage.getItem('user_name') || localStorage.getItem('full_name') || 'ผู้ใช้งาน',
+        name: localStorage.getItem('user_name') || 'ผู้ใช้งาน',
         email: localStorage.getItem('user_email') || '',
         role: role,
         avatar: localStorage.getItem('user_avatar') || 'https://cdn-icons-png.flaticon.com/512/847/847969.png',
@@ -30,26 +26,28 @@ export function getCurrentUser() {
 }
 
 /**
- * Auth Guard ตรวจสอบสิทธิ์การเข้าถึงหน้าเว็บ
- * @param {Array<string>} allowedRoles - รายชื่อ Role ที่อนุญาต เช่น ['teacher', 'admin']
- * @param {string} redirectUrl - URL หน้าที่จะส่งกลับถ้าไม่มีสิทธิ์
+ * 2. Auth Guard เช็กสิทธิ์การเข้าถึงหน้าเว็บตาม Allowed Roles
  */
 export function requireAuth(allowedRoles = [], redirectUrl = '../../login.html') {
     const user = getCurrentUser();
 
+    // กรณีไม่มี Session หรือไม่ได้ล็อกอิน
     if (!user || !user.role) {
-        console.warn('Auth Guard Warning: ไม่พบ Session ผู้ใช้งาน เตะกลับหน้า Login');
+        console.warn('🔒 Auth Guard: ไม่พบ Session การเข้าสู่ระบบ สั่ง Redirect ไปที่:', redirectUrl);
         window.location.replace(redirectUrl);
         return null;
     }
 
+    // แปลงสิทธิ์เป็นตัวพิมพ์เล็กทั้งหมดเพื่อป้องกัน Case-sensitive mismatch
     const userRole = user.role.toLowerCase();
     const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
     
-    // ผู้มีสิทธิ์ระดับสูงเข้าถึงได้ทุกหน้า
+    // กำหนดกลุ่มผู้ใช้งานที่มีสิทธิ์เข้าถึงได้ทุกส่วน (Power Users)
     const isPowerUser = ['admin', 'superadmin', 'super_admin', 'executive'].includes(userRole);
 
+    // ตรวจสอบสิทธิ์การเข้าถึง
     if (allowedRoles.length > 0 && !normalizedAllowed.includes(userRole) && !isPowerUser) {
+        console.error(`🔒 Auth Guard Error: บทบาท "${userRole}" ไม่มีสิทธิ์เข้าถึงหน้านี้`);
         alert('🔒 คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
         window.location.replace(redirectUrl);
         return null;
@@ -59,16 +57,27 @@ export function requireAuth(allowedRoles = [], redirectUrl = '../../login.html')
 }
 
 /**
- * ฟังก์ชันออกจากระบบแบบเด็ดขาด ล้าง Storage ทุกประเภท
+ * 3. ฟังก์ชันออกจากระบบ ล้าง Storage ทั้งหมดและส่งกลับหน้า Login
  */
-export function logout(redirectUrl = '../../login.html') {
+export function logout(redirectUrl = 'login.html') {
+    console.log('🚪 กำลังออกจากระบบ และล้าง Session ทั้งหมด...');
     localStorage.clear();
     sessionStorage.clear();
     window.location.replace(redirectUrl);
 }
 
-// ผูกฟังก์ชันเข้ากับ window object เพื่อรองรับการเรียกใช้จาก inline event เก่าๆ
+/**
+ * 4. เช็กสถานะการล็อกอินแบบ Boolean (ใช้ตรวจสอบสั้นๆ ใน UI)
+ */
+export function isAuthenticated() {
+    return getCurrentUser() !== null;
+}
+
+// ผูกฟังก์ชันเข้ากับ Global Window เพื่อให้ Event Handler เก่าๆ เรียกใช้งานได้
 if (typeof window !== 'undefined') {
+    window.getCurrentUser = getCurrentUser;
+    window.requireAuth = requireAuth;
     window.logoutUser = logout;
     window.handleLogout = logout;
+    window.isAuthenticated = isAuthenticated;
 }
