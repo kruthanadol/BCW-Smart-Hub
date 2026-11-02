@@ -3,7 +3,7 @@
 /**
  * 1. อ่านข้อมูล Session ของผู้ใช้ปัจจุบันจาก LocalStorage / SessionStorage
  */
-export function getCurrentUser() {
+function getCurrentUser() {
     // เช็ก Flag ว่าล็อกอินอยู่หรือไม่ (รองรับทั้งการเช็กตรงๆ และการเช็ก user_role/user_email)
     const isLoggedIn = localStorage.getItem('user_logged_in') === 'true' || 
                        sessionStorage.getItem('user_logged_in') === 'true' ||
@@ -31,7 +31,7 @@ export function getCurrentUser() {
  * 2. Auth Guard เช็กสิทธิ์การเข้าถึงหน้าเว็บตาม Allowed Roles
  * (ปรับให้ Default Redirect กลับไปที่ login.html ใน Root)
  */
-export function requireAuth(allowedRoles = [], redirectUrl = '/login.html') {
+function requireAuth(allowedRoles = [], redirectUrl = '/login.html') {
     const user = getCurrentUser();
 
     // กรณีไม่มี Session หรือไม่ได้ล็อกอิน
@@ -62,7 +62,7 @@ export function requireAuth(allowedRoles = [], redirectUrl = '/login.html') {
 /**
  * 3. ฟังก์ชันออกจากระบบ ล้าง Storage ทั้งหมดและส่งกลับหน้า Login
  */
-export function logout(redirectUrl = '/login.html') {
+function logout(redirectUrl = '/login.html') {
     console.log('🚪 กำลังออกจากระบบ และล้าง Session ทั้งหมด...');
     
     // หากมี AuthService อยู่ใน Window ให้เรียก SignOut จาก Supabase ด้วย
@@ -79,7 +79,7 @@ export function logout(redirectUrl = '/login.html') {
 /**
  * 4. เช็กสถานะการล็อกอินแบบ Boolean (ใช้ตรวจสอบสั้นๆ ใน UI)
  */
-export function isAuthenticated() {
+function isAuthenticated() {
     return getCurrentUser() !== null;
 }
 
