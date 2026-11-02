@@ -1052,7 +1052,6 @@
         </div>
     </div>
 
-    <!-- ⚡ Global UI Control Script -->
     <script>
         window.handleAdminTriggerClick = function() {
             const rawRole = localStorage.getItem('user_role') || 'guest';
@@ -1105,16 +1104,20 @@
             btns.forEach(function(btn) { btn.classList.remove('active'); });
 
             if (tab === 'home') {
-                document.getElementById('navHome').classList.add('active');
+                const homeBtn = document.getElementById('navHome');
+                if (homeBtn) homeBtn.classList.add('active');
                 closeAllDrawers();
             } else if (tab === 'discipline') {
-                document.getElementById('navDiscipline').classList.add('active');
+                const discBtn = document.getElementById('navDiscipline');
+                if (discBtn) discBtn.classList.add('active');
                 openDrawerById('disciplineDrawerBackdrop');
             } else if (tab === 'academic') {
-                document.getElementById('navAcademic').classList.add('active');
+                const acadBtn = document.getElementById('navAcademic');
+                if (acadBtn) acadBtn.classList.add('active');
                 openDrawerById('academicDrawerBackdrop');
             } else if (tab === 'exec') {
-                document.getElementById('navExec').classList.add('active');
+                const execBtn = document.getElementById('navExec');
+                if (execBtn) execBtn.classList.add('active');
                 openDrawerById('execDrawerBackdrop');
             }
         };
@@ -1195,27 +1198,38 @@
         });
     </script>
 
-    <!-- Main Auth Module & Supabase Data Binding (ปรับปรุงสคริปต์กลาง Zero-Mock) -->
+    <!-- 🔒 Main Auth Module & Real-time Supabase Integration -->
     <script type="module">
         import { db } from './core/supabase-client.js';
-        import { checkLandingAccess, logout } from './core/auth-manager.js';
+        import { requireAuth, logout, getCurrentUser } from './core/auth-manager.js';
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Auth Guard เช็กสิทธิ์ทางเข้าหน้า landing.html (บล็อกนักเรียน/ผู้ปกครอง ป้องกันครูหลุด)
-            const activeUser = checkLandingAccess();
-            if (!activeUser) return;
+            // 1. เช็กสิทธิ์เข้าหน้า Landing (รองรับทุก Role)
+            const user = requireAuth(['admin', 'executive', 'superadmin', 'teacher', 'student', 'parent'], 'login.html');
+            if (!user) return;
 
-            // 2. แสดงผลโปรไฟล์จริงจาก Session กลาง
-            renderLandingProfile(activeUser);
+            // 2. แสดงข้อมูลโปรไฟล์
+            renderLandingProfile(user);
 
-            // 3. ดึงข้อมูลสถิติต่างๆ จาก Supabase DB
-            loadLandingRealStats();
+            // 3. ดึงสถิติจริงจาก Supabase
+            await loadLandingRealStats();
+
+            // 4. ผูกปุ่ม Logout ให้ล้าง Session 100%
+            document.querySelectorAll('#btnLogout, .btn-logout, [onclick*="logout"]').forEach(btn => {
+                btn.removeAttribute('onclick');
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                        logout('login.html');
+                    }
+                });
+            });
         });
 
         function renderLandingProfile(user) {
-            const nameEl = document.getElementById('userDisplayName');
+            const nameEl = document.getElementById('userDisplayName') || document.getElementById('userNameDisplay') || document.getElementById('headerUserName');
             const badgeEl = document.getElementById('userRoleBadge');
-            const avatarImg = document.getElementById('userAvatarImg');
+            const avatarImg = document.getElementById('userAvatarImg') || document.getElementById('headerUserAvatar');
             const avatarIcon = document.getElementById('userAvatarIcon');
 
             if (nameEl) nameEl.innerText = user.name || 'ผู้ใช้งานระบบ';
@@ -1228,7 +1242,7 @@
                 }
                 if (avatarIcon) avatarIcon.classList.add('hidden');
             } else {
-                if (avatarImg) avatarImg.classList.add('hidden');
+                if (avatarImg && !avatarImg.src) avatarImg.classList.add('hidden');
                 if (avatarIcon) avatarIcon.classList.remove('hidden');
             }
         }
@@ -1247,7 +1261,7 @@
                 // ดึงสถิติเข้าเรียนวันนี้
                 const { count: presentCount } = await db.from('attendance_logs')
                     .select('*', { count: 'exact', head: true })
-                    .gte('check_date', today)
+                    .gte('created_at', today)
                     .in('status', ['present', 'late', 'GREEN']);
 
                 const present = presentCount || 0;
@@ -1264,17 +1278,17 @@
                 }
 
                 // สถิติขาด สาย ลา หนี
-                const { count: absentCount } = await db.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('check_date', today).eq('status', 'absent');
-                if (absentCount !== null) document.getElementById('statAbsentLanding').innerText = absentCount;
+                const { count: absentCount } = await db.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('created_at', today).eq('status', 'absent');
+                if (absentCount !== null && document.getElementById('statAbsentLanding')) document.getElementById('statAbsentLanding').innerText = absentCount;
 
-                const { count: lateCount } = await db.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('check_date', today).eq('status', 'late');
-                if (lateCount !== null) document.getElementById('statLateLanding').innerText = lateCount;
+                const { count: lateCount } = await db.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('created_at', today).eq('status', 'late');
+                if (lateCount !== null && document.getElementById('statLateLanding')) document.getElementById('statLateLanding').innerText = lateCount;
 
-                const { count: leaveCount } = await db.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('check_date', today).eq('status', 'leave');
-                if (leaveCount !== null) document.getElementById('statLeaveLanding').innerText = leaveCount;
+                const { count: leaveCount } = await db.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('created_at', today).eq('status', 'leave');
+                if (leaveCount !== null && document.getElementById('statLeaveLanding')) document.getElementById('statLeaveLanding').innerText = leaveCount;
 
-                const { count: truantCount } = await db.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('check_date', today).eq('status', 'truant');
-                if (truantCount !== null) document.getElementById('statTruantLanding').innerText = truantCount;
+                const { count: truantCount } = await db.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('created_at', today).eq('status', 'truant');
+                if (truantCount !== null && document.getElementById('statTruantLanding')) document.getElementById('statTruantLanding').innerText = truantCount;
 
             } catch (err) {
                 console.warn('Load Stats Warning:', err);
