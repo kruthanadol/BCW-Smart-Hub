@@ -53,8 +53,8 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between p-2 md:p-6 pb-20 md:pb-8 relative select-none">
 
-    <!-- ปุ่ม ADMIN -->
-    <button type="button" onclick="handleAdminTriggerClick()" class="admin-side-trigger" title="แผงควบคุมผู้ดูแลระบบ">
+    <!-- ปุ่ม ADMIN Side Trigger (แสดงเฉพาะสิทธิ์ Admin) -->
+    <button id="btnAdminSideTrigger" type="button" onclick="handleAdminTriggerClick()" class="admin-side-trigger hidden" title="แผงควบคุมผู้ดูแลระบบ">
         <i class="fa-solid fa-chevron-left text-[10px] animate-pulse"></i>
         <i class="fa-solid fa-user-shield text-xs"></i>
         <span class="text-[8px] font-black tracking-widest uppercase mt-0.5" style="writing-mode: vertical-rl;">ADMIN</span>
@@ -102,14 +102,14 @@
                 <div class="min-w-0 text-left">
                     <div class="flex items-center gap-2">
                         <span id="userDisplayName" class="text-xs md:text-sm font-black text-amber-300 truncate">กำลังโหลด...</span>
-                        <span id="userRoleBadge" class="bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider">TEACHER</span>
+                        <span id="userRoleBadge" class="bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider">CONNECTING</span>
                     </div>
                     <span class="inline-flex items-center gap-1 text-[10px] text-emerald-200 font-bold mt-0.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> สถานะการเชื่อมต่อ: พร้อมใช้งาน
                     </span>
                 </div>
             </div>
-            <button type="button" onclick="switchRoleToAdmin()" class="shrink-0 text-amber-400 hover:text-amber-300 text-xs font-bold bg-emerald-900/90 px-2 py-1 rounded-lg border border-amber-400/40 cursor-pointer transition">
+            <button type="button" class="shrink-0 text-amber-400 hover:text-amber-300 text-xs font-bold bg-emerald-900/90 px-2 py-1 rounded-lg border border-amber-400/40 transition">
                 <i class="fa-solid fa-shield-halved"></i> BCW ID
             </button>
         </div>
@@ -223,7 +223,7 @@
                 </div>
             </div>
 
-            <div class="desktop-app-card border-slate-400">
+            <div id="cardSuperAdmin" class="desktop-app-card border-slate-400">
                 <span class="absolute top-4 right-4 bg-slate-900 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">SUPER ADMIN</span>
                 <div>
                     <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-800 border border-slate-300 flex items-center justify-center text-2xl font-bold mb-3">⚙️</div>
@@ -293,17 +293,17 @@
         </button>
     </nav>
 
-    <!-- 🌐 Supabase SDK & Central Core Service Setup -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="core/supabase-client.js"></script>
+    <!-- 🌐 Core Engine Modules -->
+    <script type="module" src="core/supabase-client.js"></script>
     <script src="core/auth-service.js"></script>
+    <script type="module" src="core/auth-manager.js"></script>
 
-    <!-- 🔒 Integrated Phase 4 Auth & Auto-Routing System -->
+    <!-- 🔒 Unified Auth & Landing Portal Script -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             startClock();
 
-            // 1. ตรวจสอบ Session ด้วย AuthService
+            // 1. ตรวจสอบ Active Session
             const session = await AuthService.checkSession();
             
             if (!session) {
@@ -311,40 +311,44 @@
                 return;
             }
 
-            // 2. ดึงข้อมูลบทบาทผู้ใช้จาก auth_identities
-            const identifier = session.user.email || session.user.id;
-            const profile = await AuthService.getUserProfile(identifier);
+            // 2. ดึงข้อมูล Profile & Role จาก auth_identities
+            const profile = await AuthService.getUserProfile(session.user.id);
+            const userRole = (profile?.role || session.user.user_metadata?.role || 'student').toLowerCase().trim();
 
-            // คำนวณ Role จาก Profile หรือ MetaData
-            const userRole = (profile?.role || session.user.user_metadata?.role || 'teacher').toLowerCase().trim();
+            // 3. แสดงผล Profile และบทบาทผู้ใช้งาน (รวมศูนย์ทุก Role อยู่หน้านี้ทั้งหมด)
+            renderLandingProfile(session.user, profile, userRole);
 
-            // 🚀 3. Auto-Routing แยกเส้นทางตามบทบาทสิทธิ์การใช้งาน
-            if (userRole === 'student') {
-                // ส่งนักเรียนไปพอร์ตัลนักเรียนทันที
-                window.location.replace('apps/student-app/student.html');
-                return;
-            } else if (userRole === 'parent') {
-                // ส่งผู้ปกครองไปพอร์ตัลผู้ปกครองทันที
-                window.location.replace('apps/parent-app/parent.html');
-                return;
+            // 4. ควบคุมความปลอดภัยและการแสดงผล UI ตามสิทธิ์ (Role-Based Visibility)
+            if (userRole === 'admin') {
+                const btnAdmin = document.getElementById('btnAdminSideTrigger');
+                if (btnAdmin) btnAdmin.classList.remove('hidden');
             }
 
-            // 4. หากเป็น ครู / แอดมิน / ผู้บริหาร ให้อยู่หน้า landing.html และโหลดสถิติ
-            renderLandingProfile(session.user, profile);
+            // 5. ดึงข้อมูลสถิติประจำวันจาก Supabase
             await loadLandingRealStats();
         });
 
-        function renderLandingProfile(authUser, profile) {
+        function renderLandingProfile(authUser, profile, userRole) {
             const nameEl = document.getElementById('userDisplayName');
             const badgeEl = document.getElementById('userRoleBadge');
             const avatarImg = document.getElementById('userAvatarImg');
             const avatarIcon = document.getElementById('userAvatarIcon');
 
             const displayName = profile?.display_name || authUser.user_metadata?.full_name || authUser.email || 'ผู้ใช้งานระบบ';
-            const roleName = (profile?.role || 'TEACHER').toUpperCase();
+            const roleName = userRole.toUpperCase();
 
             if (nameEl) nameEl.innerText = displayName;
-            if (badgeEl) badgeEl.innerText = roleName;
+            if (badgeEl) {
+                badgeEl.innerText = roleName;
+                // ปรับสี Badge ตามสิทธิ์
+                if (roleName === 'ADMIN') {
+                    badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                } else if (roleName === 'TEACHER') {
+                    badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                } else {
+                    badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                }
+            }
 
             const avatarUrl = authUser.user_metadata?.avatar_url || profile?.avatar_url;
             if (avatarUrl) {
@@ -361,15 +365,18 @@
 
         async function loadLandingRealStats() {
             try {
+                const client = window.supabase || window.db;
+                if (!client) return;
+
                 const today = new Date().toISOString().split('T')[0];
 
-                const { count: studentCount } = await supabase.from('students').select('student_id', { count: 'exact', head: true });
+                const { count: studentCount } = await client.from('students').select('id', { count: 'exact', head: true });
                 const total = studentCount || 0;
                 
                 const c1 = document.getElementById('total_students_count');
                 if (c1) c1.innerText = total.toLocaleString();
 
-                const { count: presentCount } = await supabase.from('attendance_logs')
+                const { count: presentCount } = await client.from('attendance_logs')
                     .select('*', { count: 'exact', head: true })
                     .gte('created_at', today)
                     .in('status', ['present', 'late', 'GREEN']);
@@ -387,10 +394,10 @@
                     aiText.innerHTML = `สรุปประจำวัน: นักเรียนมาเรียนแล้ว <strong class="text-emerald-700">${present.toLocaleString()} คน (${percent}%)</strong> จากทั้งหมด ${total.toLocaleString()} คน`;
                 }
 
-                const { count: absentCount } = await supabase.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('created_at', today).eq('status', 'absent');
+                const { count: absentCount } = await client.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('created_at', today).eq('status', 'absent');
                 if (absentCount !== null && document.getElementById('statAbsentLanding')) document.getElementById('statAbsentLanding').innerText = absentCount;
 
-                const { count: lateCount } = await supabase.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('created_at', today).eq('status', 'late');
+                const { count: lateCount } = await client.from('attendance_logs').select('*', { count: 'exact', head: true }).gte('created_at', today).eq('status', 'late');
                 if (lateCount !== null && document.getElementById('statLateLanding')) document.getElementById('statLateLanding').innerText = lateCount;
 
             } catch (err) {
