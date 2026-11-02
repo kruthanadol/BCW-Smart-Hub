@@ -1,6 +1,6 @@
 // core/auth-service.js
 const AuthService = {
-    // 1. Google SSO Login
+    // 1. Google SSO Login (พาทุกคนไป landing.html)
     async loginWithGoogle() {
         try {
             const client = window.supabase || window.db;
@@ -26,7 +26,7 @@ const AuthService = {
         }
     },
 
-    // 2. LINE Login
+    // 2. LINE Login (เตรียมความพร้อมสำหรับผู้ปกครอง)
     async loginWithLine(liffId) {
         try {
             alert('ระบบ LINE Login กำลังเตรียมความพร้อม');
@@ -35,7 +35,7 @@ const AuthService = {
         }
     },
 
-    // 3. Check Active Session & Domain Gatekeeper
+    // 3. Check Active Session & Domain Gatekeeper (@buached.ac.th)
     async checkSession() {
         try {
             const client = window.supabase || window.db;
@@ -59,16 +59,17 @@ const AuthService = {
         }
     },
 
-    // 4. Fetch User Profile & Role from auth_identities
-    async getUserProfile(identifier) {
+    // 4. Fetch Role from auth_identities (ปรับใช้ internal_user_id ตาม Schema จริง)
+    async getUserProfile(userId) {
         try {
             const client = window.supabase || window.db;
             if (!client) return null;
 
+            // ดึง Role จาก auth_identities โดยใช้ internal_user_id หรือ provider_user_id
             const { data, error } = await client
                 .from('auth_identities')
-                .select('*')
-                .or(`email.eq.${identifier},provider_user_id.eq.${identifier}`)
+                .select('internal_user_id, role, provider, provider_user_id')
+                .or(`internal_user_id.eq.${userId},provider_user_id.eq.${userId}`)
                 .maybeSingle();
 
             if (error) throw error;
@@ -79,7 +80,31 @@ const AuthService = {
         }
     },
 
-    // 5. Logout
+    // 5. Unified Routing -> ส่งทุก Role ไปที่ landing.html
+    async handleRoleRouting(session) {
+        if (!session) {
+            if (!window.location.pathname.endsWith('login.html')) {
+                window.location.href = 'login.html';
+            }
+            return null;
+        }
+
+        const profile = await this.getUserProfile(session.user.id);
+        const userRole = profile?.role || 'student';
+
+        // บันทึก Role และ Email ลง Storage สำหรับใช้ใน UI
+        localStorage.setItem('user_role', userRole);
+        localStorage.setItem('user_email', session.user.email);
+
+        // บังคับเปลี่ยนหน้ามา landing.html หากยังไม่อยู่ในหน้านี้
+        if (!window.location.pathname.endsWith('landing.html')) {
+            window.location.href = 'landing.html';
+        }
+
+        return { session, role: userRole, profile };
+    },
+
+    // 6. Logout
     async logout() {
         try {
             const client = window.supabase || window.db;
@@ -98,3 +123,4 @@ const AuthService = {
 
 // ผูกเข้ากับ window Object สำหรับเรียกใช้งานทั่วระบบ
 window.AuthService = AuthService;
+export default AuthService;
