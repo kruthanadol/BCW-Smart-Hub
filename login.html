@@ -52,4 +52,79 @@
         <div class="relative flex py-1 items-center">
             <div class="flex-grow border-t border-slate-200"></div>
             <span class="flex-shrink mx-4 text-xs text-slate-400 font-normal">หรือใช้อีเมล / รหัสผ่าน</span>
-            <div class="flex-grow border-t border-slate-200">
+            <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <!-- Section 2: ฟอร์ม Fallback (สำหรับระบบเดิมหรือผู้ไม่มี SSO) -->
+        <form id="login-form" onsubmit="handleEmailLogin(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">อีเมล หรือ รหัสประจำตัว</label>
+                <input type="text" id="username" required 
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all"
+                       placeholder="เช่น name@buached.ac.th">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">รหัสผ่าน</label>
+                <input type="password" id="password" required 
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all"
+                       placeholder="••••••••">
+            </div>
+            <button type="submit" 
+                    class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 rounded-xl text-sm transition-all duration-200 active:scale-[0.99]">
+                เข้าสู่ระบบ
+            </button>
+        </form>
+
+        <!-- Footer -->
+        <div class="text-center pt-2">
+            <p class="text-[11px] text-slate-400">
+                หากพบปัญหาการใช้งาน ติดต่อฝ่าย ICT โรงเรียนบัวเชดวิทยา
+            </p>
+        </div>
+
+    </div>
+
+    <!-- Scripts เชื่อมต่อ Supabase Auth -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../core/supabase-client.js"></script>
+    <script>
+        // 1. เข้าสู่ระบบด้วย Google SSO ผ่าน Supabase Auth
+        async function loginWithGoogle() {
+            try {
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin + '/apps/landing-app/landing.html'
+                    }
+                });
+                if (error) throw error;
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + err.message);
+            }
+        }
+
+        // 2. เข้าสู่ระบบด้วย LINE Login / LIFF
+        function loginWithLine() {
+            // นำไปยัง URL ของ LIFF App หรือ LINE OAuth Channel
+            window.location.href = "https://liff.line.me/YOUR-LIFF-ID";
+        }
+
+        // 3. เข้าสู่ระบบด้วย Email/Password (Supabase Auth Native)
+        async function handleEmailLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+
+                // ล็อกอินผ่าน นำไปหน้า landing.html
+                window.location.replace('../landing-app/landing.html');
+            } catch (err) {
+                alert('การเข้าสู่ระบบไม่สำเร็จ: Check email/password อีกครั้ง');
+            }
+        }
+    </script>
+</body>
+</html>
