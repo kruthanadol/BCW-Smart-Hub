@@ -123,4 +123,3 @@ const AuthService = {
 
 // ผูกเข้ากับ window Object สำหรับเรียกใช้งานทั่วระบบ
 window.AuthService = AuthService;
-export default AuthService;
