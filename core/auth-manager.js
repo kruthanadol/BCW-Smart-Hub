@@ -4,12 +4,14 @@
  * 1. อ่านข้อมูล Session ของผู้ใช้ปัจจุบันจาก LocalStorage / SessionStorage
  */
 export function getCurrentUser() {
+    // เช็ก Flag ว่าล็อกอินอยู่หรือไม่ (รองรับทั้งการเช็กตรงๆ และการเช็ก user_role/user_email)
     const isLoggedIn = localStorage.getItem('user_logged_in') === 'true' || 
-                       sessionStorage.getItem('user_logged_in') === 'true';
+                       sessionStorage.getItem('user_logged_in') === 'true' ||
+                       !!localStorage.getItem('user_email');
     
     if (!isLoggedIn) return null;
 
-    const role = (localStorage.getItem('user_role') || localStorage.getItem('role') || '').toLowerCase().trim();
+    const role = (localStorage.getItem('user_role') || localStorage.getItem('role') || 'student').toLowerCase().trim();
     const userId = localStorage.getItem('user_id') || localStorage.getItem('teacher_id') || localStorage.getItem('student_id') || '';
 
     return {
@@ -27,8 +29,9 @@ export function getCurrentUser() {
 
 /**
  * 2. Auth Guard เช็กสิทธิ์การเข้าถึงหน้าเว็บตาม Allowed Roles
+ * (ปรับให้ Default Redirect กลับไปที่ login.html ใน Root)
  */
-export function requireAuth(allowedRoles = [], redirectUrl = '../../login.html') {
+export function requireAuth(allowedRoles = [], redirectUrl = '/login.html') {
     const user = getCurrentUser();
 
     // กรณีไม่มี Session หรือไม่ได้ล็อกอิน
@@ -45,7 +48,7 @@ export function requireAuth(allowedRoles = [], redirectUrl = '../../login.html')
     // กำหนดกลุ่มผู้ใช้งานที่มีสิทธิ์เข้าถึงได้ทุกส่วน (Power Users)
     const isPowerUser = ['admin', 'superadmin', 'super_admin', 'executive'].includes(userRole);
 
-    // ตรวจสอบสิทธิ์การเข้าถึง
+    // ตรวจสอบสิทธิ์การเข้าถึง (หากไม่ได้กำหนด allowedRoles ไว้เลย จะถือว่าผ่านทุกคนที่ผ่านการล็อกอิน)
     if (allowedRoles.length > 0 && !normalizedAllowed.includes(userRole) && !isPowerUser) {
         console.error(`🔒 Auth Guard Error: บทบาท "${userRole}" ไม่มีสิทธิ์เข้าถึงหน้านี้`);
         alert('🔒 คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
@@ -59,8 +62,15 @@ export function requireAuth(allowedRoles = [], redirectUrl = '../../login.html')
 /**
  * 3. ฟังก์ชันออกจากระบบ ล้าง Storage ทั้งหมดและส่งกลับหน้า Login
  */
-export function logout(redirectUrl = 'login.html') {
+export function logout(redirectUrl = '/login.html') {
     console.log('🚪 กำลังออกจากระบบ และล้าง Session ทั้งหมด...');
+    
+    // หากมี AuthService อยู่ใน Window ให้เรียก SignOut จาก Supabase ด้วย
+    if (window.AuthService && typeof window.AuthService.logout === 'function') {
+        window.AuthService.logout();
+        return;
+    }
+
     localStorage.clear();
     sessionStorage.clear();
     window.location.replace(redirectUrl);
