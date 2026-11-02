@@ -38,27 +38,32 @@
 
         // 3. Check Session & Domain
         async checkSession() {
-            try {
-                const client = window.supabase || window.db;
-                if (!client || !client.auth) return null;
+        try {
+            const client = window.supabase || window.db;
+            if (!client || !client.auth) return null;
 
-                const { data: { session }, error } = await client.auth.getSession();
-                if (error || !session) return null;
+            const { data: { session }, error } = await client.auth.getSession();
+            if (error || !session) return null;
 
-                const email = session.user?.email || '';
-                if (email && !email.endsWith('@buached.ac.th')) {
-                    alert('อนุญาตให้เข้าใช้งานเฉพาะอีเมลองค์กร @buached.ac.th เท่านั้น');
-                    await this.logout();
-                    return null;
-                }
-
-                return session;
-            } catch (err) {
-                console.error('Check Session Error:', err);
+            // Domain Check (@buached.ac.th)
+            const email = session.user?.email || '';
+            if (email && !email.endsWith('@buached.ac.th')) {
+                alert('⚠️ อนุญาตให้เข้าใช้งานเฉพาะอีเมลองค์กร @buached.ac.th เท่านั้น\n(อีเมลของคุณ: ' + email + ')');
+                
+                // สั่ง SignOut ตรงๆ โดยไม่ใช้ this.logout() เพื่อป้องกัน Redirect Loop
+                await client.auth.signOut();
+                localStorage.clear();
+                sessionStorage.clear();
                 return null;
             }
-        },
 
+            return session;
+        } catch (err) {
+            console.error('Check Session Error:', err);
+            return null;
+        }
+    },
+        
         // 4. Get User Profile & Role
         async getUserProfile(user) {
             try {
