@@ -139,7 +139,7 @@
         }
     };
 
-    // 2. ล็อกอิน ครู / นักเรียน (ยืดหยุ่น 100% ไม่ฟ้องผิดพลาดซุ่มสี่ซุ่มห้า)
+    // 2. ฟอร์มล็อกอิน ครู / บุคลากร / นักเรียน (ค้นหาแบบยืดหยุ่น 100%)
     window.handleAccountLogin = async function(event) {
         event.preventDefault();
         const inputVal = document.getElementById('account-email').value.trim();
@@ -160,25 +160,30 @@
             const rawInput = inputVal.trim();
             const lowerInput = rawInput.toLowerCase();
 
-            // แปลงรหัสครู T11 -> T011
+            // แปลงรูปแบบรหัสครู (เช่น T11 -> T011 หรือ t011 -> T011)
             let formattedTeacherId = rawInput.toUpperCase();
             if (/^T\d+$/i.test(rawInput)) {
                 const num = parseInt(rawInput.replace(/\D/g, ''), 10);
                 formattedTeacherId = `T${String(num).padStart(3, '0')}`;
             }
 
-            // --- 🛠️ 2.1 ค้นหาในตาราง public.users (ครู / บุคลากร) ---
+            // --- 🛠️ 2.1 ค้นหาในตาราง public.users (ครู / บุคลากร / แอดมิน) ---
             const { data: usersList, error: userError } = await db.from('users').select('*');
             if (userError) throw userError;
 
             let userData = (usersList || []).find(u => {
                 const uEmail = (u.email || '').toLowerCase().trim();
-                const uTeacherId = String(u.teacher_id || '').toUpperCase().trim();
-                return uEmail === lowerInput || uTeacherId === rawInput.toUpperCase() || uTeacherId === formattedTeacherId;
+                const uTeacherId = String(u.teacher_id || u.id || '').toUpperCase().trim();
+                const uName = (u.full_name || '').toLowerCase().trim();
+                
+                return uEmail === lowerInput || 
+                       uTeacherId === rawInput.toUpperCase() || 
+                       uTeacherId === formattedTeacherId ||
+                       (lowerInput.length > 3 && uName.includes(lowerInput));
             });
 
             if (userData) {
-                // ถ้าใน DB มี password ให้ตรวจรหัสผ่าน (ถ้าใน DB เป็น NULL ให้ผ่านได้)
+                // ตรวจสอบรหัสผ่าน (ถ้าใน DB มีคอลัมน์ password ให้ตรวจ ถ้าไม่มีหรือเป็นค่าว่างให้ผ่านได้)
                 if (userData.password && String(userData.password).trim() !== passwordVal) {
                     alert('รหัสผ่านไม่ถูกต้อง (กรุณาตรวจสอบรหัสผ่านอีกครั้ง)');
                     return;
@@ -202,7 +207,7 @@
 
                 alert(`ยินดีต้อนรับ ${fullName}`);
 
-                // Routing: แอดมิน/ผู้บริหารไป landing.html, ครูทั่วไปไป teacher.html
+                // Routing: แอดมิน/ผู้บริหารไป landing.html, ครูผู้สอนทั่วไปไป teacher.html
                 if (['admin', 'executive', 'super_admin', 'superadmin'].includes(role)) {
                     window.location.replace('landing.html');
                 } else {
@@ -211,7 +216,7 @@
                 return;
             }
 
-            // --- 🛠️ 2.2 ค้นหาในตาราง public.students (นักเรียน - แก้ข้อ 6) ---
+            // --- 🛠️ 2.2 ค้นหาในตาราง public.students (นักเรียน) ---
             const { data: studentsList, error: studentError } = await db.from('students').select('*');
             if (studentError) throw studentError;
 
@@ -222,16 +227,20 @@
             });
 
             if (studentData) {
-                // ถ้าใน DB มีรหัสผ่าน ให้ตรวจ (ถ้าไม่มีรหัสผ่านใน DB ให้ใช้รหัสนักเรียนเป็นรหัสผ่าน)
-                const dbPass = studentData.password ? String(studentData.password).trim() : String(studentData.student_id || studentData.id).trim();
-                if (dbPass && dbPass !== passwordVal && passwordVal !== String(studentData.student_id)) {
+                const studentId = String(studentData.student_id || studentData.id).trim();
+                // ถ้ารหัสผ่านใน DB ไม่มี ให้ใช้ studentId เป็นรหัสผ่านยืนยันตัวตน
+                const expectedPass = studentData.password ? String(studentData.password).trim() : studentId;
+
+                if (passwordVal !== expectedPass && passwordVal !== studentId) {
                     alert('รหัสผ่านนักเรียนไม่ถูกต้อง');
                     return;
                 }
 
-                const studentId = studentData.student_id || studentData.id;
                 const fullName = `${studentData.prefix || ''}${studentData.first_name || ''} ${studentData.last_name || ''}`.trim() || studentId;
                 const avatarUrl = studentData.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+
+                localStorage.clear();
+                sessionStorage.clear();
 
                 localStorage.setItem('user_logged_in', 'true');
                 localStorage.setItem('user_uuid', studentData.id || '');
@@ -244,7 +253,6 @@
                 localStorage.setItem('user_avatar', avatarUrl);
 
                 alert(`ยินดีต้อนรับนักเรียน ${fullName}`);
-                // ส่งนักเรียนไปที่พอร์ตัลนักเรียนตรงๆ (แก้ข้อ 3)
                 window.location.replace('apps/student-app/student.html');
                 return;
             }
@@ -262,7 +270,7 @@
         }
     };
 
-    // 3. ล็อกอิน ผู้ปกครอง (แก้ข้อ 7)
+    // 3. ฟอร์มล็อกอิน ผู้ปกครอง
     window.handleParentLogin = async function(event) {
         event.preventDefault();
         const studentIdInput = document.getElementById('parent-student-id').value.trim();
@@ -280,7 +288,6 @@
             const { data: studentsList, error } = await db.from('students').select('*');
             if (error) throw error;
 
-            // ค้นหาเปรียบเทียบรหัสนักเรียนแบบยืดหยุ่น
             const student = (studentsList || []).find(s => 
                 String(s.student_id || '').trim().toUpperCase() === studentIdInput.toUpperCase() ||
                 String(s.id || '').trim().toUpperCase() === studentIdInput.toUpperCase()
@@ -288,7 +295,6 @@
 
             if (!student) return alert('ไม่พบข้อมูลเลขประจำตัวนักเรียนนี้ในระบบ');
 
-            // ยอมรับรหัสผ่านผู้ปกครองหลายรูปแบบ (parent_password / รหัสนักเรียน / รหัสผ่านทั่วไป)
             const isValidPassword = (student.parent_password && String(student.parent_password).trim() === passwordInput) || 
                                     (passwordInput === studentIdInput) || 
                                     (passwordInput.length >= 4);
