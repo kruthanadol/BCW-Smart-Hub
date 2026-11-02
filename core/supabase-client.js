@@ -13,3 +13,7 @@ if (typeof supabase !== 'undefined' && supabase.createClient) {
 // Utility Normalizers
 window.cleanStr = (val) => String(val || '').trim();
 window.cleanLower = (val) => String(val || '').trim().toLowerCase();
+
+// เพิ่ม export เพื่อรองรับ ES Module ในไฟล์ core อื่นๆ
+export const supabaseClient = window.supabase;
+export default window.supabase;
