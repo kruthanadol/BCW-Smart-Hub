@@ -820,39 +820,81 @@
         }
 
         async function loadLandingRealStats(client) {
-            if (!client) return;
-            try {
-                const today = new Date().toISOString().split('T')[0];
-
-                const { count: studentCount, error: err1 } = await client
-                    .from('students')
-                    .select('*', { count: 'exact', head: true });
-                
-                if (!err1 && studentCount !== null) {
-                    const c1 = document.getElementById('total_students_count');
-                    if (c1) c1.innerText = studentCount.toLocaleString();
+            let studentCount = 0;
+            let presentCount = 0;
+            let clinicCount = 0;
+            let absentCount = 0, lateCount = 0, leaveCount = 0, truantCount = 0;
+        
+            const today = new Date().toISOString().split('T')[0];
+        
+            // 1. ดึงจำนวนนักเรียนทั้งหมดจาก Supabase (ถ้ามี Client)
+            if (client) {
+                try {
+                    // ดึงจำนวนนักเรียนทั้งหมด
+                    const { count, data, error: err1 } = await client
+                        .from('students')
+                        .select('id', { count: 'exact' });
+                    
+                    if (!err1 && count !== null && count > 0) {
+                        studentCount = count;
+                    } else if (data && data.length > 0) {
+                        studentCount = data.length;
+                    }
+        
+                    // ดึงจำนวนนักเรียนที่มาเรียนวันนี้ (status = present, late, GREEN)
+                    const { count: pCount, error: err2 } = await client
+                        .from('attendance_logs')
+                        .select('id', { count: 'exact' })
+                        .gte('created_at', today)
+                        .in('status', ['present', 'late', 'GREEN', 'Present', 'Late']);
+        
+                    if (!err2 && pCount !== null) {
+                        presentCount = pCount;
+                    }
+                } catch (err) {
+                    console.warn("Supabase Fetch Stats Error:", err);
                 }
-
-                const { count: presentCount, error: err2 } = await client
-                    .from('attendance_logs')
-                    .select('*', { count: 'exact', head: true })
-                    .gte('created_at', today)
-                    .in('status', ['present', 'late', 'GREEN']);
-
-                const total = studentCount || 0;
-                const present = presentCount || 0;
-                const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
-
-                const pCount = document.getElementById('statPresentCountLanding');
-                const pPercent = document.getElementById('statPresentPercentLanding');
-                if (pCount) pCount.innerText = present.toLocaleString();
-                if (pPercent) pPercent.innerText = `(${percent}%)`;
-
-                const aiText = document.getElementById('aiSummaryText');
-                if (aiText) {
+            }
+        
+            // 2. Fallback: ถ้ายังเป็น 0 ให้ลองเช็กจาก LocalStorage ที่เคยบันทึกไว้
+            if (studentCount === 0) {
+                const cachedStudents = localStorage.getItem('bcw_cached_students_count') || localStorage.getItem('total_students');
+                if (cachedStudents && !isNaN(cachedStudents) && Number(cachedStudents) > 0) {
+                    studentCount = parseInt(cachedStudents);
+                }
+            } else {
+                // บันทึกจำนวนนักเรียนเก็บไว้ใน Cache สำรอง
+                localStorage.setItem('bcw_cached_students_count', studentCount);
+            }
+        
+            // 3. คำนวณเปอร์เซ็นต์
+            const total = studentCount;
+            const present = presentCount;
+            const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
+        
+            // 4. อัปเดตข้อมูลลงหน้าจอทุก Element ID ที่เกี่ยวข้อง
+            const elCount1 = document.getElementById('total_students_count');
+            const elCount2 = document.getElementById('statTotalStudentsLanding');
+            
+            if (elCount1) elCount1.innerText = total.toLocaleString();
+            if (elCount2) {
+                elCount2.innerHTML = `${total.toLocaleString()} <span class="text-[9px] font-normal text-slate-500">คน</span>`;
+            }
+        
+            const pCountEl = document.getElementById('statPresentCountLanding');
+            const pPercentEl = document.getElementById('statPresentPercentLanding');
+            if (pCountEl) pCountEl.innerText = present.toLocaleString();
+            if (pPercentEl) pPercentEl.innerText = `(${percent}%)`;
+        
+            // 5. อัปเดตข้อความ AI Insights
+            const aiText = document.getElementById('aiSummaryText');
+            if (aiText) {
+                if (total > 0) {
                     aiText.innerHTML = `สรุปประจำวัน: นักเรียนมาเรียนแล้ว <strong class="text-emerald-700 font-bold">${present.toLocaleString()} คน (${percent}%)</strong> จากจำนวนทั้งหมด ${total.toLocaleString()} คน ระบบดำเนินงานปกติ`;
+                } else {
+                    aiText.innerHTML = `ยังไม่พบข้อมูลสถิตินักเรียนในระบบ กรุณาตรวจสอบการนำเข้าข้อมูลในแผง Admin`;
                 }
-            } catch (err) {}
+            }
         }
 
         function initSwipeGestures() {
