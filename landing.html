@@ -735,60 +735,73 @@
         async function initLandingSystem() {
             let authUser = null;
             let profileObj = null;
-
+        
             const client = window.supabase || window.db || (window.supabaseClient ? window.supabaseClient : null);
-
+        
+            // 1. ดึงข้อมูล User จาก Supabase Session
             if (client && client.auth) {
                 try {
                     const { data } = await client.auth.getSession();
                     if (data?.session?.user) authUser = data.session.user;
                 } catch (e) {}
             }
-
-            if (!authUser) {
-                try {
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const k = localStorage.key(i);
-                        if (k && (k.includes('auth-token') || k.includes('sb-') || k.includes('supabase'))) {
-                            const val = JSON.parse(localStorage.getItem(k));
-                            if (val && val.user) {
-                                authUser = val.user;
-                                break;
-                            }
-                        }
-                    }
-                } catch (e) {}
-            }
-
+        
+            // 2. ดึง Profile จาก AuthService
             if (authUser && window.AuthService && typeof AuthService.getUserProfile === 'function') {
                 try { profileObj = await AuthService.getUserProfile(authUser); } catch (e) {}
             }
-
+        
+            // 3. ถ้าไม่มี Profile ใน Auth ให้ลองค้นชื่อครูจากตาราง teachers ใน Supabase โดยใช้ Email หรือ ID
+            if (!profileObj && authUser && client) {
+                try {
+                    const { data: teacherData } = await client
+                        .from('teachers')
+                        .select('*')
+                        .or(`email.eq.${authUser.email},teacher_id.eq.${authUser.id}`)
+                        .maybeSingle();
+                    if (teacherData) profileObj = teacherData;
+                } catch (e) {}
+            }
+        
             const currentRole = profileObj?.role || localStorage.getItem('user_role') || 'teacher';
             
+            // แสดงผลชื่อและรูปโปรไฟล์
             renderUniversalProfile(authUser, profileObj, currentRole);
+            
+            // ดึงสถิตินักเรียน 2,173 คน
             await loadLandingRealStats(client);
             hidePageLoader();
         }
-
+        
         function renderUniversalProfile(user, profile, role) {
             const nameEl = document.getElementById('userDisplayName');
             const badgeEl = document.getElementById('userRoleBadge');
             const avatarImg = document.getElementById('userAvatarImg');
             const avatarIcon = document.getElementById('userAvatarIcon');
-
-            let displayName = user?.user_metadata?.full_name || 
-                              user?.user_metadata?.name || 
-                              profile?.display_name || 
+        
+            // 🔍 ค้นหาชื่อจากทุกช่องทางที่มีโอกาสเก็บข้อมูลไว้
+            let displayName = profile?.display_name || 
                               profile?.full_name || 
+                              profile?.name || 
+                              profile?.teacher_name ||
+                              user?.user_metadata?.full_name || 
+                              user?.user_metadata?.name || 
                               localStorage.getItem('user_name') || 
-                              user?.email;
-
-            if (!displayName || displayName === 'undefined') {
-                displayName = (role === 'admin') ? 'ผู้ดูแลระบบ' : 'ครูประจำวิชา';
+                              localStorage.getItem('teacher_name') ||
+                              localStorage.getItem('user_fullname');
+        
+            // ถ้าไม่พบชื่อจริงในระบบ ให้ลองดึงจาก Email (ตัดเอาส่วนก่อน @)
+            if (!displayName || displayName === 'undefined' || displayName === 'null') {
+                if (user?.email) {
+                    displayName = user.email.split('@')[0];
+                } else {
+                    displayName = (role === 'admin') ? 'ผู้ดูแลระบบ' : 'ครูประจำวิชา';
+                }
             }
+        
             if (nameEl) nameEl.innerText = displayName;
-
+        
+            // อัปเดต ป้าย Role Badge
             const roleName = (role || 'TEACHER').toUpperCase();
             if (badgeEl) {
                 badgeEl.innerText = roleName;
@@ -796,13 +809,17 @@
                     ? "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider"
                     : "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
             }
-
-            let avatarUrl = user?.user_metadata?.avatar_url || 
+        
+            // 🔍 ค้นหารูปโปรไฟล์จากทุกช่องทาง
+            let avatarUrl = profile?.avatar_url || 
+                             profile?.picture || 
+                             profile?.photo_url ||
+                             user?.user_metadata?.avatar_url || 
                              user?.user_metadata?.picture || 
-                             profile?.avatar_url || 
-                             localStorage.getItem('user_avatar');
-
-            if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
+                             localStorage.getItem('user_avatar') ||
+                             localStorage.getItem('avatar_url');
+        
+            if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined' && avatarUrl.trim() !== '') {
                 if (avatarImg) {
                     avatarImg.src = avatarUrl;
                     avatarImg.classList.remove('hidden');
