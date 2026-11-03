@@ -409,202 +409,188 @@
     </nav>
 
     <!-- 🌐 Core Engine Modules -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="core/supabase-client.js"></script>
-    <script src="core/auth-service.js"></script>
-    
-    <!-- 🔒 Universal Profile & Avatar Sync Engine -->
-    <script>
-        function hidePageLoader() {
-            const loader = document.getElementById('pageLoader');
-            if (loader) {
-                loader.style.opacity = '0';
-                loader.style.pointerEvents = 'none';
-                setTimeout(() => { loader.remove(); }, 500);
+<!-- 🌐 Core Engine Modules -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="core/supabase-client.js"></script>
+<script src="core/auth-service.js"></script>
+
+<script>
+    function hidePageLoader() {
+        const loader = document.getElementById('pageLoader');
+        if (loader) {
+            loader.style.opacity = '0';
+            loader.style.pointerEvents = 'none';
+            setTimeout(() => { loader.remove(); }, 500);
+        }
+    }
+
+    // 🚀 ระบบดึงข้อมูลและเฝ้าระวัง Supabase Client Ready
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (typeof startClock === 'function') startClock();
+
+        // หน่วงเวลาเล็กน้อยเพื่อให้ Supabase SDK และ Auth State เซ็ตตัวสมบูรณ์
+        setTimeout(async () => {
+            await initLandingSystem();
+        }, 300);
+    });
+
+    async function initLandingSystem() {
+        let authUser = null;
+        let profileObj = null;
+
+        // 1. ดึง Client Instance ที่พร้อมใช้งาน
+        const client = window.supabase || window.db || (window.supabaseClient ? window.supabaseClient : null);
+
+        if (client && client.auth) {
+            try {
+                // ดึง Session ปัจจุบัน
+                const { data } = await client.auth.getSession();
+                if (data?.session?.user) {
+                    authUser = data.session.user;
+                }
+            } catch (e) {
+                console.warn("Session check error:", e);
             }
         }
 
-        window.switchRoleToAdmin = function() {
-            const pwd = prompt('🔑 กรุณากรอกรหัสผ่านผู้ดูแลระบบ (ADMIN):');
-            if (pwd === '218269') {
-                localStorage.setItem('user_role', 'admin');
-                localStorage.setItem('user_name', 'ผู้ดูแลระบบ');
-                alert('✅ เข้าสู่ระบบในนาม ADMIN เรียบร้อยแล้ว!');
-                location.reload();
-            } else if (pwd !== null) {
-                alert('❌ รหัสผ่านไม่ถูกต้อง');
-            }
-        };
-
-        window.switchNavTab = function(tab) {
-            var btns = document.querySelectorAll('.nav-item-btn');
-            btns.forEach(function(btn) { btn.classList.remove('active'); });
-
-            if (tab === 'home') {
-                const homeBtn = document.getElementById('navHome');
-                if (homeBtn) homeBtn.classList.add('active');
-            }
-        };
-
-        // 🚀 Engine หลัก: ดึงโปรไฟล์แบบ Deep Scanning
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof startClock === 'function') startClock();
-
-            let authUser = null;
-            let profileObj = null;
-
-            // 1. ลองดึงจาก Supabase Client
-            const client = window.supabase || window.db;
-            if (client && client.auth) {
-                try {
-                    const { data } = await client.auth.getSession();
-                    if (data?.session?.user) authUser = data.session.user;
-                } catch (e) {}
-            }
-
-            // 2. ถ้าดึงจาก Supabase Client ไม่ได้ ให้สแกนหา Token ใน localStorage ทุก Key
-            if (!authUser) {
-                try {
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const k = localStorage.key(i);
-                        if (k && (k.includes('auth-token') || k.includes('sb-'))) {
-                            const val = JSON.parse(localStorage.getItem(k));
-                            if (val && val.user) {
-                                authUser = val.user;
-                                break;
-                            }
+        // 2. เผื่อสแกน LocalStorage หา User Fallback
+        if (!authUser) {
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k && (k.includes('auth-token') || k.includes('sb-'))) {
+                        const val = JSON.parse(localStorage.getItem(k));
+                        if (val && val.user) {
+                            authUser = val.user;
+                            break;
                         }
                     }
-                } catch (e) {}
-            }
-
-            // 3. ดึง Profile บทบาทจาก AuthService
-            if (authUser && window.AuthService && typeof AuthService.getUserProfile === 'function') {
-                try { profileObj = await AuthService.getUserProfile(authUser); } catch (e) {}
-            }
-
-            const currentRole = profileObj?.role || localStorage.getItem('user_role') || 'teacher';
-            renderUniversalProfile(authUser, profileObj, currentRole);
-            await loadLandingRealStats();
-            hidePageLoader();
-        });
-
-        function renderUniversalProfile(user, profile, role) {
-            const nameEl = document.getElementById('userDisplayName');
-            const badgeEl = document.getElementById('userRoleBadge');
-            const avatarImg = document.getElementById('userAvatarImg');
-            const avatarIcon = document.getElementById('userAvatarIcon');
-
-            // 📌 ดึงชื่อผู้ใช้: เช็ค Metadata -> Profile -> LocalStorage
-            let displayName = user?.user_metadata?.full_name || 
-                              user?.user_metadata?.name || 
-                              profile?.display_name || 
-                              profile?.full_name || 
-                              localStorage.getItem('user_name') || 
-                              user?.email;
-
-            if (!displayName || displayName === 'undefined') {
-                displayName = (role === 'admin') ? 'ผู้ดูแลระบบ' : 'ครูประจำวิชา';
-            }
-
-            if (nameEl) nameEl.innerText = displayName;
-
-            // 📌 แสดง Badge Role
-            const roleName = (role || 'TEACHER').toUpperCase();
-            if (badgeEl) {
-                badgeEl.innerText = roleName;
-                if (roleName === 'ADMIN') {
-                    badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                } else {
-                    badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
                 }
-            }
-
-            // 📌 ดึงรูปโปรไฟล์: เช็ค avatar_url / picture จาก Google Metadata
-            let avatarUrl = user?.user_metadata?.avatar_url || 
-                             user?.user_metadata?.picture || 
-                             profile?.avatar_url || 
-                             localStorage.getItem('user_avatar');
-
-            if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
-                if (avatarImg) {
-                    // กำหนดแท็กเพื่อป้องกันปัญหา CORS บล็อกภาพของ Google บน GitHub Pages
-                    avatarImg.crossOrigin = "anonymous";
-                    avatarImg.src = avatarUrl;
-                    avatarImg.classList.remove('hidden');
-                    if (avatarIcon) avatarIcon.classList.add('hidden');
-                    
-                    avatarImg.onerror = function() {
-                        // ถ้าติดปัญหา CORS บล็อกรูปจริง ให้ซ่อนรูปแล้วโชว์ไอคอนผู้ใช้
-                        this.classList.add('hidden');
-                        if (avatarIcon) avatarIcon.classList.remove('hidden');
-                    };
-                }
-            } else {
-                if (avatarImg) avatarImg.classList.add('hidden');
-                if (avatarIcon) avatarIcon.classList.remove('hidden');
-            }
+            } catch (e) {}
         }
 
-        async function loadLandingRealStats() {
-            try {
-                const client = window.supabase || window.db;
-                if (!client) return;
+        // 3. ดึงบทบาทจาก AuthService (ถ้ามี)
+        if (authUser && window.AuthService && typeof AuthService.getUserProfile === 'function') {
+            try { profileObj = await AuthService.getUserProfile(authUser); } catch (e) {}
+        }
 
-                const today = new Date().toISOString().split('T')[0];
-                const { count: studentCount } = await client.from('students').select('student_id', { count: 'exact', head: true });
-                const total = studentCount || 0;
+        const currentRole = profileObj?.role || localStorage.getItem('user_role') || 'teacher';
+        
+        // Render Profile & สถิติจริง
+        renderUniversalProfile(authUser, profileObj, currentRole);
+        await loadLandingRealStats(client);
+
+        // ซ่อน Spinner เมื่อทุกอย่างพร้อม
+        hidePageLoader();
+    }
+
+    function renderUniversalProfile(user, profile, role) {
+        const nameEl = document.getElementById('userDisplayName');
+        const badgeEl = document.getElementById('userRoleBadge');
+        const avatarImg = document.getElementById('userAvatarImg');
+        const avatarIcon = document.getElementById('userAvatarIcon');
+
+        // 📌 ชื่อผู้ใช้
+        let displayName = user?.user_metadata?.full_name || 
+                          user?.user_metadata?.name || 
+                          profile?.display_name || 
+                          profile?.full_name || 
+                          localStorage.getItem('user_name') || 
+                          user?.email;
+
+        if (!displayName || displayName === 'undefined') {
+            displayName = (role === 'admin') ? 'ผู้ดูแลระบบ' : 'ครูประจำวิชา';
+        }
+        if (nameEl) nameEl.innerText = displayName;
+
+        // 📌 Badge บทบาท
+        const roleName = (role || 'TEACHER').toUpperCase();
+        if (badgeEl) {
+            badgeEl.innerText = roleName;
+            badgeEl.className = (roleName === 'ADMIN') 
+                ? "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider"
+                : "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+        }
+
+        // 📌 รูปโปรไฟล์ Google Avatar
+        let avatarUrl = user?.user_metadata?.avatar_url || 
+                         user?.user_metadata?.picture || 
+                         profile?.avatar_url || 
+                         localStorage.getItem('user_avatar');
+
+        if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
+            if (avatarImg) {
+                avatarImg.src = avatarUrl;
+                avatarImg.classList.remove('hidden');
+                if (avatarIcon) avatarIcon.classList.add('hidden');
                 
+                avatarImg.onerror = function() {
+                    this.classList.add('hidden');
+                    if (avatarIcon) avatarIcon.classList.remove('hidden');
+                };
+            }
+        } else {
+            if (avatarImg) avatarImg.classList.add('hidden');
+            if (avatarIcon) avatarIcon.classList.remove('hidden');
+        }
+    }
+
+    // 📊 ดึงสถิติจำนวนนักเรียนจริงจาก Supabase
+    async function loadLandingRealStats(client) {
+        if (!client) return;
+        try {
+            const today = new Date().toISOString().split('T')[0];
+
+            // 1. ดึงจำนวนนักเรียนทั้งหมด
+            const { count: studentCount, error: err1 } = await client
+                .from('students')
+                .select('*', { count: 'exact', head: true });
+                
+            if (!err1 && studentCount !== null) {
                 const c1 = document.getElementById('total_students_count');
-                if (c1) c1.innerText = total.toLocaleString();
-
-                const { count: presentCount } = await client.from('attendance_logs')
-                    .select('*', { count: 'exact', head: true })
-                    .gte('created_at', today)
-                    .in('status', ['present', 'late', 'GREEN']);
-
-                const present = presentCount || 0;
-                const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
-
-                const pCount = document.getElementById('statPresentCountLanding');
-                const pPercent = document.getElementById('statPresentPercentLanding');
-                if (pCount) pCount.innerText = present.toLocaleString();
-                if (pPercent) pPercent.innerText = `(${percent}%)`;
-
-                const aiText = document.getElementById('aiSummaryText');
-                if (aiText) {
-                    aiText.innerHTML = `สรุปประจำวัน: นักเรียนมาเรียนแล้ว <strong class="text-emerald-700 font-bold">${present.toLocaleString()} คน (${percent}%)</strong> จากจำนวนทั้งหมด ${total.toLocaleString()} คน ระบบดำเนินงานปกติ`;
-                }
-            } catch (err) {}
-        }
-
-        window.handleLogout = function() {
-            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                if (window.AuthService && typeof AuthService.logout === 'function') {
-                    AuthService.logout();
-                } else {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.replace('login.html');
-                }
+                if (c1) c1.innerText = studentCount.toLocaleString();
             }
-        };
 
-        function startClock() {
-            var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            var thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+            // 2. ดึงจำนวนมาเรียนวันนี้
+            const { count: presentCount, error: err2 } = await client
+                .from('attendance_logs')
+                .select('*', { count: 'exact', head: true })
+                .gte('created_at', today)
+                .in('status', ['present', 'late', 'GREEN']);
 
-            function update() {
-                var now = new Date();
-                var dateElem = document.getElementById('thaiDateStr');
-                if (dateElem) dateElem.innerText = 'วัน' + thaiDays[now.getDay()] + 'ที่ ' + now.getDate() + ' ' + thaiMonths[now.getMonth()] + ' พ.ศ. ' + (now.getFullYear() + 543);
+            const total = studentCount || 0;
+            const present = presentCount || 0;
+            const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
 
-                var clockElem = document.getElementById('liveClock');
-                if (clockElem) clockElem.innerText = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+            const pCount = document.getElementById('statPresentCountLanding');
+            const pPercent = document.getElementById('statPresentPercentLanding');
+            if (pCount) pCount.innerText = present.toLocaleString();
+            if (pPercent) pPercent.innerText = `(${percent}%)`;
+
+            const aiText = document.getElementById('aiSummaryText');
+            if (aiText) {
+                aiText.innerHTML = `สรุปประจำวัน: นักเรียนมาเรียนแล้ว <strong class="text-emerald-700 font-bold">${present.toLocaleString()} คน (${percent}%)</strong> จากจำนวนทั้งหมด ${total.toLocaleString()} คน ระบบดำเนินงานปกติ`;
             }
-            update();
-            setInterval(update, 1000);
+        } catch (err) {
+            console.warn('Load Stats Error:', err);
         }
-    </script>
+    }
+
+    function startClock() {
+        var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤศจิกายน", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        var thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+
+        function update() {
+            var now = new Date();
+            var dateElem = document.getElementById('thaiDateStr');
+            if (dateElem) dateElem.innerText = 'วัน' + thaiDays[now.getDay()] + 'ที่ ' + now.getDate() + ' ' + thaiMonths[now.getMonth()] + ' พ.ศ. ' + (now.getFullYear() + 543);
+
+            var clockElem = document.getElementById('liveClock');
+            if (clockElem) clockElem.innerText = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+        }
+        update();
+        setInterval(update, 1000);
+    }
+</script>
 </body>
 </html>
