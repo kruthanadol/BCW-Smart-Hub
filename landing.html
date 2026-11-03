@@ -34,11 +34,14 @@
         .mobile-app-card:active { transform: scale(0.95); }
         .mobile-app-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
         
-        /* 📱 Backdrop & Admin Drawer Fixes */
+        /* 📱 Bottom Sheet Backdrop & Cards (ป้องกันการกดทับปุ่มล่าง) */
         .bottom-sheet-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9990; opacity: 0; pointer-events: none !important; transition: opacity 0.3s ease; }
         .bottom-sheet-backdrop.active { opacity: 1; pointer-events: auto !important; }
+        .bottom-sheet-card { position: fixed; bottom: 80px; left: 10px; right: 10px; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 26px; border: 1.5px solid #e2e8f0; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2); z-index: 9995; transform: translateY(120%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); max-height: 62vh; display: flex; flex-direction: column; overflow: hidden; }
+        .bottom-sheet-backdrop.active .bottom-sheet-card { transform: translateY(0); }
+        .drawer-scroll-content { overflow-y: auto !important; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
         
-        /* 👑 Bottom Navigation Bar Fixes */
+        /* 👑 Bottom Navigation Bar Fix */
         .native-bottom-nav { position: fixed; bottom: 10px; left: 10px; right: 10px; max-width: 500px; margin: 0 auto; height: 58px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 2px solid #f59e0b; border-radius: 26px; display: flex; align-items: center; justify-content: space-around; padding: 0 6px; z-index: 10000; box-shadow: 0 10px 30px rgba(217, 119, 6, 0.25), 0 4px 12px rgba(15, 23, 42, 0.08); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease; pointer-events: auto !important; }
         .native-bottom-nav.nav-hidden { transform: translateY(120px) !important; opacity: 0 !important; pointer-events: none !important; }
         
@@ -51,6 +54,9 @@
         .admin-side-trigger { position: fixed; right: 0; top: 320px; background: linear-gradient(135deg, #064e3b 0%, #022c22 100%); color: #fbbf24; border: 2px solid #f59e0b; border-right: none; border-top-left-radius: 14px; border-bottom-left-radius: 14px; padding: 8px 5px; z-index: 10005 !important; box-shadow: -4px 4px 15px rgba(6, 78, 59, 0.3); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: all 0.2s ease; pointer-events: auto !important; }
         .admin-side-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 330px; max-width: 85vw; background: rgba(6, 78, 59, 0.98) !important; backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%); border-left: 2px solid #f59e0b; box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3); z-index: 10010; transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; color: #ffffff; }
         .bottom-sheet-backdrop.active .admin-side-drawer { transform: translateX(0); }
+        .swipe-handle-area { width: 100%; padding: 8px 0 4px 0; display: flex; justify-content: center; cursor: grab; shrink-0; }
+        .swipe-handle { width: 40px; height: 4px; background-color: #cbd5e1; border-radius: 99px; }
+        .report-menu-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; transition: all 0.2s ease; }
         .ai-soft-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04); border: 1px solid #e2e8f0 !important; }
     </style>
 </head>
@@ -190,7 +196,7 @@
             </p>
         </div>
 
-        <!-- 📱 GRID ฝั่งมือถือ (8 ไอคอน) - ดันขึ้น 20px ตามคำขอด้วย -mt-[20px] -->
+        <!-- 📱 GRID ฝั่งมือถือ (8 ไอคอน) - ดันขึ้น 20px ด้วย -mt-[20px] -->
         <div id="mobileAppGrid" class="mobile-app-grid md:hidden grid grid-cols-4 gap-1.5 flex-1 content-center -mt-[20px] relative z-20">
             <a href="apps/school-app/executive.html" class="mobile-app-card cursor-pointer border-emerald-300 bg-emerald-50/30">
                 <div class="mobile-app-icon bg-emerald-100 text-emerald-800 border border-emerald-300">🏛️</div>
@@ -381,7 +387,7 @@
         </div>
     </footer>
 
-    <!-- FLOATING BOTTOM NAVIGATION BAR -->
+    <!-- FLOATING BOTTOM NAVIGATION BAR (แยกฟังก์ชันคลิกให้ชัดเจน) -->
     <nav id="nativeBottomNav" class="native-bottom-nav">
         <button id="navHome" type="button" class="nav-item-btn active" onclick="switchNavTab('home')">
             <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
@@ -412,7 +418,7 @@
                         <p class="text-[10px] text-emerald-200 font-bold mt-0.5">ระบบจัดการนำเข้าข้อมูลหลังบ้าน</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeAdminDrawer()" class="w-7 h-7 rounded-full bg-emerald-900/80 text-emerald-200 font-black text-xs border border-emerald-500 flex items-center justify-center">✕</button>
+                <button type="button" onclick="closeAdminDrawer()" class="w-7 h-7 rounded-full bg-emerald-900/80 text-emerald-200 font-black text-xs border border-emerald-500 flex items-center justify-center cursor-pointer">✕</button>
             </div>
 
             <div class="p-4 space-y-3 overflow-y-auto flex-1 text-xs">
@@ -452,12 +458,105 @@
         </div>
     </div>
 
+    <!-- 📚 1. DRAWER รายงานฝ่ายวิชาการ (12 รายการ) -->
+    <div id="academicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('academicDrawerBackdrop')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 bg-sky-100 text-sky-800 rounded-xl flex items-center justify-center text-lg shrink-0">🎓</div>
+                    <div>
+                        <h3 class="text-xs font-black text-slate-900 leading-tight">ศูนย์รวมรายงานฝ่ายวิชาการ (12 รายการ)</h3>
+                        <p class="text-[10px] text-sky-700 font-bold">เลื่อนเพื่อดูรายการทั้งหมดแล้วกดพิมพ์เสนอผู้บริหาร</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDrawer('academicDrawerBackdrop')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 font-black text-xs flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            <div class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs max-h-[52vh]">
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📚</span><div><div class="font-black text-slate-800 text-xs">1. รายงานสรุปอัตราการส่งงานประจำวิชา</div><div class="text-[9px] text-slate-500">สรุปการติดตามภาระงานรายกลุ่มสาระ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">⚠️</span><div><div class="font-black text-slate-800 text-xs">2. รายงานรายชื่อนักเรียนเสี่ยงติด มส.</div><div class="text-[9px] text-slate-500">ขาดเรียนเกินสิทธิ์กำหนดแยกรายชั้น</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📝</span><div><div class="font-black text-slate-800 text-xs">3. รายงานผลประเมินการอ่าน คิดวิเคราะห์</div><div class="text-[9px] text-slate-500">สรุปผลประเมินคุณลักษณะอันพึงประสงค์</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📊</span><div><div class="font-black text-slate-800 text-xs">4. รายงานสรุปผลสัมฤทธิ์ทางการเรียน (ปพ.5)</div><div class="text-[9px] text-slate-500">สรุปเกรดเฉลี่ยแยกตามระดับชั้น ม.1 - ม.6</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📄</span><div><div class="font-black text-slate-800 text-xs">5. รายงานสรุปการลงทะเบียนแก้ 0, ร, มส.</div><div class="text-[9px] text-slate-500">ติดตามผลการอนุมัติแก้ผลการเรียนประจำภาคเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎓</span><div><div class="font-black text-slate-800 text-xs">6. รายงานสรุปยอดนักเรียนจบการศึกษา (ปพ.3)</div><div class="text-[9px] text-slate-500">บัญชีรายชื่อผู้สำเร็จการศึกษาชั้น ม.3 และ ม.6</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📈</span><div><div class="font-black text-slate-800 text-xs">7. รายงานเปรียบเทียบผลการทดสอบ O-NET/A-Level</div><div class="text-[9px] text-slate-500">เปรียบเทียบพัฒนาการทางการเรียนระดับชาติ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📖</span><div><div class="font-black text-slate-800 text-xs">8. รายงานการใช้แผนการจัดการเรียนรู้ของครู</div><div class="text-[9px] text-slate-500">การส่งและอนุมัติแผนการสอนรายกลุ่มสาระ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏫</span><div><div class="font-black text-slate-800 text-xs">9. รายงานสถิติการนิเทศการสอนภายใน</div><div class="text-[9px] text-slate-500">การสังเกตการสอนและการประเมินครูผู้สอน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏆</span><div><div class="font-black text-slate-800 text-xs">10. รายงานผลการแข่งขันทักษะวิชาการศิลปหัตถกรรม</div><div class="text-[9px] text-slate-500">สรุปเหรียญรางวัลและผลงานนักเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">💡</span><div><div class="font-black text-slate-800 text-xs">11. รายงานสรุปวิจัยในชั้นเรียนของครูผู้สอน</div><div class="text-[9px] text-slate-500">ผลงานพัฒนานวัตกรรมการเรียนรู้ประจำปี</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📋</span><div><div class="font-black text-slate-800 text-xs">12. รายงานทะเบียนหนังสือรับรองสภาพนักเรียน</div><div class="text-[9px] text-slate-500">สรุปการออกเอกสารทะเบียนทางการศึกษา</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🛡️ 2. DRAWER รายงานฝ่ายกิจการนักเรียน (12 รายการ) -->
+    <div id="disciplineDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('disciplineDrawerBackdrop')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center text-lg shrink-0">📁</div>
+                    <div>
+                        <h3 class="text-xs font-black text-slate-900 leading-tight">ศูนย์รวมรายงานกิจการนักเรียน (12 รายการ)</h3>
+                        <p class="text-[10px] text-amber-700 font-bold">เลื่อนเพื่อดูรายการทั้งหมดแล้วกดพิมพ์เสนอผู้บริหาร</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDrawer('disciplineDrawerBackdrop')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 font-black text-xs flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            <div class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs max-h-[52vh]">
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📋</span><div><div class="font-black text-slate-800 text-xs">1. รายงานสรุปคะแนนพฤติกรรมรายห้อง</div><div class="text-[9px] text-slate-500">สรุปคะแนนคงเหลือเฉลี่ยแยกตามห้องเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🚨</span><div><div class="font-black text-slate-800 text-xs">2. รายงานรายชื่อนักเรียนกลุ่มเสี่ยง (&lt; 80 คะแนน)</div><div class="text-[9px] text-slate-500">รายชื่อเด็กติดเงื่อนไขวิกฤตทำกิจกรรมซ่อมแซม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎖️</span><div><div class="font-black text-slate-800 text-xs">3. รายงานประวัติการทำความดีและจิตอาสา</div><div class="text-[9px] text-slate-500">สรุปการเพิ่มคะแนนความประพฤติเชิดชูเกียรติ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏫</span><div><div class="font-black text-slate-800 text-xs">4. รายงานการเข้าแถวเคารพธงชาติประจำสัปดาห์</div><div class="text-[9px] text-slate-500">สถิติการมาสายและการขาดกิจกรรมหน้าเสาธง</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🚪</span><div><div class="font-black text-slate-800 text-xs">5. รายงานการออกนอกสถานศึกษา (Gatepass)</div><div class="text-[9px] text-slate-500">สรุปการขออนุญาตออกนอกโรงเรียนระหว่างวัน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📱</span><div><div class="font-black text-slate-800 text-xs">6. รายงานสถิติการฝากและยึดโทรศัพท์มือถือ</div><div class="text-[9px] text-slate-500">การปฏิบัติตามมาตรการการใช้อุปกรณ์สื่อสาร</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">👔</span><div><div class="font-black text-slate-800 text-xs">7. รายงานการตรวจสุ่มระเบียบการแต่งกาย/ทรงผม</div><div class="text-[9px] text-slate-500">ผลการบันทึกการตรวจความเรียบร้อยประจำเดือน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📞</span><div><div class="font-black text-slate-800 text-xs">8. รายงานการเชิญผู้ปกครองพบรายบุคคล</div><div class="text-[9px] text-slate-500">บันทึกข้อตกลงแก้ไขพฤติกรรมร่วมกับผู้ปกครอง</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🤝</span><div><div class="font-black text-slate-800 text-xs">9. รายงานการเยี่ยมบ้านนักเรียน (ระบบดูแลช่วยเหลือ)</div><div class="text-[9px] text-slate-500">สรุปข้อมูลสภาพความเป็นอยู่และการคัดกรอง 5 กลุ่ม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">💰</span><div><div class="font-black text-slate-800 text-xs">10. รายงานสรุปการจัดสรรทุนการศึกษานักเรียนยากจน</div><div class="text-[9px] text-slate-500">การมอบทุนปัจจัยพื้นฐานและทุนยากจนพิเศษ (กสศ.)</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">💊</span><div><div class="font-black text-slate-800 text-xs">11. รายงานผลการสุ่มตรวจสารเสพติดและบุหรี่ไฟฟ้า</div><div class="text-[9px] text-slate-500">สรุปมาตรการโรงเรียนสีขาวปลอดยาเสพติด</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🛡️</span><div><div class="font-black text-slate-800 text-xs">12. รายงานสรุปเหตุการณ์ความปลอดภัยในโรงเรียน</div><div class="text-[9px] text-slate-500">บันทึกการระวังป้องกันความปลอดภัย MOE Safety</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📈 3. DRAWER รายงานกราฟสถิติผู้บริหาร (12 รายการ) -->
+    <div id="execDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('execDrawerBackdrop')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 bg-emerald-100 text-emerald-800 rounded-xl flex items-center justify-center text-lg shrink-0">📊</div>
+                    <div>
+                        <h3 class="text-xs font-black text-slate-900 leading-tight">ศูนย์รายงานกราฟสถิติผู้บริหาร (12 รายการ)</h3>
+                        <p class="text-[10px] text-emerald-700 font-bold">เลื่อนเพื่อดูรายการทั้งหมดแล้วกดพิมพ์เสนอผู้บริหาร</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDrawer('execDrawerBackdrop')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 font-black text-xs flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            <div class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs max-h-[52vh]">
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📈</span><div><div class="font-black text-slate-800 text-xs">1. กราฟเปรียบเทียบอัตราการมาเรียนรายเดือน</div><div class="text-[9px] text-slate-500">แนวโน้มการสแกนบัตรเข้าโรงเรียนภาพรวมสะสม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🛡️</span><div><div class="font-black text-slate-800 text-xs">2. กราฟสถิติความผิดระเบียบจำแนกตามหมวด</div><div class="text-[9px] text-slate-500">สรุปสถิติความผิดระเบียบโรงเรียนประจำปีการศึกษา</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏥</span><div><div class="font-black text-slate-800 text-xs">3. กราฟสถิติการใช้บริการห้องพยาบาลจำแนกตามโรค</div><div class="text-[9px] text-slate-500">ภาพรวมจำแนกตามกลุ่มอาการและการจ่ายยา</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎓</span><div><div class="font-black text-slate-800 text-xs">4. กราฟแสดงสัดส่วนเกรดเฉลี่ยสะสม (GPAX) แยกชั้น</div><div class="text-[9px] text-slate-500">การกระจายตัวของระดับผลการเรียนนักเรียน ม.1-ม.6</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">⏰</span><div><div class="font-black text-slate-800 text-xs">5. กราฟช่วงเวลาความหนาแน่นการเข้าประตูโรงเรียน</div><div class="text-[9px] text-slate-500">วิเคราะห์จุดพีคการสแกนบัตรช่วงเช้า 06.30 - 08.00 น.</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📊</span><div><div class="font-black text-slate-800 text-xs">6. กราฟเปรียบเทียบการส่งการบ้านรายกลุ่มสาระฯ</div><div class="text-[9px] text-slate-500">สัดส่วนการตรงต่อเวลาในการส่งภาระงานของนักเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🚗</span><div><div class="font-black text-slate-800 text-xs">7. กราฟสรุปประเภทการเดินทางมาโรงเรียนของนักเรียน</div><div class="text-[9px] text-slate-500">สถิติจำนวนรถรับส่ง รถจักรยานยนต์ และการเดินเท้า</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏫</span><div><div class="font-black text-slate-800 text-xs">8. กราฟสถิติการใช้งานห้องเรียนและห้องปฏิบัติการ</div><div class="text-[9px] text-slate-500">อัตราการจองและเข้าใช้ห้องคอมพิวเตอร์/วิทย์</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">👨‍👩‍👧‍👦</span><div><div class="font-black text-slate-800 text-xs">9. กราฟอัตราการเข้าใช้งานแอปพลิเคชันของผู้ปกครอง</div><div class="text-[9px] text-slate-500">ความถี่ในการเปิดอ่านประกาศและเช็กเวลาเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📌</span><div><div class="font-black text-slate-800 text-xs">10. กราฟสถิติการยื่นใบลาอิเล็กทรอนิกส์แยกประเภท</div><div class="text-[9px] text-slate-500">การเปรียบเทียบสัดส่วนลากิจ ลาป่วย และลากิจกรรม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🌱</span><div><div class="font-black text-slate-800 text-xs">11. กราฟสถิติจำนวนชั่วโมงจิตอาสาสะสมรายชั้น</div><div class="text-[9px] text-slate-500">การเข้าร่วมกิจกรรมสาธารณประโยชน์ของนักเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎯</span><div><div class="font-black text-slate-800 text-xs">12. กราฟสถิติการศึกษาต่อระดับอุดมศึกษา ม.6</div><div class="text-[9px] text-slate-500">สรุปสัดส่วนการสอบติด TCAS รอบ 1 - 4</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+            </div>
+        </div>
+    </div>
+
     <!-- 🌐 Core Engine Modules -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="core/supabase-client.js"></script>
     <script src="core/auth-service.js"></script>
     
-    <!-- 🔒 Universal Script (ระบบคลิก, ดึงโปรไฟล์ และ Swipe) -->
+    <!-- 🔒 Universal Controller Script -->
     <script>
         function hidePageLoader() {
             const loader = document.getElementById('pageLoader');
@@ -476,6 +575,7 @@
                 if (backdrop.classList.contains('active')) {
                     closeAdminDrawer();
                 } else {
+                    closeAllDrawers();
                     backdrop.classList.add('active');
                 }
             }
@@ -486,6 +586,25 @@
             if (backdrop) backdrop.classList.remove('active');
         };
 
+        window.openDrawerById = function(id) {
+            closeAllDrawers();
+            var el = document.getElementById(id);
+            if (el) el.classList.add('active');
+        };
+
+        window.closeDrawer = function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+            switchNavTab('home');
+        };
+
+        function closeAllDrawers() {
+            document.querySelectorAll('.bottom-sheet-backdrop').forEach(function(el) {
+                el.classList.remove('active');
+            });
+        }
+
+        // 👑 ฟังก์ชันสลับแท็บเมนูด้านล่าง (เปิด/ปิด Drawer)
         window.switchNavTab = function(tab) {
             var btns = document.querySelectorAll('.nav-item-btn');
             btns.forEach(function(btn) { btn.classList.remove('active'); });
@@ -493,7 +612,19 @@
             if (tab === 'home') {
                 const homeBtn = document.getElementById('navHome');
                 if (homeBtn) homeBtn.classList.add('active');
-                closeAdminDrawer();
+                closeAllDrawers();
+            } else if (tab === 'discipline') {
+                const discBtn = document.getElementById('navDiscipline');
+                if (discBtn) discBtn.classList.add('active');
+                openDrawerById('disciplineDrawerBackdrop');
+            } else if (tab === 'academic') {
+                const acadBtn = document.getElementById('navAcademic');
+                if (acadBtn) acadBtn.classList.add('active');
+                openDrawerById('academicDrawerBackdrop');
+            } else if (tab === 'exec') {
+                const execBtn = document.getElementById('navExec');
+                if (execBtn) execBtn.classList.add('active');
+                openDrawerById('execDrawerBackdrop');
             }
         };
 
@@ -509,7 +640,7 @@
             }
         };
 
-        // 🚀 Engine ดึงข้อมูลนักเรียนและโปรไฟล์
+        // 🚀 Engine ดึงข้อมูลโปรไฟล์และนักเรียน
         document.addEventListener('DOMContentLoaded', async () => {
             if (typeof startClock === 'function') startClock();
             initSwipeGestures();
