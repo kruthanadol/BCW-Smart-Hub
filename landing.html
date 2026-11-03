@@ -569,92 +569,108 @@
         };
 
         // 2. Auth Profile Binding & Supabase Realtime Engine
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof startClock === 'function') startClock();
-            initSwipeGestures();
-        
-            let userObj = null;
-            let profileObj = null;
-
+      // 🔧 ปรับแก้ฟังก์ชันดึงรูปและชื่อโปรไฟล์ให้รองรับ Google OAuth 100%
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (typeof startClock === 'function') startClock();
+        if (typeof initSwipeGestures === 'function') initSwipeGestures();
+    
+        let userObj = null;
+        let profileObj = null;
+    
+        // 1. ดึงข้อมูล User จาก Supabase Client โดยตรง
+        const client = window.supabase || window.db;
+        if (client && client.auth) {
+            try {
+                const { data } = await client.auth.getSession();
+                if (data?.session?.user) {
+                    userObj = data.session.user;
+                }
+            } catch (e) {
+                console.warn("Get session error:", e);
+            }
+        }
+    
+        // 2. ดึงจาก LocalStorage (เผื่อ Supabase Client ยังไม่สร้าง Session)
+        if (!userObj) {
             try {
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key && key.includes('auth-token')) {
+                    if (key && (key.includes('auth-token') || key.includes('sb-'))) {
                         const parsed = JSON.parse(localStorage.getItem(key));
-                        if (parsed && parsed.user) {
+                        if (parsed?.user) {
                             userObj = parsed.user;
                             break;
                         }
                     }
                 }
             } catch (e) {}
-
-            const client = window.supabase || window.db;
-            if (!userObj && client) {
-                try {
-                    const { data } = await client.auth.getSession();
-                    if (data?.session?.user) userObj = data.session.user;
-                } catch (e) {}
-            }
-
-            if (userObj && window.AuthService && typeof AuthService.getUserProfile === 'function') {
-                try {
-                    profileObj = await AuthService.getUserProfile(userObj);
-                } catch (e) {}
-            }
-
-            const currentRole = profileObj?.role || localStorage.getItem('user_role') || 'teacher';
-            renderLandingProfile(userObj, profileObj, currentRole);
-            await loadLandingRealStats();
-
-            // 🟢 ปิด Spinner หลังจากโหลดข้อมูลเบื้องต้นเสร็จสิ้น
-            hidePageLoader();
-        });
-            
-        function renderLandingProfile(authUser, profile, userRole) {
-            const nameEl = document.getElementById('userDisplayName');
-            const badgeEl = document.getElementById('userRoleBadge');
-            const avatarImg = document.getElementById('userAvatarImg');
-            const avatarIcon = document.getElementById('userAvatarIcon');
-
-            const displayName = authUser?.user_metadata?.full_name || 
-                                authUser?.user_metadata?.name || 
-                                profile?.display_name || 
-                                authUser?.email || 
-                                localStorage.getItem('user_name') || 
-                                'ครูประจำวิชา';
-
-            const roleName = (userRole || profile?.role || 'TEACHER').toUpperCase();
-
-            if (nameEl) nameEl.innerText = displayName;
-            if (badgeEl) {
-                badgeEl.innerText = roleName;
-                if (roleName === 'ADMIN') {
-                    badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                } else if (roleName === 'TEACHER') {
-                    badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                } else {
-                    badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                }
-            }
-
-            const avatarUrl = authUser?.user_metadata?.avatar_url || 
-                              authUser?.user_metadata?.picture || 
-                              profile?.avatar_url || 
-                              localStorage.getItem('user_avatar');
-
-            if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
-                if (avatarImg) {
-                    avatarImg.src = avatarUrl;
-                    avatarImg.classList.remove('hidden');
-                }
-                if (avatarIcon) avatarIcon.classList.add('hidden');
+        }
+    
+        // 3. ดึง Profile จาก AuthService
+        if (userObj && window.AuthService && typeof AuthService.getUserProfile === 'function') {
+            try {
+                profileObj = await AuthService.getUserProfile(userObj);
+            } catch (e) {}
+        }
+    
+        const currentRole = profileObj?.role || localStorage.getItem('user_role') || 'teacher';
+        renderLandingProfile(userObj, profileObj, currentRole);
+        if (typeof loadLandingRealStats === 'function') await loadLandingRealStats();
+        if (typeof hidePageLoader === 'function') hidePageLoader();
+    });
+    
+    function renderLandingProfile(authUser, profile, userRole) {
+        const nameEl = document.getElementById('userDisplayName');
+        const badgeEl = document.getElementById('userRoleBadge');
+        const avatarImg = document.getElementById('userAvatarImg');
+        const avatarIcon = document.getElementById('userAvatarIcon');
+    
+        // 📌 1. แก้ไขการดึงชื่อ: ดึง full_name จาก Google Metadata ก่อน
+        const displayName = authUser?.user_metadata?.full_name || 
+                            authUser?.user_metadata?.name || 
+                            profile?.display_name || 
+                            profile?.full_name ||
+                            localStorage.getItem('user_name') || 
+                            authUser?.email || 
+                            'ครูประจำวิชา';
+    
+        const roleName = (userRole || profile?.role || 'TEACHER').toUpperCase();
+    
+        if (nameEl) nameEl.innerText = displayName;
+        if (badgeEl) {
+            badgeEl.innerText = roleName;
+            if (roleName === 'ADMIN') {
+                badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+            } else if (roleName === 'TEACHER') {
+                badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
             } else {
-                if (avatarImg) avatarImg.classList.add('hidden');
-                if (avatarIcon) avatarIcon.classList.remove('hidden');
+                badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
             }
         }
-
+    
+        // 📌 2. แก้ไขการดึงรูป: ดึง avatar_url หรือ picture จาก Google Metadata
+        const avatarUrl = authUser?.user_metadata?.avatar_url || 
+                          authUser?.user_metadata?.picture || 
+                          profile?.avatar_url || 
+                          localStorage.getItem('user_avatar');
+    
+        if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
+            if (avatarImg) {
+                avatarImg.src = avatarUrl;
+                avatarImg.onload = () => {
+                    avatarImg.classList.remove('hidden');
+                    if (avatarIcon) avatarIcon.classList.add('hidden');
+                };
+                avatarImg.onerror = () => {
+                    avatarImg.classList.add('hidden');
+                    if (avatarIcon) avatarIcon.classList.remove('hidden');
+                };
+            }
+        } else {
+            if (avatarImg) avatarImg.classList.add('hidden');
+            if (avatarIcon) avatarIcon.classList.remove('hidden');
+        }
+    }
         async function loadLandingRealStats() {
             try {
                 const client = window.supabase || window.db;
