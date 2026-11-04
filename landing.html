@@ -615,325 +615,331 @@
     <script src="core/supabase-client.js"></script>
     <script src="core/auth-service.js"></script>
     
-    <!-- 🔒 Universal Core Controller Engine -->
-    <script>
-        function hidePageLoader() {
-            const loader = document.getElementById('pageLoader');
-            if (loader) {
-                loader.style.opacity = '0';
-                loader.style.pointerEvents = 'none';
-                setTimeout(() => { loader.remove(); }, 500);
+<!-- 🔒 Universal Core Controller Engine -->
+<script>
+    function hidePageLoader() {
+        const loader = document.getElementById('pageLoader');
+        if (loader) {
+            loader.style.opacity = '0';
+            loader.style.pointerEvents = 'none';
+            setTimeout(() => { loader.remove(); }, 500);
+        }
+    }
+
+    /* 🚀 ระบบ Auto-Hide / Auto-Show เมนูลอยเมื่อ Scroll */
+    function initAutoScrollNav() {
+        let lastScrollTop = 0;
+        const nav = document.getElementById('nativeBottomNav');
+        if (!nav) return;
+
+        window.addEventListener('scroll', function() {
+            let st = window.pageYOffset || document.documentElement.scrollTop;
+            
+            // เลื่อนลงเกิน 50px ให้สไลด์ซ่อนเมนูลง
+            if (st > lastScrollTop && st > 50) {
+                nav.classList.add('nav-hidden');
+            } 
+            // เลื่อนขึ้นให้สไลด์เมนูกลับขึ้นมาอย่างสมูท
+            else {
+                nav.classList.remove('nav-hidden');
             }
-        }
+            lastScrollTop = st <= 0 ? 0 : st;
+        }, { passive: true });
+    }
 
-        /* 🚀 ระบบ Auto-Hide / Auto-Show เมนูลอยเมื่อ Scroll */
-        function initAutoScrollNav() {
-            let lastScrollTop = 0;
-            const nav = document.getElementById('nativeBottomNav');
-            if (!nav) return;
-
-            window.addEventListener('scroll', function() {
-                let st = window.pageYOffset || document.documentElement.scrollTop;
-                
-                // เลื่อนลงเกิน 50px ให้สไลด์ซ่อนเมนูลง
-                if (st > lastScrollTop && st > 50) {
-                    nav.classList.add('nav-hidden');
-                } 
-                // เลื่อนขึ้นให้สไลด์เมนูกลับขึ้นมาอย่างสมูท
-                else {
-                    nav.classList.remove('nav-hidden');
-                }
-                lastScrollTop = st <= 0 ? 0 : st;
-            }, { passive: true });
-        }
-
-        window.toggleAdminDrawer = function(e) {
-            if (e) e.stopPropagation();
-            const backdrop = document.getElementById('adminDrawerBackdrop');
-            if (backdrop) {
-                if (backdrop.classList.contains('active')) {
-                    closeAdminDrawer();
-                } else {
-                    closeAllDrawers();
-                    backdrop.classList.add('active');
-                }
-            }
-        };
-
-        window.closeAdminDrawer = function() {
-            const backdrop = document.getElementById('adminDrawerBackdrop');
-            if (backdrop) backdrop.classList.remove('active');
-        };
-
-        window.openDrawerById = function(id) {
-            closeAllDrawers();
-            var el = document.getElementById(id);
-            if (el) el.classList.add('active');
-        };
-
-        window.closeDrawer = function(id) {
-            var el = document.getElementById(id);
-            if (el) el.classList.remove('active');
-            switchNavTab('home');
-        };
-
-        function closeAllDrawers() {
-            document.querySelectorAll('.bottom-sheet-backdrop').forEach(function(el) {
-                el.classList.remove('active');
-            });
-        }
-
-        window.switchNavTab = function(tab) {
-            var btns = document.querySelectorAll('.nav-item-btn');
-            btns.forEach(function(btn) { btn.classList.remove('active'); });
-
-            if (tab === 'home') {
-                const homeBtn = document.getElementById('navHome');
-                if (homeBtn) homeBtn.classList.add('active');
+    window.toggleAdminDrawer = function(e) {
+        if (e) e.stopPropagation();
+        const backdrop = document.getElementById('adminDrawerBackdrop');
+        if (backdrop) {
+            if (backdrop.classList.contains('active')) {
+                closeAdminDrawer();
+            } else {
                 closeAllDrawers();
-            } else if (tab === 'discipline') {
-                const discBtn = document.getElementById('navDiscipline');
-                if (discBtn) discBtn.classList.add('active');
-                openDrawerById('disciplineDrawerBackdrop');
-            } else if (tab === 'academic') {
-                const acadBtn = document.getElementById('navAcademic');
-                if (acadBtn) acadBtn.classList.add('active');
-                openDrawerById('academicDrawerBackdrop');
-            } else if (tab === 'exec') {
-                const execBtn = document.getElementById('navExec');
-                if (execBtn) execBtn.classList.add('active');
-                openDrawerById('execDrawerBackdrop');
+                backdrop.classList.add('active');
             }
-        };
+        }
+    };
 
-        window.switchRoleToAdmin = function() {
-            const pwd = prompt('🔑 กรุณากรอกรหัสผ่านผู้ดูแลระบบ (ADMIN):');
-            if (pwd === '218269') {
-                localStorage.setItem('user_role', 'admin');
-                localStorage.setItem('user_name', 'ผู้ดูแลระบบ');
-                alert('✅ เข้าสู่ระบบในนาม ADMIN เรียบร้อยแล้ว!');
-                location.reload();
-            } else if (pwd !== null) {
-                alert('❌ รหัสผ่านไม่ถูกต้อง');
-            }
-        };
+    window.closeAdminDrawer = function() {
+        const backdrop = document.getElementById('adminDrawerBackdrop');
+        if (backdrop) backdrop.classList.remove('active');
+    };
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof startClock === 'function') startClock();
-            initSwipeGestures();
-            initAutoScrollNav();
+    window.openDrawerById = function(id) {
+        closeAllDrawers();
+        var el = document.getElementById(id);
+        if (el) el.classList.add('active');
+    };
 
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') closeAllDrawers();
-            });
+    window.closeDrawer = function(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+        switchNavTab('home');
+    };
 
-            setTimeout(async () => {
-                await initLandingSystem();
-            }, 300);
+    function closeAllDrawers() {
+        document.querySelectorAll('.bottom-sheet-backdrop').forEach(function(el) {
+            el.classList.remove('active');
+        });
+    }
+
+    window.switchNavTab = function(tab) {
+        var btns = document.querySelectorAll('.nav-item-btn');
+        btns.forEach(function(btn) { btn.classList.remove('active'); });
+
+        if (tab === 'home') {
+            const homeBtn = document.getElementById('navHome');
+            if (homeBtn) homeBtn.classList.add('active');
+            closeAllDrawers();
+        } else if (tab === 'discipline') {
+            const discBtn = document.getElementById('navDiscipline');
+            if (discBtn) discBtn.classList.add('active');
+            openDrawerById('disciplineDrawerBackdrop');
+        } else if (tab === 'academic') {
+            const acadBtn = document.getElementById('navAcademic');
+            if (acadBtn) acadBtn.classList.add('active');
+            openDrawerById('academicDrawerBackdrop');
+        } else if (tab === 'exec') {
+            const execBtn = document.getElementById('navExec');
+            if (execBtn) execBtn.classList.add('active');
+            openDrawerById('execDrawerBackdrop');
+        }
+    };
+
+    window.switchRoleToAdmin = function() {
+        const pwd = prompt('🔑 กรุณากรอกรหัสผ่านผู้ดูแลระบบ (ADMIN):');
+        if (pwd === '218269') {
+            localStorage.setItem('user_role', 'admin');
+            localStorage.setItem('user_name', 'ผู้ดูแลระบบ');
+            alert('✅ เข้าสู่ระบบในนาม ADMIN เรียบร้อยแล้ว!');
+            location.reload();
+        } else if (pwd !== null) {
+            alert('❌ รหัสผ่านไม่ถูกต้อง');
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (typeof startClock === 'function') startClock();
+        initSwipeGestures();
+        initAutoScrollNav();
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeAllDrawers();
         });
 
-        async function initLandingSystem() {
+        setTimeout(async () => {
+            await initLandingSystem();
+        }, 300);
+    });
+
+    // 🌟 ปรับปรุง initLandingSystem ป้องกันหมุนค้าง 100% ด้วย try...finally
+    async function initLandingSystem() {
+        try {
             // 1. ตรวจสิทธิ์และอ่าน Session กลาง ( Hybrid Profile: รูป SSO + ชื่อ DB )
-            // หากไม่มี Session ระบบจะ Guard และดีดไปหน้า login.html ทันที
             const currentUser = window.AuthManager ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE', 'TEACHER', 'STUDENT', 'PARENT']) : null;
             if (!currentUser) return;
         
             // 2. เรนเดอร์แสดงผลบนหน้าจอทันที (รูป Google/LINE + ชื่อ DB ภาษาไทย + Badge)
             renderUniversalProfile(currentUser);
         
-            // 3. โหลดสถิตินักเรียนและปิด Loader
+            // 3. โหลดสถิตินักเรียน
             const client = window.supabase || window.db || window.supabaseClient;
             if (typeof loadLandingRealStats === 'function') {
                 await loadLandingRealStats(client);
             }
-            
-            if (typeof hidePageLoader === 'function') {
-                hidePageLoader();
-            }
+        } catch (error) {
+            console.warn("⚠️ initLandingSystem warning:", error);
+        } finally {
+            // 🔒 บังคับปิด Loader เสมอ แม้จะมี Error หรือติด 401 ในสถิติก็ตาม!
+            hidePageLoader();
         }
-        
-        function renderUniversalProfile(userProfile) {
-            const nameEl = document.getElementById('userDisplayName');
-            const badgeEl = document.getElementById('userRoleBadge');
-            const avatarImg = document.getElementById('userAvatarImg');
-            const avatarIcon = document.getElementById('userAvatarIcon');
-        
-            // 1. อ่านข้อมูลจาก Object ที่ผ่านการสกัดแบบ Hybrid มาแล้ว
-            const displayName = userProfile?.name || 'ผู้ใช้งานระบบ';
-            const roleName = (userProfile?.role || 'TEACHER').toUpperCase();
-            const avatarUrl = userProfile?.avatar || '';
-        
-            // 2. แสดงผลชื่อผู้ใช้
-            if (nameEl) nameEl.innerText = displayName;
-        
-            // 3. ปรับเปลี่ยนป้าย Role Badge ตามบทบาทจริง
-            if (badgeEl) {
-                badgeEl.innerText = roleName;
-                if (roleName === 'STUDENT') {
-                    badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                } else if (['ADMIN', 'EXECUTIVE', 'SUPERADMIN'].includes(roleName)) {
-                    badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                } else {
-                    badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                }
-            }
-        
-            // 4. แสดงผลรูปภาพโปรไฟล์ (สดจาก Google / LINE SSO)
-            if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
-                if (avatarImg) {
-                    avatarImg.src = avatarUrl;
-                    avatarImg.classList.remove('hidden');
-                    if (avatarIcon) avatarIcon.classList.add('hidden');
-                    
-                    // กรณี URL รูปพัง ให้แสดงไอคอน Fallback
-                    avatarImg.onerror = function() {
-                        this.classList.add('hidden');
-                        if (avatarIcon) avatarIcon.classList.remove('hidden');
-                    };
-                }
+    }
+
+    function renderUniversalProfile(userProfile) {
+        const nameEl = document.getElementById('userDisplayName');
+        const badgeEl = document.getElementById('userRoleBadge');
+        const avatarImg = document.getElementById('userAvatarImg');
+        const avatarIcon = document.getElementById('userAvatarIcon');
+
+        // 1. อ่านข้อมูลจาก Object ที่ผ่านการสกัดแบบ Hybrid มาแล้ว
+        const displayName = userProfile?.name || 'ผู้ใช้งานระบบ';
+        const roleName = (userProfile?.role || 'TEACHER').toUpperCase();
+        const avatarUrl = userProfile?.avatar || '';
+
+        // 2. แสดงผลชื่อผู้ใช้
+        if (nameEl) nameEl.innerText = displayName;
+
+        // 3. ปรับเปลี่ยนป้าย Role Badge ตามบทบาทจริง
+        if (badgeEl) {
+            badgeEl.innerText = roleName;
+            if (roleName === 'STUDENT') {
+                badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+            } else if (['ADMIN', 'EXECUTIVE', 'SUPERADMIN'].includes(roleName)) {
+                badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
             } else {
-                if (avatarImg) avatarImg.classList.add('hidden');
-                if (avatarIcon) avatarIcon.classList.remove('hidden');
+                badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
             }
         }
 
-        async function loadLandingRealStats(client) {
-            let studentCount = 0;
-            let presentCount = 0;
-        
-            const today = new Date().toISOString().split('T')[0];
-        
-            // 1. ดึงจำนวนนักเรียนทั้งหมด 2,173 คน ด้วย head: true (ดึงเฉพาะ Header นับจำนวน ไม่ติดจำกัด 1000 แถว)
-            if (client) {
-                try {
-                    const { count, error } = await client
-                        .from('students')
-                        .select('*', { count: 'exact', head: true });
-        
-                    if (!error && count !== null && count > 0) {
-                        studentCount = count; // ได้ 2173 ตรงตาม Supabase
-                    }
-                } catch (err) {
-                    console.warn("Supabase Fetch Count Error:", err);
-                }
-        
-                // 2. ดึงจำนวนนักเรียนที่สแกนเข้าเรียนวันนี้
-                try {
-                    const { count: pCount, error: err2 } = await client
-                        .from('attendance_logs')
-                        .select('*', { count: 'exact', head: true })
-                        .gte('created_at', today)
-                        .in('status', ['present', 'late', 'GREEN', 'Present', 'Late']);
-        
-                    if (!err2 && pCount !== null) {
-                        presentCount = pCount;
-                    }
-                } catch (err) {}
+        // 4. แสดงผลรูปภาพโปรไฟล์ (สดจาก Google / LINE SSO)
+        if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
+            if (avatarImg) {
+                avatarImg.src = avatarUrl;
+                avatarImg.classList.remove('hidden');
+                if (avatarIcon) avatarIcon.classList.add('hidden');
+                
+                // กรณี URL รูปพัง ให้แสดงไอคอน Fallback
+                avatarImg.onerror = function() {
+                    this.classList.add('hidden');
+                    if (avatarIcon) avatarIcon.classList.remove('hidden');
+                };
             }
-        
-            // 3. ปรับค่าสำรอง fallback ให้ตรงกับยอดจริง (2173) กรณีออฟไลน์
-            if (studentCount === 0) {
-                const cached = localStorage.getItem('bcw_cached_students_count');
-                if (cached && !isNaN(cached) && Number(cached) > 0) {
-                    studentCount = parseInt(cached);
-                } else {
-                    studentCount = 2173; // ตั้งค่าสำรองตรงตามตารางในฐานข้อมูล
+        } else {
+            if (avatarImg) avatarImg.classList.add('hidden');
+            if (avatarIcon) avatarIcon.classList.remove('hidden');
+        }
+    }
+
+    async function loadLandingRealStats(client) {
+        let studentCount = 0;
+        let presentCount = 0;
+
+        const today = new Date().toISOString().split('T')[0];
+
+        // 1. ดึงจำนวนนักเรียนทั้งหมด 2,173 คน ด้วย head: true
+        if (client) {
+            try {
+                const { count, error } = await client
+                    .from('students')
+                    .select('*', { count: 'exact', head: true });
+
+                if (!error && count !== null && count > 0) {
+                    studentCount = count;
                 }
+            } catch (err) {
+                console.warn("Supabase Fetch Count Error:", err);
+            }
+
+            // 2. ดึงจำนวนนักเรียนที่สแกนเข้าเรียนวันนี้
+            try {
+                const { count: pCount, error: err2 } = await client
+                    .from('attendance_logs')
+                    .select('*', { count: 'exact', head: true })
+                    .gte('created_at', today)
+                    .in('status', ['present', 'late', 'GREEN', 'Present', 'Late']);
+
+                if (!err2 && pCount !== null) {
+                    presentCount = pCount;
+                }
+            } catch (err) {}
+        }
+
+        // 3. ปรับค่าสำรอง fallback ให้ตรงกับยอดจริง (2173) กรณีออฟไลน์
+        if (studentCount === 0) {
+            const cached = localStorage.getItem('bcw_cached_students_count');
+            if (cached && !isNaN(cached) && Number(cached) > 0) {
+                studentCount = parseInt(cached);
             } else {
-                localStorage.setItem('bcw_cached_students_count', studentCount);
+                studentCount = 2173;
             }
-        
-            // 4. อัปเดตการแสดงผลบนหน้าจอ
-            const total = studentCount;
-            const present = presentCount;
-            const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
-        
-            const c1 = document.getElementById('total_students_count');
-            const c2 = document.getElementById('statTotalStudentsLanding');
-            
-            if (c1) c1.innerText = total.toLocaleString();
-            if (c2) {
-                c2.innerHTML = `<span id="total_students_count">${total.toLocaleString()}</span> <span class="text-[9px] font-normal text-slate-500">คน</span>`;
-            }
-        
-            const pCountEl = document.getElementById('statPresentCountLanding');
-            const pPercentEl = document.getElementById('statPresentPercentLanding');
-            if (pCountEl) pCountEl.innerText = present.toLocaleString();
-            if (pPercentEl) pPercentEl.innerText = `(${percent}%)`;
-        
-            const aiText = document.getElementById('aiSummaryText');
-            if (aiText) {
-                aiText.innerHTML = `สรุปประจำวัน: นักเรียนมาเรียนแล้ว <strong class="text-emerald-700 font-bold">${present.toLocaleString()} คน (${percent}%)</strong> จากจำนวนนักเรียนทั้งหมด ${total.toLocaleString()} คน`;
-            }
+        } else {
+            localStorage.setItem('bcw_cached_students_count', studentCount);
         }
 
-        function initSwipeGestures() {
-            var adminDrawer = document.getElementById('adminSideDrawer');
-            if (adminDrawer) {
-                var startX = 0, currentX = 0;
-                adminDrawer.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
-                adminDrawer.addEventListener('touchmove', function(e) {
-                    currentX = e.touches[0].clientX;
-                    var diffX = currentX - startX;
-                    if (diffX > 0) adminDrawer.style.transform = 'translateX(' + diffX + 'px)';
-                }, { passive: true });
-                adminDrawer.addEventListener('touchend', function() {
-                    var diffX = currentX - startX;
-                    adminDrawer.style.transform = '';
-                    if (diffX > 60) closeAdminDrawer();
-                    startX = 0; currentX = 0;
-                });
-            }
+        // 4. อัปเดตการแสดงผลบนหน้าจอ
+        const total = studentCount;
+        const present = presentCount;
+        const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
 
-            document.querySelectorAll('.bottom-sheet-card').forEach(function(card) {
-                var startY = 0, currentY = 0;
-                card.addEventListener('touchstart', function(e) { startY = e.touches[0].clientY; }, { passive: true });
-                card.addEventListener('touchmove', function(e) {
-                    currentY = e.touches[0].clientY;
-                    var diffY = currentY - startY;
-                    if (diffY > 0 && card.scrollTop <= 0) {
-                        card.style.transform = 'translateY(' + diffY + 'px)';
-                    }
-                }, { passive: true });
-                card.addEventListener('touchend', function() {
-                    var diffY = currentY - startY;
-                    card.style.transform = '';
-                    if (diffY > 80) {
-                        var parentBackdrop = card.closest('.bottom-sheet-backdrop');
-                        if (parentBackdrop) closeDrawer(parentBackdrop.id);
-                    }
-                    startY = 0; currentY = 0;
-                });
+        const c1 = document.getElementById('total_students_count');
+        const c2 = document.getElementById('statTotalStudentsLanding');
+        
+        if (c1) c1.innerText = total.toLocaleString();
+        if (c2) {
+            c2.innerHTML = `<span id="total_students_count">${total.toLocaleString()}</span> <span class="text-[9px] font-normal text-slate-500">คน</span>`;
+        }
+
+        const pCountEl = document.getElementById('statPresentCountLanding');
+        const pPercentEl = document.getElementById('statPresentPercentLanding');
+        if (pCountEl) pCountEl.innerText = present.toLocaleString();
+        if (pPercentEl) pPercentEl.innerText = `(${percent}%)`;
+
+        const aiText = document.getElementById('aiSummaryText');
+        if (aiText) {
+            aiText.innerHTML = `สรุปประจำวัน: นักเรียนมาเรียนแล้ว <strong class="text-emerald-700 font-bold">${present.toLocaleString()} คน (${percent}%)</strong> จากจำนวนนักเรียนทั้งหมด ${total.toLocaleString()} คน`;
+        }
+    }
+
+    function initSwipeGestures() {
+        var adminDrawer = document.getElementById('adminSideDrawer');
+        if (adminDrawer) {
+            var startX = 0, currentX = 0;
+            adminDrawer.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
+            adminDrawer.addEventListener('touchmove', function(e) {
+                currentX = e.touches[0].clientX;
+                var diffX = currentX - startX;
+                if (diffX > 0) adminDrawer.style.transform = 'translateX(' + diffX + 'px)';
+            }, { passive: true });
+            adminDrawer.addEventListener('touchend', function() {
+                var diffX = currentX - startX;
+                adminDrawer.style.transform = '';
+                if (diffX > 60) closeAdminDrawer();
+                startX = 0; currentX = 0;
             });
         }
 
-        window.handleLogout = function() {
-            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                if (window.AuthService && typeof AuthService.logout === 'function') {
-                    AuthService.logout();
-                } else {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.replace('login.html');
+        document.querySelectorAll('.bottom-sheet-card').forEach(function(card) {
+            var startY = 0, currentY = 0;
+            card.addEventListener('touchstart', function(e) { startY = e.touches[0].clientY; }, { passive: true });
+            card.addEventListener('touchmove', function(e) {
+                currentY = e.touches[0].clientY;
+                var diffY = currentY - startY;
+                if (diffY > 0 && card.scrollTop <= 0) {
+                    card.style.transform = 'translateY(' + diffY + 'px)';
                 }
+            }, { passive: true });
+            card.addEventListener('touchend', function() {
+                var diffY = currentY - startY;
+                card.style.transform = '';
+                if (diffY > 80) {
+                    var parentBackdrop = card.closest('.bottom-sheet-backdrop');
+                    if (parentBackdrop) closeDrawer(parentBackdrop.id);
+                }
+                startY = 0; currentY = 0;
+            });
+        });
+    }
+
+    // 🌟 ปรับปรุง handleLogout ให้เรียก AuthManager หรือ logoutUser ได้ถูกต้อง
+    window.handleLogout = function() {
+        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+            if (window.AuthManager && typeof AuthManager.logout === 'function') {
+                AuthManager.logout();
+            } else if (typeof logoutUser === 'function') {
+                logoutUser();
+            } else {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.replace('login.html');
             }
-        };
-
-        function startClock() {
-            var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            var thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
-
-            function update() {
-                var now = new Date();
-                var dateElem = document.getElementById('thaiDateStr');
-                if (dateElem) dateElem.innerText = 'วัน' + thaiDays[now.getDay()] + 'ที่ ' + now.getDate() + ' ' + thaiMonths[now.getMonth()] + ' พ.ศ. ' + (now.getFullYear() + 543);
-
-                var clockElem = document.getElementById('liveClock');
-                if (clockElem) clockElem.innerText = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
-            }
-            update();
-            setInterval(update, 1000);
         }
-    </script>
+    };
+
+    function startClock() {
+        var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        var thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+
+        function update() {
+            var now = new Date();
+            var dateElem = document.getElementById('thaiDateStr');
+            if (dateElem) dateElem.innerText = 'วัน' + thaiDays[now.getDay()] + 'ที่ ' + now.getDate() + ' ' + thaiMonths[now.getMonth()] + ' พ.ศ. ' + (now.getFullYear() + 543);
+
+            var clockElem = document.getElementById('liveClock');
+            if (clockElem) clockElem.innerText = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+        }
+        update();
+        setInterval(update, 1000);
+    }
+</script>
 </body>
 </html>
