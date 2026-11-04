@@ -732,91 +732,40 @@
             }, 300);
         });
 
-async function initLandingSystem() {
-            let authUser = null;
+        async function initLandingSystem() {
             let profileObj = null;
-
-            const client = window.supabase || window.db || (window.supabaseClient ? window.supabaseClient : null);
-
-            // 1. ดึง Profile จาก AuthService หรือ LocalStorage ก่อนเป็นอันดับแรก
+        
+            // 1. อ่านข้อมูลจาก LocalStorage ผ่าน AuthService ทันที (ไม่ต้องรอ Supabase Auth ป้องกันติด 401)
             if (window.AuthService && typeof AuthService.getCurrentUser === 'function') {
                 profileObj = AuthService.getCurrentUser();
             }
+            
             if (!profileObj) {
                 try {
-                    const raw = localStorage.getItem('bcw_user_profile') || localStorage.getItem('bcw_user_session');
-                    if (raw) profileObj = JSON.parse(raw);
+                    const rawData = localStorage.getItem('bcw_user_profile') || localStorage.getItem('bcw_user_session');
+                    if (rawData) profileObj = JSON.parse(rawData);
                 } catch (e) {}
             }
-
-            // 2. ดึงจาก Supabase Session สำรองถ้ายังไม่มี Profile
-            if (client && client.auth) {
-                try {
-                    const { data } = await client.auth.getSession();
-                    if (data?.session?.user) authUser = data.session.user;
-                } catch (e) {}
+        
+            // 2. ถ้าใน LocalStorage มีข้อมูล ให้ใช้ข้อมูลนั้น Render โปรไฟล์ทันที!
+            if (profileObj) {
+                const role = (profileObj.role || localStorage.getItem('user_role') || 'TEACHER').toUpperCase();
+                renderUniversalProfile(null, profileObj, role);
+            } else {
+                // Fallback จาก LocalStorage เดี่ยวๆ
+                const savedName = localStorage.getItem('user_name');
+                const savedRole = localStorage.getItem('user_role') || 'TEACHER';
+                if (savedName) {
+                    renderUniversalProfile(null, { name: savedName }, savedRole.toUpperCase());
+                } else {
+                    renderUniversalProfile(null, null, 'TEACHER');
+                }
             }
-
-            // 3. ถ้ายังไม่พบ Profile หรือยังไม่ได้ระบุ Role ให้ตรวจสอบจากตาราง DB จริง
-            if ((!profileObj || !profileObj.role) && authUser && client) {
-                try {
-                    // 3.1 ตรวจสอบในตาราง teachers ก่อน (สำหรับครู/ผู้บริหาร/แอดมิน)
-                    const { data: teacherData } = await client
-                        .from('teachers')
-                        .select('*')
-                        .or(`email.eq.${authUser.email},teacher_id.eq.${authUser.id}`)
-                        .maybeSingle();
-
-                    if (teacherData) {
-                        profileObj = {
-                            id: teacherData.teacher_id || teacherData.id,
-                            name: teacherData.full_name || teacherData.teacher_name,
-                            role: (teacherData.role || 'TEACHER').toUpperCase(),
-                            avatar: teacherData.avatar_url || '',
-                            email: teacherData.email || authUser.email
-                        };
-                    } else {
-                        // 3.2 ถ้าไม่เจอใน teachers ถึงค่อยไปตรวจในตาราง students (สำหรับนักเรียน)
-                        const { data: studentData } = await client
-                            .from('students')
-                            .select('*')
-                            .or(`email.eq.${authUser.email},id.eq.${authUser.id}`)
-                            .maybeSingle();
-
-                        if (studentData) {
-                            const fullName = `${studentData.prefix || ''}${studentData.first_name || ''} ${studentData.last_name || ''}`.trim();
-                            profileObj = {
-                                id: studentData.student_id || studentData.id,
-                                name: fullName || authUser.email.split('@')[0],
-                                role: 'STUDENT',
-                                avatar: studentData.avatar_url || '',
-                                email: studentData.email || authUser.email
-                            };
-                        }
-                    }
-
-                    if (profileObj && window.AuthService && typeof AuthService.setUserSession === 'function') {
-                        AuthService.setUserSession(profileObj);
-                    }
-                } catch (e) {}
-            }
-
-            // 🔍 4. ค้นหาและกำหนด Role จริง (ถ้าหาไม่เจอจริงๆ ให้ลองตรวจจากคำใน Email)
-            let detectedRole = profileObj?.role || localStorage.getItem('user_role');
-            if (!detectedRole) {
-                const email = authUser?.email || profileObj?.email || '';
-                if (email.includes('admin')) detectedRole = 'ADMIN';
-                else if (email.includes('teacher') || email.includes('kru')) detectedRole = 'TEACHER';
-                else detectedRole = 'TEACHER'; // Default สำหรับบุคลากร BCW
-            }
-
-            const currentRole = detectedRole.toUpperCase();
-            
-            // แสดงผลชื่อ รูปภาพ และ ป้าย Role
-            renderUniversalProfile(authUser, profileObj, currentRole);
-            
-            // โหลดสถิตินักเรียน 2,173 คน
+        
+            // 3. ดึงข้อมูลสถิตินักเรียน (เซฟการทำ Query แบบแนบ Header ป้องกัน 401)
+            const client = window.supabase || window.db || (window.supabaseClient ? window.supabaseClient : null);
             await loadLandingRealStats(client);
+            
             hidePageLoader();
         }
         
