@@ -732,45 +732,90 @@
             }, 300);
         });
 
-        // 📄 แก้ไขฟังก์ชัน initLandingSystem ใน landing.html
-        async function initLandingSystem() {
+async function initLandingSystem() {
             let authUser = null;
             let profileObj = null;
-        
+
             const client = window.supabase || window.db || (window.supabaseClient ? window.supabaseClient : null);
-        
-            // 🚀 1. อ่านข้อมูลจาก Session ที่เพิ่งบันทึกมาจาก login.html ล่าสุด
+
+            // 1. ดึง Profile จาก AuthService หรือ LocalStorage ก่อนเป็นอันดับแรก
             if (window.AuthService && typeof AuthService.getCurrentUser === 'function') {
                 profileObj = AuthService.getCurrentUser();
             }
-            
             if (!profileObj) {
                 try {
-                    const rawSession = localStorage.getItem('bcw_user_session');
-                    if (rawSession) profileObj = JSON.parse(rawSession);
-                } catch(e){}
+                    const raw = localStorage.getItem('bcw_user_profile') || localStorage.getItem('bcw_user_session');
+                    if (raw) profileObj = JSON.parse(raw);
+                } catch (e) {}
             }
-        
-            // 2. ถ้ายังไม่มี ให้ลองเช็กจาก Supabase Session สำรอง
-            if (!profileObj && client && client.auth) {
+
+            // 2. ดึงจาก Supabase Session สำรองถ้ายังไม่มี Profile
+            if (client && client.auth) {
                 try {
                     const { data } = await client.auth.getSession();
-                    if (data?.session?.user) {
-                        authUser = data.session.user;
-                        if (window.AuthService && typeof AuthService.getUserProfile === 'function') {
-                            profileObj = await AuthService.getUserProfile(authUser);
+                    if (data?.session?.user) authUser = data.session.user;
+                } catch (e) {}
+            }
+
+            // 3. ถ้ายังไม่พบ Profile หรือยังไม่ได้ระบุ Role ให้ตรวจสอบจากตาราง DB จริง
+            if ((!profileObj || !profileObj.role) && authUser && client) {
+                try {
+                    // 3.1 ตรวจสอบในตาราง teachers ก่อน (สำหรับครู/ผู้บริหาร/แอดมิน)
+                    const { data: teacherData } = await client
+                        .from('teachers')
+                        .select('*')
+                        .or(`email.eq.${authUser.email},teacher_id.eq.${authUser.id}`)
+                        .maybeSingle();
+
+                    if (teacherData) {
+                        profileObj = {
+                            id: teacherData.teacher_id || teacherData.id,
+                            name: teacherData.full_name || teacherData.teacher_name,
+                            role: (teacherData.role || 'TEACHER').toUpperCase(),
+                            avatar: teacherData.avatar_url || '',
+                            email: teacherData.email || authUser.email
+                        };
+                    } else {
+                        // 3.2 ถ้าไม่เจอใน teachers ถึงค่อยไปตรวจในตาราง students (สำหรับนักเรียน)
+                        const { data: studentData } = await client
+                            .from('students')
+                            .select('*')
+                            .or(`email.eq.${authUser.email},id.eq.${authUser.id}`)
+                            .maybeSingle();
+
+                        if (studentData) {
+                            const fullName = `${studentData.prefix || ''}${studentData.first_name || ''} ${studentData.last_name || ''}`.trim();
+                            profileObj = {
+                                id: studentData.student_id || studentData.id,
+                                name: fullName || authUser.email.split('@')[0],
+                                role: 'STUDENT',
+                                avatar: studentData.avatar_url || '',
+                                email: studentData.email || authUser.email
+                            };
                         }
+                    }
+
+                    if (profileObj && window.AuthService && typeof AuthService.setUserSession === 'function') {
+                        AuthService.setUserSession(profileObj);
                     }
                 } catch (e) {}
             }
-        
-            // 3. กำหนด บทบาท (Role) และแสดงผลบน Badge
-            const currentRole = (profileObj?.role || localStorage.getItem('user_role') || 'STUDENT').toUpperCase();
+
+            // 🔍 4. ค้นหาและกำหนด Role จริง (ถ้าหาไม่เจอจริงๆ ให้ลองตรวจจากคำใน Email)
+            let detectedRole = profileObj?.role || localStorage.getItem('user_role');
+            if (!detectedRole) {
+                const email = authUser?.email || profileObj?.email || '';
+                if (email.includes('admin')) detectedRole = 'ADMIN';
+                else if (email.includes('teacher') || email.includes('kru')) detectedRole = 'TEACHER';
+                else detectedRole = 'TEACHER'; // Default สำหรับบุคลากร BCW
+            }
+
+            const currentRole = detectedRole.toUpperCase();
             
-            // 🎨 4. Render โปรไฟล์และเปลี่ยนสีป้าย Role ให้ตรงตามสถานะ
+            // แสดงผลชื่อ รูปภาพ และ ป้าย Role
             renderUniversalProfile(authUser, profileObj, currentRole);
             
-            // ดึงสถิตินักเรียน
+            // โหลดสถิตินักเรียน 2,173 คน
             await loadLandingRealStats(client);
             hidePageLoader();
         }
@@ -781,29 +826,61 @@
             const avatarImg = document.getElementById('userAvatarImg');
             const avatarIcon = document.getElementById('userAvatarIcon');
         
-            let displayName = profile?.name || profile?.full_name || profile?.display_name || 'ผู้ใช้งานระบบ';
+            // 🔍 ค้นหาชื่อผู้ใช้
+            let displayName = profile?.name || 
+                              profile?.display_name || 
+                              profile?.full_name || 
+                              profile?.teacher_name ||
+                              user?.user_metadata?.full_name || 
+                              user?.user_metadata?.name || 
+                              localStorage.getItem('user_name') || 
+                              localStorage.getItem('teacher_name');
+        
+            const roleName = (role || 'TEACHER').toUpperCase();
+
+            // ตั้งชื่อ Default กรณีไม่มีข้อมูลชื่อ
+            if (!displayName || displayName === 'undefined' || displayName === 'null') {
+                if (user?.email) {
+                    displayName = user.email.split('@')[0];
+                } else {
+                    if (roleName === 'ADMIN') displayName = 'ผู้ดูแลระบบ';
+                    else if (roleName === 'STUDENT') displayName = 'นักเรียน';
+                    else displayName = 'ครูประจำวิชา';
+                }
+            }
+        
             if (nameEl) nameEl.innerText = displayName;
         
-            // 🏷️ แสดงผล Badge ตาม Role จริงของคนที่ล็อกอิน
-            const roleName = (role || 'STUDENT').toUpperCase();
+            // 🎨 ปรับเปลี่ยนป้าย Role Badge ตามสิทธิ์ที่แท้จริง
             if (badgeEl) {
                 badgeEl.innerText = roleName;
                 if (roleName === 'STUDENT') {
                     badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                } else if (roleName === 'ADMIN' || roleName === 'EXECUTIVE') {
+                } else if (roleName === 'ADMIN' || roleName === 'EXECUTIVE' || roleName === 'SUPERADMIN') {
                     badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
                 } else {
                     badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
                 }
             }
         
-            // 🖼️ แสดงผลรูปโปรไฟล์
-            let avatarUrl = profile?.avatar || profile?.avatar_url || profile?.picture;
-            if (avatarUrl && avatarUrl.trim() !== '') {
+            // 🔍 ค้นหารูปโปรไฟล์
+            let avatarUrl = profile?.avatar ||
+                             profile?.avatar_url || 
+                             profile?.picture || 
+                             profile?.photo_url ||
+                             user?.user_metadata?.avatar_url || 
+                             localStorage.getItem('user_avatar');
+        
+            if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined' && avatarUrl.trim() !== '') {
                 if (avatarImg) {
                     avatarImg.src = avatarUrl;
                     avatarImg.classList.remove('hidden');
                     if (avatarIcon) avatarIcon.classList.add('hidden');
+                    
+                    avatarImg.onerror = function() {
+                        this.classList.add('hidden');
+                        if (avatarIcon) avatarIcon.classList.remove('hidden');
+                    };
                 }
             } else {
                 if (avatarImg) avatarImg.classList.add('hidden');
