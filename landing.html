@@ -735,23 +735,28 @@
         async function initLandingSystem() {
             let authUser = null;
             let profileObj = null;
-        
+
             const client = window.supabase || window.db || (window.supabaseClient ? window.supabaseClient : null);
-        
-            // 1. ดึงข้อมูล User จาก Supabase Session
+
+            // 🚀 [PHASE 3 UPDATE]: 1. ดึง Profile จากตัวกลาง AuthService ก่อนเป็นอันดับแรก
+            if (window.AuthService && typeof AuthService.getCurrentUser === 'function') {
+                profileObj = AuthService.getCurrentUser();
+            }
+
+            // 2. ถ้ายังไม่มี ให้ลองดึงจาก Supabase Session สำรอง
             if (client && client.auth) {
                 try {
                     const { data } = await client.auth.getSession();
-                    if (data?.session?.user) authUser = data.session.user;
+                    if (data?.session?.user) {
+                        authUser = data.session.user;
+                        if (!profileObj && window.AuthService && typeof AuthService.getUserProfile === 'function') {
+                            profileObj = await AuthService.getUserProfile(authUser);
+                        }
+                    }
                 } catch (e) {}
             }
-        
-            // 2. ดึง Profile จาก AuthService
-            if (authUser && window.AuthService && typeof AuthService.getUserProfile === 'function') {
-                try { profileObj = await AuthService.getUserProfile(authUser); } catch (e) {}
-            }
-        
-            // 3. ถ้าไม่มี Profile ใน Auth ให้ลองค้นชื่อครูจากตาราง teachers ใน Supabase โดยใช้ Email หรือ ID
+
+            // 3. ถ้ายังไม่พบ Profile ให้ค้นชื่อครูจากตาราง teachers ใน Supabase โดยใช้ Email หรือ ID
             if (!profileObj && authUser && client) {
                 try {
                     const { data: teacherData } = await client
@@ -759,11 +764,14 @@
                         .select('*')
                         .or(`email.eq.${authUser.email},teacher_id.eq.${authUser.id}`)
                         .maybeSingle();
-                    if (teacherData) profileObj = teacherData;
+
+                    if (teacherData) {
+                        profileObj = AuthService.setUserSession(teacherData);
+                    }
                 } catch (e) {}
             }
-        
-            const currentRole = profileObj?.role || localStorage.getItem('user_role') || 'teacher';
+
+            const currentRole = profileObj?.role || localStorage.getItem('user_role') || 'TEACHER';
             
             // แสดงผลชื่อและรูปโปรไฟล์
             renderUniversalProfile(authUser, profileObj, currentRole);
@@ -795,7 +803,7 @@
                 if (user?.email) {
                     displayName = user.email.split('@')[0];
                 } else {
-                    displayName = (role === 'admin') ? 'ผู้ดูแลระบบ' : 'ครูประจำวิชา';
+                    displayName = (role === 'admin' || role === 'ADMIN') ? 'ผู้ดูแลระบบ' : 'ครูประจำวิชา';
                 }
             }
         
@@ -805,7 +813,7 @@
             const roleName = (role || 'TEACHER').toUpperCase();
             if (badgeEl) {
                 badgeEl.innerText = roleName;
-                badgeEl.className = (roleName === 'ADMIN') 
+                badgeEl.className = (roleName === 'ADMIN' || roleName === 'EXECUTIVE') 
                     ? "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider"
                     : "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
             }
@@ -814,6 +822,7 @@
             let avatarUrl = profile?.avatar_url || 
                              profile?.picture || 
                              profile?.photo_url ||
+                             profile?.avatar ||
                              user?.user_metadata?.avatar_url || 
                              user?.user_metadata?.picture || 
                              localStorage.getItem('user_avatar') ||
