@@ -680,60 +680,46 @@
         let CURRENT_PARENT_USER = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 🔒 1. Auth Guard เช็กสิทธิ์ผู้ปกครองล็อกอินจริง
-            CURRENT_PARENT_USER = requireAuth(['parent', 'admin', 'superadmin'], '../../login.html');
-            if (!CURRENT_PARENT_USER) return;
-
-            await initParentPortal(CURRENT_PARENT_USER);
-            setupEventListeners();
+            // 1. Auth Guard: อนุญาตเฉพาะ PARENT (หรือ ADMIN/EXECUTIVE)
+            const user = AuthManager.requireAuth(['PARENT']);
+            if (!user) return;
+        
+            // 2. แสดงผลโปรไฟล์ของผู้ปกครองเอง
+            const parentNameEl = document.getElementById('parentDisplayName') || document.getElementById('userDisplayName');
+            const parentAvatarImg = document.getElementById('parentAvatarImg') || document.getElementById('userAvatarImg');
+        
+            if (parentNameEl) parentNameEl.textContent = user.name;
+            if (user.avatar && parentAvatarImg) parentAvatarImg.src = user.avatar;
+        
+            // 3. (เสริม) โหลดชื่อ "ครูประจำชั้น / ครูผู้สอน" จาก DB มาแสดงในหน้าผู้ปกครอง
+            await loadHomeroomTeacherInfo();
         });
-
-        async function initParentPortal(user) {
+        
+        // ฟังก์ชันดึงชื่อครูผู้สอน/ครูประจำชั้นมาวางในระบบผู้ปกครอง
+        async function loadHomeroomTeacherInfo() {
+            const teacherNameEl = document.getElementById('homeroomTeacherName');
+            if (!teacherNameEl) return;
+        
+            const client = window.supabase || window.db;
+            if (!client) return;
+        
             try {
-                // ดึงข้อมูลรหัสนักเรียนจาก Session ที่เข้าสู่ระบบ
-                const targetStudentId = user.studentId || user.userId || '';
-                const childModalList = document.getElementById('childModalList');
-
-                if (targetStudentId) {
-                    // ดึงข้อมูลนักเรียนจากตาราง students
-                    const { data: student, error } = await db.from('students')
-                        .select('*')
-                        .or(`student_id.eq.${targetStudentId},id.eq.${targetStudentId}`)
-                        .maybeSingle();
-
-                    if (student) {
-                        currentStudentId = student.student_id || student.id;
-                        const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
-
-                        if (childModalList) {
-                            childModalList.innerHTML = `
-                                <button onclick="window.selectChildOption('${currentStudentId}', '${fullName}')" class="w-full text-left p-2.5 rounded-xl hover:bg-indigo-50 font-medium transition flex justify-between items-center border border-transparent hover:border-indigo-100">
-                                    <span>${fullName} (${currentStudentId})</span>
-                                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                                </button>
-                            `;
-                        }
-
-                        if (document.getElementById('customChildText')) {
-                            document.getElementById('customChildText').innerText = `${fullName} (${currentStudentId})`;
-                        }
-                        if (document.getElementById('childSelector')) {
-                            document.getElementById('childSelector').value = currentStudentId;
-                        }
-                        
-                        const subHeaderName = document.getElementById('subHeaderStudentName');
-                        if (subHeaderName) subHeaderName.innerText = fullName;
-                    } else {
-                        currentStudentId = targetStudentId;
-                        if (childModalList) {
-                            childModalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบข้อมูลบุตรหลานในระบบ</p>`;
-                        }
-                        if (document.getElementById('customChildText')) {
-                            document.getElementById('customChildText').innerText = `-- รหัส: ${currentStudentId} --`;
-                        }
-                    }
+                // ดึงชื่อครูประจำชั้นจริงภาษาไทยจากตาราง teachers
+                const { data: teacher } = await client
+                    .from('teachers')
+                    .select('full_name')
+                    .limit(1)
+                    .maybeSingle();
+        
+                if (teacher && teacher.full_name) {
+                    teacherNameEl.textContent = teacher.full_name;
+                } else {
+                    teacherNameEl.textContent = 'ครูประจำชั้น';
                 }
-
+            } catch (e) {
+                console.warn('Load teacher info error:', e);
+            }
+        }
                 window.selectChildOption = (id, name) => {
                     currentStudentId = id;
                     if (document.getElementById('childSelector')) document.getElementById('childSelector').value = id;
