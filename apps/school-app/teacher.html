@@ -312,39 +312,32 @@
 
         let CURRENT_TEACHER_USER = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 🔒 1. เช็กสิทธิ์ครูผู้ใช้จริง (รองรับ teacher, executive, admin, superadmin)
-            CURRENT_TEACHER_USER = requireAuth(['teacher', 'staff', 'executive', 'admin', 'superadmin'], '../../login.html');
-            if (!CURRENT_TEACHER_USER) return;
-
-            // 🚀 [PHASE 2 UPDATE]: บันทึกข้อมูล Session เข้าตัวกลาง AuthService ทันทีเมื่อเข้าหน้า teacher
-            if (window.AuthService && typeof AuthService.setUserSession === 'function') {
-                AuthService.setUserSession({
-                    id: CURRENT_TEACHER_USER.teacherId || CURRENT_TEACHER_USER.userId || '',
-                    name: CURRENT_TEACHER_USER.name || CURRENT_TEACHER_USER.full_name || 'ครูผู้สอนประจำวิชา',
-                    role: CURRENT_TEACHER_USER.role || 'TEACHER',
-                    avatar: CURRENT_TEACHER_USER.avatar || CURRENT_TEACHER_USER.avatar_url || '',
-                    email: CURRENT_TEACHER_USER.email || ''
-                });
-            }
-
-            // 👤 2. แสดงผลโปรไฟล์ครู
-            loadTeacherProfile(CURRENT_TEACHER_USER);
-            
-            // 📚 3. ดึงวิชาสอนจริงจาก DB (ตาราง schedules)
-            await loadRealSubjectSchedules(CURRENT_TEACHER_USER.teacherId || CURRENT_TEACHER_USER.userId);
-
-            // 🚪 4. ผูกปุ่ม Logout
-            document.querySelectorAll('#btnLogout, .btn-logout, [onclick*="logout"]').forEach(btn => {
-                btn.removeAttribute('onclick');
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                        logout('../../login.html');
-                    }
-                });
-            });
-        });
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Auth Guard: อนุญาตเฉพาะ TEACHER (หรือ ADMIN/EXECUTIVE)
+        const user = AuthManager.requireAuth(['TEACHER']);
+        if (!user) return;
+    
+        // 2. จับ Element บน UI หน้าครู
+        const nameEl = document.getElementById('teacherDisplayName') || document.getElementById('userDisplayName');
+        const badgeEl = document.getElementById('teacherRoleBadge') || document.getElementById('userRoleBadge');
+        const avatarImg = document.getElementById('teacherAvatarImg') || document.getElementById('userAvatarImg');
+        const avatarIcon = document.getElementById('teacherAvatarIcon') || document.getElementById('userAvatarIcon');
+    
+        // 3. ฉีดข้อมูลโปรไฟล์
+        if (nameEl) nameEl.textContent = user.name;
+        if (badgeEl) badgeEl.textContent = user.role;
+    
+        // 4. แสดงรูปภาพสดจาก SSO
+        if (user.avatar && avatarImg) {
+            avatarImg.src = user.avatar;
+            avatarImg.classList.remove('hidden');
+            if (avatarIcon) avatarIcon.classList.add('hidden');
+            avatarImg.onerror = () => {
+                avatarImg.classList.add('hidden');
+                if (avatarIcon) avatarIcon.classList.remove('hidden');
+            };
+        }
+    });
 
         function loadTeacherProfile(user) {
             const nameEl = document.getElementById('headerTeacherName');
