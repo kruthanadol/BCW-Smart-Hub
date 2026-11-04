@@ -733,36 +733,26 @@
         });
 
         async function initLandingSystem() {
-            let profileObj = null;
-        
-            // 1. อ่านข้อมูลจาก LocalStorage ผ่าน AuthService ทันที (ไม่ต้องรอ Supabase Auth ป้องกันติด 401)
-            if (window.AuthService && typeof AuthService.getCurrentUser === 'function') {
-                profileObj = AuthService.getCurrentUser();
-            }
-            
-            if (!profileObj) {
-                try {
-                    const rawData = localStorage.getItem('bcw_user_profile') || localStorage.getItem('bcw_user_session');
-                    if (rawData) profileObj = JSON.parse(rawData);
-                } catch (e) {}
+            // 1. อ่านข้อมูลโปรไฟล์ผู้ใช้จาก AuthManager (หรือ LocalStorage) โดยตรง
+            let currentUser = null;
+            if (window.AuthManager && typeof AuthManager.getCurrentUser === 'function') {
+                currentUser = AuthManager.getCurrentUser();
+            } else if (typeof getCurrentUser === 'function') {
+                currentUser = getCurrentUser();
             }
         
-            // 2. ถ้าใน LocalStorage มีข้อมูล ให้ใช้ข้อมูลนั้น Render โปรไฟล์ทันที!
-            if (profileObj) {
-                const role = (profileObj.role || localStorage.getItem('user_role') || 'TEACHER').toUpperCase();
-                renderUniversalProfile(null, profileObj, role);
+            // 2. หากมีข้อมูล ให้เรนเดอร์แสดงผลบนหน้าจอทันที! (ไม่ยิง API Auth ป้องกัน 401)
+            if (currentUser) {
+                renderUniversalProfile(null, currentUser, currentUser.role);
             } else {
-                // Fallback จาก LocalStorage เดี่ยวๆ
+                // Fallback จาก LocalStorage คีย์เดี่ยว
                 const savedName = localStorage.getItem('user_name');
-                const savedRole = localStorage.getItem('user_role') || 'TEACHER';
-                if (savedName) {
-                    renderUniversalProfile(null, { name: savedName }, savedRole.toUpperCase());
-                } else {
-                    renderUniversalProfile(null, null, 'TEACHER');
-                }
+                const savedRole = localStorage.getItem('user_role') || 'STUDENT';
+                const savedAvatar = localStorage.getItem('user_avatar');
+                renderUniversalProfile(null, { name: savedName, avatar: savedAvatar }, savedRole.toUpperCase());
             }
         
-            // 3. ดึงข้อมูลสถิตินักเรียน (เซฟการทำ Query แบบแนบ Header ป้องกัน 401)
+            // 3. โหลดสถิตินักเรียน
             const client = window.supabase || window.db || (window.supabaseClient ? window.supabaseClient : null);
             await loadLandingRealStats(client);
             
