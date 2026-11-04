@@ -733,98 +733,59 @@
         });
 
         async function initLandingSystem() {
-            let currentUser = null;
+            // 1. ตรวจสิทธิ์และอ่าน Session กลาง ( Hybrid Profile: รูป SSO + ชื่อ DB )
+            // หากไม่มี Session ระบบจะ Guard และดีดไปหน้า login.html ทันที
+            const currentUser = window.AuthManager ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE', 'TEACHER', 'STUDENT', 'PARENT']) : null;
+            if (!currentUser) return;
         
-            // 1. อ่านข้อมูลผู้ใช้จาก Central AuthManager (ที่บันทึกไว้ตอน Login) ทันที
-            if (window.AuthManager && typeof AuthManager.getCurrentUser === 'function') {
-                currentUser = AuthManager.getCurrentUser();
-            } else if (typeof getCurrentUser === 'function') {
-                currentUser = getCurrentUser();
+            // 2. เรนเดอร์แสดงผลบนหน้าจอทันที (รูป Google/LINE + ชื่อ DB ภาษาไทย + Badge)
+            renderUniversalProfile(currentUser);
+        
+            // 3. โหลดสถิตินักเรียนและปิด Loader
+            const client = window.supabase || window.db || window.supabaseClient;
+            if (typeof loadLandingRealStats === 'function') {
+                await loadLandingRealStats(client);
             }
-        
-            // 2. หากไม่พบ Session ให้ไปดึงจาก LocalStorage สำรอง
-            if (!currentUser) {
-                try {
-                    const raw = localStorage.getItem('bcw_user_session') || localStorage.getItem('bcw_user_profile');
-                    if (raw) currentUser = JSON.parse(raw);
-                } catch (e) {}
-            }
-        
-            // 3. กำหนด Role จริง (ถ้าไม่มีข้อมูลจริงๆ ให้ Default ตามโดเมนหรือให้เป็น TEACHER)
-            let userRole = currentUser?.role || localStorage.getItem('user_role') || 'TEACHER';
-            let userName = currentUser?.name || localStorage.getItem('user_name') || 'ผู้ใช้งานระบบ';
-            let userAvatar = currentUser?.avatar || localStorage.getItem('user_avatar') || '';
-        
-            // 4. เรนเดอร์แสดงผลบนหน้าจอทันที (ไม่ยิง API Auth เพื่อตัดปัญหา 401)
-            renderUniversalProfile(null, {
-                name: userName,
-                avatar: userAvatar
-            }, userRole.toUpperCase());
-        
-            // 5. โหลดสถิตินักเรียน
-            const client = window.supabase || window.db || (window.supabaseClient ? window.supabaseClient : null);
-            await loadLandingRealStats(client);
             
-            hidePageLoader();
+            if (typeof hidePageLoader === 'function') {
+                hidePageLoader();
+            }
         }
         
-        function renderUniversalProfile(user, profile, role) {
+        function renderUniversalProfile(userProfile) {
             const nameEl = document.getElementById('userDisplayName');
             const badgeEl = document.getElementById('userRoleBadge');
             const avatarImg = document.getElementById('userAvatarImg');
             const avatarIcon = document.getElementById('userAvatarIcon');
         
-            // 🔍 ค้นหาชื่อผู้ใช้
-            let displayName = profile?.name || 
-                              profile?.display_name || 
-                              profile?.full_name || 
-                              profile?.teacher_name ||
-                              user?.user_metadata?.full_name || 
-                              user?.user_metadata?.name || 
-                              localStorage.getItem('user_name') || 
-                              localStorage.getItem('teacher_name');
+            // 1. อ่านข้อมูลจาก Object ที่ผ่านการสกัดแบบ Hybrid มาแล้ว
+            const displayName = userProfile?.name || 'ผู้ใช้งานระบบ';
+            const roleName = (userProfile?.role || 'TEACHER').toUpperCase();
+            const avatarUrl = userProfile?.avatar || '';
         
-            const roleName = (role || 'TEACHER').toUpperCase();
-
-            // ตั้งชื่อ Default กรณีไม่มีข้อมูลชื่อ
-            if (!displayName || displayName === 'undefined' || displayName === 'null') {
-                if (user?.email) {
-                    displayName = user.email.split('@')[0];
-                } else {
-                    if (roleName === 'ADMIN') displayName = 'ผู้ดูแลระบบ';
-                    else if (roleName === 'STUDENT') displayName = 'นักเรียน';
-                    else displayName = 'ครูประจำวิชา';
-                }
-            }
-        
+            // 2. แสดงผลชื่อผู้ใช้
             if (nameEl) nameEl.innerText = displayName;
         
-            // 🎨 ปรับเปลี่ยนป้าย Role Badge ตามสิทธิ์ที่แท้จริง
+            // 3. ปรับเปลี่ยนป้าย Role Badge ตามบทบาทจริง
             if (badgeEl) {
                 badgeEl.innerText = roleName;
                 if (roleName === 'STUDENT') {
                     badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-                } else if (roleName === 'ADMIN' || roleName === 'EXECUTIVE' || roleName === 'SUPERADMIN') {
+                } else if (['ADMIN', 'EXECUTIVE', 'SUPERADMIN'].includes(roleName)) {
                     badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
                 } else {
                     badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
                 }
             }
         
-            // 🔍 ค้นหารูปโปรไฟล์
-            let avatarUrl = profile?.avatar ||
-                             profile?.avatar_url || 
-                             profile?.picture || 
-                             profile?.photo_url ||
-                             user?.user_metadata?.avatar_url || 
-                             localStorage.getItem('user_avatar');
-        
-            if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined' && avatarUrl.trim() !== '') {
+            // 4. แสดงผลรูปภาพโปรไฟล์ (สดจาก Google / LINE SSO)
+            if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
                 if (avatarImg) {
                     avatarImg.src = avatarUrl;
                     avatarImg.classList.remove('hidden');
                     if (avatarIcon) avatarIcon.classList.add('hidden');
                     
+                    // กรณี URL รูปพัง ให้แสดงไอคอน Fallback
                     avatarImg.onerror = function() {
                         this.classList.add('hidden');
                         if (avatarIcon) avatarIcon.classList.remove('hidden');
