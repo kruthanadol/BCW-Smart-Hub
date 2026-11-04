@@ -617,38 +617,31 @@
         let SELECTED_SCHEDULE_DAY = 'Monday';
         let gatepassTimerInterval = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 🔒 1. Auth Guard เช็กสิทธิ์นักเรียนล็อกอินจริง
-            const user = requireAuth(['student', 'admin', 'superadmin'], '../../login.html');
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Auth Guard: อนุญาตเฉพาะ STUDENT (หรือ ADMIN/EXECUTIVE)
+            const user = AuthManager.requireAuth(['STUDENT']);
             if (!user) return;
-
-            CURRENT_STUDENT_ID = user.studentId || user.userId;
-            await initStudentPortal(user);
-            setupEventListeners();
+        
+            // 2. จับ Element บน UI หน้านักเรียน
+            const nameEl = document.getElementById('studentDisplayName') || document.getElementById('userDisplayName');
+            const badgeEl = document.getElementById('studentRoleBadge') || document.getElementById('userRoleBadge');
+            const avatarImg = document.getElementById('studentAvatarImg') || document.getElementById('userAvatarImg');
+            const avatarIcon = document.getElementById('studentAvatarIcon') || document.getElementById('userAvatarIcon');
+        
+            // 3. ฉีดข้อมูลโปรไฟล์นักเรียน (ชื่อจริงภาษาไทย + รูป SSO)
+            if (nameEl) nameEl.textContent = user.name;
+            if (badgeEl) badgeEl.textContent = 'นักเรียน';
+        
+            if (user.avatar && avatarImg) {
+                avatarImg.src = user.avatar;
+                avatarImg.classList.remove('hidden');
+                if (avatarIcon) avatarIcon.classList.add('hidden');
+                avatarImg.onerror = () => {
+                    avatarImg.classList.add('hidden');
+                    if (avatarIcon) avatarIcon.classList.remove('hidden');
+                };
+            }
         });
-
-        async function initStudentPortal(user) {
-            try {
-                // ดึงข้อมูลนักเรียนจริงจาก Supabase
-                const { data: studentProfile } = await db.from('students')
-                    .select('*')
-                    .or(`student_id.eq.${CURRENT_STUDENT_ID},id.eq.${CURRENT_STUDENT_ID}`)
-                    .maybeSingle();
-
-                const fullName = user.name || (studentProfile ? `${studentProfile.prefix || ''}${studentProfile.first_name || ''} ${studentProfile.last_name || ''}`.trim() : 'นักเรียน');
-                currentStudentClass = studentProfile?.classroom || studentProfile?.class_name || studentProfile?.class || '';
-                const studentNo = studentProfile?.student_no ?? studentProfile?.no ?? '-';
-
-                if (document.getElementById('student-fullname')) document.getElementById('student-fullname').innerText = fullName;
-                if (document.getElementById('student-class')) document.getElementById('student-class').innerText = currentStudentClass || 'ไม่ระบุห้อง';
-                if (document.getElementById('student-no')) document.getElementById('student-no').innerText = studentNo;
-                if (document.getElementById('student-id')) document.getElementById('student-id').innerText = CURRENT_STUDENT_ID;
-                if (document.getElementById('student-behavior-score')) document.getElementById('student-behavior-score').innerText = studentProfile?.behavior_score ?? 100;
-
-                const avatarImg = document.getElementById('student-avatar');
-                if (avatarImg) {
-                    avatarImg.src = user.avatar || studentProfile?.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-                }
 
                 // กำหนดวันเริ่มต้นตารางเรียน
                 const dayMap = {
