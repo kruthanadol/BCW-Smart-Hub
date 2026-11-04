@@ -131,125 +131,76 @@
     <script src="core/auth-manager.js"></script>
     
     <script>
-        // ตรวจสอบ Session เมื่อเปิดหน้า Login หากล็อกอินอยู่แล้วให้พาไป landing.html
+        // 1. ตรวจสอบ Session เมื่อเปิดหน้า Login หากล็อกอินอยู่แล้วให้พาไปหน้าตาม Role ทันที
         document.addEventListener('DOMContentLoaded', async () => {
-            if (window.AuthService) {
-                const session = await AuthService.checkSession();
-                if (session) {
+            const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+            if (currentUser && currentUser.role) {
+                if (window.AuthService && typeof AuthService.redirectToRolePage === 'function') {
+                    AuthService.redirectToRolePage(currentUser.role);
+                } else {
                     window.location.replace('landing.html');
                 }
             }
         });
-
-      // ฟังก์ชันรองรับกรณีใช้ Email/Password ผ่าน Supabase Native Auth (ฉบับแก้ไขแยกสิทธิ์ ครู/นักเรียน)
-    async function handleAccountLogin(event) {
-        event.preventDefault();
-        const inputVal = document.getElementById('account-email').value.trim();
-        const passwordVal = document.getElementById('account-password').value.trim();
-        const btnSubmit = document.getElementById('btn-account-submit');
     
-        if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-    
-        if (btnSubmit) {
-            btnSubmit.disabled = true;
-            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
-        }
-    
-        try {
-            const client = window.supabase || window.db;
-            if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
-    
-            // 🧹 1. ล้าง Session เก่าที่อาจค้างอยู่ใน LocalStorage ออกทันที
-            localStorage.clear();
-            sessionStorage.clear();
-    
-            const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
-            
-            const { data, error } = await client.auth.signInWithPassword({
-                email: fullEmail,
-                password: passwordVal
-            });
-    
-            if (error) throw error;
-    
-            let userRole = 'STUDENT'; // กำหนดค่าเริ่มต้นเป็น STUDENT ไว้ก่อน
-            let userProfile = null;
-    
-            if (data?.user) {
-                // 🔍 2. ลองค้นหาในตาราง teachers ก่อน
-                const { data: tData } = await client
-                    .from('teachers')
-                    .select('*')
-                    .or(`email.eq.${fullEmail},teacher_id.eq.${data.user.id}`)
-                    .maybeSingle();
-    
-                if (tData) {
-                    userRole = (tData.role || 'TEACHER').toUpperCase();
-                    userProfile = {
-                        id: tData.teacher_id || data.user.id,
-                        name: tData.full_name || tData.teacher_name,
-                        avatar: tData.avatar_url || '',
+        // 2. ฟังก์ชันรองรับการเข้าสู่ระบบด้วย Email / Password ผ่าน Supabase Native Auth
+        async function handleAccountLogin(event) {
+            event.preventDefault();
+            const inputVal = document.getElementById('account-email').value.trim();
+            const passwordVal = document.getElementById('account-password').value.trim();
+            const btnSubmit = document.getElementById('btn-account-submit');
+        
+            if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+        
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
+            }
+        
+            try {
+                const client = window.supabase || window.db;
+                if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
+        
+                // 🧹 ล้าง Session เก่าที่อาจค้างอยู่ออกทันที
+                localStorage.clear();
+                sessionStorage.clear();
+        
+                const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
+                
+                // 🔑 ยิงยืนยันตัวตนกับ Supabase Auth
+                const { data, error } = await client.auth.signInWithPassword({
+                    email: fullEmail,
+                    password: passwordVal
+                });
+        
+                if (error) throw error;
+        
+                // 🚀 เรียกใช้ AuthService เพื่อสกัด Hybrid Profile และย้ายผู้ใช้ไปยังหน้าหลักตามบทบาททันที
+                if (data?.user && window.AuthService && typeof AuthService.handlePostLogin === 'function') {
+                    await AuthService.handlePostLogin(data.user);
+                } else {
+                    // Fallback กรณี AuthService ไม่พร้อมใช้งาน
+                    const fallbackSession = {
+                        id: data?.user?.id || '',
+                        name: inputVal.split('@')[0],
+                        role: fullEmail.includes('admin') ? 'ADMIN' : (fullEmail.includes('teacher') ? 'TEACHER' : 'STUDENT'),
+                        avatar: '',
                         email: fullEmail
                     };
-                } else {
-                    // 🔍 3. ถ้าไม่พบใน teachers ให้ค้นหาในตาราง students (นักเรียน)
-                    const { data: sData } = await client
-                        .from('students')
-                        .select('*')
-                        .or(`email.eq.${fullEmail},student_id.eq.${inputVal},id.eq.${data.user.id}`)
-                        .maybeSingle();
+                    localStorage.setItem('bcw_user_session', JSON.stringify(fallbackSession));
+                    window.location.replace('landing.html');
+                }
     
-                    if (sData) {
-                        userRole = 'STUDENT';
-                        const fullName = `${sData.prefix || ''}${sData.first_name || ''} ${sData.last_name || ''}`.trim();
-                        userProfile = {
-                            id: sData.student_id || sData.id,
-                            name: fullName || inputVal.split('@')[0],
-                            avatar: sData.avatar_url || '',
-                            email: fullEmail
-                        };
-                    } else {
-                        // ถ้าเช็กทั้ง 2 ตารางแล้วไม่เจอ ให้เช็กจากคำในอีเมล
-                        userRole = fullEmail.includes('admin') ? 'ADMIN' : (fullEmail.includes('teacher') ? 'TEACHER' : 'STUDENT');
-                        userProfile = {
-                            id: data.user.id,
-                            name: inputVal.split('@')[0],
-                            avatar: '',
-                            email: fullEmail
-                        };
-                    }
+            } catch (err) {
+                console.error('Account Login Error:', err);
+                alert('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมล/รหัสประจำตัว และรหัสผ่านอีกครั้ง');
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ';
                 }
             }
-    
-            // 💾 4. บันทึก Session ที่ผ่านการยืนยัน Role จริงเข้าสู่ระบบกลาง
-            const sessionPayload = {
-                id: userProfile?.id || '',
-                name: userProfile?.name || 'ผู้ใช้งานระบบ',
-                role: userRole,
-                avatar: userProfile?.avatar || '',
-                email: fullEmail
-            };
-    
-            if (window.AuthService && typeof AuthService.setUserSession === 'function') {
-                AuthService.setUserSession(sessionPayload);
-            } else {
-                localStorage.setItem('bcw_user_profile', JSON.stringify(sessionPayload));
-                localStorage.setItem('user_role', userRole);
-                localStorage.setItem('user_name', sessionPayload.name);
-            }
-    
-            // 🚀 5. ส่งต่อไปยังหน้า landing.html
-            window.location.replace('landing.html');
-        } catch (err) {
-            console.error('Account Login Error:', err);
-            alert('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมล/รหัสประจำตัว และรหัสผ่านอีกครั้ง');
-        } finally {
-            if (btnSubmit) {
-                btnSubmit.disabled = false;
-                btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ';
-            }
         }
-    }
     </script>
 </body>
 </html>
