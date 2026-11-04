@@ -76,7 +76,7 @@
     <div class="login-card">
         <div class="card-header">
             <div class="logo-wrapper">
-                <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://via.placeholder.com/60?text=BCW'">
+                <img src="assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="school-logo" onerror="this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png'">
             </div>
             <div class="brand-text">
                 <div class="line-1">BCW SMART HUB</div>
@@ -168,7 +168,37 @@
 
                 if (error) throw error;
 
-                // ล็อกอินสำเร็จ ส่งต่อไปยัง landing.html เพื่อตรวจสอบสิทธิ์
+                // 🚀 [PHASE 2 UPDATE]: ดึงข้อมูลครูจากตาราง teachers แล้วบันทึก Session ด้วย AuthService
+                let teacherProfile = null;
+                if (data?.user) {
+                    try {
+                        const { data: tData } = await client
+                            .from('teachers')
+                            .select('*')
+                            .or(`email.eq.${fullEmail},teacher_id.eq.${data.user.id}`)
+                            .maybeSingle();
+
+                        if (tData) {
+                            teacherProfile = tData;
+                        }
+                    } catch (e) {
+                        console.warn('Teacher lookup warning:', e);
+                    }
+                }
+
+                // หากไม่พบในตาราง teachers ใช้อีเมลและข้อมูล default
+                const sessionData = {
+                    id: data?.user?.id || teacherProfile?.teacher_id || '',
+                    name: teacherProfile?.full_name || teacherProfile?.teacher_name || inputVal.split('@')[0],
+                    role: teacherProfile?.role || (fullEmail.includes('admin') ? 'ADMIN' : 'TEACHER'),
+                    avatar: teacherProfile?.avatar_url || teacherProfile?.photo_url || '',
+                    email: fullEmail
+                };
+
+                // บันทึก Session เข้าสู่ระบบกลางผ่าน AuthService
+                AuthService.setUserSession(sessionData);
+
+                // ล็อกอินสำเร็จ ส่งต่อไปยัง landing.html
                 window.location.replace('landing.html');
             } catch (err) {
                 console.error('Account Login Error:', err);
