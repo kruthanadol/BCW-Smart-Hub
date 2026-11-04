@@ -1,6 +1,57 @@
 // core/auth-service.js
 
 class AuthService {
+    // 💾 0. Centralized Session Management (เพิ่มใหม่ตาม Phase 1)
+    static setUserSession(userData) {
+        if (!userData) return null;
+
+        const profile = {
+            id: userData.id || userData.teacher_id || '',
+            name: userData.full_name || userData.name || userData.teacher_name || userData.display_name || 'ผู้ใช้งานระบบ',
+            role: (userData.role || 'TEACHER').toUpperCase(),
+            avatar: userData.avatar_url || userData.photo_url || userData.picture || '',
+            email: userData.email || ''
+        };
+
+        // เซฟลงคีย์หลักประจำระบบ BCW Smart Hub
+        localStorage.setItem('bcw_user_profile', JSON.stringify(profile));
+
+        // เซฟคีย์มาตรฐานสำรองเพื่อความชัวร์ในการดึงข้อมูลแบบดั้งเดิม
+        localStorage.setItem('user_name', profile.name);
+        localStorage.setItem('user_role', profile.role);
+        if (profile.avatar) {
+            localStorage.setItem('user_avatar', profile.avatar);
+        } else {
+            localStorage.removeItem('user_avatar');
+        }
+
+        return profile;
+    }
+
+    static getCurrentUser() {
+        try {
+            const profileStr = localStorage.getItem('bcw_user_profile');
+            if (profileStr) {
+                return JSON.parse(profileStr);
+            }
+        } catch (e) {
+            console.warn("AuthService: Error parsing local profile", e);
+        }
+
+        // Fallback: ดึงคีย์เดี่ยวกรณีไม่มีคีย์หลัก
+        const name = localStorage.getItem('user_name');
+        if (name && name !== 'undefined' && name !== 'null') {
+            return {
+                id: '',
+                name: name,
+                role: (localStorage.getItem('user_role') || 'TEACHER').toUpperCase(),
+                avatar: localStorage.getItem('user_avatar') || '',
+                email: ''
+            };
+        }
+        return null;
+    }
+
     // 1. Google SSO Login
     static async loginWithGoogle() {
         try {
@@ -46,7 +97,11 @@ class AuthService {
                     liff.login({ redirectUri: window.location.href });
                 } else {
                     const profile = await liff.getProfile();
-                    localStorage.setItem('user_role', 'parent');
+                    this.setUserSession({
+                        name: profile.displayName,
+                        role: 'parent',
+                        avatar: profile.pictureUrl
+                    });
                     localStorage.setItem('line_user_id', profile.userId);
                     window.location.replace('landing.html');
                 }
@@ -95,7 +150,9 @@ class AuthService {
 
             // Admin Hardcoded Fallback
             if (userEmail === 'kruthanadol@buached.ac.th') {
-                return { role: 'admin', display_name: 'ครูธนดล คำเสนอ' };
+                const adminProfile = { role: 'admin', display_name: 'ครูธนดล คำเสนอ', full_name: 'ครูธนดล คำเสนอ' };
+                this.setUserSession(adminProfile);
+                return adminProfile;
             }
 
             // ค้นหาจาก auth_identities
@@ -105,9 +162,17 @@ class AuthService {
                 .or(`internal_user_id.eq.${userId},provider_user_id.eq.${userEmail}`)
                 .maybeSingle();
 
-            if (data && data.role) return data;
+            if (data && data.role) {
+                this.setUserSession(data);
+                return data;
+            }
 
-            return { role: 'teacher', display_name: userEmail ? userEmail.split('@')[0] : 'ผู้ใช้งาน' };
+            const fallbackProfile = { 
+                role: 'teacher', 
+                display_name: userEmail ? userEmail.split('@')[0] : 'ผู้ใช้งาน',
+                full_name: userEmail ? userEmail.split('@')[0] : 'ผู้ใช้งาน'
+            };
+            return fallbackProfile;
         } catch (err) {
             console.error('Get Profile Error:', err.message);
             return { role: 'teacher' };
