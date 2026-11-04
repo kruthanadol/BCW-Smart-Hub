@@ -131,8 +131,26 @@
     <script src="core/auth-manager.js"></script>
     
     <script>
-        // 1. ตรวจสอบ Session เมื่อเปิดหน้า Login หากล็อกอินอยู่แล้วให้พาไปหน้าตาม Role ทันที
         document.addEventListener('DOMContentLoaded', async () => {
+            const client = window.supabase || window.db;
+    
+            // 🟢 1. ตรวจสอบว่ามีผู้ใช้ล็อกอินเด้งกลับมาจาก Google / LINE SSO หรือไม่
+            if (client && client.auth) {
+                try {
+                    const { data: { session } } = await client.auth.getSession();
+                    if (session && session.user) {
+                        // หากพบ Session จาก SSO ให้ส่งไปสกัด Hybrid Profile แล้วย้ายหน้าทันที
+                        if (window.AuthService && typeof AuthService.handlePostLogin === 'function') {
+                            await AuthService.handlePostLogin(session.user);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('SSO Callback Check Warning:', e);
+                }
+            }
+    
+            // 🟢 2. หากไม่มี SSO เด้งกลับมา ให้เช็ก Session กลางเดิม (หากล็อกอินอยู่แล้วให้ย้ายหน้าทันที)
             const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
             if (currentUser && currentUser.role) {
                 if (window.AuthService && typeof AuthService.redirectToRolePage === 'function') {
@@ -143,38 +161,38 @@
             }
         });
     
-        // 2. ฟังก์ชันรองรับการเข้าสู่ระบบด้วย Email / Password ผ่าน Supabase Native Auth
+        // 🟢 3. ฟังก์ชันรองรับการเข้าสู่ระบบด้วย Email / Password ผ่าน Supabase Native Auth
         async function handleAccountLogin(event) {
             event.preventDefault();
             const inputVal = document.getElementById('account-email').value.trim();
             const passwordVal = document.getElementById('account-password').value.trim();
             const btnSubmit = document.getElementById('btn-account-submit');
-        
+    
             if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-        
+    
             if (btnSubmit) {
                 btnSubmit.disabled = true;
                 btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
             }
-        
+    
             try {
                 const client = window.supabase || window.db;
                 if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
-        
+    
                 // 🧹 ล้าง Session เก่าที่อาจค้างอยู่ออกทันที
                 localStorage.clear();
                 sessionStorage.clear();
-        
+    
                 const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
-                
+    
                 // 🔑 ยิงยืนยันตัวตนกับ Supabase Auth
                 const { data, error } = await client.auth.signInWithPassword({
                     email: fullEmail,
                     password: passwordVal
                 });
-        
+    
                 if (error) throw error;
-        
+    
                 // 🚀 เรียกใช้ AuthService เพื่อสกัด Hybrid Profile และย้ายผู้ใช้ไปยังหน้าหลักตามบทบาททันที
                 if (data?.user && window.AuthService && typeof AuthService.handlePostLogin === 'function') {
                     await AuthService.handlePostLogin(data.user);
