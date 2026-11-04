@@ -124,101 +124,128 @@
         </div>
     </div>
 
-    <!-- 3. Core Modules Architecture -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="core/supabase-client.js"></script>
-    <script src="core/auth-service.js"></script>
-    <script src="core/auth-manager.js"></script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const client = window.supabase || window.db;
-    
-            // 🟢 1. ตรวจสอบว่ามีผู้ใช้ล็อกอินเด้งกลับมาจาก Google / LINE SSO หรือไม่
-            if (client && client.auth) {
-                try {
-                    const { data: { session } } = await client.auth.getSession();
-                    if (session && session.user) {
-                        // หากพบ Session จาก SSO ให้ส่งไปสกัด Hybrid Profile แล้วย้ายหน้าทันที
-                        if (window.AuthService && typeof AuthService.handlePostLogin === 'function') {
-                            await AuthService.handlePostLogin(session.user);
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('SSO Callback Check Warning:', e);
-                }
-            }
-    
-            // 🟢 2. หากไม่มี SSO เด้งกลับมา ให้เช็ก Session กลางเดิม (หากล็อกอินอยู่แล้วให้ย้ายหน้าทันที)
-            const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
-            if (currentUser && currentUser.role) {
-                if (window.AuthService && typeof AuthService.redirectToRolePage === 'function') {
-                    AuthService.redirectToRolePage(currentUser.role);
-                } else {
-                    window.location.replace('landing.html');
-                }
-            }
-        });
-    
-        // 🟢 3. ฟังก์ชันรองรับการเข้าสู่ระบบด้วย Email / Password ผ่าน Supabase Native Auth
-        async function handleAccountLogin(event) {
-            event.preventDefault();
-            const inputVal = document.getElementById('account-email').value.trim();
-            const passwordVal = document.getElementById('account-password').value.trim();
-            const btnSubmit = document.getElementById('btn-account-submit');
-    
-            if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-    
-            if (btnSubmit) {
-                btnSubmit.disabled = true;
-                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
-            }
-    
-            try {
+        <!-- 3. Core Modules Architecture -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="core/supabase-client.js"></script>
+        <script src="core/auth-service.js"></script>
+        <script src="core/auth-manager.js"></script>
+        
+        <script>
+            // 🛡️ ป้องกัน Error ป้อนฟังก์ชันเข้า AuthService เผื่อไฟล์ภายนอกโหลดไม่ทันหรือติด Cache
+            window.AuthService = window.AuthService || {};
+        
+            // 1. ฟังก์ชันสั่งล็อกอิน Google SSO (เรียกใช้งานจาก onclick บนปุ่ม)
+            AuthService.loginWithGoogle = async function() {
                 const client = window.supabase || window.db;
-                if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
-    
-                // 🧹 ล้าง Session เก่าที่อาจค้างอยู่ออกทันที
-                localStorage.clear();
-                sessionStorage.clear();
-    
-                const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
-    
-                // 🔑 ยิงยืนยันตัวตนกับ Supabase Auth
-                const { data, error } = await client.auth.signInWithPassword({
-                    email: fullEmail,
-                    password: passwordVal
+                if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
+                
+                const { error } = await client.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: `${window.location.origin}/login.html`
+                    }
                 });
-    
-                if (error) throw error;
-    
-                // 🚀 เรียกใช้ AuthService เพื่อสกัด Hybrid Profile และย้ายผู้ใช้ไปยังหน้าหลักตามบทบาททันที
-                if (data?.user && window.AuthService && typeof AuthService.handlePostLogin === 'function') {
-                    await AuthService.handlePostLogin(data.user);
-                } else {
-                    // Fallback กรณี AuthService ไม่พร้อมใช้งาน
-                    const fallbackSession = {
-                        id: data?.user?.id || '',
-                        name: inputVal.split('@')[0],
-                        role: fullEmail.includes('admin') ? 'ADMIN' : (fullEmail.includes('teacher') ? 'TEACHER' : 'STUDENT'),
-                        avatar: '',
-                        email: fullEmail
-                    };
-                    localStorage.setItem('bcw_user_session', JSON.stringify(fallbackSession));
-                    window.location.replace('landing.html');
+                if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
+            };
+        
+            // 2. ฟังก์ชันสั่งล็อกอิน LINE SSO
+            AuthService.loginWithLine = async function() {
+                const client = window.supabase || window.db;
+                if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
+                
+                const { error } = await client.auth.signInWithOAuth({
+                    provider: 'line',
+                    options: {
+                        redirectTo: `${window.location.origin}/login.html`
+                    }
+                });
+                if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
+            };
+        
+            // 3. ตรวจสอบการกลับมาจาก SSO หรือ Session เดิมเมื่อโหลดหน้า
+            document.addEventListener('DOMContentLoaded', async () => {
+                const client = window.supabase || window.db;
+        
+                // 🔍 A. เช็กว่าผู้ใช้เพิ่งกดล็อกอิน Google/LINE แล้วเด้งกลับมาหน้านี้หรือไม่
+                if (client && client.auth) {
+                    try {
+                        const { data: { session } } = await client.auth.getSession();
+                        if (session && session.user) {
+                            if (typeof AuthService.handlePostLogin === 'function') {
+                                await AuthService.handlePostLogin(session.user);
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('SSO Callback Check Warning:', e);
+                    }
                 }
-    
-            } catch (err) {
-                console.error('Account Login Error:', err);
-                alert('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมล/รหัสประจำตัว และรหัสผ่านอีกครั้ง');
-            } finally {
+        
+                // 🔍 B. เช็กว่าล็อกอินค้างไว้อยู่แล้วหรือไม่
+                const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+                if (currentUser && currentUser.role) {
+                    if (typeof AuthService.redirectToRolePage === 'function') {
+                        AuthService.redirectToRolePage(currentUser.role);
+                    } else {
+                        window.location.replace('landing.html');
+                    }
+                }
+            });
+        
+            // 4. ฟังก์ชันล็อกอินด้วย Email / Password
+            async function handleAccountLogin(event) {
+                event.preventDefault();
+                const inputVal = document.getElementById('account-email').value.trim();
+                const passwordVal = document.getElementById('account-password').value.trim();
+                const btnSubmit = document.getElementById('btn-account-submit');
+        
+                if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+        
                 if (btnSubmit) {
-                    btnSubmit.disabled = false;
-                    btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ';
+                    btnSubmit.disabled = true;
+                    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
+                }
+        
+                try {
+                    const client = window.supabase || window.db;
+                    if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
+        
+                    localStorage.clear();
+                    sessionStorage.clear();
+        
+                    const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
+        
+                    const { data, error } = await client.auth.signInWithPassword({
+                        email: fullEmail,
+                        password: passwordVal
+                    });
+        
+                    if (error) throw error;
+        
+                    if (data?.user && typeof AuthService.handlePostLogin === 'function') {
+                        await AuthService.handlePostLogin(data.user);
+                    } else {
+                        const fallbackSession = {
+                            id: data?.user?.id || '',
+                            name: inputVal.split('@')[0],
+                            role: fullEmail.includes('admin') ? 'ADMIN' : (fullEmail.includes('teacher') ? 'TEACHER' : 'STUDENT'),
+                            avatar: '',
+                            email: fullEmail
+                        };
+                        localStorage.setItem('bcw_user_session', JSON.stringify(fallbackSession));
+                        window.location.replace('landing.html');
+                    }
+        
+                } catch (err) {
+                    console.error('Account Login Error:', err);
+                    alert('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมล/รหัสประจำตัว และรหัสผ่านอีกครั้ง');
+                } finally {
+                    if (btnSubmit) {
+                        btnSubmit.disabled = false;
+                        btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ';
+                    }
                 }
             }
-        }
-    </script>
+        </script>
 </body>
 </html>
