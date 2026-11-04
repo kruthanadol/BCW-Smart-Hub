@@ -733,26 +733,35 @@
         });
 
         async function initLandingSystem() {
-            // 1. อ่านข้อมูลโปรไฟล์ผู้ใช้จาก AuthManager (หรือ LocalStorage) โดยตรง
             let currentUser = null;
+        
+            // 1. อ่านข้อมูลผู้ใช้จาก Central AuthManager (ที่บันทึกไว้ตอน Login) ทันที
             if (window.AuthManager && typeof AuthManager.getCurrentUser === 'function') {
                 currentUser = AuthManager.getCurrentUser();
             } else if (typeof getCurrentUser === 'function') {
                 currentUser = getCurrentUser();
             }
         
-            // 2. หากมีข้อมูล ให้เรนเดอร์แสดงผลบนหน้าจอทันที! (ไม่ยิง API Auth ป้องกัน 401)
-            if (currentUser) {
-                renderUniversalProfile(null, currentUser, currentUser.role);
-            } else {
-                // Fallback จาก LocalStorage คีย์เดี่ยว
-                const savedName = localStorage.getItem('user_name');
-                const savedRole = localStorage.getItem('user_role') || 'STUDENT';
-                const savedAvatar = localStorage.getItem('user_avatar');
-                renderUniversalProfile(null, { name: savedName, avatar: savedAvatar }, savedRole.toUpperCase());
+            // 2. หากไม่พบ Session ให้ไปดึงจาก LocalStorage สำรอง
+            if (!currentUser) {
+                try {
+                    const raw = localStorage.getItem('bcw_user_session') || localStorage.getItem('bcw_user_profile');
+                    if (raw) currentUser = JSON.parse(raw);
+                } catch (e) {}
             }
         
-            // 3. โหลดสถิตินักเรียน
+            // 3. กำหนด Role จริง (ถ้าไม่มีข้อมูลจริงๆ ให้ Default ตามโดเมนหรือให้เป็น TEACHER)
+            let userRole = currentUser?.role || localStorage.getItem('user_role') || 'TEACHER';
+            let userName = currentUser?.name || localStorage.getItem('user_name') || 'ผู้ใช้งานระบบ';
+            let userAvatar = currentUser?.avatar || localStorage.getItem('user_avatar') || '';
+        
+            // 4. เรนเดอร์แสดงผลบนหน้าจอทันที (ไม่ยิง API Auth เพื่อตัดปัญหา 401)
+            renderUniversalProfile(null, {
+                name: userName,
+                avatar: userAvatar
+            }, userRole.toUpperCase());
+        
+            // 5. โหลดสถิตินักเรียน
             const client = window.supabase || window.db || (window.supabaseClient ? window.supabaseClient : null);
             await loadLandingRealStats(client);
             
