@@ -1,6 +1,6 @@
 // core/supabase-client.js
-const SUPABASE_URL = 'https://wfpupolzgbglgmzjafge.supabase.co'; // URL ของโรงเรียนคุณครู
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // KEY เดิมของคุณครู
+const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
 
 if (!window.supabaseClient) {
     const { createClient } = window.supabase;
