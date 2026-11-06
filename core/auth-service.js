@@ -1,9 +1,8 @@
 // core/auth-service.js
-
 const AuthService = {
-    // 🟢 1. ฟังก์ชันยิง Google SSO (แก้ปัญหา AuthService.loginWithGoogle is not a function)
+    // 🟢 1. สั่งยิง Google SSO
     loginWithGoogle: async function() {
-        const client = window.supabase || window.db;
+        const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
         const { error } = await client.auth.signInWithOAuth({
@@ -15,9 +14,9 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
     },
 
-    // 🟢 2. ฟังก์ชันยิง LINE SSO
+    // 🟢 2. สั่งยิง LINE SSO
     loginWithLine: async function() {
-        const client = window.supabase || window.db;
+        const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
         const { error } = await client.auth.signInWithOAuth({
@@ -29,11 +28,11 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
-    // 🟢 3. สกัดข้อมูล Hybrid Profile หลัง Login สำเร็จ (รูป Google/LINE + ชื่อจริง DB)
+    // 🟢 3. สกัดข้อมูล Hybrid Profile หลัง Login สำเร็จ (รูป SSO + ชื่อ DB)
     handlePostLogin: async function(ssoUser) {
         if (!ssoUser) return;
 
-        const client = window.supabase || window.db;
+        const client = window.supabaseClient || window.db || window.supabase;
         const email = (ssoUser.email || '').toLowerCase().trim();
         const userId = ssoUser.id || '';
         
@@ -44,13 +43,13 @@ const AuthService = {
         let detectedRole = 'STUDENT';
         let dbName = '';
 
-        // A. สิทธิ์ Admin
+        // สิทธิ์ Admin
         if (email === 'kruthanadol@buached.ac.th' || email.includes('admin')) {
             detectedRole = 'ADMIN';
             dbName = ssoUser.user_metadata?.full_name || 'ผู้ดูแลระบบ (ADMIN)';
         }
 
-        // B. หาชื่อในตาราง teachers
+        // ค้นหาในตาราง teachers
         if (!dbName && client) {
             try {
                 const { data: teacher } = await client
@@ -66,7 +65,7 @@ const AuthService = {
             } catch (e) { console.warn('AuthService: Teacher query error:', e); }
         }
 
-        // C. หาชื่อในตาราง students
+        // ค้นหาในตาราง students
         if (!dbName && client) {
             try {
                 const { data: student } = await client
@@ -82,7 +81,7 @@ const AuthService = {
             } catch (e) { console.warn('AuthService: Student query error:', e); }
         }
 
-        // D. Fallback ชื่อ
+        // Fallback ชื่อกรณีไม่เจอใน DB
         if (!dbName) {
             dbName = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || email.split('@')[0];
             if (email.includes('@buached.ac.th')) detectedRole = 'TEACHER';
@@ -96,38 +95,54 @@ const AuthService = {
             email: email
         };
 
+        // เซฟเข้าคีย์กลางจุดเดียว
         localStorage.clear();
         sessionStorage.clear();
         localStorage.setItem('bcw_user_session', JSON.stringify(hybridProfile));
 
+        // ย้ายหน้าตามสิทธิ์
         this.redirectToRolePage(detectedRole);
     },
 
-    // 🟢 4. สั่งย้ายหน้าไปตาม Role
+    // 🟢 4. ระบบย้ายหน้าด้วย Absolute Path (ใส่ / นำหน้า กัน 404 และกัน Loop เด้งวน)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
+        const currentPath = window.location.pathname;
+
         switch (r) {
             case 'ADMIN':
             case 'EXECUTIVE':
             case 'SUPERADMIN':
-                window.location.replace('landing.html');
+                if (!currentPath.endsWith('/landing.html')) {
+                    window.location.replace('/landing.html');
+                }
                 break;
+
             case 'TEACHER':
-                window.location.replace('apps/school-app/teacher.html');
+                if (!currentPath.endsWith('/teacher.html')) {
+                    window.location.replace('/apps/school-app/teacher.html');
+                }
                 break;
+
             case 'STUDENT':
-                window.location.replace('apps/school-app/student.html');
+                if (!currentPath.endsWith('/student.html')) {
+                    window.location.replace('/apps/school-app/student.html');
+                }
                 break;
+
             case 'PARENT':
-                window.location.replace('apps/school-app/parent.html');
+                if (!currentPath.endsWith('/parent.html')) {
+                    window.location.replace('/apps/school-app/parent.html');
+                }
                 break;
+
             default:
-                window.location.replace('landing.html');
+                if (!currentPath.endsWith('/landing.html')) {
+                    window.location.replace('/landing.html');
+                }
                 break;
         }
     }
 };
 
-if (typeof window !== 'undefined') {
-    window.AuthService = AuthService;
-}
+window.AuthService = AuthService;
