@@ -719,19 +719,14 @@
     };
 
     document.addEventListener('DOMContentLoaded', async () => {
-        if (typeof startClock === 'function') startClock();
-        initSwipeGestures();
-        initAutoScrollNav();
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeAllDrawers();
-        });
-
-        setTimeout(async () => {
-            await initLandingSystem();
-        }, 300);
+        // 🔒 ดักสิทธิ์: อนุญาตให้ แอดมิน, ผู้บริหาร และ ครู เข้าใช้งานได้
+        const currentUser = window.AuthManager ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE', 'TEACHER']) : null;
+        if (!currentUser) return; // ถ้าไม่ผ่าน สคริปต์จะถูกส่งไปหน้า login.html และหยุดทำงานทันที
+    
+        // โหลดโปรไฟล์และสถิติตามปกติ...
+        renderUniversalProfile(currentUser);
     });
-
+    
     // 🌟 ปรับปรุง initLandingSystem ป้องกันหมุนค้าง 100% ด้วย try...finally
     async function initLandingSystem() {
         try {
