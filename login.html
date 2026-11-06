@@ -124,75 +124,50 @@
         </div>
     </div>
 
-        <!-- 3. Core Modules Architecture -->
+        <!-- 3. Core Modules Architecture (ใส่ ?v=9 บังคับเบราว์เซอร์ล้าง Cache เก่า) -->
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-        <script src="core/supabase-client.js"></script>
-        <script src="core/auth-service.js"></script>
-        <script src="core/auth-manager.js"></script>
+        <script src="core/supabase-client.js?v=9"></script>
+        <script src="core/auth-service.js?v=9"></script>
+        <script src="core/auth-manager.js?v=9"></script>
         
         <script>
-            // 🛡️ ป้องกัน Error ป้อนฟังก์ชันเข้า AuthService เผื่อไฟล์ภายนอกโหลดไม่ทันหรือติด Cache
+            // 🟢 สั่งปุ่ม Google / LINE SSO จากหน้า HTML Direct เข้า AuthService
             window.AuthService = window.AuthService || {};
         
-            // 1. ฟังก์ชันสั่งล็อกอิน Google SSO (เรียกใช้งานจาก onclick บนปุ่ม)
-            AuthService.loginWithGoogle = async function() {
-                const client = window.supabase || window.db;
-                if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
-                
-                const { error } = await client.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: `${window.location.origin}/login.html`
-                    }
-                });
-                if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
-            };
+            // ล็อกอิน Google
+            function loginWithGoogle() {
+                AuthService.loginWithGoogle();
+            }
         
-            // 2. ฟังก์ชันสั่งล็อกอิน LINE SSO
-            AuthService.loginWithLine = async function() {
-                const client = window.supabase || window.db;
-                if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
-                
-                const { error } = await client.auth.signInWithOAuth({
-                    provider: 'line',
-                    options: {
-                        redirectTo: `${window.location.origin}/login.html`
-                    }
-                });
-                if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
-            };
+            // ล็อกอิน LINE
+            function loginWithLine() {
+                AuthService.loginWithLine();
+            }
         
-            // 3. ตรวจสอบการกลับมาจาก SSO หรือ Session เดิมเมื่อโหลดหน้า
             document.addEventListener('DOMContentLoaded', async () => {
-                const client = window.supabase || window.db;
+                const client = window.supabaseClient || window.db || window.supabase;
         
-                // 🔍 A. เช็กว่าผู้ใช้เพิ่งกดล็อกอิน Google/LINE แล้วเด้งกลับมาหน้านี้หรือไม่
+                // 1. ตรวจสอบว่ามี Session เด้งกลับมาจาก Google / LINE SSO หรือไม่
                 if (client && client.auth) {
                     try {
                         const { data: { session } } = await client.auth.getSession();
                         if (session && session.user) {
-                            if (typeof AuthService.handlePostLogin === 'function') {
-                                await AuthService.handlePostLogin(session.user);
-                                return;
-                            }
+                            await AuthService.handlePostLogin(session.user);
+                            return;
                         }
                     } catch (e) {
                         console.warn('SSO Callback Check Warning:', e);
                     }
                 }
         
-                // 🔍 B. เช็กว่าล็อกอินค้างไว้อยู่แล้วหรือไม่
-                const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+                // 2. ถ้าล็อกอินอยู่แล้ว ให้ย้ายไปหน้าหลักตาม Role ทันที
+                const currentUser = AuthManager.getCurrentUser();
                 if (currentUser && currentUser.role) {
-                    if (typeof AuthService.redirectToRolePage === 'function') {
-                        AuthService.redirectToRolePage(currentUser.role);
-                    } else {
-                        window.location.replace('landing.html');
-                    }
+                    AuthService.redirectToRolePage(currentUser.role);
                 }
             });
         
-            // 4. ฟังก์ชันล็อกอินด้วย Email / Password
+            // 3. ฟังก์ชันล็อกอิน Email / Password
             async function handleAccountLogin(event) {
                 event.preventDefault();
                 const inputVal = document.getElementById('account-email').value.trim();
@@ -207,7 +182,7 @@
                 }
         
                 try {
-                    const client = window.supabase || window.db;
+                    const client = window.supabaseClient || window.db || window.supabase;
                     if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
         
                     localStorage.clear();
@@ -222,20 +197,9 @@
         
                     if (error) throw error;
         
-                    if (data?.user && typeof AuthService.handlePostLogin === 'function') {
+                    if (data?.user) {
                         await AuthService.handlePostLogin(data.user);
-                    } else {
-                        const fallbackSession = {
-                            id: data?.user?.id || '',
-                            name: inputVal.split('@')[0],
-                            role: fullEmail.includes('admin') ? 'ADMIN' : (fullEmail.includes('teacher') ? 'TEACHER' : 'STUDENT'),
-                            avatar: '',
-                            email: fullEmail
-                        };
-                        localStorage.setItem('bcw_user_session', JSON.stringify(fallbackSession));
-                        window.location.replace('landing.html');
                     }
-        
                 } catch (err) {
                     console.error('Account Login Error:', err);
                     alert('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมล/รหัสประจำตัว และรหัสผ่านอีกครั้ง');
