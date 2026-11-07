@@ -116,9 +116,8 @@
                 </div>
             </div>
 
-            <button id="btnLogout" class="text-xs bg-rose-600/90 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-xl font-bold transition border border-rose-500/50 flex items-center gap-1 cursor-pointer shrink-0">
-                <i class="fa-solid fa-right-from-bracket text-xs"></i>
-                <span class="hidden sm:inline">ออกจากระบบ</span>
+              <button onclick="handleLogout()" class="btn-logout w-9 h-9 rounded-xl bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center transition shadow-sm cursor-pointer">
+                <i class="fa-solid fa-right-from-bracket text-sm"></i>
             </button>
         </div>
     </header>
@@ -384,6 +383,7 @@
     }
 
     // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่มบน UI
+ // 🚪 ฟังก์ชันออกจากระบบประจำหน้าครู
     function handleLogout() {
         if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
             if (window.AuthManager && typeof AuthManager.logout === 'function') {
@@ -395,6 +395,17 @@
             }
         }
     }
+
+    // ผูก Event ให้ปุ่ม Logout บน UI
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.btn-logout, [onclick*="logout"], button:has(.fa-right-from-bracket)').forEach(btn => {
+            btn.removeAttribute('onclick');
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleLogout();
+            });
+        });
+    });
 
     // ----------------------------------------------------
     // ZERO-MOCK: ดึงตารางสอนจริงจากตาราง `schedules` ใน DB 100%
