@@ -1,11 +1,10 @@
 // core/auth-service.js
 const AuthService = {
-    // 🟢 1. สั่งยิง Google SSO (รองรับทั้ง Localhost และ GitHub Pages)
+    // 1. สั่งยิง Google SSO
     loginWithGoogle: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
-        // ดึง URL หน้า login ปัจจุบันแบบเต็ม เพื่อติดชื่อ Repository บน GitHub Pages
         const redirectUrl = window.location.origin + window.location.pathname;
 
         const { error } = await client.auth.signInWithOAuth({
@@ -17,7 +16,7 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
     },
 
-    // 🟢 2. สั่งยิง LINE SSO (แก้ไขส่วนซ้ำซ้อน และดึง Path ปัจจุบัน)
+    // 2. สั่งยิง LINE SSO
     loginWithLine: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
@@ -33,7 +32,7 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
-    // 🟢 3. สกัด Hybrid Profile ตามบทบาทจริงจาก DB
+    // 3. สกัด Hybrid Profile ตามบทบาทจริงจาก DB
     handlePostLogin: async function(ssoUser) {
         if (!ssoUser) return;
 
@@ -113,13 +112,12 @@ const AuthService = {
         this.redirectToRolePage(detectedRole);
     },
 
-    // 🟢 4. กฎการส่งตัวตามบทบาท (คำนวณ Base Path กันติด 404 บน GitHub Pages)
-// 🟢 4. กฎการส่งตัวตามบทบาท (ปรับปรุงเรื่อง Path ย้ายหน้าไม่ทำงาน)
+    // 4. กฎการส่งตัวตามบทบาท (Routing Logic)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
 
-        // ดึง Base Path (ถ้าอยู่บน GitHub Pages จะติดชื่อ Repo มาด้วย)
+        // ดึง Base Path (กรณีอยู่บน GitHub Pages จะติดชื่อ Repo มาด้วย)
         const pathSegments = currentPath.split('/').filter(Boolean);
         let basePath = '';
         if (window.location.hostname.includes('github.io') && pathSegments.length > 0) {
@@ -152,12 +150,9 @@ const AuthService = {
                 break;
         }
 
-        // ย้ายหน้าทันทีถ้าไม่ได้อยู่ที่หน้าเป้าหมาย
         if (!currentPath.endsWith(targetUrl)) {
             console.log('Redirecting to:', targetUrl);
             window.location.replace(targetUrl);
-        }
-    }
         }
     }
 };
