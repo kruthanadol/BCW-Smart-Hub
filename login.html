@@ -124,12 +124,13 @@
         </div>
     </div>
 
+<!-- 1. CDN Supabase SDK (ต้องอยู่อันดับแรกเสมอ) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- 2. นำเข้า Core Scripts ตามลำดับ -->
-<script src="core/supabase-client.js?v=300"></script>
-<script src="core/auth-service.js?v=300"></script>
-<script src="core/auth-manager.js?v=300"></script>
+<!-- 2. Core Engine Scripts -->
+<script src="core/supabase-client.js?v=400"></script>
+<script src="core/auth-service.js?v=400"></script>
+<script src="core/auth-manager.js?v=400"></script>
 
 <script>
     // 🟢 ปุ่มล็อกอินด้วย Google SSO
@@ -150,33 +151,41 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        const client = window.supabaseClient || window.db || window.supabase;
+    // 🟢 ดักจับ SSO Listener ทันที ไม่ต้องรอ DOMContentLoaded เพื่อป้องกัน Event ตกหล่น
+    (function initSSOListener() {
+        const checkClient = () => window.supabaseClient || window.db || window.supabase;
+        const client = checkClient();
 
-        // 🟢 Step 1: ถ้าผู้ใช้มี Session ค้างอยู่แล้ว ให้ดีดไปหน้าประจำบทบาททันที
-        const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
-        if (currentUser && currentUser.role) {
-            console.log('พบ Session ค้างอยู่ ดีดไปยังบทบาท:', currentUser.role);
-            AuthService.redirectToRolePage(currentUser.role);
-            return;
-        }
-
-        // 🟢 Step 2: ดักจับ Callback เมื่อล็อกอิน SSO สำเร็จ
         if (client && client.auth) {
             client.auth.onAuthStateChange(async (event, session) => {
-                if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-                    if (!AuthService.isProcessingLogin) {
-                        console.log(' SSO สำเร็จ กำลังประมวลผลข้อมูลผู้ใช้...');
+                console.log('Auth State Changed Event:', event);
+                if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
+                    if (window.AuthService && !AuthService.isProcessingLogin) {
+                        console.log('🔑 SSO สำเร็จ กำลังสกัด Role และย้ายหน้า...');
                         await AuthService.handlePostLogin(session.user);
                     }
                 }
             });
+        } else {
+            // ถ้ายืนยันว่ายังไม่มา ให้รอ 50ms แล้วลองใหม่
+            setTimeout(initSSOListener, 50);
+        }
+    })();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // 🟢 Step 1: ถ้าผู้ใช้มี Session ค้างใน Storage อยู่แล้ว ให้ย้ายหน้าทันที
+        const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+        if (currentUser && currentUser.role) {
+            console.log('พบ Session ค้างอยู่ ดีดไปยังบทบาท:', currentUser.role);
+            if (window.AuthService) {
+                AuthService.redirectToRolePage(currentUser.role);
+            }
         }
     });
 
-    // 🟢 Step 3: ฟังก์ชันล็อกอินด้วย อีเมล / รหัสประจำตัว + รหัสผ่าน Direct Form
+    // 🟢 Step 2: ฟังก์ชันล็อกอินด้วย อีเมล / รหัสประจำตัว Direct Form
     async function handleAccountLogin(event) {
-        event.preventDefault();
+        if (event) event.preventDefault();
         const inputVal = document.getElementById('account-email')?.value.trim() || '';
         const passwordVal = document.getElementById('account-password')?.value.trim() || '';
         const btnSubmit = document.getElementById('btn-account-submit');
