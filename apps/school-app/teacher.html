@@ -399,7 +399,7 @@
     // ----------------------------------------------------
     // ZERO-MOCK: ดึงตารางสอนจริงจากตาราง `schedules` ใน DB 100%
     // ----------------------------------------------------
-    async function loadRealSubjectSchedules(teacherId) {
+async function loadRealSubjectSchedules(teacherId) {
         const modalList = document.getElementById('subjectModalList');
         const customText = document.getElementById('customSubjectText');
         const subjectInput = document.getElementById('subjectSelect');
@@ -408,14 +408,30 @@
             const client = window.supabaseClient || window.db || window.supabase;
             if (!client) return;
 
-            const { data: schedules, error } = await client
-                .from('schedules')
-                .select('*')
-                .eq('teacher_id', teacherId);
+            // 1. ดึงตารางสอนแบบ Safe-Query
+            let schedules = null;
+            let error = null;
 
+            // พยายามค้นหาตาม teacher_id ก่อน
+            if (teacherId) {
+                const res = await client
+                    .from('schedules')
+                    .select('*')
+                    .eq('teacher_id', teacherId);
+                schedules = res.data;
+                error = res.error;
+            }
+
+            // ถ้าค้นหาด้วย teacherId แล้วเจอ Error 400 หรือไม่พบข้อมูล ให้ดึงรายการทั้งหมดใน schedules มาให้เลือก
             if (error || !schedules || schedules.length === 0) {
+                console.warn("ไม่พบตารางสอนเฉพาะรหัสครู ดึงตารางสอนทั้งหมดเป็น fallback");
+                const resAll = await client.from('schedules').select('*').limit(100);
+                schedules = resAll.data || [];
+            }
+
+            if (!schedules || schedules.length === 0) {
                 if (customText) customText.innerText = "-- ไม่พบตารางสอนในระบบ --";
-                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนของคุณครูในฐานข้อมูล<br>กรุณานำเข้าตารางเรียนที่แผง Admin</p>`;
+                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนในฐานข้อมูล<br>กรุณานำเข้าตารางเรียนที่แผง Admin</p>`;
                 renderStudents();
                 return;
             }
@@ -425,7 +441,7 @@
             const map = new Map();
 
             for (const s of schedules) {
-                const key = `${s.course_code}|${s.classroom}`;
+                const key = `${s.course_code || s.subject_code || ''}|${s.classroom || s.class_name || ''}`;
                 if (!map.has(key)) {
                     map.set(key, true);
                     uniqueSubjects.push(s);
@@ -435,8 +451,12 @@
             // สร้างปุ่มเลือกวิชาใน Modal
             if (modalList) {
                 modalList.innerHTML = uniqueSubjects.map(s => {
-                    const val = `${s.course_code}|${s.classroom}`;
-                    const label = `${s.course_name || s.course_code} (${s.course_code}) - ห้อง ${s.classroom}`;
+                    const cCode = s.course_code || s.subject_code || 'วิชา';
+                    const cRoom = s.classroom || s.class_name || 'ไม่ระบุ';
+                    const cName = s.course_name || s.subject_name || cCode;
+                    
+                    const val = `${cCode}|${cRoom}`;
+                    const label = `${cName} (${cCode}) - ห้อง ${cRoom}`;
                     return `
                         <button onclick="selectSubjectOption('${val}', '${label}')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 font-bold transition border border-transparent hover:border-emerald-200 flex items-center justify-between">
                             <span>${label}</span>
@@ -448,8 +468,12 @@
 
             // เลือกวิชาแรกเป็นค่าเริ่มต้น
             const first = uniqueSubjects[0];
-            const defaultVal = `${first.course_code}|${first.classroom}`;
-            const defaultLabel = `${first.course_name || first.course_code} (${first.course_code}) - ห้อง ${first.classroom}`;
+            const firstCode = first.course_code || first.subject_code || 'วิชา';
+            const firstRoom = first.classroom || first.class_name || 'ไม่ระบุ';
+            const firstName = first.course_name || first.subject_name || firstCode;
+
+            const defaultVal = `${firstCode}|${firstRoom}`;
+            const defaultLabel = `${firstName} (${firstCode}) - ห้อง ${firstRoom}`;
 
             if (subjectInput) subjectInput.value = defaultVal;
             if (customText) customText.innerText = defaultLabel;
@@ -461,7 +485,6 @@
             if (customText) customText.innerText = "-- เลือกวิชาและห้องเรียน --";
         }
     }
-
     window.toggleStatsDrawer = function() {
         const trafficSec = document.getElementById('section-traffic');
         const btnText = document.getElementById('btnStatsText');
