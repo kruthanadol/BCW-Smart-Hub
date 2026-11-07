@@ -1,11 +1,11 @@
 // core/auth-service.js
 const AuthService = {
-// 1. สั่งยิง Google SSO
+    // 🟢 1. สั่งยิง Google SSO (รองรับทั้ง Localhost และ GitHub Pages)
     loginWithGoogle: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
-        // 🟢 ดึง URL หน้า login ปัจจุบันแบบเต็ม (เพื่อติดชื่อ Repository บน GitHub Pages)
+        // ดึง URL หน้า login ปัจจุบันแบบเต็ม เพื่อติดชื่อ Repository บน GitHub Pages
         const redirectUrl = window.location.origin + window.location.pathname;
 
         const { error } = await client.auth.signInWithOAuth({
@@ -17,7 +17,7 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
     },
 
-    // 2. สั่งยิง LINE SSO
+    // 🟢 2. สั่งยิง LINE SSO (แก้ไขส่วนซ้ำซ้อน และดึง Path ปัจจุบัน)
     loginWithLine: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
@@ -33,21 +33,7 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
-    // 2. สั่งยิง LINE SSO
-    loginWithLine: async function() {
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
-        
-        const { error } = await client.auth.signInWithOAuth({
-            provider: 'line',
-            options: {
-                redirectTo: `${window.location.origin}/login.html`
-            }
-        });
-        if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
-    },
-
-    // 3. สกัด Hybrid Profile ตามบทบาทจริงจาก DB
+    // 🟢 3. สกัด Hybrid Profile ตามบทบาทจริงจาก DB
     handlePostLogin: async function(ssoUser) {
         if (!ssoUser) return;
 
@@ -127,43 +113,53 @@ const AuthService = {
         this.redirectToRolePage(detectedRole);
     },
 
-    // 4. กฎการส่งตัวตามบทบาท (Routing Logic)
+    // 🟢 4. กฎการส่งตัวตามบทบาท (คำนวณ Base Path กันติด 404 บน GitHub Pages)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
 
+        // คำนวณ Base Path สำหรับ GitHub Pages (ตัดเอาชื่อ Repository คืนมา)
+        const pathSegments = currentPath.split('/').filter(Boolean);
+        let basePath = '';
+        
+        // ถ้าอยู่บน github.io ให้เก็บ Repo Name เป็น Prefix ไว้ด้วย
+        if (window.location.hostname.includes('github.io') && pathSegments.length > 0) {
+            basePath = '/' + pathSegments[0];
+        }
+
+        let targetPath = '';
+
         switch (r) {
+            // 👑 ผู้บริหาร / แอดมิน
             case 'ADMIN':
             case 'EXECUTIVE':
             case 'SUPERADMIN':
-                if (!currentPath.endsWith('/landing.html')) {
-                    window.location.replace('/landing.html');
-                }
+                targetPath = basePath + '/landing.html';
                 break;
 
+            // 👨‍🏫 ครู
             case 'TEACHER':
-                if (!currentPath.endsWith('/apps/school-app/teacher.html') && !currentPath.endsWith('/landing.html')) {
-                    window.location.replace('/apps/school-app/teacher.html');
-                }
+                targetPath = basePath + '/apps/school-app/teacher.html';
                 break;
 
+            // 👨‍🎓 นักเรียน
             case 'STUDENT':
-                if (!currentPath.endsWith('/apps/school-app/student.html')) {
-                    window.location.replace('/apps/school-app/student.html');
-                }
+                targetPath = basePath + '/apps/school-app/student.html';
                 break;
 
+            // 👨‍👩‍👧 ผู้ปกครอง
             case 'PARENT':
-                if (!currentPath.endsWith('/apps/school-app/parent.html')) {
-                    window.location.replace('/apps/school-app/parent.html');
-                }
+                targetPath = basePath + '/apps/school-app/parent.html';
                 break;
 
             default:
-                if (!currentPath.endsWith('/landing.html')) {
-                    window.location.replace('/landing.html');
-                }
+                targetPath = basePath + '/landing.html';
                 break;
+        }
+
+        // ป้องกัน Infinite Redirect Loop หากอยู่ที่หน้าเป้าหมายอยู่แล้ว
+        if (!currentPath.endsWith(targetPath.replace(basePath, ''))) {
+            window.location.replace(targetPath);
         }
     }
 };
