@@ -133,6 +133,11 @@
 <script src="core/auth-manager.js?v=400"></script>
 
 <script>
+    // 🟢 ดักจับและล้าง Error SSO ใน URL ทันทีตั้งแต่โหลดสคริปต์ ป้องกันปัญหา Alert เด้งเตะออก
+    if (window.AuthService && typeof AuthService.checkAndCleanUrlError === 'function') {
+        AuthService.checkAndCleanUrlError();
+    }
+
     // 🟢 ปุ่มล็อกอินด้วย Google SSO
     function loginWithGoogle() {
         if (window.AuthService && typeof AuthService.loginWithGoogle === 'function') {
@@ -153,6 +158,10 @@
 
     // 🟢 ดักจับ SSO Listener ทันที ไม่ต้องรอ DOMContentLoaded เพื่อป้องกัน Event ตกหล่น
     (function initSSOListener() {
+        // หากติด error ใน URL ให้หยุด listener ทันที
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error') || urlParams.has('error_code')) return;
+
         const checkClient = () => window.supabaseClient || window.db || window.supabase;
         const client = checkClient();
 
@@ -173,7 +182,7 @@
     })();
 
     document.addEventListener('DOMContentLoaded', () => {
-        // 🟢 Step 1: ถ้าผู้ใช้มี Session ค้างใน Storage อยู่แล้ว ให้ย้ายหน้าทันที
+        // 🟢 Step 1: ถ้าผู้ใช้มี Session ค้างใน Storage อยู่แล้ว ให้ย้ายหน้าไปยังบทบาทตนเองทันที
         const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
         if (currentUser && currentUser.role) {
             console.log('พบ Session ค้างอยู่ ดีดไปยังบทบาท:', currentUser.role);
