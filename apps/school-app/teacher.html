@@ -312,33 +312,54 @@
 
         let CURRENT_TEACHER_USER = null;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // 1. Auth Guard: อนุญาตเฉพาะ TEACHER (หรือ ADMIN/EXECUTIVE)
-        const user = AuthManager.requireAuth(['TEACHER']);
-        if (!user) return;
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (ถ้า Core ยังไม่พร้อมหรือไม่มีสิทธิ์ ให้หยุดทำงานทันที)
+        const currentUser = window.AuthManager 
+            ? AuthManager.requireAuth(['TEACHER']) 
+            : null;
+            
+        if (!currentUser) return;
     
-        // 2. จับ Element บน UI หน้าครู
+        // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
+        const roleMap = {
+            'ADMIN': 'ผู้ดูแลระบบ',
+            'EXECUTIVE': 'ผู้บริหาร',
+            'TEACHER': 'ครูผู้สอน',
+            'STUDENT': 'นักเรียน',
+            'PARENT': 'ผู้ปกครอง'
+        };
+        const displayRole = roleMap[currentUser.role] || currentUser.role;
+    
+        // 🎯 3. จับ Element บน UI หน้าครู
         const nameEl = document.getElementById('teacherDisplayName') || document.getElementById('userDisplayName');
         const badgeEl = document.getElementById('teacherRoleBadge') || document.getElementById('userRoleBadge');
         const avatarImg = document.getElementById('teacherAvatarImg') || document.getElementById('userAvatarImg');
         const avatarIcon = document.getElementById('teacherAvatarIcon') || document.getElementById('userAvatarIcon');
     
-        // 3. ฉีดข้อมูลโปรไฟล์
-        if (nameEl) nameEl.textContent = user.name;
-        if (badgeEl) badgeEl.textContent = user.role;
+        // 📝 4. ฉีดข้อมูลโปรไฟล์ (ชื่อ DB ภาษาไทย + Badge สิทธิ์)
+        if (nameEl) nameEl.textContent = currentUser.name || 'ครูผู้สอน';
+        if (badgeEl) badgeEl.textContent = displayRole;
     
-        // 4. แสดงรูปภาพสดจาก SSO
-        if (user.avatar && avatarImg) {
-            avatarImg.src = user.avatar;
-            avatarImg.classList.remove('hidden');
-            if (avatarIcon) avatarIcon.classList.add('hidden');
-            avatarImg.onerror = () => {
+        // 🖼️ 5. แสดงรูปภาพสดจาก SSO ( Google / LINE ) พร้อมระบบ Fallback ตัวไอคอน
+        if (avatarImg) {
+            if (currentUser.avatar) {
+                avatarImg.src = currentUser.avatar;
+                avatarImg.classList.remove('hidden');
+                if (avatarIcon) avatarIcon.classList.add('hidden');
+    
+                // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ ไอคอนสำรอง
+                avatarImg.onerror = () => {
+                    avatarImg.classList.add('hidden');
+                    if (avatarIcon) avatarIcon.classList.remove('hidden');
+                };
+            } else {
+                // กรณีไม่มีรูปในระบบ ให้แสดงไอคอนสำรอง
                 avatarImg.classList.add('hidden');
                 if (avatarIcon) avatarIcon.classList.remove('hidden');
-            };
+            }
         }
     });
-
+        
         function loadTeacherProfile(user) {
             const nameEl = document.getElementById('headerTeacherName');
             const codeEl = document.getElementById('teacherCodeDisplay');
