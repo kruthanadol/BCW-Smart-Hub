@@ -130,86 +130,108 @@
         <script src="core/auth-service.js?v=9"></script>
         <script src="core/auth-manager.js?v=9"></script>
         
-        <script>
-            // 🟢 สั่งปุ่ม Google / LINE SSO จากหน้า HTML Direct เข้า AuthService
-            window.AuthService = window.AuthService || {};
-        
-            // ล็อกอิน Google
-            function loginWithGoogle() {
-                AuthService.loginWithGoogle();
-            }
-        
-            // ล็อกอิน LINE
-            function loginWithLine() {
-                AuthService.loginWithLine();
-            }
-        
-            document.addEventListener('DOMContentLoaded', async () => {
-                const client = window.supabaseClient || window.db || window.supabase;
-        
-                // 1. ตรวจสอบว่ามี Session เด้งกลับมาจาก Google / LINE SSO หรือไม่
-                if (client && client.auth) {
-                    try {
-                        const { data: { session } } = await client.auth.getSession();
-                        if (session && session.user) {
-                            await AuthService.handlePostLogin(session.user);
-                            return;
-                        }
-                    } catch (e) {
-                        console.warn('SSO Callback Check Warning:', e);
+<script>
+    // 🟢 สั่งปุ่ม Google / LINE SSO จากหน้า HTML Direct เข้า AuthService
+    function loginWithGoogle() {
+        if (window.AuthService && typeof AuthService.loginWithGoogle === 'function') {
+            AuthService.loginWithGoogle();
+        } else {
+            alert('ระบบยืนยันตัวตนยังไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
+        }
+    }
+
+    function loginWithLine() {
+        if (window.AuthService && typeof AuthService.loginWithLine === 'function') {
+            AuthService.loginWithLine();
+        } else {
+            alert('ระบบยืนยันตัวตนยังไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const client = window.supabaseClient || window.db || window.supabase;
+
+        // 🟢 1. ดักรับ Event เมื่อมี Token วิ่งกลับมาจาก Google / LINE SSO
+        if (client && client.auth) {
+            // A. ดักรับแบบ Real-time Auth State Change (จับ Hash Token จาก SSO ได้ชัวร์ 100%)
+            client.auth.onAuthStateChange(async (event, session) => {
+                if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+                    if (window.AuthService && typeof AuthService.handlePostLogin === 'function') {
+                        await AuthService.handlePostLogin(session.user);
                     }
-                }
-        
-                // 2. ถ้าล็อกอินอยู่แล้ว ให้ย้ายไปหน้าหลักตาม Role ทันที
-                const currentUser = AuthManager.getCurrentUser();
-                if (currentUser && currentUser.role) {
-                    AuthService.redirectToRolePage(currentUser.role);
                 }
             });
-        
-            // 3. ฟังก์ชันล็อกอิน Email / Password
-            async function handleAccountLogin(event) {
-                event.preventDefault();
-                const inputVal = document.getElementById('account-email').value.trim();
-                const passwordVal = document.getElementById('account-password').value.trim();
-                const btnSubmit = document.getElementById('btn-account-submit');
-        
-                if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-        
-                if (btnSubmit) {
-                    btnSubmit.disabled = true;
-                    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
+
+            // B. ตรวจสอบ Session ที่มีอยู่แล้วในเครื่อง
+            try {
+                const { data: { session } } = await client.auth.getSession();
+                if (session && session.user) {
+                    if (window.AuthService && typeof AuthService.handlePostLogin === 'function') {
+                        await AuthService.handlePostLogin(session.user);
+                        return;
+                    }
                 }
-        
-                try {
-                    const client = window.supabaseClient || window.db || window.supabase;
-                    if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
-        
-                    localStorage.clear();
-                    sessionStorage.clear();
-        
-                    const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
-        
-                    const { data, error } = await client.auth.signInWithPassword({
-                        email: fullEmail,
-                        password: passwordVal
-                    });
-        
-                    if (error) throw error;
-        
-                    if (data?.user) {
-                        await AuthService.handlePostLogin(data.user);
-                    }
-                } catch (err) {
-                    console.error('Account Login Error:', err);
-                    alert('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมล/รหัสประจำตัว และรหัสผ่านอีกครั้ง');
-                } finally {
-                    if (btnSubmit) {
-                        btnSubmit.disabled = false;
-                        btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ';
-                    }
+            } catch (e) {
+                console.warn('SSO Callback Check Warning:', e);
+            }
+        }
+
+        // 🟢 2. ถ้ามี Session กลางค้างอยู่ใน LocalStorage อยู่แล้ว ให้ดีดไปหน้าตาม Role ทันที
+        if (window.AuthManager && window.AuthService) {
+            const currentUser = AuthManager.getCurrentUser();
+            if (currentUser && currentUser.role) {
+                AuthService.redirectToRolePage(currentUser.role);
+            }
+        }
+    });
+
+    // 🟢 3. ฟังก์ชันล็อกอิน Email / Password
+    async function handleAccountLogin(event) {
+        event.preventDefault();
+        const inputVal = document.getElementById('account-email')?.value.trim() || '';
+        const passwordVal = document.getElementById('account-password')?.value.trim() || '';
+        const btnSubmit = document.getElementById('btn-account-submit');
+
+        if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังตรวจสอบ...';
+        }
+
+        try {
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
+
+            // ล้าง Cache เก่าก่อนเริ่ม Authenticate ใหม่
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // เติม Domain @buached.ac.th ให้อัตโนมัติหากกรอกแค่เลขประจำตัว/ชื่อผู้ใช้
+            const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
+
+            const { data, error } = await client.auth.signInWithPassword({
+                email: fullEmail,
+                password: passwordVal
+            });
+
+            if (error) throw error;
+
+            if (data?.user) {
+                if (window.AuthService && typeof AuthService.handlePostLogin === 'function') {
+                    await AuthService.handlePostLogin(data.user);
                 }
             }
-        </script>
+        } catch (err) {
+            console.error('Account Login Error:', err);
+            alert('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมล/รหัสประจำตัว และรหัสผ่านอีกครั้ง');
+        } finally {
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ';
+            }
+        }
+    }
+</script>
 </body>
 </html>
