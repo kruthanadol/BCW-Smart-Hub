@@ -1,6 +1,5 @@
 // core/auth-manager.js
 const AuthManager = {
-    // 🟢 1. ดึง Path ของหน้า Login โดยไม่หลุด Root GitHub
     getLoginUrl: function() {
         const currentPath = window.location.pathname;
         const pathSegments = currentPath.split('/').filter(Boolean);
@@ -12,7 +11,6 @@ const AuthManager = {
         return repoPrefix + '/login.html';
     },
 
-    // 🟢 2. อ่านค่า Session กลาง
     getCurrentUser: function() {
         try {
             const raw = localStorage.getItem('bcw_user_session') || sessionStorage.getItem('bcw_user_session');
@@ -26,13 +24,11 @@ const AuthManager = {
         return null;
     },
 
-    // 🟢 3. Auth Guard ประจำหน้าปลายทาง
     requireAuth: function(allowedRoles = [], customRedirectUrl = null) {
         const user = this.getCurrentUser();
         const targetLoginUrl = customRedirectUrl || this.getLoginUrl();
         const currentPath = window.location.pathname;
 
-        // ถ้าไม่มี Session และไม่ได้อยู่ที่หน้า login.html ให้ส่งกลับหน้า Login
         if (!user || !user.role) {
             console.warn('🔒 Auth Guard: ไม่พบ Session การเข้าสู่ระบบ');
             if (!currentPath.endsWith('/login.html')) {
@@ -44,12 +40,10 @@ const AuthManager = {
         const userRole = user.role.toUpperCase();
         const normalizedAllowed = allowedRoles.map(r => r.toUpperCase());
 
-        // แอดมิน / ผู้บริหาร เข้าได้ทุกหน้า
         if (['ADMIN', 'SUPERADMIN', 'EXECUTIVE'].includes(userRole)) {
             return user;
         }
 
-        // ตรวจเช็กสิทธิ์ Role ปัจจุบัน
         if (allowedRoles.length > 0 && !normalizedAllowed.includes(userRole)) {
             alert('🔒 คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
             if (window.AuthService && typeof AuthService.redirectToRolePage === 'function') {
@@ -63,15 +57,14 @@ const AuthManager = {
         return user;
     },
 
-    // 🟢 4. Logout ออกจากระบบ
     logout: function(customRedirectUrl = null) {
-        localStorage.removeItem('bcw_user_session');
-        sessionStorage.removeItem('bcw_user_session');
+        localStorage.clear();
+        sessionStorage.clear();
         
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (client && client.auth) {
-            try { client.auth.signOut(); } catch (e) {}
-        }
+        try {
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (client && client.auth) client.auth.signOut();
+        } catch (e) {}
 
         const targetLoginUrl = customRedirectUrl || this.getLoginUrl();
         window.location.replace(targetLoginUrl);
