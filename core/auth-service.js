@@ -154,6 +154,6 @@ const AuthService = {
             console.log('Redirecting to:', fullTargetUrl);
             window.location.replace(fullTargetUrl);
         }
-    }
+    };
 
 window.AuthService = AuthService;
