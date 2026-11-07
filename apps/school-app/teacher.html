@@ -302,75 +302,88 @@
         </div>
     </div>
 
-    <!-- Core Engine Scripts -->
-    <script src="../../core/auth-service.js"></script>
+<!-- Core Engine Scripts -->
+    <script src="../../core/supabase-client.js?v=300"></script>
+    <script src="../../core/auth-service.js?v=300"></script>
+    <script src="../../core/auth-manager.js?v=300"></script>
 
     <!-- Complete Pure Zero-Mock Script Logic -->
-    <script type="module">
-        import { db } from '../../core/supabase-client.js';
-        import { requireAuth, logout } from '../../core/auth-manager.js';
-
+    <script>
         let CURRENT_TEACHER_USER = null;
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (ถ้า Core ยังไม่พร้อมหรือไม่มีสิทธิ์ ให้หยุดทำงานทันที)
-        const currentUser = window.AuthManager 
-            ? AuthManager.requireAuth(['TEACHER']) 
-            : null;
-            
-        if (!currentUser) return;
-    
-        // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
-        const roleMap = {
-            'ADMIN': 'ผู้ดูแลระบบ',
-            'EXECUTIVE': 'ผู้บริหาร',
-            'TEACHER': 'ครูผู้สอน',
-            'STUDENT': 'นักเรียน',
-            'PARENT': 'ผู้ปกครอง'
-        };
-        const displayRole = roleMap[currentUser.role] || currentUser.role;
-    
-        // 🎯 3. จับ Element บน UI หน้าครู
-        const nameEl = document.getElementById('teacherDisplayName') || document.getElementById('userDisplayName');
-        const badgeEl = document.getElementById('teacherRoleBadge') || document.getElementById('userRoleBadge');
-        const avatarImg = document.getElementById('teacherAvatarImg') || document.getElementById('userAvatarImg');
-        const avatarIcon = document.getElementById('teacherAvatarIcon') || document.getElementById('userAvatarIcon');
-    
-        // 📝 4. ฉีดข้อมูลโปรไฟล์ (ชื่อ DB ภาษาไทย + Badge สิทธิ์)
-        if (nameEl) nameEl.textContent = currentUser.name || 'ครูผู้สอน';
-        if (badgeEl) badgeEl.textContent = displayRole;
-    
-        // 🖼️ 5. แสดงรูปภาพสดจาก SSO ( Google / LINE ) พร้อมระบบ Fallback ตัวไอคอน
-        if (avatarImg) {
-            if (currentUser.avatar) {
-                avatarImg.src = currentUser.avatar;
-                avatarImg.classList.remove('hidden');
-                if (avatarIcon) avatarIcon.classList.add('hidden');
-    
-                // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ ไอคอนสำรอง
-                avatarImg.onerror = () => {
+        document.addEventListener('DOMContentLoaded', () => {
+            // 🟢 1. ดักสิทธิ์: อนุญาตเฉพาะ TEACHER (รวมถึง ADMIN/EXECUTIVE ตามกฎใน AuthManager)
+            const currentUser = window.AuthManager ? AuthManager.requireAuth(['TEACHER']) : null;
+            if (!currentUser) return; // ถ้าไม่มีสิทธิ์หรือไม่มี Session จะโดนดีดออกอัตโนมัติ
+
+            CURRENT_TEACHER_USER = currentUser;
+            console.log('เข้าสู่ระบบครูสำเร็จ:', currentUser);
+
+            // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
+            const roleMap = {
+                'ADMIN': 'ผู้ดูแลระบบ',
+                'EXECUTIVE': 'ผู้บริหาร',
+                'TEACHER': 'ครูผู้สอน',
+                'STUDENT': 'นักเรียน',
+                'PARENT': 'ผู้ปกครอง'
+            };
+            const displayRole = roleMap[currentUser.role] || currentUser.role;
+
+            // 🎯 3. จับ Element บน UI หน้าครู
+            const nameEl = document.getElementById('teacherDisplayName') || document.getElementById('userDisplayName');
+            const badgeEl = document.getElementById('teacherRoleBadge') || document.getElementById('userRoleBadge');
+            const avatarImg = document.getElementById('teacherAvatarImg') || document.getElementById('userAvatarImg');
+            const avatarIcon = document.getElementById('teacherAvatarIcon') || document.getElementById('userAvatarIcon');
+
+            // 📝 4. ฉีดข้อมูลโปรไฟล์ (ชื่อ DB ภาษาไทย + Badge สิทธิ์)
+            if (nameEl) nameEl.textContent = currentUser.name || 'ครูผู้สอน';
+            if (badgeEl) badgeEl.textContent = displayRole;
+
+            // 🖼️ 5. แสดงรูปภาพสดจาก SSO ( Google / LINE ) พร้อมระบบ Fallback ตัวไอคอน
+            if (avatarImg) {
+                if (currentUser.avatar) {
+                    avatarImg.src = currentUser.avatar;
+                    avatarImg.classList.remove('hidden');
+                    if (avatarIcon) avatarIcon.classList.add('hidden');
+
+                    // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ ไอคอนสำรอง
+                    avatarImg.onerror = () => {
+                        avatarImg.classList.add('hidden');
+                        if (avatarIcon) avatarIcon.classList.remove('hidden');
+                    };
+                } else {
+                    // กรณีไม่มีรูปในระบบ ให้แสดงไอคอนสำรอง
                     avatarImg.classList.add('hidden');
                     if (avatarIcon) avatarIcon.classList.remove('hidden');
-                };
-            } else {
-                // กรณีไม่มีรูปในระบบ ให้แสดงไอคอนสำรอง
-                avatarImg.classList.add('hidden');
-                if (avatarIcon) avatarIcon.classList.remove('hidden');
+                }
             }
-        }
-    });
-        
+
+            // 🔄 6. โหลดข้อมูลเข้า Header เพิ่มเติม
+            loadTeacherProfile(currentUser);
+        });
+
         function loadTeacherProfile(user) {
             const nameEl = document.getElementById('headerTeacherName');
             const codeEl = document.getElementById('teacherCodeDisplay');
             const avatarImg = document.getElementById('headerTeacherAvatar');
 
             if (nameEl) nameEl.innerText = user.name || 'ครูผู้สอน';
-            if (codeEl) codeEl.innerText = `รหัส: ${user.teacherId || user.userId || '-'}`;
+            if (codeEl) codeEl.innerText = `รหัส: ${user.teacherId || user.id || '-'}`;
             if (avatarImg) {
                 avatarImg.src = user.avatar && user.avatar !== '' 
                     ? user.avatar 
                     : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            }
+        }
+
+        // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่มบน UI
+        function handleLogout() {
+            if (window.AuthManager && typeof AuthManager.logout === 'function') {
+                AuthManager.logout();
+            } else {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.replace('../../login.html');
             }
         }
 
