@@ -1,5 +1,8 @@
 // core/auth-service.js
 const AuthService = {
+    // 🟢 ตัวแปรดักป้องกันการรัน handlePostLogin ซ้ำซ้อนจาก SSO Event
+    isProcessingLogin: false,
+
     // 1. สั่งยิง Google SSO
     loginWithGoogle: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
@@ -32,103 +35,104 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
-    // 3. สกัด Hybrid Profile ตามบทบาทจริงจาก DB
-// 🟢 3. สกัด Hybrid Profile ตามบทบาทจริงจาก DB (ปรับปรุงจังหวะ Save Session)
+    // 🟢 3. สกัด Hybrid Profile (พร้อมระบบ Lock ป้องกัน Session ลบตัวเอง)
     handlePostLogin: async function(ssoUser) {
-        if (!ssoUser) return;
+        if (!ssoUser || this.isProcessingLogin) return;
+        this.isProcessingLogin = true; // 🔒 ล็อกทันทีไม่ให้รันซ้ำ
 
-        const client = window.supabaseClient || window.db || window.supabase;
-        const email = (ssoUser.email || '').toLowerCase().trim();
-        const userId = ssoUser.id || '';
-        
-        const ssoAvatar = ssoUser.user_metadata?.avatar_url || 
-                          ssoUser.user_metadata?.picture || 
-                          ssoUser.user_metadata?.photo_url || '';
+        try {
+            const client = window.supabaseClient || window.db || window.supabase;
+            const email = (ssoUser.email || '').toLowerCase().trim();
+            const userId = ssoUser.id || '';
+            
+            const ssoAvatar = ssoUser.user_metadata?.avatar_url || 
+                              ssoUser.user_metadata?.picture || 
+                              ssoUser.user_metadata?.photo_url || '';
 
-        let detectedRole = 'STUDENT';
-        let dbName = '';
+            let detectedRole = 'STUDENT';
+            let dbName = '';
 
-        // A. สิทธิ์ Admin / Executive
-        if (email === 'kruthanadol@buached.ac.th' || email.includes('admin')) {
-            detectedRole = 'ADMIN';
-            dbName = ssoUser.user_metadata?.full_name || 'ผู้ดูแลระบบ (ADMIN)';
-        }
-
-        // B. ค้นหาในตาราง teachers (ครู)
-        if (!dbName && client) {
-            try {
-                const { data: teacher } = await client
-                    .from('teachers')
-                    .select('*')
-                    .or(`email.eq.${email},teacher_id.eq.${userId}`)
-                    .maybeSingle();
-
-                if (teacher) {
-                    detectedRole = (teacher.role || 'TEACHER').toUpperCase();
-                    dbName = teacher.full_name || teacher.teacher_name || '';
-                }
-            } catch (e) { 
-                console.warn('AuthService: Teacher query error:', e); 
+            // A. สิทธิ์ Admin / Executive
+            if (email === 'kruthanadol@buached.ac.th' || email.includes('admin')) {
+                detectedRole = 'ADMIN';
+                dbName = ssoUser.user_metadata?.full_name || 'ผู้ดูแลระบบ (ADMIN)';
             }
-        }
 
-        // C. ค้นหาในตาราง students (นักเรียน)
-        if (!dbName && client) {
-            try {
-                const { data: student } = await client
-                    .from('students')
-                    .select('*')
-                    .or(`email.eq.${email},id.eq.${userId}`)
-                    .maybeSingle();
+            // B. ค้นหาในตาราง teachers (ครู)
+            if (!dbName && client) {
+                try {
+                    const { data: teacher } = await client
+                        .from('teachers')
+                        .select('*')
+                        .or(`email.eq.${email},teacher_id.eq.${userId}`)
+                        .maybeSingle();
 
-                if (student) {
-                    detectedRole = 'STUDENT';
-                    dbName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                    if (teacher) {
+                        detectedRole = (teacher.role || 'TEACHER').toUpperCase();
+                        dbName = teacher.full_name || teacher.teacher_name || '';
+                    }
+                } catch (e) { 
+                    console.warn('AuthService: Teacher query error:', e); 
                 }
-            } catch (e) { 
-                console.warn('AuthService: Student query error:', e); 
             }
-        }
 
-        // D. Fallback หากเป็นผู้ปกครองหรืออื่นๆ
-        if (!dbName) {
-            dbName = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || email.split('@')[0];
-            if (email.includes('@buached.ac.th')) detectedRole = 'TEACHER';
-        }
+            // C. ค้นหาในตาราง students (นักเรียน)
+            if (!dbName && client) {
+                try {
+                    const { data: student } = await client
+                        .from('students')
+                        .select('*')
+                        .or(`email.eq.${email},id.eq.${userId}`)
+                        .maybeSingle();
 
-        const hybridProfile = {
-            id: userId,
-            name: dbName,
-            avatar: ssoAvatar,
-            role: detectedRole,
-            email: email
-        };
+                    if (student) {
+                        detectedRole = 'STUDENT';
+                        dbName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                    }
+                } catch (e) { 
+                    console.warn('AuthService: Student query error:', e); 
+                }
+            }
 
-        // 🔒 บันทึก Session ทั้งใน localStorage และ sessionStorage ป้องกันการอ่านหลุด
-        const sessionString = JSON.stringify(hybridProfile);
-        localStorage.setItem('bcw_user_session', sessionString);
-        sessionStorage.setItem('bcw_user_session', sessionString);
+            // D. Fallback หากเป็นผู้ปกครองหรืออื่นๆ
+            if (!dbName) {
+                dbName = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || email.split('@')[0];
+                if (email.includes('@buached.ac.th')) detectedRole = 'TEACHER';
+            }
 
-        // รอ 100ms เพื่อให้แน่ใจว่าเบราว์เซอร์เขียน Disk Storage เรียบร้อยก่อนย้ายหน้า
-        setTimeout(() => {
+            const hybridProfile = {
+                id: userId,
+                name: dbName,
+                avatar: ssoAvatar,
+                role: detectedRole,
+                email: email
+            };
+
+            // 🔒 บันทึก Session เข้า LocalStorage & SessionStorage
+            const sessionStr = JSON.stringify(hybridProfile);
+            localStorage.setItem('bcw_user_session', sessionStr);
+            sessionStorage.setItem('bcw_user_session', sessionStr);
+
+            // ย้ายหน้าไปตามบทบาท
             this.redirectToRolePage(detectedRole);
-        }, 100);
+        } catch (err) {
+            console.error('handlePostLogin Error:', err);
+            this.isProcessingLogin = false;
+        }
     },
 
-    // 4. กฎการส่งตัวตามบทบาท (Routing Logic)
-// 🟢 4. กฎการส่งตัวตามบทบาท (ปรับปรุงลอจิก Redirect สำหรับ GitHub Pages)
+    // 🟢 4. กฎการส่งตัวตามบทบาท (Routing Logic)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
 
-        // คำนวณ Root Path ของเว็บ (ถ้าอยู่บน GitHub Pages จะเก็บชื่อ Repo ไว้)
+        // คำนวณ Base Path บน GitHub Pages
         const pathSegments = currentPath.split('/').filter(Boolean);
         let repoPrefix = '';
         if (window.location.hostname.includes('github.io') && pathSegments.length > 0) {
             repoPrefix = '/' + pathSegments[0];
         }
 
-        // กำหนดไฟล์ปลายทางตาม Role
         let pageFile = '/landing.html';
         switch (r) {
             case 'ADMIN':
@@ -152,12 +156,12 @@ const AuthService = {
 
         const fullTargetUrl = repoPrefix + pageFile;
 
-        // ถ้านำหน้าปัจจุบันมาเช็ก แล้วยังไม่ได้อยู่ที่หน้าเป้าหมาย ให้สั่งย้ายทันที
+        // ถ้ายังไม่ได้อยู่ที่หน้าเป้าหมาย ให้เปลี่ยนหน้าทันที
         if (!currentPath.endsWith(pageFile)) {
             console.log('Redirecting to:', fullTargetUrl);
             window.location.replace(fullTargetUrl);
         }
     }
-    };
+};
 
 window.AuthService = AuthService;
