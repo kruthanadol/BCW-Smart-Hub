@@ -615,6 +615,8 @@
 <script src="core/supabase-client.js?v=400"></script>
 <script src="core/auth-service.js?v=400"></script>
 <script src="core/auth-manager.js?v=400"></script>
+<!-- 🔒 Dedicated Guard คุ้มครองหน้า Admin & Teacher (กรองสิทธิ์เงียบ ไร้ Alert เด้งขัดจังหวะ) -->
+<script src="core/guard-admin-teacher.js?v=400"></script>
 
 <!-- 🔒 Universal Core Controller Engine -->
 <script>
@@ -709,9 +711,9 @@
 
     // 🟢 1. Main Controller Initialization
     document.addEventListener('DOMContentLoaded', async () => {
-        // 🔒 1.1 Auth Guard: อนุญาตเฉพาะ ADMIN, EXECUTIVE, SUPERADMIN
-        const currentUser = window.AuthManager ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE', 'SUPERADMIN']) : null;
-        if (!currentUser) return; // หากโดน AuthGuard ดีด ให้หยุดทำงานทันที
+        // 🔒 1.1 อ่าน Session ของผู้ใช้งาน ( guard-admin-teacher.js คอยคัดกรองให้อัตโนมัติในเบื้องหลังแล้ว )
+        const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+        if (!currentUser) return; // ป้องกันไว้ในกรณีเร่งด่วน
 
         console.log('เข้าสู่หน้า Landing สำเร็จ โดย:', currentUser);
 
@@ -739,7 +741,8 @@
             } else {
                 localStorage.clear();
                 sessionStorage.clear();
-                window.location.replace('login.html');
+                const prefix = window.AuthManager ? AuthManager.getRepoPrefix() : '';
+                window.location.replace(prefix + '/login.html');
             }
         }
     };
@@ -785,13 +788,10 @@
         }
     }
 
-// 🟢 โหลดข้อมูลสถิตินักเรียนแบบ Safe-Query ป้องกัน Error 400
+    // 🟢 4. โหลดข้อมูลสถิตินักเรียนแบบ Safe-Query ป้องกัน Error 400
     async function loadLandingRealStats(client) {
         let studentCount = 0;
         let presentCount = 0;
-
-        // ดึงวันที่ปัจจุบันรูปแบบ YYYY-MM-DD
-        const todayStr = new Date().toISOString().split('T')[0];
 
         if (client) {
             // 1. ดึงจำนวนนักเรียนทั้งหมด (students count)
@@ -807,9 +807,8 @@
                 console.warn("Fetch Student Count Error:", err);
             }
 
-            // 2. ดึงจำนวนนักเรียนที่มาเรียนวันนี้ (ป้องกัน 400 error โดยดึงข้อมูลแบบยืดหยุ่น)
+            // 2. ดึงจำนวนนักเรียนที่มาเรียนวันนี้
             try {
-                // ลองดึงรายการการสแกน/เช็กชื่อย้อนหลังสั้นๆ เพื่อเลี่ยง Syntax Error จากวันที่
                 const { data: logs, count: pCount, error: err2 } = await client
                     .from('attendance_logs')
                     .select('id, status', { count: 'exact' })
