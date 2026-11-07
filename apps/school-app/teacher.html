@@ -301,22 +301,24 @@
         </div>
     </div>
 
-<!-- 1. นำเข้า Supabase SDK CDN เป็นอันดับแรกสุดเสมอ (จุดที่ขาดไป) -->
+<!-- 1. นำเข้า Supabase SDK CDN เป็นอันดับแรกสุดเสมอ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!-- 2. นำเข้า Core Engine Scripts (ถอยกลับ 2 ชั้นด้วย ../../) -->
 <script src="../../core/supabase-client.js?v=400"></script>
 <script src="../../core/auth-service.js?v=400"></script>
 <script src="../../core/auth-manager.js?v=400"></script>
+<!-- 🔒 Dedicated Guard คุ้มครองหน้า Admin & Teacher (กรองสิทธิ์เงียบ ไร้ Alert เด้งขัดจังหวะ) -->
+<script src="../../core/guard-admin-teacher.js?v=400"></script>
 
 <!-- Complete Pure Zero-Mock Script Logic -->
 <script>
     let CURRENT_TEACHER_USER = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
-        // 🟢 1. ดักสิทธิ์: อนุญาตเฉพาะ TEACHER (รวมถึง ADMIN/EXECUTIVE ตามกฎใน AuthManager)
-        const currentUser = window.AuthManager ? AuthManager.requireAuth(['TEACHER']) : null;
-        if (!currentUser) return; // ถ้าไม่มีสิทธิ์หรือไม่มี Session จะโดนดีดออกไปหน้า Login อัตโนมัติ
+        // 🟢 1. อ่าน Session ของผู้ใช้งาน ( guard-admin-teacher.js คอยคัดกรองให้อัตโนมัติในเบื้องหลังแล้ว )
+        const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+        if (!currentUser) return; // ป้องกันไว้ในกรณีเร่งด่วน
 
         CURRENT_TEACHER_USER = currentUser;
         console.log('เข้าสู่ระบบครูสำเร็จ:', currentUser);
@@ -382,8 +384,7 @@
         }
     }
 
-    // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่มบน UI
- // 🚪 ฟังก์ชันออกจากระบบประจำหน้าครู
+    // 🚪 ฟังก์ชันออกจากระบบประจำหน้าครู
     function handleLogout() {
         if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
             if (window.AuthManager && typeof AuthManager.logout === 'function') {
@@ -391,7 +392,8 @@
             } else {
                 localStorage.clear();
                 sessionStorage.clear();
-                window.location.replace('../../login.html');
+                const prefix = window.AuthManager ? AuthManager.getRepoPrefix() : '';
+                window.location.replace(prefix + '/login.html');
             }
         }
     }
@@ -410,7 +412,7 @@
     // ----------------------------------------------------
     // ZERO-MOCK: ดึงตารางสอนจริงจากตาราง `schedules` ใน DB 100%
     // ----------------------------------------------------
-async function loadRealSubjectSchedules(teacherId) {
+    async function loadRealSubjectSchedules(teacherId) {
         const modalList = document.getElementById('subjectModalList');
         const customText = document.getElementById('customSubjectText');
         const subjectInput = document.getElementById('subjectSelect');
