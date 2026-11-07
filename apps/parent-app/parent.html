@@ -671,13 +671,15 @@
     }
 </script>
 
-<!-- 1. นำเข้า Supabase SDK CDN เป็นอันดับแรกสุดเสมอ (จุดที่ขาดไป) -->
+<!-- 1. นำเข้า Supabase SDK CDN เป็นอันดับแรกสุดเสมอ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!-- 2. นำเข้า Core Engine Scripts (ถอยกลับ 2 ชั้นด้วย ../../) -->
 <script src="../../core/supabase-client.js?v=400"></script>
 <script src="../../core/auth-service.js?v=400"></script>
 <script src="../../core/auth-manager.js?v=400"></script>
+<!-- 🔒 Dedicated Guard คุ้มครองหน้า Student & Parent (กรองสิทธิ์เงียบ ไร้ Alert เด้งขัดจังหวะ) -->
+<script src="../../core/guard-student-parent.js?v=400"></script>
 
 <!-- Pure Zero-Mock Integration Script -->
 <script>
@@ -686,12 +688,9 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         try {
-            // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (อนุญาตเฉพาะ PARENT โดย ADMIN และ EXECUTIVE เข้าได้ไม่อั้น)
-            const currentUser = window.AuthManager 
-                ? AuthManager.requireAuth(['PARENT']) 
-                : null;
-                
-            if (!currentUser) return; // ถ้าไม่มีสิทธิ์หรือไม่มี Session จะโดนดีดออกไปหน้า Login อัตโนมัติ
+            // 🟢 1. อ่าน Session ของผู้ใช้งาน ( guard-student-parent.js คอยคัดกรองให้อัตโนมัติในเบื้องหลังแล้ว )
+            const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+            if (!currentUser) return; // ป้องกันไว้ในกรณีเร่งด่วน
 
             CURRENT_PARENT_USER = currentUser;
             console.log('เข้าสู่ระบบผู้ปกครองสำเร็จ:', currentUser);
@@ -723,7 +722,6 @@
                     parentAvatarImg.classList.remove('hidden');
                     if (parentAvatarIcon) parentAvatarIcon.classList.add('hidden');
 
-                    // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
                     parentAvatarImg.onerror = () => {
                         parentAvatarImg.classList.add('hidden');
                         if (parentAvatarIcon) parentAvatarIcon.classList.remove('hidden');
@@ -758,7 +756,8 @@
             } else {
                 localStorage.clear();
                 sessionStorage.clear();
-                window.location.replace('../../login.html');
+                const prefix = window.AuthManager ? AuthManager.getRepoPrefix() : '';
+                window.location.replace(prefix + '/login.html');
             }
         }
     }
