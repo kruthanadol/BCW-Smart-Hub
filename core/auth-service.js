@@ -2,15 +2,19 @@
 const AuthService = {
     isProcessingLogin: false,
 
+    // 🟢 คำนวณ Root Path ของ GitHub Pages (ป้องกันปัญหา 404 บน Repo)
     getRepoPrefix: function() {
-        const currentPath = window.location.pathname;
-        const pathSegments = currentPath.split('/').filter(Boolean);
-        if (window.location.hostname.includes('github.io') && pathSegments.length > 0) {
+        const hostname = window.location.hostname;
+        const pathSegments = window.location.pathname.split('/').filter(Boolean);
+
+        // หากรันอยู่บน GitHub Pages ให้ดึงชื่อ repository แรกสุดเป็น Prefix
+        if (hostname.includes('github.io') && pathSegments.length > 0) {
             return '/' + pathSegments[0];
         }
         return '';
     },
 
+    // 🟢 สั่งยิง Google SSO
     loginWithGoogle: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
@@ -23,6 +27,7 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
     },
 
+    // 🟢 สั่งยิง LINE SSO
     loginWithLine: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
@@ -35,6 +40,7 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
+    // 🟢 สกัด Hybrid Profile โดยตรวจสอบตาราง users -> teachers -> students
     handlePostLogin: async function(ssoUser) {
         if (!ssoUser || this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -49,8 +55,9 @@ const AuthService = {
 
             let detectedRole = null;
             let dbName = '';
+            let teacherCode = '';
 
-            // 🟢 Step 0: ล็อกอีเมล Admin เฉพาะบุคคลระบุชัดเจน
+            // 👑 Step 0: ล็อกอีเมล Admin เฉพาะบุคคลระบุชัดเจน
             if (email === 'kruthanadol@buached.ac.th') {
                 detectedRole = 'ADMIN';
                 dbName = ssoUser.user_metadata?.full_name || 'ผู้ดูแลระบบ';
@@ -67,6 +74,7 @@ const AuthService = {
                     if (userRec && userRec.role) {
                         detectedRole = userRec.role.toUpperCase();
                         dbName = userRec.full_name || userRec.name || userRec.display_name || '';
+                        teacherCode = userRec.teacher_id || userRec.teacher_code || '';
                     }
                 } catch (e) { console.warn('Users table query notice:', e); }
             }
@@ -92,6 +100,7 @@ const AuthService = {
                     if (teacher) {
                         detectedRole = 'TEACHER';
                         dbName = teacher.full_name || teacher.teacher_name || 'คุณครู';
+                        teacherCode = teacher.teacher_id || teacher.code || teacher.teacher_code || 'T011';
                     }
                 } catch (e) { console.warn('Teacher Query Error:', e); }
             }
@@ -134,7 +143,8 @@ const AuthService = {
                 name: dbName,
                 avatar: ssoAvatar,
                 role: detectedRole,
-                email: email
+                email: email,
+                teacherId: teacherCode || 'T011'
             };
 
             const sessionStr = JSON.stringify(hybridProfile);
@@ -149,6 +159,7 @@ const AuthService = {
         }
     },
 
+    // 🟢 Routing Logic สลับหน้าไปยัง Path ที่ถูกต้อง
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
