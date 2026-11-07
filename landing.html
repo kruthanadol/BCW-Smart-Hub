@@ -610,10 +610,11 @@
         </div>
     </div>
 
-    <!-- 🌐 Core Engine Modules -->
+<!-- 🌐 Core Engine Modules -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="core/supabase-client.js?v=300"></script>
     <script src="core/auth-service.js?v=300"></script>
+    <script src="core/auth-manager.js?v=300"></script>
     
 <!-- 🔒 Universal Core Controller Engine -->
 <script>
@@ -706,71 +707,48 @@
         }
     };
 
-    window.switchRoleToAdmin = function() {
-        const pwd = prompt('🔑 กรุณากรอกรหัสผ่านผู้ดูแลระบบ (ADMIN):');
-        if (pwd === '218269') {
-            localStorage.setItem('user_role', 'admin');
-            localStorage.setItem('user_name', 'ผู้ดูแลระบบ');
-            alert('✅ เข้าสู่ระบบในนาม ADMIN เรียบร้อยแล้ว!');
-            location.reload();
-        } else if (pwd !== null) {
-            alert('❌ รหัสผ่านไม่ถูกต้อง');
-        }
-    };
-
     document.addEventListener('DOMContentLoaded', () => {
-        // 🟢 1. ตรวจสอบสิทธิ์ (แอดมิน / ผู้บริหาร เข้าได้)
-        const currentUser = window.AuthManager ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE']) : null;
+        // 🟢 1. Auth Guard: อนุญาตเฉพาะ ADMIN, EXECUTIVE, SUPERADMIN
+        const currentUser = window.AuthManager ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE', 'SUPERADMIN']) : null;
         if (!currentUser) return; // หากโดน AuthGuard ดีด ให้หยุดทำงาน
 
+        console.log('เข้าสู่หน้า Landing สำเร็จ:', currentUser);
+
         // 🟢 2. แสดงผลโปรไฟล์บน UI
-        const nameEl = document.getElementById('userDisplayName') || document.getElementById('adminDisplayName');
-        const badgeEl = document.getElementById('userRoleBadge') || document.getElementById('adminRoleBadge');
-        const avatarImg = document.getElementById('userAvatarImg') || document.getElementById('adminAvatarImg');
-        const avatarIcon = document.getElementById('userAvatarIcon') || document.getElementById('adminAvatarIcon');
-
-        if (nameEl) nameEl.textContent = currentUser.name || 'ผู้ดูแลระบบ';
-        if (badgeEl) badgeEl.textContent = currentUser.role === 'ADMIN' ? 'ผู้ดูแลระบบ (ADMIN)' : currentUser.role;
-
-        if (avatarImg) {
-            if (currentUser.avatar) {
-                avatarImg.src = currentUser.avatar;
-                avatarImg.classList.remove('hidden');
-                if (avatarIcon) avatarIcon.classList.add('hidden');
-                avatarImg.onerror = () => {
-                    avatarImg.classList.add('hidden');
-                    if (avatarIcon) avatarIcon.classList.remove('hidden');
-                };
-            } else {
-                avatarImg.classList.add('hidden');
-                if (avatarIcon) avatarIcon.classList.remove('hidden');
-            }
-        }
+        renderUniversalProfile(currentUser);
+        
+        // 🟢 3. ซ่อน Page Loader เมื่อโหลดเสร็จ
+        hidePageLoader();
+        initAutoScrollNav();
     });
 
     function handleLogout() {
         if (window.AuthManager && typeof AuthManager.logout === 'function') {
             AuthManager.logout();
+        } else {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace('login.html');
         }
     }
 
     function renderUniversalProfile(userProfile) {
-        const nameEl = document.getElementById('userDisplayName');
-        const badgeEl = document.getElementById('userRoleBadge');
-        const avatarImg = document.getElementById('userAvatarImg');
-        const avatarIcon = document.getElementById('userAvatarIcon');
+        const nameEl = document.getElementById('userDisplayName') || document.getElementById('adminDisplayName');
+        const badgeEl = document.getElementById('userRoleBadge') || document.getElementById('adminRoleBadge');
+        const avatarImg = document.getElementById('userAvatarImg') || document.getElementById('adminAvatarImg');
+        const avatarIcon = document.getElementById('userAvatarIcon') || document.getElementById('adminAvatarIcon');
 
-        // 1. อ่านข้อมูลจาก Object ที่ผ่านการสกัดแบบ Hybrid มาแล้ว
-        const displayName = userProfile?.name || 'ผู้ใช้งานระบบ';
-        const roleName = (userProfile?.role || 'TEACHER').toUpperCase();
+        // 1. อ่านข้อมูลจาก Profile
+        const displayName = userProfile?.name || 'ผู้ดูแลระบบ';
+        const roleName = (userProfile?.role || 'ADMIN').toUpperCase();
         const avatarUrl = userProfile?.avatar || '';
 
         // 2. แสดงผลชื่อผู้ใช้
-        if (nameEl) nameEl.innerText = displayName;
+        if (nameEl) nameEl.textContent = displayName;
 
         // 3. ปรับเปลี่ยนป้าย Role Badge ตามบทบาทจริง
         if (badgeEl) {
-            badgeEl.innerText = roleName;
+            badgeEl.textContent = roleName === 'ADMIN' ? 'ผู้ดูแลระบบ (ADMIN)' : roleName;
             if (roleName === 'STUDENT') {
                 badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
             } else if (['ADMIN', 'EXECUTIVE', 'SUPERADMIN'].includes(roleName)) {
@@ -781,23 +759,23 @@
         }
 
         // 4. แสดงผลรูปภาพโปรไฟล์ (สดจาก Google / LINE SSO)
-        if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
-            if (avatarImg) {
+        if (avatarImg) {
+            if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
                 avatarImg.src = avatarUrl;
                 avatarImg.classList.remove('hidden');
                 if (avatarIcon) avatarIcon.classList.add('hidden');
                 
-                // กรณี URL รูปพัง ให้แสดงไอคอน Fallback
                 avatarImg.onerror = function() {
                     this.classList.add('hidden');
                     if (avatarIcon) avatarIcon.classList.remove('hidden');
                 };
+            } else {
+                avatarImg.classList.add('hidden');
+                if (avatarIcon) avatarIcon.classList.remove('hidden');
             }
-        } else {
-            if (avatarImg) avatarImg.classList.add('hidden');
-            if (avatarIcon) avatarIcon.classList.remove('hidden');
         }
     }
+
 
     async function loadLandingRealStats(client) {
         let studentCount = 0;
