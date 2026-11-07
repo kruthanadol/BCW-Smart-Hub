@@ -679,66 +679,104 @@
         let currentStudentId = '';
         let CURRENT_PARENT_USER = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Auth Guard: อนุญาตเฉพาะ PARENT (หรือ ADMIN/EXECUTIVE)
-            const user = AuthManager.requireAuth(['PARENT']);
-            if (!user) return;
-        
-            // 2. แสดงผลโปรไฟล์ของผู้ปกครองเอง
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (อนุญาตเฉพาะ PARENT โดย ADMIN และ EXECUTIVE เข้าได้ไม่อั้น)
+            const currentUser = window.AuthManager 
+                ? AuthManager.requireAuth(['PARENT']) 
+                : null;
+                
+            if (!currentUser) return;
+    
+            // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
+            const roleMap = {
+                'ADMIN': 'ผู้ดูแลระบบ',
+                'EXECUTIVE': 'ผู้บริหาร',
+                'TEACHER': 'ครูผู้สอน',
+                'STUDENT': 'นักเรียน',
+                'PARENT': 'ผู้ปกครอง'
+            };
+            const displayRole = roleMap[currentUser.role] || 'ผู้ปกครอง';
+    
+            // 🎯 3. จับ Element บน UI หน้าผู้ปกครอง
             const parentNameEl = document.getElementById('parentDisplayName') || document.getElementById('userDisplayName');
+            const badgeEl = document.getElementById('parentRoleBadge') || document.getElementById('userRoleBadge');
             const parentAvatarImg = document.getElementById('parentAvatarImg') || document.getElementById('userAvatarImg');
-        
-            if (parentNameEl) parentNameEl.textContent = user.name;
-            if (user.avatar && parentAvatarImg) parentAvatarImg.src = user.avatar;
-        
-            // 3. (เสริม) โหลดชื่อ "ครูประจำชั้น / ครูผู้สอน" จาก DB มาแสดงในหน้าผู้ปกครอง
-            await loadHomeroomTeacherInfo();
-        });
-        
-        // ฟังก์ชันดึงชื่อครูผู้สอน/ครูประจำชั้นมาวางในระบบผู้ปกครอง
-        async function loadHomeroomTeacherInfo() {
-            const teacherNameEl = document.getElementById('homeroomTeacherName');
-            if (!teacherNameEl) return;
-        
-            const client = window.supabase || window.db;
-            if (!client) return;
-        
-            try {
-                // ดึงชื่อครูประจำชั้นจริงภาษาไทยจากตาราง teachers
-                const { data: teacher } = await client
-                    .from('teachers')
-                    .select('full_name')
-                    .limit(1)
-                    .maybeSingle();
-        
-                if (teacher && teacher.full_name) {
-                    teacherNameEl.textContent = teacher.full_name;
+            const parentAvatarIcon = document.getElementById('parentAvatarIcon') || document.getElementById('userAvatarIcon');
+    
+            // 📝 4. ฉีดข้อมูลโปรไฟล์ผู้ปกครอง
+            if (parentNameEl) parentNameEl.textContent = currentUser.name || 'ผู้ปกครอง';
+            if (badgeEl) badgeEl.textContent = displayRole;
+    
+            // 🖼️ 5. แสดงรูปภาพสดจาก SSO (Google/LINE) พร้อมระบบ Fallback ไอคอน
+            if (parentAvatarImg) {
+                if (currentUser.avatar) {
+                    parentAvatarImg.src = currentUser.avatar;
+                    parentAvatarImg.classList.remove('hidden');
+                    if (parentAvatarIcon) parentAvatarIcon.classList.add('hidden');
+    
+                    // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
+                    parentAvatarImg.onerror = () => {
+                        parentAvatarImg.classList.add('hidden');
+                        if (parentAvatarIcon) parentAvatarIcon.classList.remove('hidden');
+                    };
                 } else {
-                    teacherNameEl.textContent = 'ครูประจำชั้น';
+                    parentAvatarImg.classList.add('hidden');
+                    if (parentAvatarIcon) parentAvatarIcon.classList.remove('hidden');
                 }
-            } catch (e) {
-                console.warn('Load teacher info error:', e);
             }
-        }
-                window.selectChildOption = (id, name) => {
-                    currentStudentId = id;
-                    if (document.getElementById('childSelector')) document.getElementById('childSelector').value = id;
-                    if (document.getElementById('customChildText')) document.getElementById('customChildText').innerText = `${name} (${id})`;
-                    
-                    const subHeaderName = document.getElementById('subHeaderStudentName');
-                    if (subHeaderName) subHeaderName.innerText = name;
-
-                    toggleChildModal();
-                    loadDashboardData();
-                };
-
+    
+            // 👨‍🏫 6. โหลดข้อมูลครูประจำชั้น และข้อมูล Dashboard บุตรหลาน
+            await loadHomeroomTeacherInfo();
+            if (typeof loadDashboardData === 'function') {
                 await loadDashboardData();
-
-            } catch (err) {
-                console.error('[ParentPortal] Init Error:', err);
             }
+    
+        } catch (err) {
+            console.error('[ParentPortal] Init Error:', err);
         }
-
+    });
+    
+    // 📌 ฟังก์ชันเลือกบุตรหลาน (สำหรับผู้ปกครองที่มีลูกหลายคน)
+    window.selectChildOption = (id, name) => {
+        if (typeof currentStudentId !== 'undefined') currentStudentId = id;
+        
+        const childSelector = document.getElementById('childSelector');
+        const customChildText = document.getElementById('customChildText');
+        const subHeaderName = document.getElementById('subHeaderStudentName');
+    
+        if (childSelector) childSelector.value = id;
+        if (customChildText) customChildText.innerText = `${name} (${id})`;
+        if (subHeaderName) subHeaderName.innerText = name;
+    
+        if (typeof toggleChildModal === 'function') toggleChildModal();
+        if (typeof loadDashboardData === 'function') loadDashboardData();
+    };
+    
+    // 📌 ฟังก์ชันดึงชื่อครูประจำชั้น/ครูผู้สอนจากตาราง teachers
+    async function loadHomeroomTeacherInfo() {
+        const teacherNameEl = document.getElementById('homeroomTeacherName');
+        if (!teacherNameEl) return;
+    
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) return;
+    
+        try {
+            const { data: teacher } = await client
+                .from('teachers')
+                .select('full_name, teacher_name')
+                .limit(1)
+                .maybeSingle();
+    
+            if (teacher) {
+                teacherNameEl.textContent = teacher.full_name || teacher.teacher_name || 'ครูประจำชั้น';
+            } else {
+                teacherNameEl.textContent = 'ครูประจำชั้น';
+            }
+        } catch (e) {
+            console.warn('Load teacher info notice:', e);
+        }
+    }
         async function loadDashboardData() {
             if (!currentStudentId) return;
 
