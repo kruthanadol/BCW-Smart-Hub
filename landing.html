@@ -718,43 +718,39 @@
         }
     };
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        if (typeof startClock === 'function') startClock();
-        initSwipeGestures();
-        initAutoScrollNav();
+    document.addEventListener('DOMContentLoaded', () => {
+        // 🟢 1. ตรวจสอบสิทธิ์ (แอดมิน / ผู้บริหาร เข้าได้)
+        const currentUser = window.AuthManager ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE']) : null;
+        if (!currentUser) return; // หากโดน AuthGuard ดีด ให้หยุดทำงาน
 
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeAllDrawers();
-        });
+        // 🟢 2. แสดงผลโปรไฟล์บน UI
+        const nameEl = document.getElementById('userDisplayName') || document.getElementById('adminDisplayName');
+        const badgeEl = document.getElementById('userRoleBadge') || document.getElementById('adminRoleBadge');
+        const avatarImg = document.getElementById('userAvatarImg') || document.getElementById('adminAvatarImg');
+        const avatarIcon = document.getElementById('userAvatarIcon') || document.getElementById('adminAvatarIcon');
 
-        setTimeout(async () => {
-            await initLandingSystem();
-        }, 300);
-    });
-    
-    // 🌟 ปรับปรุง initLandingSystem ป้องกันหมุนค้าง 100% ด้วย try...finally
-    async function initLandingSystem() {
-        try {
-            // 1. ตรวจสิทธิ์และอ่าน Session กลาง ( Hybrid Profile: รูป SSO + ชื่อ DB )
-            const currentUser = window.AuthManager
-                ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE', 'TEACHER'])
-                : null;
-    
-            // 🛑 เพิ่มบรรทัดนี้: ถ้าไม่ผ่านสิทธิ์ ให้หยุดทำงานทันที (AuthManager จะดีดไปหน้า login.html เอง)
-            if (!currentUser) return;
-    
-            // 2. เรนเดอร์แสดงผลบนหน้าจอทันที (รูป Google/LINE + ชื่อ DB ภาษาไทย + Badge)
-            renderUniversalProfile(currentUser);
-    
-            // 3. โหลดสถิตินักเรียน
-            const client = window.supabaseClient || window.db || window.supabase;
-            if (typeof loadLandingRealStats === 'function') {
-                await loadLandingRealStats(client);
+        if (nameEl) nameEl.textContent = currentUser.name || 'ผู้ดูแลระบบ';
+        if (badgeEl) badgeEl.textContent = currentUser.role === 'ADMIN' ? 'ผู้ดูแลระบบ (ADMIN)' : currentUser.role;
+
+        if (avatarImg) {
+            if (currentUser.avatar) {
+                avatarImg.src = currentUser.avatar;
+                avatarImg.classList.remove('hidden');
+                if (avatarIcon) avatarIcon.classList.add('hidden');
+                avatarImg.onerror = () => {
+                    avatarImg.classList.add('hidden');
+                    if (avatarIcon) avatarIcon.classList.remove('hidden');
+                };
+            } else {
+                avatarImg.classList.add('hidden');
+                if (avatarIcon) avatarIcon.classList.remove('hidden');
             }
-        } catch (error) {
-            console.warn("initLandingSystem warning:", error);
-        } finally {
-            hidePageLoader();
+        }
+    });
+
+    function handleLogout() {
+        if (window.AuthManager && typeof AuthManager.logout === 'function') {
+            AuthManager.logout();
         }
     }
 
