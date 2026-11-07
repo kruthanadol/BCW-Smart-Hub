@@ -114,52 +114,50 @@ const AuthService = {
     },
 
     // 🟢 4. กฎการส่งตัวตามบทบาท (คำนวณ Base Path กันติด 404 บน GitHub Pages)
+// 🟢 4. กฎการส่งตัวตามบทบาท (ปรับปรุงเรื่อง Path ย้ายหน้าไม่ทำงาน)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
 
-        // คำนวณ Base Path สำหรับ GitHub Pages (ตัดเอาชื่อ Repository คืนมา)
+        // ดึง Base Path (ถ้าอยู่บน GitHub Pages จะติดชื่อ Repo มาด้วย)
         const pathSegments = currentPath.split('/').filter(Boolean);
         let basePath = '';
-        
-        // ถ้าอยู่บน github.io ให้เก็บ Repo Name เป็น Prefix ไว้ด้วย
         if (window.location.hostname.includes('github.io') && pathSegments.length > 0) {
             basePath = '/' + pathSegments[0];
         }
 
-        let targetPath = '';
+        let targetUrl = '';
 
         switch (r) {
-            // 👑 ผู้บริหาร / แอดมิน
             case 'ADMIN':
             case 'EXECUTIVE':
             case 'SUPERADMIN':
-                targetPath = basePath + '/landing.html';
+                targetUrl = basePath + '/landing.html';
                 break;
 
-            // 👨‍🏫 ครู
             case 'TEACHER':
-                targetPath = basePath + '/apps/school-app/teacher.html';
+                targetUrl = basePath + '/apps/school-app/teacher.html';
                 break;
 
-            // 👨‍🎓 นักเรียน
             case 'STUDENT':
-                targetPath = basePath + '/apps/school-app/student.html';
+                targetUrl = basePath + '/apps/school-app/student.html';
                 break;
 
-            // 👨‍👩‍👧 ผู้ปกครอง
             case 'PARENT':
-                targetPath = basePath + '/apps/school-app/parent.html';
+                targetUrl = basePath + '/apps/school-app/parent.html';
                 break;
 
             default:
-                targetPath = basePath + '/landing.html';
+                targetUrl = basePath + '/landing.html';
                 break;
         }
 
-        // ป้องกัน Infinite Redirect Loop หากอยู่ที่หน้าเป้าหมายอยู่แล้ว
-        if (!currentPath.endsWith(targetPath.replace(basePath, ''))) {
-            window.location.replace(targetPath);
+        // ย้ายหน้าทันทีถ้าไม่ได้อยู่ที่หน้าเป้าหมาย
+        if (!currentPath.endsWith(targetUrl)) {
+            console.log('Redirecting to:', targetUrl);
+            window.location.replace(targetUrl);
+        }
+    }
         }
     }
 };
