@@ -33,6 +33,7 @@ const AuthService = {
     },
 
     // 3. สกัด Hybrid Profile ตามบทบาทจริงจาก DB
+// 🟢 3. สกัด Hybrid Profile ตามบทบาทจริงจาก DB (ปรับปรุงจังหวะ Save Session)
     handlePostLogin: async function(ssoUser) {
         if (!ssoUser) return;
 
@@ -103,13 +104,15 @@ const AuthService = {
             email: email
         };
 
-        // บันทึก Session กลางเข้า LocalStorage
-        localStorage.clear();
-        sessionStorage.clear();
-        localStorage.setItem('bcw_user_session', JSON.stringify(hybridProfile));
+        // 🔒 บันทึก Session ทั้งใน localStorage และ sessionStorage ป้องกันการอ่านหลุด
+        const sessionString = JSON.stringify(hybridProfile);
+        localStorage.setItem('bcw_user_session', sessionString);
+        sessionStorage.setItem('bcw_user_session', sessionString);
 
-        // ส่งตัวย้ายหน้าตามบทบาท
-        this.redirectToRolePage(detectedRole);
+        // รอ 100ms เพื่อให้แน่ใจว่าเบราว์เซอร์เขียน Disk Storage เรียบร้อยก่อนย้ายหน้า
+        setTimeout(() => {
+            this.redirectToRolePage(detectedRole);
+        }, 100);
     },
 
     // 4. กฎการส่งตัวตามบทบาท (Routing Logic)
