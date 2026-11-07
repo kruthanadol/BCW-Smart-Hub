@@ -736,21 +736,24 @@
     async function initLandingSystem() {
         try {
             // 1. ตรวจสิทธิ์และอ่าน Session กลาง ( Hybrid Profile: รูป SSO + ชื่อ DB )
-            const currentUser = window.AuthManager ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE', 'TEACHER', 'STUDENT', 'PARENT']) : null;
+            const currentUser = window.AuthManager
+                ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE', 'TEACHER'])
+                : null;
+    
+            // 🛑 เพิ่มบรรทัดนี้: ถ้าไม่ผ่านสิทธิ์ ให้หยุดทำงานทันที (AuthManager จะดีดไปหน้า login.html เอง)
             if (!currentUser) return;
-        
+    
             // 2. เรนเดอร์แสดงผลบนหน้าจอทันที (รูป Google/LINE + ชื่อ DB ภาษาไทย + Badge)
             renderUniversalProfile(currentUser);
-        
+    
             // 3. โหลดสถิตินักเรียน
-            const client = window.supabase || window.db || window.supabaseClient;
+            const client = window.supabaseClient || window.db || window.supabase;
             if (typeof loadLandingRealStats === 'function') {
                 await loadLandingRealStats(client);
             }
         } catch (error) {
-            console.warn("⚠️ initLandingSystem warning:", error);
+            console.warn("initLandingSystem warning:", error);
         } finally {
-            // 🔒 บังคับปิด Loader เสมอ แม้จะมี Error หรือติด 401 ในสถิติก็ตาม!
             hidePageLoader();
         }
     }
