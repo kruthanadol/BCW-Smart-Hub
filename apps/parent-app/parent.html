@@ -598,154 +598,158 @@
     </nav>
 
 <!-- Global Dropdown & Control Scripts -->
-    <script>
-        function toggleSideDrawer() {
-            const overlay = document.getElementById('drawerOverlay');
-            if (overlay) overlay.classList.toggle('active');
+<script>
+    function toggleSideDrawer() {
+        const overlay = document.getElementById('drawerOverlay');
+        if (overlay) overlay.classList.toggle('active');
+    }
+
+    window.addEventListener('scroll', () => {
+        const subHeader = document.getElementById('dynamicSubHeader');
+        if (!subHeader) return;
+
+        if (window.scrollY > 50) {
+            subHeader.classList.add('is-scrolled');
+        } else {
+            subHeader.classList.remove('is-scrolled');
         }
+    });
 
-        window.addEventListener('scroll', () => {
-            const subHeader = document.getElementById('dynamicSubHeader');
-            if (!subHeader) return;
+    function scrollToParentSection(sectionId, btnElement) {
+        const target = document.getElementById(sectionId);
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-            if (window.scrollY > 50) {
-                subHeader.classList.add('is-scrolled');
-            } else {
-                subHeader.classList.remove('is-scrolled');
+            if (btnElement) {
+                document.querySelectorAll('.parent-nav-btn').forEach(btn => btn.classList.remove('active'));
+                btnElement.classList.add('active');
             }
-        });
-
-        function scrollToParentSection(sectionId, btnElement) {
-            const target = document.getElementById(sectionId);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-                if (btnElement) {
-                    document.querySelectorAll('.parent-nav-btn').forEach(btn => btn.classList.remove('active'));
-                    btnElement.classList.add('active');
-                }
-            }
         }
+    }
 
-        function openLeaveModalFromNav() {
-            const leaveModal = document.getElementById('leaveModal');
-            if (leaveModal) leaveModal.classList.remove('hidden');
-        }
+    function openLeaveModalFromNav() {
+        const leaveModal = document.getElementById('leaveModal');
+        if (leaveModal) leaveModal.classList.remove('hidden');
+    }
 
-        function updateHeaderClock() {
-            const now = new Date();
-            const optionsDate = { day: 'numeric', month: 'short', year: '2-digit' };
-            const dateStr = now.toLocaleDateString('th-TH', optionsDate);
-            
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const timeStr = `${hours}:${minutes}:${seconds}`;
+    function updateHeaderClock() {
+        const now = new Date();
+        const optionsDate = { day: 'numeric', month: 'short', year: '2-digit' };
+        const dateStr = now.toLocaleDateString('th-TH', optionsDate);
         
-            const dateElem = document.getElementById('header-date-display');
-            const clockElem = document.getElementById('header-clock-display');
-        
-            if (dateElem) dateElem.textContent = dateStr;
-            if (clockElem) clockElem.textContent = timeStr;
-        }
-        
-        setInterval(updateHeaderClock, 1000);
-        updateHeaderClock();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}:${seconds}`;
+    
+        const dateElem = document.getElementById('header-date-display');
+        const clockElem = document.getElementById('header-clock-display');
+    
+        if (dateElem) dateElem.textContent = dateStr;
+        if (clockElem) clockElem.textContent = timeStr;
+    }
+    
+    setInterval(updateHeaderClock, 1000);
+    updateHeaderClock();
 
-        function toggleChildModal() {
-            const m = document.getElementById('childModal');
-            if (m) m.classList.toggle('hidden');
-        }
+    function toggleChildModal() {
+        const m = document.getElementById('childModal');
+        if (m) m.classList.toggle('hidden');
+    }
 
-        function toggleDayModal() {
-            const m = document.getElementById('dayModal');
-            if (m) m.classList.toggle('hidden');
-        }
+    function toggleDayModal() {
+        const m = document.getElementById('dayModal');
+        if (m) m.classList.toggle('hidden');
+    }
 
-        function selectDayOption(val, label) {
-            document.getElementById('dayFilter').value = val;
-            document.getElementById('customDayText').innerText = label;
-            toggleDayModal();
-            const evt = new Event('change');
-            document.getElementById('dayFilter').dispatchEvent(evt);
-        }
-    </script>
+    function selectDayOption(val, label) {
+        document.getElementById('dayFilter').value = val;
+        document.getElementById('customDayText').innerText = label;
+        toggleDayModal();
+        const evt = new Event('change');
+        document.getElementById('dayFilter').dispatchEvent(evt);
+    }
+</script>
 
-    <!-- Integration with Supabase Database & Auth Guard -->
-<script src="../../core/supabase-client.js?v=300"></script>
-    <script src="../../core/auth-service.js?v=300"></script>
-    <script src="../../core/auth-manager.js?v=300"></script>
+<!-- Integration with Supabase Database & Auth Guard -->
+<script src="../../core/supabase-client.js?v=400"></script>
+<script src="../../core/auth-service.js?v=400"></script>
+<script src="../../core/auth-manager.js?v=400"></script>
 
-    <!-- Pure Zero-Mock Integration Script -->
-    <script>
-        let currentStudentId = '';
-        let CURRENT_PARENT_USER = null;
+<!-- Pure Zero-Mock Integration Script -->
+<script>
+    let currentStudentId = '';
+    let CURRENT_PARENT_USER = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (อนุญาตเฉพาะ PARENT โดย ADMIN และ EXECUTIVE เข้าได้ไม่อั้น)
-                const currentUser = window.AuthManager 
-                    ? AuthManager.requireAuth(['PARENT']) 
-                    : null;
-                    
-                if (!currentUser) return; // ถ้าไม่มีสิทธิ์หรือไม่มี Session จะโดนดีดออกไปหน้า Login อัตโนมัติ
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (อนุญาตเฉพาะ PARENT โดย ADMIN และ EXECUTIVE เข้าได้ไม่อั้น)
+            const currentUser = window.AuthManager 
+                ? AuthManager.requireAuth(['PARENT']) 
+                : null;
+                
+            if (!currentUser) return; // ถ้าไม่มีสิทธิ์หรือไม่มี Session จะโดนดีดออกไปหน้า Login อัตโนมัติ
 
-                CURRENT_PARENT_USER = currentUser;
-                console.log('เข้าสู่ระบบผู้ปกครองสำเร็จ:', currentUser);
+            CURRENT_PARENT_USER = currentUser;
+            console.log('เข้าสู่ระบบผู้ปกครองสำเร็จ:', currentUser);
 
-                // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
-                const roleMap = {
-                    'ADMIN': 'ผู้ดูแลระบบ',
-                    'EXECUTIVE': 'ผู้บริหาร',
-                    'TEACHER': 'ครูผู้สอน',
-                    'STUDENT': 'นักเรียน',
-                    'PARENT': 'ผู้ปกครอง'
-                };
-                const displayRole = roleMap[currentUser.role] || 'ผู้ปกครอง';
+            // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
+            const roleMap = {
+                'ADMIN': 'ผู้ดูแลระบบ',
+                'EXECUTIVE': 'ผู้บริหาร',
+                'TEACHER': 'ครูผู้สอน',
+                'STUDENT': 'นักเรียน',
+                'PARENT': 'ผู้ปกครอง'
+            };
+            const displayRole = roleMap[currentUser.role] || 'ผู้ปกครอง';
 
-                // 🎯 3. จับ Element บน UI หน้าผู้ปกครอง
-                const parentNameEl = document.getElementById('parentDisplayName') || document.getElementById('userDisplayName');
-                const badgeEl = document.getElementById('parentRoleBadge') || document.getElementById('userRoleBadge');
-                const parentAvatarImg = document.getElementById('parentAvatarImg') || document.getElementById('userAvatarImg');
-                const parentAvatarIcon = document.getElementById('parentAvatarIcon') || document.getElementById('userAvatarIcon');
+            // 🎯 3. จับ Element บน UI หน้าผู้ปกครอง
+            const parentNameEl = document.getElementById('parentDisplayName') || document.getElementById('userDisplayName');
+            const badgeEl = document.getElementById('parentRoleBadge') || document.getElementById('userRoleBadge');
+            const parentAvatarImg = document.getElementById('parentAvatarImg') || document.getElementById('userAvatarImg');
+            const parentAvatarIcon = document.getElementById('parentAvatarIcon') || document.getElementById('userAvatarIcon');
 
-                // 📝 4. ฉีดข้อมูลโปรไฟล์ผู้ปกครอง
-                if (parentNameEl) parentNameEl.textContent = currentUser.name || 'ผู้ปกครอง';
-                if (badgeEl) badgeEl.textContent = displayRole;
+            // 📝 4. ฉีดข้อมูลโปรไฟล์ผู้ปกครอง
+            if (parentNameEl) parentNameEl.textContent = currentUser.name || 'ผู้ปกครอง';
+            if (badgeEl) badgeEl.textContent = displayRole;
 
-                // 🖼️ 5. แสดงรูปภาพสดจาก SSO (Google/LINE) พร้อมระบบ Fallback ไอคอน
-                if (parentAvatarImg) {
-                    if (currentUser.avatar) {
-                        parentAvatarImg.src = currentUser.avatar;
-                        parentAvatarImg.classList.remove('hidden');
-                        if (parentAvatarIcon) parentAvatarIcon.classList.add('hidden');
+            // 🖼️ 5. แสดงรูปภาพสดจาก SSO (Google/LINE) พร้อมระบบ Fallback ไอคอน
+            if (parentAvatarImg) {
+                if (currentUser.avatar) {
+                    parentAvatarImg.src = currentUser.avatar;
+                    parentAvatarImg.classList.remove('hidden');
+                    if (parentAvatarIcon) parentAvatarIcon.classList.add('hidden');
 
-                        // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
-                        parentAvatarImg.onerror = () => {
-                            parentAvatarImg.classList.add('hidden');
-                            if (parentAvatarIcon) parentAvatarIcon.classList.remove('hidden');
-                        };
-                    } else {
+                    // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
+                    parentAvatarImg.onerror = () => {
                         parentAvatarImg.classList.add('hidden');
                         if (parentAvatarIcon) parentAvatarIcon.classList.remove('hidden');
-                    }
+                    };
+                } else {
+                    parentAvatarImg.classList.add('hidden');
+                    if (parentAvatarIcon) parentAvatarIcon.classList.remove('hidden');
                 }
-
-                // 👨‍🏫 6. โหลดข้อมูลครูประจำชั้น และข้อมูล Dashboard บุตรหลาน
-                if (typeof loadHomeroomTeacherInfo === 'function') {
-                    await loadHomeroomTeacherInfo();
-                }
-                if (typeof loadDashboardData === 'function') {
-                    await loadDashboardData();
-                }
-
-            } catch (err) {
-                console.error('[ParentPortal] Init Error:', err);
             }
-        });
 
-        // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่ม Logout บน UI หน้าผู้ปกครอง
-        function handleLogout() {
+            // 👨‍🏫 6. โหลดข้อมูลครูประจำชั้น และข้อมูล Dashboard บุตรหลาน
+            if (typeof loadHomeroomTeacherInfo === 'function') {
+                await loadHomeroomTeacherInfo();
+            }
+            if (typeof loadDashboardData === 'function') {
+                await loadDashboardData();
+            }
+
+            // ⚙️ 7. ผูก Event Listeners ประจำหน้าผู้ปกครอง
+            setupEventListeners();
+
+        } catch (err) {
+            console.error('[ParentPortal] Init Error:', err);
+        }
+    });
+
+    // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่ม Logout บน UI หน้าผู้ปกครอง
+    function handleLogout() {
+        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
             if (window.AuthManager && typeof AuthManager.logout === 'function') {
                 AuthManager.logout();
             } else {
@@ -754,7 +758,8 @@
                 window.location.replace('../../login.html');
             }
         }
-    
+    }
+
     // 📌 ฟังก์ชันเลือกบุตรหลาน (สำหรับผู้ปกครองที่มีลูกหลายคน)
     window.selectChildOption = (id, name) => {
         if (typeof currentStudentId !== 'undefined') currentStudentId = id;
@@ -762,30 +767,30 @@
         const childSelector = document.getElementById('childSelector');
         const customChildText = document.getElementById('customChildText');
         const subHeaderName = document.getElementById('subHeaderStudentName');
-    
+
         if (childSelector) childSelector.value = id;
         if (customChildText) customChildText.innerText = `${name} (${id})`;
         if (subHeaderName) subHeaderName.innerText = name;
-    
+
         if (typeof toggleChildModal === 'function') toggleChildModal();
         if (typeof loadDashboardData === 'function') loadDashboardData();
     };
-    
+
     // 📌 ฟังก์ชันดึงชื่อครูประจำชั้น/ครูผู้สอนจากตาราง teachers
     async function loadHomeroomTeacherInfo() {
         const teacherNameEl = document.getElementById('homeroomTeacherName');
         if (!teacherNameEl) return;
-    
+
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client) return;
-    
+
         try {
             const { data: teacher } = await client
                 .from('teachers')
                 .select('full_name, teacher_name')
                 .limit(1)
                 .maybeSingle();
-    
+
             if (teacher) {
                 teacherNameEl.textContent = teacher.full_name || teacher.teacher_name || 'ครูประจำชั้น';
             } else {
@@ -795,131 +800,142 @@
             console.warn('Load teacher info notice:', e);
         }
     }
-        async function loadDashboardData() {
-            if (!currentStudentId) return;
 
-            try {
-                // 1. ดึงข้อมูลนักเรียนจริงจากตาราง students
-                const { data: student } = await db.from('students')
-                    .select('*')
-                    .or(`student_id.eq.${currentStudentId},id.eq.${currentStudentId}`)
-                    .maybeSingle();
-
-                if (student) {
-                    const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
-                    if (document.getElementById('student-fullname')) document.getElementById('student-fullname').textContent = fullName || 'นักเรียน';
-                    if (document.getElementById('student-class')) document.getElementById('student-class').textContent = student.classroom || '-';
-                    if (document.getElementById('student-no')) document.getElementById('student-no').textContent = student.student_no || '-';
-
-                    if (student.avatar_url && document.getElementById('student-avatar')) {
-                        document.getElementById('student-avatar').src = student.avatar_url;
-                    }
-
-                    // 2. ดึงคะแนนพฤติกรรมสะสมจากตาราง behavior_logs
-                    const { data: logs } = await db.from('behavior_logs')
-                        .select('score, points')
-                        .eq('student_id', currentStudentId);
-
-                    let totalScore = 100;
-                    if (logs && logs.length > 0) {
-                        const totalDeducted = logs.reduce((sum, l) => sum + (l.score || l.points || 0), 0);
-                        totalScore = Math.max(0, 100 - totalDeducted);
-                    }
-
-                    if (document.getElementById('student-behavior-score')) {
-                        document.getElementById('student-behavior-score').textContent = totalScore;
-                    }
-
-                    // 3. ดึงตารางเรียนจาก course_assignments / schedules ตามห้องเรียน
-                    if (student.classroom) {
-                        const dayName = document.getElementById('dayFilter')?.value || 'Monday';
-                        const { data: schedule } = await db.from('course_assignments')
-                            .select('*')
-                            .eq('class_name', student.classroom);
-
-                        renderSchedule(schedule || [], dayName);
-                    }
-                }
-
-            } catch (err) {
-                console.error('[ParentPortal] Load Dashboard Error:', err);
-            }
+    // 📌 ฟังก์ชันโหลดข้อมูล Dashboard บุตรหลาน
+    async function loadDashboardData() {
+        if (!currentStudentId && CURRENT_PARENT_USER?.id) {
+            currentStudentId = CURRENT_PARENT_USER.id;
         }
 
-        function renderSchedule(scheduleList, dayName) {
-            const container = document.getElementById('scheduleContainer');
-            if (!container) return;
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client || !currentStudentId) return;
 
-            if (!scheduleList || scheduleList.length === 0) {
-                container.innerHTML = `<div class="p-3 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${dayName})</div>`;
-                return;
+        try {
+            // 1. ดึงข้อมูลนักเรียนจริงจากตาราง students
+            const { data: student } = await client
+                .from('students')
+                .select('*')
+                .or(`student_id.eq.${currentStudentId},id.eq.${currentStudentId}`)
+                .maybeSingle();
+
+            if (student) {
+                const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                if (document.getElementById('student-fullname')) document.getElementById('student-fullname').textContent = fullName || 'นักเรียน';
+                if (document.getElementById('student-class')) document.getElementById('student-class').textContent = student.classroom || '-';
+                if (document.getElementById('student-no')) document.getElementById('student-no').textContent = student.student_no || '-';
+
+                if (student.avatar_url && document.getElementById('student-avatar')) {
+                    document.getElementById('student-avatar').src = student.avatar_url;
+                }
+
+                // 2. ดึงคะแนนพฤติกรรมสะสมจากตาราง behavior_logs
+                const { data: logs } = await client
+                    .from('behavior_logs')
+                    .select('score, points')
+                    .eq('student_id', currentStudentId);
+
+                let totalScore = 100;
+                if (logs && logs.length > 0) {
+                    const totalDeducted = logs.reduce((sum, l) => sum + (l.score || l.points || 0), 0);
+                    totalScore = Math.max(0, 100 - totalDeducted);
+                }
+
+                if (document.getElementById('student-behavior-score')) {
+                    document.getElementById('student-behavior-score').textContent = totalScore;
+                }
+
+                // 3. ดึงตารางเรียนจาก course_assignments / schedules ตามห้องเรียน
+                if (student.classroom) {
+                    const dayName = document.getElementById('dayFilter')?.value || 'Monday';
+                    const { data: schedule } = await client
+                        .from('course_assignments')
+                        .select('*')
+                        .eq('class_name', student.classroom);
+
+                    renderSchedule(schedule || [], dayName);
+                }
             }
 
-            container.innerHTML = scheduleList.map((s, idx) => `
-                <div class="flex items-center justify-between p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl mb-2">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
-                            <span class="text-xs sm:text-sm font-extrabold">${idx + 1}</span>
-                        </div>
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
-                            <p class="text-[10px] text-slate-500 font-semibold">ห้องเรียน: ${s.class_name || 'ไม่ระบุ'}</p>
-                        </div>
+        } catch (err) {
+            console.error('[ParentPortal] Load Dashboard Error:', err);
+        }
+    }
+
+    function renderSchedule(scheduleList, dayName) {
+        const container = document.getElementById('scheduleContainer');
+        if (!container) return;
+
+        if (!scheduleList || scheduleList.length === 0) {
+            container.innerHTML = `<div class="p-3 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${dayName})</div>`;
+            return;
+        }
+
+        container.innerHTML = scheduleList.map((s, idx) => `
+            <div class="flex items-center justify-between p-2.5 sm:p-3 bg-slate-50 border border-slate-200/80 rounded-xl mb-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
+                        <span class="text-xs sm:text-sm font-extrabold">${idx + 1}</span>
                     </div>
-                </div>`).join('');
-        }
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
+                        <p class="text-[10px] text-slate-500 font-semibold">ห้องเรียน: ${s.class_name || 'ไม่ระบุ'}</p>
+                    </div>
+                </div>
+            </div>`).join('');
+    }
 
-        function setupEventListeners() {
-            document.getElementById('dayFilter')?.addEventListener('change', loadDashboardData);
+    function setupEventListeners() {
+        document.getElementById('dayFilter')?.addEventListener('change', loadDashboardData);
 
-            const leaveModal = document.getElementById('leaveModal');
-            const openModalBtns = [document.getElementById('btnOpenLeaveQuick'), document.getElementById('btnOpenLeaveModal')];
-            const closeModalBtns = [document.getElementById('btnCloseLeaveModal'), document.getElementById('btnCancelLeave')];
+        const leaveModal = document.getElementById('leaveModal');
+        const openModalBtns = [document.getElementById('btnOpenLeaveQuick'), document.getElementById('btnOpenLeaveModal')];
+        const closeModalBtns = [document.getElementById('btnCloseLeaveModal'), document.getElementById('btnCancelLeave')];
 
-            openModalBtns.forEach(btn => btn?.addEventListener('click', () => leaveModal?.classList.remove('hidden')));
-            closeModalBtns.forEach(btn => btn?.addEventListener('click', () => leaveModal?.classList.add('hidden')));
+        openModalBtns.forEach(btn => btn?.addEventListener('click', () => leaveModal?.classList.remove('hidden')));
+        closeModalBtns.forEach(btn => btn?.addEventListener('click', () => leaveModal?.classList.add('hidden')));
 
-            // ยื่นใบลาออนไลน์บันทึกลงตาราง attendance_logs หรือ gate_pass_logs จริง
-            document.getElementById('leaveForm')?.addEventListener('submit', async (e) => {
+        // ยื่นใบลาออนไลน์บันทึกลงตาราง attendance_logs หรือ gate_pass_logs จริง
+        document.getElementById('leaveForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const client = window.supabaseClient || window.db || window.supabase;
+                if (!client) throw new Error("ไม่พบการเชื่อมต่อ Supabase");
+
+                const leaveType = document.getElementById('leaveType').value;
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const reason = document.getElementById('leaveReason').value;
+
+                const { error } = await client.from('attendance_logs').insert([{
+                    student_id: currentStudentId,
+                    status: 'leave',
+                    method: 'parent_leave_request',
+                    period_no: 1,
+                    recorded_at: new Date().toISOString(),
+                    subject_name: `แจ้งลา (${leaveType}): ${reason} [${startDate} ถึง ${endDate}]`
+                }]);
+
+                if (error) throw error;
+
+                alert('🎉 ยื่นใบลาออนไลน์ส่งถึงครูเรียบร้อยแล้ว!');
+                document.getElementById('leaveForm').reset();
+                leaveModal?.classList.add('hidden');
+                loadDashboardData();
+            } catch (err) {
+                console.error('Submit Leave Error:', err);
+                alert('เกิดข้อผิดพลาดในการยื่นใบลา: ' + err.message);
+            }
+        });
+
+        // ปุ่มออกจากระบบ
+        document.querySelectorAll('#btnLogout, .btn-logout, [onclick*="logout"]').forEach(btn => {
+            btn.removeAttribute('onclick');
+            btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                try {
-                    const leaveType = document.getElementById('leaveType').value;
-                    const startDate = document.getElementById('startDate').value;
-                    const endDate = document.getElementById('endDate').value;
-                    const reason = document.getElementById('leaveReason').value;
-
-                    const { error } = await db.from('attendance_logs').insert([{
-                        student_id: currentStudentId,
-                        status: 'leave',
-                        method: 'parent_leave_request',
-                        period_no: 1,
-                        recorded_at: new Date().toISOString(),
-                        subject_name: `แจ้งลา (${leaveType}): ${reason} [${startDate} ถึง ${endDate}]`
-                    }]);
-
-                    if (error) throw error;
-
-                    alert('🎉 ยื่นใบลาออนไลน์ส่งถึงครูเรียบร้อยแล้ว!');
-                    document.getElementById('leaveForm').reset();
-                    leaveModal?.classList.add('hidden');
-                    loadDashboardData();
-                } catch (err) {
-                    console.error('Submit Leave Error:', err);
-                    alert('เกิดข้อผิดพลาดในการยื่นใบลา: ' + err.message);
-                }
+                handleLogout();
             });
-
-            // ปุ่มออกจากระบบ
-            document.querySelectorAll('#btnLogout, .btn-logout, [onclick*="logout"]').forEach(btn => {
-                btn.removeAttribute('onclick');
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                        logout('../../login.html');
-                    }
-                });
-            });
-        }
-    </script>
+        });
+    }
+</script>
 </body>
 </html>
