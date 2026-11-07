@@ -3,14 +3,19 @@ const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcG9wb2x6Z3hiZ2xnbXpqYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMDg3MDUsImV4cCI6MjEwNDc4NDcwNX0.bU4l7Pn965id_moYgiQqk4tB6zBL-PNeIcdScNxzyKk';
 
 if (!window.supabaseClient) {
-    const { createClient } = window.supabase;
-    window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-            autoRefreshToken: false,   // ปิด Auto Refresh กันยิงซ้ำติด 401
-            persistSession: true,
-            detectSessionInUrl: false  // 👈 ปิดตัวนี้! เพื่อไม่ให้มันไปควานหา Token เก่าใน URL จนติด 401
-        }
-    });
+    const supabaseLib = window.supabase;
+
+    if (!supabaseLib || typeof supabaseLib.createClient !== 'function') {
+        console.error('❌ ไม่พบ Supabase SDK CDN กรุณาตรวจสอบแท็ก script ใน HTML');
+    } else {
+        window.supabaseClient = supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,     // 🟢 เปิดไว้เพื่อให้ Session ไม่หมดอายุ
+                persistSession: true,       // 🟢 เปิดไว้เพื่อจำ Session การเข้าใช้
+                detectSessionInUrl: true    // 🟢 ต้องเป็น true เพื่อให้อ่าน Hash Token (#access_token) จาก Google/LINE SSO!
+            }
+        });
+    }
 }
 
 window.db = window.supabaseClient;
