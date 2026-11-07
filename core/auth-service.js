@@ -38,7 +38,7 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
-    // 🟢 3. สกัด Hybrid Profile และคัดกรองสายงาน
+    // 🟢 3. สกัด Hybrid Profile โดยเช็กตาราง users -> teachers -> students ตามลำดับ
     handlePostLogin: async function(ssoUser) {
         if (!ssoUser || this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -51,19 +51,40 @@ const AuthService = {
                               ssoUser.user_metadata?.picture || 
                               ssoUser.user_metadata?.photo_url || '';
 
-            let detectedRole = 'STUDENT';
+            let detectedRole = null;
             let dbName = '';
 
-            // 👑 สายที่ 1: แอดมิน / ผู้บริหาร (ไป landing.html)
-            if (email === 'kruthanadol@buached.ac.th' || email.includes('admin')) {
+            // 👑 Step 0: ล็อกอีเมล Admin เฉพาะบุคคล
+            if (email === 'kruthanadol@buached.ac.th') {
                 detectedRole = 'ADMIN';
                 dbName = ssoUser.user_metadata?.full_name || 'ผู้ดูแลระบบ';
             }
 
-            // 👨‍🏫 สายที่ 2: ตรวจสอบตาราง teachers (ไป teacher.html)
-            if (!dbName && client && email) {
+            // 🟢 Step 1: ตรวจสอบจากตาราง `users` เป็นลำดับแรก
+            if (!detectedRole && client && (email || userId)) {
                 try {
-                    // ปรับปรุง Query ป้องกัน SyntaxError กรณี email/userId เป็นค่าว่าง
+                    let userQuery = client.from('users').select('*');
+                    if (email) {
+                        userQuery = userQuery.eq('email', email);
+                    } else if (userId) {
+                        userQuery = userQuery.eq('id', userId);
+                    }
+                    
+                    const { data: userRec } = await userQuery.maybeSingle();
+
+                    if (userRec && userRec.role) {
+                        detectedRole = userRec.role.toUpperCase();
+                        dbName = userRec.full_name || userRec.name || userRec.display_name || '';
+                        console.log('✅ พบข้อมูลในตาราง users:', userRec);
+                    }
+                } catch (e) {
+                    console.warn('Users table query notice:', e);
+                }
+            }
+
+            // 🟢 Step 2: ถ้าใน users ไม่พบ role ให้เช็กตาราง `teachers`
+            if (!detectedRole && client && email) {
+                try {
                     let { data: teacher } = await client
                         .from('teachers')
                         .select('*')
@@ -71,25 +92,24 @@ const AuthService = {
                         .maybeSingle();
 
                     if (!teacher && userId) {
-                        const { data: teacherById } = await client
+                        const { data: tById } = await client
                             .from('teachers')
                             .select('*')
                             .eq('teacher_id', userId)
                             .maybeSingle();
-                        teacher = teacherById;
+                        teacher = tById;
                     }
 
                     if (teacher) {
                         detectedRole = 'TEACHER';
                         dbName = teacher.full_name || teacher.teacher_name || 'คุณครู';
+                        console.log('✅ พบข้อมูลในตาราง teachers:', teacher);
                     }
-                } catch (e) { 
-                    console.warn('Teacher Query Error:', e); 
-                }
+                } catch (e) { console.warn('Teacher Query Error:', e); }
             }
 
-            // 👨‍🎓 สายที่ 3: ตรวจสอบตาราง students (ไป student.html)
-            if (!dbName && client && email) {
+            // 🟢 Step 3: ถ้ายังไม่พบ ให้เช็กตาราง `students`
+            if (!detectedRole && client && email) {
                 try {
                     let { data: student } = await client
                         .from('students')
@@ -98,28 +118,29 @@ const AuthService = {
                         .maybeSingle();
 
                     if (!student && userId) {
-                        const { data: studentById } = await client
+                        const { data: sById } = await client
                             .from('students')
                             .select('*')
                             .eq('id', userId)
                             .maybeSingle();
-                        student = studentById;
+                        student = sById;
                     }
 
                     if (student) {
                         detectedRole = 'STUDENT';
                         dbName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                        console.log('✅ พบข้อมูลในตาราง students:', student);
                     }
-                } catch (e) { 
-                    console.warn('Student Query Error:', e); 
-                }
+                } catch (e) { console.warn('Student Query Error:', e); }
             }
 
-            // Fallback: ถ้าไม่พบข้อมูลในตาราง ให้ถือเป็นฝั่งนักเรียน/ผู้ปกครอง
-            if (!dbName) {
+            // 🟢 Step 4: Fallback สำหรับผู้ใช้ที่ไม่มีข้อมูลในตารางเลย
+            if (!detectedRole) {
                 dbName = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || (email ? email.split('@')[0] : 'ผู้ใช้งาน');
                 detectedRole = email.endsWith('@buached.ac.th') ? 'STUDENT' : 'PARENT';
             }
+
+            if (!dbName) dbName = ssoUser.user_metadata?.full_name || 'ผู้ใช้งานระบบ';
 
             const hybridProfile = {
                 id: userId,
@@ -129,20 +150,23 @@ const AuthService = {
                 email: email
             };
 
-            // บันทึก Session ลงทั้งสองที่
+            console.log('📌 ผลการคัดกรองโปรไฟล์สุดท้าย:', hybridProfile);
+
+            // บันทึก Session ลงทั้ง สองที่
             const sessionStr = JSON.stringify(hybridProfile);
             localStorage.setItem('bcw_user_session', sessionStr);
             sessionStorage.setItem('bcw_user_session', sessionStr);
 
-            // ย้ายหน้าตามบทบาท
+            // ย้ายหน้าตามบทบาทจริงที่สกัดได้
             this.redirectToRolePage(detectedRole);
+
         } catch (err) {
             console.error('handlePostLogin Error:', err);
             this.isProcessingLogin = false;
         }
     },
 
-    // 🟢 4. การส่งตัวตามบทบาท (Routing Logic)
+    // 🟢 4. ส่งตัวผู้ใช้ไปยังหน้าตามบทบาท
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
