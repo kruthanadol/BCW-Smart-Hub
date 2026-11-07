@@ -607,13 +607,15 @@
     });
 </script>
 
-<!-- 1. นำเข้า Supabase SDK CDN เป็นอันดับแรกสุดเสมอ (จุดที่ขาดไป) -->
+<!-- 1. นำเข้า Supabase SDK CDN เป็นอันดับแรกสุดเสมอ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!-- 2. นำเข้า Core Engine Scripts (ถอยกลับ 2 ชั้นด้วย ../../) -->
 <script src="../../core/supabase-client.js?v=400"></script>
 <script src="../../core/auth-service.js?v=400"></script>
 <script src="../../core/auth-manager.js?v=400"></script>
+<!-- 🔒 Dedicated Guard คุ้มครองหน้า Student & Parent (กรองสิทธิ์เงียบ ไร้ Alert เด้งขัดจังหวะ) -->
+<script src="../../core/guard-student-parent.js?v=400"></script>
 
 <!-- Pure Zero-Mock Integration Script -->
 <script>
@@ -624,12 +626,9 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         try {
-            // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (อนุญาตเฉพาะ STUDENT โดย ADMIN และ EXECUTIVE เข้าได้ไม่อั้น)
-            const currentUser = window.AuthManager 
-                ? AuthManager.requireAuth(['STUDENT']) 
-                : null;
-                
-            if (!currentUser) return; // ถ้าไม่มีสิทธิ์หรือไม่มี Session จะโดนดีดออกไปหน้า Login อัตโนมัติ
+            // 🟢 1. อ่าน Session ของผู้ใช้งาน ( guard-student-parent.js คอยคัดกรองให้อัตโนมัติในเบื้องหลังแล้ว )
+            const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+            if (!currentUser) return; // ป้องกันไว้ในกรณีเร่งด่วน
 
             CURRENT_STUDENT_ID = currentUser.id || currentUser.studentId || null;
             console.log('เข้าสู่ระบบนักเรียนสำเร็จ:', currentUser);
@@ -661,13 +660,11 @@
                     avatarImg.classList.remove('hidden');
                     if (avatarIcon) avatarIcon.classList.add('hidden');
 
-                    // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
                     avatarImg.onerror = () => {
                         avatarImg.classList.add('hidden');
                         if (avatarIcon) avatarIcon.classList.remove('hidden');
                     };
                 } else {
-                    // กรณีไม่มีรูปในระบบ ให้แสดงไอคอนสำรองทันที
                     avatarImg.classList.add('hidden');
                     if (avatarIcon) avatarIcon.classList.remove('hidden');
                 }
@@ -729,7 +726,8 @@
             } else {
                 localStorage.clear();
                 sessionStorage.clear();
-                window.location.replace('../../login.html');
+                const prefix = window.AuthManager ? AuthManager.getRepoPrefix() : '';
+                window.location.replace(prefix + '/login.html');
             }
         }
     }
