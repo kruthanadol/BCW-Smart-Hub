@@ -672,70 +672,88 @@
     </script>
 
     <!-- Integration with Supabase Database & Auth Guard -->
-    <script type="module">
-        import { db } from '../../core/supabase-client.js';
-        import { requireAuth, logout } from '../../core/auth-manager.js';
+<script src="../../core/supabase-client.js?v=300"></script>
+    <script src="../../core/auth-service.js?v=300"></script>
+    <script src="../../core/auth-manager.js?v=300"></script>
 
+    <!-- Pure Zero-Mock Integration Script -->
+    <script>
         let currentStudentId = '';
         let CURRENT_PARENT_USER = null;
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (อนุญาตเฉพาะ PARENT โดย ADMIN และ EXECUTIVE เข้าได้ไม่อั้น)
-            const currentUser = window.AuthManager 
-                ? AuthManager.requireAuth(['PARENT']) 
-                : null;
-                
-            if (!currentUser) return;
-    
-            // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
-            const roleMap = {
-                'ADMIN': 'ผู้ดูแลระบบ',
-                'EXECUTIVE': 'ผู้บริหาร',
-                'TEACHER': 'ครูผู้สอน',
-                'STUDENT': 'นักเรียน',
-                'PARENT': 'ผู้ปกครอง'
-            };
-            const displayRole = roleMap[currentUser.role] || 'ผู้ปกครอง';
-    
-            // 🎯 3. จับ Element บน UI หน้าผู้ปกครอง
-            const parentNameEl = document.getElementById('parentDisplayName') || document.getElementById('userDisplayName');
-            const badgeEl = document.getElementById('parentRoleBadge') || document.getElementById('userRoleBadge');
-            const parentAvatarImg = document.getElementById('parentAvatarImg') || document.getElementById('userAvatarImg');
-            const parentAvatarIcon = document.getElementById('parentAvatarIcon') || document.getElementById('userAvatarIcon');
-    
-            // 📝 4. ฉีดข้อมูลโปรไฟล์ผู้ปกครอง
-            if (parentNameEl) parentNameEl.textContent = currentUser.name || 'ผู้ปกครอง';
-            if (badgeEl) badgeEl.textContent = displayRole;
-    
-            // 🖼️ 5. แสดงรูปภาพสดจาก SSO (Google/LINE) พร้อมระบบ Fallback ไอคอน
-            if (parentAvatarImg) {
-                if (currentUser.avatar) {
-                    parentAvatarImg.src = currentUser.avatar;
-                    parentAvatarImg.classList.remove('hidden');
-                    if (parentAvatarIcon) parentAvatarIcon.classList.add('hidden');
-    
-                    // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
-                    parentAvatarImg.onerror = () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (อนุญาตเฉพาะ PARENT โดย ADMIN และ EXECUTIVE เข้าได้ไม่อั้น)
+                const currentUser = window.AuthManager 
+                    ? AuthManager.requireAuth(['PARENT']) 
+                    : null;
+                    
+                if (!currentUser) return; // ถ้าไม่มีสิทธิ์หรือไม่มี Session จะโดนดีดออกไปหน้า Login อัตโนมัติ
+
+                CURRENT_PARENT_USER = currentUser;
+                console.log('เข้าสู่ระบบผู้ปกครองสำเร็จ:', currentUser);
+
+                // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
+                const roleMap = {
+                    'ADMIN': 'ผู้ดูแลระบบ',
+                    'EXECUTIVE': 'ผู้บริหาร',
+                    'TEACHER': 'ครูผู้สอน',
+                    'STUDENT': 'นักเรียน',
+                    'PARENT': 'ผู้ปกครอง'
+                };
+                const displayRole = roleMap[currentUser.role] || 'ผู้ปกครอง';
+
+                // 🎯 3. จับ Element บน UI หน้าผู้ปกครอง
+                const parentNameEl = document.getElementById('parentDisplayName') || document.getElementById('userDisplayName');
+                const badgeEl = document.getElementById('parentRoleBadge') || document.getElementById('userRoleBadge');
+                const parentAvatarImg = document.getElementById('parentAvatarImg') || document.getElementById('userAvatarImg');
+                const parentAvatarIcon = document.getElementById('parentAvatarIcon') || document.getElementById('userAvatarIcon');
+
+                // 📝 4. ฉีดข้อมูลโปรไฟล์ผู้ปกครอง
+                if (parentNameEl) parentNameEl.textContent = currentUser.name || 'ผู้ปกครอง';
+                if (badgeEl) badgeEl.textContent = displayRole;
+
+                // 🖼️ 5. แสดงรูปภาพสดจาก SSO (Google/LINE) พร้อมระบบ Fallback ไอคอน
+                if (parentAvatarImg) {
+                    if (currentUser.avatar) {
+                        parentAvatarImg.src = currentUser.avatar;
+                        parentAvatarImg.classList.remove('hidden');
+                        if (parentAvatarIcon) parentAvatarIcon.classList.add('hidden');
+
+                        // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
+                        parentAvatarImg.onerror = () => {
+                            parentAvatarImg.classList.add('hidden');
+                            if (parentAvatarIcon) parentAvatarIcon.classList.remove('hidden');
+                        };
+                    } else {
                         parentAvatarImg.classList.add('hidden');
                         if (parentAvatarIcon) parentAvatarIcon.classList.remove('hidden');
-                    };
-                } else {
-                    parentAvatarImg.classList.add('hidden');
-                    if (parentAvatarIcon) parentAvatarIcon.classList.remove('hidden');
+                    }
                 }
+
+                // 👨‍🏫 6. โหลดข้อมูลครูประจำชั้น และข้อมูล Dashboard บุตรหลาน
+                if (typeof loadHomeroomTeacherInfo === 'function') {
+                    await loadHomeroomTeacherInfo();
+                }
+                if (typeof loadDashboardData === 'function') {
+                    await loadDashboardData();
+                }
+
+            } catch (err) {
+                console.error('[ParentPortal] Init Error:', err);
             }
-    
-            // 👨‍🏫 6. โหลดข้อมูลครูประจำชั้น และข้อมูล Dashboard บุตรหลาน
-            await loadHomeroomTeacherInfo();
-            if (typeof loadDashboardData === 'function') {
-                await loadDashboardData();
+        });
+
+        // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่ม Logout บน UI หน้าผู้ปกครอง
+        function handleLogout() {
+            if (window.AuthManager && typeof AuthManager.logout === 'function') {
+                AuthManager.logout();
+            } else {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.replace('../../login.html');
             }
-    
-        } catch (err) {
-            console.error('[ParentPortal] Init Error:', err);
         }
-    });
     
     // 📌 ฟังก์ชันเลือกบุตรหลาน (สำหรับผู้ปกครองที่มีลูกหลายคน)
     window.selectChildOption = (id, name) => {
