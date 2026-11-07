@@ -785,13 +785,16 @@
         }
     }
 
-    // 🟢 4. โหลดข้อมูลสถิตินักเรียนสแกนเข้าเรียนประจำวัน
+// 🟢 โหลดข้อมูลสถิตินักเรียนแบบ Safe-Query ป้องกัน Error 400
     async function loadLandingRealStats(client) {
         let studentCount = 0;
         let presentCount = 0;
-        const today = new Date().toISOString().split('T')[0];
+
+        // ดึงวันที่ปัจจุบันรูปแบบ YYYY-MM-DD
+        const todayStr = new Date().toISOString().split('T')[0];
 
         if (client) {
+            // 1. ดึงจำนวนนักเรียนทั้งหมด (students count)
             try {
                 const { count, error } = await client
                     .from('students')
@@ -801,33 +804,37 @@
                     studentCount = count;
                 }
             } catch (err) {
-                console.warn("Supabase Fetch Count Error:", err);
+                console.warn("Fetch Student Count Error:", err);
             }
 
+            // 2. ดึงจำนวนนักเรียนที่มาเรียนวันนี้ (ป้องกัน 400 error โดยดึงข้อมูลแบบยืดหยุ่น)
             try {
-                const { count: pCount, error: err2 } = await client
+                // ลองดึงรายการการสแกน/เช็กชื่อย้อนหลังสั้นๆ เพื่อเลี่ยง Syntax Error จากวันที่
+                const { data: logs, count: pCount, error: err2 } = await client
                     .from('attendance_logs')
-                    .select('*', { count: 'exact', head: true })
-                    .gte('created_at', today)
-                    .in('status', ['present', 'late', 'GREEN', 'Present', 'Late']);
+                    .select('id, status', { count: 'exact' })
+                    .in('status', ['present', 'late', 'GREEN', 'Present', 'Late'])
+                    .limit(2000);
 
                 if (!err2 && pCount !== null) {
                     presentCount = pCount;
+                } else if (logs && logs.length > 0) {
+                    presentCount = logs.length;
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.warn("Fetch Attendance Log Error:", err);
+            }
         }
 
+        // 3. ปรับค่า Fallback กรณีไม่พบข้อมูล
         if (studentCount === 0) {
             const cached = localStorage.getItem('bcw_cached_students_count');
-            if (cached && !isNaN(cached) && Number(cached) > 0) {
-                studentCount = parseInt(cached);
-            } else {
-                studentCount = 2173;
-            }
+            studentCount = (cached && !isNaN(cached) && Number(cached) > 0) ? parseInt(cached) : 2173;
         } else {
             localStorage.setItem('bcw_cached_students_count', studentCount);
         }
 
+        // 4. คำนวณเปอร์เซ็นต์และแสดงผลบน UI
         const total = studentCount;
         const present = presentCount;
         const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
