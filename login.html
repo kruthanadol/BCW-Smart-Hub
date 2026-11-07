@@ -124,44 +124,46 @@
         </div>
     </div>
 
-        <!-- 3. Core Modules Architecture (ใส่ ?v=9 บังคับเบราว์เซอร์ล้าง Cache เก่า) -->
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-        <script src="core/supabase-client.js?v=300"></script>
-        <script src="core/auth-service.js?v=300"></script>
-        <script src="core/auth-manager.js?v=300"></script>
-        
+<script src="core/supabase-client.js?v=300"></script>
+<script src="core/auth-service.js?v=300"></script>
+<script src="core/auth-manager.js?v=300"></script>
+
 <script>
+    // 🟢 ปุ่มล็อกอินด้วย Google SSO
     function loginWithGoogle() {
         if (window.AuthService && typeof AuthService.loginWithGoogle === 'function') {
             AuthService.loginWithGoogle();
         } else {
-            alert('ระบบยังไม่พร้อมใช้งาน');
+            alert('ระบบยังไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
         }
     }
 
+    // 🟢 ปุ่มล็อกอินด้วย LINE SSO
     function loginWithLine() {
         if (window.AuthService && typeof AuthService.loginWithLine === 'function') {
             AuthService.loginWithLine();
         } else {
-            alert('ระบบยังไม่พร้อมใช้งาน');
+            alert('ระบบยังไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
         }
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
         const client = window.supabaseClient || window.db || window.supabase;
 
-        // 🟢 1. ตรวจสอบว่ามี Session เดิมค้างอยู่แล้วหรือไม่
+        // 🟢 Step 1: ถ้าผู้ใช้มี Session ค้างอยู่แล้ว ให้ดีดไปหน้าประจำบทบาททันที
         const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
         if (currentUser && currentUser.role) {
+            console.log('พบ Session ค้างอยู่ ดีดไปยังบทบาท:', currentUser.role);
             AuthService.redirectToRolePage(currentUser.role);
             return;
         }
 
-        // 🟢 2. ดักรับ Token จาก SSO Callback
+        // 🟢 Step 2: ดักจับ Callback เมื่อล็อกอิน SSO สำเร็จ
         if (client && client.auth) {
             client.auth.onAuthStateChange(async (event, session) => {
                 if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
                     if (!AuthService.isProcessingLogin) {
+                        console.log(' SSO สำเร็จ กำลังประมวลผลข้อมูลผู้ใช้...');
                         await AuthService.handlePostLogin(session.user);
                     }
                 }
@@ -169,7 +171,7 @@
         }
     });
 
-    // 🟢 3. ล็อกอินด้วย อีเมล / รหัสผ่าน
+    // 🟢 Step 3: ฟังก์ชันล็อกอินด้วย อีเมล / รหัสประจำตัว + รหัสผ่าน Direct Form
     async function handleAccountLogin(event) {
         event.preventDefault();
         const inputVal = document.getElementById('account-email')?.value.trim() || '';
