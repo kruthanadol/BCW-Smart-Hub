@@ -113,48 +113,47 @@ const AuthService = {
     },
 
     // 4. กฎการส่งตัวตามบทบาท (Routing Logic)
+// 🟢 4. กฎการส่งตัวตามบทบาท (ปรับปรุงลอจิก Redirect สำหรับ GitHub Pages)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
 
-        // ดึง Base Path (กรณีอยู่บน GitHub Pages จะติดชื่อ Repo มาด้วย)
+        // คำนวณ Root Path ของเว็บ (ถ้าอยู่บน GitHub Pages จะเก็บชื่อ Repo ไว้)
         const pathSegments = currentPath.split('/').filter(Boolean);
-        let basePath = '';
+        let repoPrefix = '';
         if (window.location.hostname.includes('github.io') && pathSegments.length > 0) {
-            basePath = '/' + pathSegments[0];
+            repoPrefix = '/' + pathSegments[0];
         }
 
-        let targetUrl = '';
-
+        // กำหนดไฟล์ปลายทางตาม Role
+        let pageFile = '/landing.html';
         switch (r) {
             case 'ADMIN':
             case 'EXECUTIVE':
             case 'SUPERADMIN':
-                targetUrl = basePath + '/landing.html';
+                pageFile = '/landing.html';
                 break;
-
             case 'TEACHER':
-                targetUrl = basePath + '/apps/school-app/teacher.html';
+                pageFile = '/apps/school-app/teacher.html';
                 break;
-
             case 'STUDENT':
-                targetUrl = basePath + '/apps/school-app/student.html';
+                pageFile = '/apps/school-app/student.html';
                 break;
-
             case 'PARENT':
-                targetUrl = basePath + '/apps/school-app/parent.html';
+                pageFile = '/apps/school-app/parent.html';
                 break;
-
             default:
-                targetUrl = basePath + '/landing.html';
+                pageFile = '/landing.html';
                 break;
         }
 
-        if (!currentPath.endsWith(targetUrl)) {
-            console.log('Redirecting to:', targetUrl);
-            window.location.replace(targetUrl);
+        const fullTargetUrl = repoPrefix + pageFile;
+
+        // ถ้านำหน้าปัจจุบันมาเช็ก แล้วยังไม่ได้อยู่ที่หน้าเป้าหมาย ให้สั่งย้ายทันที
+        if (!currentPath.endsWith(pageFile)) {
+            console.log('Redirecting to:', fullTargetUrl);
+            window.location.replace(fullTargetUrl);
         }
     }
-};
 
 window.AuthService = AuthService;
