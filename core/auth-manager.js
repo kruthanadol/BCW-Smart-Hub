@@ -1,8 +1,9 @@
 // core/auth-manager.js
 const AuthManager = {
+    // 🟢 1. ดึงข้อมูล User Session (รองรับทั้ง localStorage และ sessionStorage)
     getCurrentUser: function() {
         try {
-            const raw = localStorage.getItem('bcw_user_session');
+            const raw = localStorage.getItem('bcw_user_session') || sessionStorage.getItem('bcw_user_session');
             if (raw) {
                 const parsed = JSON.parse(raw);
                 if (parsed && parsed.role) return parsed;
@@ -13,16 +14,32 @@ const AuthManager = {
         return null;
     },
 
-    /**
-     * 🟢 Auth Guard ดักสิทธิ์เข้าถึงหน้าเว็บตามเงื่อนไขของโรงเรียน
-     */
-    requireAuth: function(allowedRoles = [], redirectUrl = '/login.html') {
-        const user = this.getCurrentUser();
+    // 🟢 2. ดึง Path หน้า login ให้ถูกโครงสร้าง (แก้ปัญหา GitHub Pages Absolute Path)
+    getLoginUrl: function() {
+        const currentPath = window.location.pathname;
+        const pathSegments = currentPath.split('/').filter(Boolean);
+        let repoPrefix = '';
 
-        // 1. ถ้ายังไม่ได้ล็อกอิน ให้ดีดกลับไปหน้า Login
+        // ถ้าอยู่บน github.io ให้ติดชื่อ repo ไปด้วย
+        if (window.location.hostname.includes('github.io') && pathSegments.length > 0) {
+            repoPrefix = '/' + pathSegments[0];
+        }
+        return repoPrefix + '/login.html';
+    },
+
+    /**
+     * 🟢 3. Auth Guard ดักสิทธิ์เข้าถึงหน้าเว็บตามเงื่อนไขของโรงเรียน
+     */
+    requireAuth: function(allowedRoles = [], customRedirectUrl = null) {
+        const user = this.getCurrentUser();
+        const targetLoginUrl = customRedirectUrl || this.getLoginUrl();
+
+        // 1. ถ้ายังไม่ได้ล็อกอิน ให้ดีดกลับไปหน้า Login ตาม Path ที่ถูกต้อง
         if (!user || !user.role) {
             console.warn('🔒 Auth Guard: ไม่พบ Session การเข้าสู่ระบบ');
-            window.location.replace(redirectUrl);
+            if (!window.location.pathname.endsWith('/login.html')) {
+                window.location.replace(targetLoginUrl);
+            }
             return null;
         }
 
@@ -39,15 +56,19 @@ const AuthManager = {
         // 2. ตรวจเช็กสิทธิ์สำหรับบทบาทอื่นๆ
         if (allowedRoles.length > 0 && !normalizedAllowed.includes(userRole)) {
             alert('🔒 คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
-            // หากพยายามแอบเข้าหน้าอื่นโดยไม่มีสิทธิ์ ให้ส่งกลับไปหน้าประจำบทบาทของตนเอง
-            AuthService.redirectToRolePage(userRole);
+            if (window.AuthService && typeof AuthService.redirectToRolePage === 'function') {
+                AuthService.redirectToRolePage(userRole);
+            } else {
+                window.location.replace(targetLoginUrl);
+            }
             return null;
         }
 
         return user;
     },
 
-    logout: function(redirectUrl = '/login.html') {
+    // 🟢 4. Logout ล้างค่าและย้ายกลับหน้า Login
+    logout: function(customRedirectUrl = null) {
         localStorage.clear();
         sessionStorage.clear();
         
@@ -55,11 +76,13 @@ const AuthManager = {
         if (client && client.auth) {
             try { client.auth.signOut(); } catch (e) {}
         }
-        window.location.replace(redirectUrl);
+
+        const targetLoginUrl = customRedirectUrl || this.getLoginUrl();
+        window.location.replace(targetLoginUrl);
     }
 };
 
 window.AuthManager = AuthManager;
 window.getCurrentUser = () => AuthManager.getCurrentUser();
 window.requireAuth = (roles, url) => AuthManager.requireAuth(roles, url);
-window.logoutUser = () => AuthManager.logout();
+window.logoutUser = (url) => AuthManager.logout(url);
