@@ -13,8 +13,27 @@ const AuthService = {
         return '';
     },
 
-    // 🟢 2. เรียก OAuth Google
+    // 🟢 2. ดักจับและล้าง Error SSO ใน URL อัตโนมัติ (แก้ปัญหา Popup แจ้งสิทธิ์เด้งกวนใจ)
+    checkAndCleanUrlError: function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.has('error') || urlParams.has('error_code')) {
+            console.warn('⚠️ พบ Error จาก SSO ทำการล้าง URL และส่งกลับไปหน้า Login');
+            
+            localStorage.removeItem('bcw_user_session');
+            sessionStorage.removeItem('bcw_user_session');
+
+            const repoPrefix = this.getRepoPrefix();
+            window.location.replace(window.location.origin + repoPrefix + '/login.html');
+            return true;
+        }
+        return false;
+    },
+
+    // 🟢 3. เรียก OAuth Google
     loginWithGoogle: async function() {
+        if (this.checkAndCleanUrlError()) return;
+
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
@@ -26,8 +45,10 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
     },
 
-    // 🟢 3. เรียก OAuth LINE
+    // 🟢 4. เรียก OAuth LINE
     loginWithLine: async function() {
+        if (this.checkAndCleanUrlError()) return;
+
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
@@ -39,8 +60,11 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
-    // 🟢 4. ประมวลผลหลัง SSO สกัดบทบาทผู้ใช้งาน (RBAC)
+    // 🟢 5. ประมวลผลหลัง SSO สกัดบทบาทผู้ใช้งาน (RBAC)
     handlePostLogin: async function(ssoUser) {
+        // หาก URL ติด Error ให้หยุดและล้างค่าทันที
+        if (this.checkAndCleanUrlError()) return;
+
         if (!ssoUser || this.isProcessingLogin) return;
         this.isProcessingLogin = true;
 
@@ -159,7 +183,7 @@ const AuthService = {
         }
     },
 
-    // 🟢 5. Redirect ไปยังหน้าประจำสิทธิ์ (ป้องกัน Loop และ URL เพี้ยน)
+    // 🟢 6. Redirect ไปยังหน้าประจำสิทธิ์ (ป้องกัน Loop และ URL เพี้ยน)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
@@ -177,7 +201,6 @@ const AuthService = {
 
         const fullTargetUrl = repoPrefix + relativeTarget;
 
-        // เปลี่ยนหน้าเมื่อไม่ได้อยู่ในหน้านั้นๆ อยู่แล้วเท่านั้น
         if (!currentPath.endsWith(relativeTarget)) {
             window.location.replace(fullTargetUrl);
         }
