@@ -2,21 +2,43 @@
 const AuthService = {
     isProcessingLogin: false,
 
+    // 🟢 คำนวณ Root Path ปัจจุบัน (รองรับทั้ง Localhost และ GitHub Pages Sub-folder)
+    getRepoPrefix: function() {
+        const currentPath = window.location.pathname;
+        const pathSegments = currentPath.split('/').filter(Boolean);
+        if (window.location.hostname.includes('github.io') && pathSegments.length > 0) {
+            return '/' + pathSegments[0];
+        }
+        return '';
+    },
+
+    // 1. สั่งยิง Google SSO
     loginWithGoogle: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
+        
         const redirectUrl = window.location.origin + window.location.pathname;
-        await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: redirectUrl } });
+        const { error } = await client.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: redirectUrl }
+        });
+        if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
     },
 
+    // 2. สั่งยิง LINE SSO
     loginWithLine: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
+        
         const redirectUrl = window.location.origin + window.location.pathname;
-        await client.auth.signInWithOAuth({ provider: 'line', options: { redirectTo: redirectUrl } });
+        const { error } = await client.auth.signInWithOAuth({
+            provider: 'line',
+            options: { redirectTo: redirectUrl }
+        });
+        if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
-    // 🟢 คัดกรองบทบาทแบบแยกฝั่งเด็ดขาด
+    // 🟢 3. สกัด Hybrid Profile และคัดกรองสายงาน
     handlePostLogin: async function(ssoUser) {
         if (!ssoUser || this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -25,18 +47,20 @@ const AuthService = {
             const client = window.supabaseClient || window.db || window.supabase;
             const email = (ssoUser.email || '').toLowerCase().trim();
             const userId = ssoUser.id || '';
-            const ssoAvatar = ssoUser.user_metadata?.avatar_url || ssoUser.user_metadata?.picture || '';
-            
-            let detectedRole = 'STUDENT'; // Default สำหรับฝั่งนักเรียน/ผู้ปกครอง
+            const ssoAvatar = ssoUser.user_metadata?.avatar_url || 
+                              ssoUser.user_metadata?.picture || 
+                              ssoUser.user_metadata?.photo_url || '';
+
+            let detectedRole = 'STUDENT';
             let dbName = '';
 
-            // 👑 สายที่ 1: แอดมิน / ผู้บริหาร (เข้า landing.html)
+            // 👑 สายที่ 1: แอดมิน / ผู้บริหาร (ไป landing.html)
             if (email === 'kruthanadol@buached.ac.th' || email.includes('admin')) {
                 detectedRole = 'ADMIN';
                 dbName = ssoUser.user_metadata?.full_name || 'ผู้ดูแลระบบ';
             }
 
-            // 👨‍🏫 สายที่ 2: เช็กตารางครู (teachers) -> ถ้าเจอ ไปหน้าครู
+            // 👨‍🏫 สายที่ 2: ตรวจสอบตาราง teachers (ไป teacher.html)
             if (!dbName && client) {
                 try {
                     const { data: teacher } = await client
@@ -49,10 +73,12 @@ const AuthService = {
                         detectedRole = 'TEACHER';
                         dbName = teacher.full_name || teacher.teacher_name || 'คุณครู';
                     }
-                } catch (e) { console.warn('Teacher query error:', e); }
+                } catch (e) { 
+                    console.warn('Teacher Query Error:', e); 
+                }
             }
 
-            // 👨‍🎓 สายที่ 3: เช็กตารางนักเรียน/ผู้ปกครอง (students) -> ถ้าเจอหรืออื่นๆ ไปฝั่งนักเรียน/ผู้ปกครอง
+            // 👨‍🎓 สายที่ 3: ตรวจสอบตาราง students (ไป student.html)
             if (!dbName && client) {
                 try {
                     const { data: student } = await client
@@ -65,10 +91,12 @@ const AuthService = {
                         detectedRole = 'STUDENT';
                         dbName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
                     }
-                } catch (e) { console.warn('Student query error:', e); }
+                } catch (e) { 
+                    console.warn('Student Query Error:', e); 
+                }
             }
 
-            // Fallback: ถ้าไม่พบใน DB เลย ให้ถือว่าเป็นฝั่งนักเรียน/ผู้ปกครอง หรือบุคคลทั่วไป
+            // Fallback: ถ้าไม่พบข้อมูลในตาราง ให้ถือเป็นฝั่งนักเรียน/ผู้ปกครอง
             if (!dbName) {
                 dbName = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || email.split('@')[0];
                 detectedRole = email.includes('@buached.ac.th') ? 'STUDENT' : 'PARENT';
@@ -82,44 +110,39 @@ const AuthService = {
                 email: email
             };
 
-            // บันทึก Session
+            // บันทึก Session ลงทั้ง สองที่
             const sessionStr = JSON.stringify(hybridProfile);
             localStorage.setItem('bcw_user_session', sessionStr);
             sessionStorage.setItem('bcw_user_session', sessionStr);
 
-            // ส่งตัวแยกตามสายงานทันที
+            // ย้ายหน้าตามบทบาท
             this.redirectToRolePage(detectedRole);
         } catch (err) {
-            console.error('Login Error:', err);
+            console.error('handlePostLogin Error:', err);
             this.isProcessingLogin = false;
         }
     },
 
-    // 🟢 แยกการดีดหน้าชัดเจน ไม่เกี่ยวข้องกัน
+    // 🟢 4. การส่งตัวตามบทบาท (Routing Logic)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
+        const repoPrefix = this.getRepoPrefix();
 
-        const pathSegments = currentPath.split('/').filter(Boolean);
-        let repoPrefix = '';
-        if (window.location.hostname.includes('github.io') && pathSegments.length > 0) {
-            repoPrefix = '/' + pathSegments[0];
-        }
+        let targetPage = '/apps/school-app/student.html'; // Default
 
-        let targetPage = '/apps/school-app/student.html'; // Default นักเรียน/ผู้ปกครอง
-
-        if (r === 'ADMIN' || r === 'EXECUTIVE' || r === 'SUPERADMIN') {
-            targetPage = '/landing.html'; // ผู้บริหาร/แอดมิน
+        if (['ADMIN', 'EXECUTIVE', 'SUPERADMIN'].includes(r)) {
+            targetPage = '/landing.html';
         } else if (r === 'TEACHER') {
-            targetPage = '/apps/school-app/teacher.html'; // ครู
+            targetPage = '/apps/school-app/teacher.html';
         } else if (r === 'PARENT') {
-            targetPage = '/apps/school-app/parent.html'; // ผู้ปกครอง
+            targetPage = '/apps/school-app/parent.html';
         }
 
-        const fullUrl = repoPrefix + targetPage;
+        const fullTargetUrl = repoPrefix + targetPage;
 
         if (!currentPath.endsWith(targetPage)) {
-            window.location.replace(fullUrl);
+            window.location.replace(fullTargetUrl);
         }
     }
 };
