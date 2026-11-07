@@ -2,19 +2,18 @@
 const AuthService = {
     isProcessingLogin: false,
 
-    // 🟢 คำนวณ Root Path ของ GitHub Pages (ป้องกันปัญหา 404 บน Repo)
+    // 🟢 1. คำนวณ Prefix ของ Repo บน GitHub Pages ให้แม่นยำ ไม่ใส่ซ้ำซ้อน
     getRepoPrefix: function() {
         const hostname = window.location.hostname;
         const pathSegments = window.location.pathname.split('/').filter(Boolean);
 
-        // หากรันอยู่บน GitHub Pages ให้ดึงชื่อ repository แรกสุดเป็น Prefix
         if (hostname.includes('github.io') && pathSegments.length > 0) {
-            return '/' + pathSegments[0];
+            return '/' + pathSegments[0]; // คืนค่า '/BCW-Smart-Hub'
         }
         return '';
     },
 
-    // 🟢 สั่งยิง Google SSO
+    // 🟢 2. เรียก OAuth Google
     loginWithGoogle: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
@@ -27,7 +26,7 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
     },
 
-    // 🟢 สั่งยิง LINE SSO
+    // 🟢 3. เรียก OAuth LINE
     loginWithLine: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
@@ -40,7 +39,7 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
-    // 🟢 สกัด Hybrid Profile โดยตรวจสอบตาราง users -> teachers -> students
+    // 🟢 4. ประมวลผลหลัง SSO สกัดบทบาทผู้ใช้งาน (RBAC)
     handlePostLogin: async function(ssoUser) {
         if (!ssoUser || this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -57,13 +56,13 @@ const AuthService = {
             let dbName = '';
             let teacherCode = '';
 
-            // 👑 Step 0: ล็อกอีเมล Admin เฉพาะบุคคลระบุชัดเจน
+            // Step 0: ตรวจสอบ Admin ล็อกเฉพาะอีเมล
             if (email === 'kruthanadol@buached.ac.th') {
                 detectedRole = 'ADMIN';
                 dbName = ssoUser.user_metadata?.full_name || 'ผู้ดูแลระบบ';
             }
 
-            // 🟢 Step 1: ตรวจสอบจากตาราง `users` เป็นลำดับแรก
+            // Step 1: ตรวจสอบจากตาราง users
             if (!detectedRole && client && (email || userId)) {
                 try {
                     let userQuery = client.from('users').select('*');
@@ -79,7 +78,7 @@ const AuthService = {
                 } catch (e) { console.warn('Users table query notice:', e); }
             }
 
-            // 🟢 Step 2: ตรวจสอบจากตาราง `teachers`
+            // Step 2: ตรวจสอบจากตาราง teachers
             if (!detectedRole && client && email) {
                 try {
                     let { data: teacher } = await client
@@ -105,7 +104,7 @@ const AuthService = {
                 } catch (e) { console.warn('Teacher Query Error:', e); }
             }
 
-            // 🟢 Step 3: ตรวจสอบจากตาราง `students`
+            // Step 3: ตรวจสอบจากตาราง students
             if (!detectedRole && client && email) {
                 try {
                     let { data: student } = await client
@@ -130,7 +129,7 @@ const AuthService = {
                 } catch (e) { console.warn('Student Query Error:', e); }
             }
 
-            // 🟢 Step 4: Fallback ผู้ใช้งานทั่วไป
+            // Step 4: Fallback
             if (!detectedRole) {
                 dbName = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || (email ? email.split('@')[0] : 'ผู้ใช้งาน');
                 detectedRole = email.endsWith('@buached.ac.th') ? 'STUDENT' : 'PARENT';
@@ -151,6 +150,7 @@ const AuthService = {
             localStorage.setItem('bcw_user_session', sessionStr);
             sessionStorage.setItem('bcw_user_session', sessionStr);
 
+            // ส่งต่อไปยังปลายทาง
             this.redirectToRolePage(detectedRole);
 
         } catch (err) {
@@ -159,25 +159,26 @@ const AuthService = {
         }
     },
 
-    // 🟢 Routing Logic สลับหน้าไปยัง Path ที่ถูกต้อง
+    // 🟢 5. Redirect ไปยังหน้าประจำสิทธิ์ (ป้องกัน Loop และ URL เพี้ยน)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
         const repoPrefix = this.getRepoPrefix();
 
-        let targetPage = '/apps/school-app/student.html';
+        let relativeTarget = '/apps/school-app/student.html';
 
         if (['ADMIN', 'EXECUTIVE', 'SUPERADMIN'].includes(r)) {
-            targetPage = '/landing.html';
+            relativeTarget = '/landing.html';
         } else if (r === 'TEACHER') {
-            targetPage = '/apps/school-app/teacher.html';
+            relativeTarget = '/apps/school-app/teacher.html';
         } else if (r === 'PARENT') {
-            targetPage = '/apps/school-app/parent.html';
+            relativeTarget = '/apps/school-app/parent.html';
         }
 
-        const fullTargetUrl = repoPrefix + targetPage;
+        const fullTargetUrl = repoPrefix + relativeTarget;
 
-        if (!currentPath.endsWith(targetPage)) {
+        // เปลี่ยนหน้าเมื่อไม่ได้อยู่ในหน้านั้นๆ อยู่แล้วเท่านั้น
+        if (!currentPath.endsWith(relativeTarget)) {
             window.location.replace(fullTargetUrl);
         }
     }
