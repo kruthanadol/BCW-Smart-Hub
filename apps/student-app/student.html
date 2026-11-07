@@ -617,31 +617,53 @@
         let SELECTED_SCHEDULE_DAY = 'Monday';
         let gatepassTimerInterval = null;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // 1. Auth Guard: อนุญาตเฉพาะ STUDENT (หรือ ADMIN/EXECUTIVE)
-            const user = AuthManager.requireAuth(['STUDENT']);
-            if (!user) return;
-        
-            // 2. จับ Element บน UI หน้านักเรียน
-            const nameEl = document.getElementById('studentDisplayName') || document.getElementById('userDisplayName');
-            const badgeEl = document.getElementById('studentRoleBadge') || document.getElementById('userRoleBadge');
-            const avatarImg = document.getElementById('studentAvatarImg') || document.getElementById('userAvatarImg');
-            const avatarIcon = document.getElementById('studentAvatarIcon') || document.getElementById('userAvatarIcon');
-        
-            // 3. ฉีดข้อมูลโปรไฟล์นักเรียน (ชื่อจริงภาษาไทย + รูป SSO)
-            if (nameEl) nameEl.textContent = user.name;
-            if (badgeEl) badgeEl.textContent = 'นักเรียน';
-        
-            if (user.avatar && avatarImg) {
-                avatarImg.src = user.avatar;
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (อนุญาตเฉพาะ STUDENT โดย ADMIN และ EXECUTIVE เข้าได้ไม่อั้น)
+        const currentUser = window.AuthManager 
+            ? AuthManager.requireAuth(['STUDENT']) 
+            : null;
+            
+        if (!currentUser) return;
+    
+        // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
+        const roleMap = {
+            'ADMIN': 'ผู้ดูแลระบบ',
+            'EXECUTIVE': 'ผู้บริหาร',
+            'TEACHER': 'ครูผู้สอน',
+            'STUDENT': 'นักเรียน',
+            'PARENT': 'ผู้ปกครอง'
+        };
+        const displayRole = roleMap[currentUser.role] || 'นักเรียน';
+    
+        // 🎯 3. จับ Element บน UI หน้านักเรียน
+        const nameEl = document.getElementById('studentDisplayName') || document.getElementById('userDisplayName');
+        const badgeEl = document.getElementById('studentRoleBadge') || document.getElementById('userRoleBadge');
+        const avatarImg = document.getElementById('studentAvatarImg') || document.getElementById('userAvatarImg');
+        const avatarIcon = document.getElementById('studentAvatarIcon') || document.getElementById('userAvatarIcon');
+    
+        // 📝 4. ฉีดข้อมูลโปรไฟล์นักเรียน (ชื่อจริงภาษาไทยจาก DB + Badge สิทธิ์)
+        if (nameEl) nameEl.textContent = currentUser.name || 'นักเรียน';
+        if (badgeEl) badgeEl.textContent = displayRole;
+    
+        // 🖼️ 5. แสดงรูปภาพสดจาก SSO (Google/LINE) พร้อมระบบ Fallback ตัวไอคอน
+        if (avatarImg) {
+            if (currentUser.avatar) {
+                avatarImg.src = currentUser.avatar;
                 avatarImg.classList.remove('hidden');
                 if (avatarIcon) avatarIcon.classList.add('hidden');
+    
+                // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
                 avatarImg.onerror = () => {
                     avatarImg.classList.add('hidden');
                     if (avatarIcon) avatarIcon.classList.remove('hidden');
                 };
+            } else {
+                // กรณีไม่มีรูปในระบบ ให้แสดงไอคอนสำรองทันที
+                avatarImg.classList.add('hidden');
+                if (avatarIcon) avatarIcon.classList.remove('hidden');
             }
-        });
+        }
+    });
 
                 // กำหนดวันเริ่มต้นตารางเรียน
                 const dayMap = {
