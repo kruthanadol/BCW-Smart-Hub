@@ -611,11 +611,11 @@
     </div>
 
 <!-- 🌐 Core Engine Modules -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="core/supabase-client.js?v=300"></script>
-    <script src="core/auth-service.js?v=300"></script>
-    <script src="core/auth-manager.js?v=300"></script>
-    
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="core/supabase-client.js?v=400"></script>
+<script src="core/auth-service.js?v=400"></script>
+<script src="core/auth-manager.js?v=400"></script>
+
 <!-- 🔒 Universal Core Controller Engine -->
 <script>
     function hidePageLoader() {
@@ -707,46 +707,56 @@
         }
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // 🟢 1. Auth Guard: อนุญาตเฉพาะ ADMIN, EXECUTIVE, SUPERADMIN
+    // 🟢 1. Main Controller Initialization
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 🔒 1.1 Auth Guard: อนุญาตเฉพาะ ADMIN, EXECUTIVE, SUPERADMIN
         const currentUser = window.AuthManager ? AuthManager.requireAuth(['ADMIN', 'EXECUTIVE', 'SUPERADMIN']) : null;
-        if (!currentUser) return; // หากโดน AuthGuard ดีด ให้หยุดทำงาน
+        if (!currentUser) return; // หากโดน AuthGuard ดีด ให้หยุดทำงานทันที
 
-        console.log('เข้าสู่หน้า Landing สำเร็จ:', currentUser);
+        console.log('เข้าสู่หน้า Landing สำเร็จ โดย:', currentUser);
 
-        // 🟢 2. แสดงผลโปรไฟล์บน UI
+        // 🟢 1.2 แสดงผลโปรไฟล์ผู้ใช้งานบน UI
         renderUniversalProfile(currentUser);
-        
-        // 🟢 3. ซ่อน Page Loader เมื่อโหลดเสร็จ
-        hidePageLoader();
+
+        // 🟢 1.3 ดึงข้อมูลสถิติจริงจาก Supabase Database
+        const client = window.supabaseClient || window.db || window.supabase;
+        await loadLandingRealStats(client);
+
+        // 🟢 1.4 เรียกใช้อุปกรณ์เสริม UI (นาฬิกา, เมนูเลื่อน, Gesture)
+        startClock();
         initAutoScrollNav();
+        initSwipeGestures();
+        hidePageLoader();
     });
 
-    function handleLogout() {
-        if (window.AuthManager && typeof AuthManager.logout === 'function') {
-            AuthManager.logout();
-        } else {
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.replace('login.html');
+    // 🟢 2. ฟังก์ชันออกจากระบบ
+    window.handleLogout = function() {
+        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+            if (window.AuthManager && typeof AuthManager.logout === 'function') {
+                AuthManager.logout();
+            } else if (typeof logoutUser === 'function') {
+                logoutUser();
+            } else {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.replace('login.html');
+            }
         }
-    }
+    };
 
+    // 🟢 3. แสดงผลโปรไฟล์และรูป SSO บน Header
     function renderUniversalProfile(userProfile) {
         const nameEl = document.getElementById('userDisplayName') || document.getElementById('adminDisplayName');
         const badgeEl = document.getElementById('userRoleBadge') || document.getElementById('adminRoleBadge');
         const avatarImg = document.getElementById('userAvatarImg') || document.getElementById('adminAvatarImg');
         const avatarIcon = document.getElementById('userAvatarIcon') || document.getElementById('adminAvatarIcon');
 
-        // 1. อ่านข้อมูลจาก Profile
         const displayName = userProfile?.name || 'ผู้ดูแลระบบ';
         const roleName = (userProfile?.role || 'ADMIN').toUpperCase();
         const avatarUrl = userProfile?.avatar || '';
 
-        // 2. แสดงผลชื่อผู้ใช้
         if (nameEl) nameEl.textContent = displayName;
 
-        // 3. ปรับเปลี่ยนป้าย Role Badge ตามบทบาทจริง
         if (badgeEl) {
             badgeEl.textContent = roleName === 'ADMIN' ? 'ผู้ดูแลระบบ (ADMIN)' : roleName;
             if (roleName === 'STUDENT') {
@@ -758,7 +768,6 @@
             }
         }
 
-        // 4. แสดงผลรูปภาพโปรไฟล์ (สดจาก Google / LINE SSO)
         if (avatarImg) {
             if (avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
                 avatarImg.src = avatarUrl;
@@ -776,14 +785,12 @@
         }
     }
 
-
+    // 🟢 4. โหลดข้อมูลสถิตินักเรียนสแกนเข้าเรียนประจำวัน
     async function loadLandingRealStats(client) {
         let studentCount = 0;
         let presentCount = 0;
-
         const today = new Date().toISOString().split('T')[0];
 
-        // 1. ดึงจำนวนนักเรียนทั้งหมด 2,173 คน ด้วย head: true
         if (client) {
             try {
                 const { count, error } = await client
@@ -797,7 +804,6 @@
                 console.warn("Supabase Fetch Count Error:", err);
             }
 
-            // 2. ดึงจำนวนนักเรียนที่สแกนเข้าเรียนวันนี้
             try {
                 const { count: pCount, error: err2 } = await client
                     .from('attendance_logs')
@@ -811,7 +817,6 @@
             } catch (err) {}
         }
 
-        // 3. ปรับค่าสำรอง fallback ให้ตรงกับยอดจริง (2173) กรณีออฟไลน์
         if (studentCount === 0) {
             const cached = localStorage.getItem('bcw_cached_students_count');
             if (cached && !isNaN(cached) && Number(cached) > 0) {
@@ -823,7 +828,6 @@
             localStorage.setItem('bcw_cached_students_count', studentCount);
         }
 
-        // 4. อัปเดตการแสดงผลบนหน้าจอ
         const total = studentCount;
         const present = presentCount;
         const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
@@ -847,6 +851,7 @@
         }
     }
 
+    // 🟢 5. ระบบ Touch Swipe สำหรับ Bottom Sheet และ Drawer
     function initSwipeGestures() {
         var adminDrawer = document.getElementById('adminSideDrawer');
         if (adminDrawer) {
@@ -887,21 +892,7 @@
         });
     }
 
-    // 🌟 ปรับปรุง handleLogout ให้เรียก AuthManager หรือ logoutUser ได้ถูกต้อง
-    window.handleLogout = function() {
-        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-            if (window.AuthManager && typeof AuthManager.logout === 'function') {
-                AuthManager.logout();
-            } else if (typeof logoutUser === 'function') {
-                logoutUser();
-            } else {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.replace('login.html');
-            }
-        }
-    };
-
+    // 🟢 6. ระบบนาฬิกา Realtime ภาษาไทย
     function startClock() {
         var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
         var thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
