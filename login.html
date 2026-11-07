@@ -135,7 +135,7 @@
         if (window.AuthService && typeof AuthService.loginWithGoogle === 'function') {
             AuthService.loginWithGoogle();
         } else {
-            alert('ระบบยืนยันตัวตนยังไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
+            alert('ระบบยืนยันตัวตนยังไม่พร้อมใช้งาน');
         }
     }
 
@@ -143,47 +143,48 @@
         if (window.AuthService && typeof AuthService.loginWithLine === 'function') {
             AuthService.loginWithLine();
         } else {
-            alert('ระบบยืนยันตัวตนยังไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
+            alert('ระบบยืนยันตัวตนยังไม่พร้อมใช้งาน');
         }
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
         const client = window.supabaseClient || window.db || window.supabase;
 
+        // 🟢 Step 1: ถ้ามี Session ใน LocalStorage อยู่แล้ว ให้ย้ายหน้าทันที
+        const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+        if (currentUser && currentUser.role) {
+            console.log('พบ Session เก่า ดีดไปหน้า Role:', currentUser.role);
+            AuthService.redirectToRolePage(currentUser.role);
+            return;
+        }
+
+        // 🟢 Step 2: จัดการ SSO Callback (ดักรับ Token จาก Google/LINE)
         if (client && client.auth) {
-            // 🟢 1. ดักรับ Event เมื่อล็อกอิน Google/LINE สำเร็จ (ทำงานทันทีเมื่อพบ Token ใน URL)
+            // A. ดักฟัง Event เมื่อ Supabase ทำการ Sign-in สำเร็จ
             client.auth.onAuthStateChange(async (event, session) => {
                 if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-                    if (window.AuthService && typeof AuthService.handlePostLogin === 'function') {
+                    // ตรวจสอบอีกครั้งเพื่อป้องกันการรันซ้ำ
+                    const checkUser = AuthManager.getCurrentUser();
+                    if (!checkUser) {
+                        console.log('กำลังจัดการข้อมูลผู้ใช้หลัง SSO...');
                         await AuthService.handlePostLogin(session.user);
                     }
                 }
             });
 
-            // 🟢 2. เช็ก Session ที่มีอยู่แล้ว หรือเช็กกรณี Token มาจาก Hash URL
+            // B. ดึง Session เผื่อเป็น Hash URL (#access_token=...)
             try {
                 const { data: { session } } = await client.auth.getSession();
-                if (session && session.user) {
-                    if (window.AuthService && typeof AuthService.handlePostLogin === 'function') {
-                        await AuthService.handlePostLogin(session.user);
-                        return;
-                    }
+                if (session && session.user && !AuthManager.getCurrentUser()) {
+                    await AuthService.handlePostLogin(session.user);
                 }
             } catch (e) {
-                console.warn('SSO Callback Check Warning:', e);
-            }
-        }
-
-        // 🟢 3. ถ้าล็อกอินค้างไว้อยู่แล้ว ให้ดีดไปตาม Role ทันที
-        if (window.AuthManager && window.AuthService) {
-            const currentUser = AuthManager.getCurrentUser();
-            if (currentUser && currentUser.role) {
-                AuthService.redirectToRolePage(currentUser.role);
+                console.warn('SSO GetSession Error:', e);
             }
         }
     });
 
-    // 🟢 4. ฟังก์ชันล็อกอิน Email / Password
+    // 🟢 Step 3: ฟังก์ชันล็อกอินด้วย อีเมล / รหัสผ่าน
     async function handleAccountLogin(event) {
         event.preventDefault();
         const inputVal = document.getElementById('account-email')?.value.trim() || '';
@@ -214,9 +215,7 @@
             if (error) throw error;
 
             if (data?.user) {
-                if (window.AuthService && typeof AuthService.handlePostLogin === 'function') {
-                    await AuthService.handlePostLogin(data.user);
-                }
+                await AuthService.handlePostLogin(data.user);
             }
         } catch (err) {
             console.error('Account Login Error:', err);
