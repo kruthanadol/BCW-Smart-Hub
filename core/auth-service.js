@@ -17,7 +17,7 @@ const AuthService = {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
-        const redirectUrl = window.location.origin + window.location.pathname;
+        const redirectUrl = window.location.origin + this.getRepoPrefix() + '/login.html';
         const { error } = await client.auth.signInWithOAuth({
             provider: 'google',
             options: { redirectTo: redirectUrl }
@@ -30,7 +30,7 @@ const AuthService = {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
-        const redirectUrl = window.location.origin + window.location.pathname;
+        const redirectUrl = window.location.origin + this.getRepoPrefix() + '/login.html';
         const { error } = await client.auth.signInWithOAuth({
             provider: 'line',
             options: { redirectTo: redirectUrl }
@@ -61,13 +61,23 @@ const AuthService = {
             }
 
             // 👨‍🏫 สายที่ 2: ตรวจสอบตาราง teachers (ไป teacher.html)
-            if (!dbName && client) {
+            if (!dbName && client && email) {
                 try {
-                    const { data: teacher } = await client
+                    // ปรับปรุง Query ป้องกัน SyntaxError กรณี email/userId เป็นค่าว่าง
+                    let { data: teacher } = await client
                         .from('teachers')
                         .select('*')
-                        .or(`email.eq.${email},teacher_id.eq.${userId}`)
+                        .eq('email', email)
                         .maybeSingle();
+
+                    if (!teacher && userId) {
+                        const { data: teacherById } = await client
+                            .from('teachers')
+                            .select('*')
+                            .eq('teacher_id', userId)
+                            .maybeSingle();
+                        teacher = teacherById;
+                    }
 
                     if (teacher) {
                         detectedRole = 'TEACHER';
@@ -79,13 +89,22 @@ const AuthService = {
             }
 
             // 👨‍🎓 สายที่ 3: ตรวจสอบตาราง students (ไป student.html)
-            if (!dbName && client) {
+            if (!dbName && client && email) {
                 try {
-                    const { data: student } = await client
+                    let { data: student } = await client
                         .from('students')
                         .select('*')
-                        .or(`email.eq.${email},id.eq.${userId}`)
+                        .eq('email', email)
                         .maybeSingle();
+
+                    if (!student && userId) {
+                        const { data: studentById } = await client
+                            .from('students')
+                            .select('*')
+                            .eq('id', userId)
+                            .maybeSingle();
+                        student = studentById;
+                    }
 
                     if (student) {
                         detectedRole = 'STUDENT';
@@ -98,8 +117,8 @@ const AuthService = {
 
             // Fallback: ถ้าไม่พบข้อมูลในตาราง ให้ถือเป็นฝั่งนักเรียน/ผู้ปกครอง
             if (!dbName) {
-                dbName = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || email.split('@')[0];
-                detectedRole = email.includes('@buached.ac.th') ? 'STUDENT' : 'PARENT';
+                dbName = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || (email ? email.split('@')[0] : 'ผู้ใช้งาน');
+                detectedRole = email.endsWith('@buached.ac.th') ? 'STUDENT' : 'PARENT';
             }
 
             const hybridProfile = {
@@ -110,7 +129,7 @@ const AuthService = {
                 email: email
             };
 
-            // บันทึก Session ลงทั้ง สองที่
+            // บันทึก Session ลงทั้งสองที่
             const sessionStr = JSON.stringify(hybridProfile);
             localStorage.setItem('bcw_user_session', sessionStr);
             sessionStorage.setItem('bcw_user_session', sessionStr);
