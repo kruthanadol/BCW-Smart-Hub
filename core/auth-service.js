@@ -1,17 +1,36 @@
 // core/auth-service.js
 const AuthService = {
-    // 1. สั่งยิง Google SSO
+// 1. สั่งยิง Google SSO
     loginWithGoogle: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
+        // 🟢 ดึง URL หน้า login ปัจจุบันแบบเต็ม (เพื่อติดชื่อ Repository บน GitHub Pages)
+        const redirectUrl = window.location.origin + window.location.pathname;
+
         const { error } = await client.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/login.html`
+                redirectTo: redirectUrl
             }
         });
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
+    },
+
+    // 2. สั่งยิง LINE SSO
+    loginWithLine: async function() {
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
+        
+        const redirectUrl = window.location.origin + window.location.pathname;
+
+        const { error } = await client.auth.signInWithOAuth({
+            provider: 'line',
+            options: {
+                redirectTo: redirectUrl
+            }
+        });
+        if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
     // 2. สั่งยิง LINE SSO
