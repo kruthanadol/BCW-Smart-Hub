@@ -303,81 +303,86 @@
     </div>
 
 <!-- Core Engine Scripts -->
-    <script src="../../core/supabase-client.js?v=300"></script>
-    <script src="../../core/auth-service.js?v=300"></script>
-    <script src="../../core/auth-manager.js?v=300"></script>
+<script src="../../core/supabase-client.js?v=400"></script>
+<script src="../../core/auth-service.js?v=400"></script>
+<script src="../../core/auth-manager.js?v=400"></script>
 
-    <!-- Complete Pure Zero-Mock Script Logic -->
-    <script>
-        let CURRENT_TEACHER_USER = null;
+<!-- Complete Pure Zero-Mock Script Logic -->
+<script>
+    let CURRENT_TEACHER_USER = null;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // 🟢 1. ดักสิทธิ์: อนุญาตเฉพาะ TEACHER (รวมถึง ADMIN/EXECUTIVE ตามกฎใน AuthManager)
-            const currentUser = window.AuthManager ? AuthManager.requireAuth(['TEACHER']) : null;
-            if (!currentUser) return; // ถ้าไม่มีสิทธิ์หรือไม่มี Session จะโดนดีดออกอัตโนมัติ
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 🟢 1. ดักสิทธิ์: อนุญาตเฉพาะ TEACHER (รวมถึง ADMIN/EXECUTIVE ตามกฎใน AuthManager)
+        const currentUser = window.AuthManager ? AuthManager.requireAuth(['TEACHER']) : null;
+        if (!currentUser) return; // ถ้าไม่มีสิทธิ์หรือไม่มี Session จะโดนดีดออกไปหน้า Login อัตโนมัติ
 
-            CURRENT_TEACHER_USER = currentUser;
-            console.log('เข้าสู่ระบบครูสำเร็จ:', currentUser);
+        CURRENT_TEACHER_USER = currentUser;
+        console.log('เข้าสู่ระบบครูสำเร็จ:', currentUser);
 
-            // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
-            const roleMap = {
-                'ADMIN': 'ผู้ดูแลระบบ',
-                'EXECUTIVE': 'ผู้บริหาร',
-                'TEACHER': 'ครูผู้สอน',
-                'STUDENT': 'นักเรียน',
-                'PARENT': 'ผู้ปกครอง'
-            };
-            const displayRole = roleMap[currentUser.role] || currentUser.role;
+        // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
+        const roleMap = {
+            'ADMIN': 'ผู้ดูแลระบบ',
+            'EXECUTIVE': 'ผู้บริหาร',
+            'TEACHER': 'ครูผู้สอน',
+            'STUDENT': 'นักเรียน',
+            'PARENT': 'ผู้ปกครอง'
+        };
+        const displayRole = roleMap[currentUser.role] || currentUser.role;
 
-            // 🎯 3. จับ Element บน UI หน้าครู
-            const nameEl = document.getElementById('teacherDisplayName') || document.getElementById('userDisplayName');
-            const badgeEl = document.getElementById('teacherRoleBadge') || document.getElementById('userRoleBadge');
-            const avatarImg = document.getElementById('teacherAvatarImg') || document.getElementById('userAvatarImg');
-            const avatarIcon = document.getElementById('teacherAvatarIcon') || document.getElementById('userAvatarIcon');
+        // 🎯 3. จับ Element บน UI หน้าครู
+        const nameEl = document.getElementById('teacherDisplayName') || document.getElementById('userDisplayName');
+        const badgeEl = document.getElementById('teacherRoleBadge') || document.getElementById('userRoleBadge');
+        const avatarImg = document.getElementById('teacherAvatarImg') || document.getElementById('userAvatarImg');
+        const avatarIcon = document.getElementById('teacherAvatarIcon') || document.getElementById('userAvatarIcon');
 
-            // 📝 4. ฉีดข้อมูลโปรไฟล์ (ชื่อ DB ภาษาไทย + Badge สิทธิ์)
-            if (nameEl) nameEl.textContent = currentUser.name || 'ครูผู้สอน';
-            if (badgeEl) badgeEl.textContent = displayRole;
+        // 📝 4. ฉีดข้อมูลโปรไฟล์ (ชื่อ DB ภาษาไทย + Badge สิทธิ์)
+        if (nameEl) nameEl.textContent = currentUser.name || 'ครูผู้สอน';
+        if (badgeEl) badgeEl.textContent = displayRole;
 
-            // 🖼️ 5. แสดงรูปภาพสดจาก SSO ( Google / LINE ) พร้อมระบบ Fallback ตัวไอคอน
-            if (avatarImg) {
-                if (currentUser.avatar) {
-                    avatarImg.src = currentUser.avatar;
-                    avatarImg.classList.remove('hidden');
-                    if (avatarIcon) avatarIcon.classList.add('hidden');
+        // 🖼️ 5. แสดงรูปภาพสดจาก SSO ( Google / LINE ) พร้อมระบบ Fallback ตัวไอคอน
+        if (avatarImg) {
+            if (currentUser.avatar) {
+                avatarImg.src = currentUser.avatar;
+                avatarImg.classList.remove('hidden');
+                if (avatarIcon) avatarIcon.classList.add('hidden');
 
-                    // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ ไอคอนสำรอง
-                    avatarImg.onerror = () => {
-                        avatarImg.classList.add('hidden');
-                        if (avatarIcon) avatarIcon.classList.remove('hidden');
-                    };
-                } else {
-                    // กรณีไม่มีรูปในระบบ ให้แสดงไอคอนสำรอง
+                // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
+                avatarImg.onerror = () => {
                     avatarImg.classList.add('hidden');
                     if (avatarIcon) avatarIcon.classList.remove('hidden');
-                }
-            }
-
-            // 🔄 6. โหลดข้อมูลเข้า Header เพิ่มเติม
-            loadTeacherProfile(currentUser);
-        });
-
-        function loadTeacherProfile(user) {
-            const nameEl = document.getElementById('headerTeacherName');
-            const codeEl = document.getElementById('teacherCodeDisplay');
-            const avatarImg = document.getElementById('headerTeacherAvatar');
-
-            if (nameEl) nameEl.innerText = user.name || 'ครูผู้สอน';
-            if (codeEl) codeEl.innerText = `รหัส: ${user.teacherId || user.id || '-'}`;
-            if (avatarImg) {
-                avatarImg.src = user.avatar && user.avatar !== '' 
-                    ? user.avatar 
-                    : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+                };
+            } else {
+                // กรณีไม่มีรูปในระบบ ให้แสดงไอคอนสำรอง
+                avatarImg.classList.add('hidden');
+                if (avatarIcon) avatarIcon.classList.remove('hidden');
             }
         }
 
-        // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่มบน UI
-        function handleLogout() {
+        // 🔄 6. โหลดข้อมูลเข้า Header เพิ่มเติม
+        loadTeacherProfile(currentUser);
+
+        // 📚 7. ดึงตารางสอนจริงจากฐานข้อมูล Supabase ตามรหัสครูที่ล็อกอิน
+        const teacherId = currentUser.teacherId || currentUser.id || currentUser.teacher_id;
+        await loadRealSubjectSchedules(teacherId);
+    });
+
+    function loadTeacherProfile(user) {
+        const nameEl = document.getElementById('headerTeacherName');
+        const codeEl = document.getElementById('teacherCodeDisplay');
+        const avatarImg = document.getElementById('headerTeacherAvatar');
+
+        if (nameEl) nameEl.innerText = user.name || 'ครูผู้สอน';
+        if (codeEl) codeEl.innerText = `รหัส: ${user.teacherId || user.id || '-'}`;
+        if (avatarImg) {
+            avatarImg.src = user.avatar && user.avatar !== '' 
+                ? user.avatar 
+                : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+        }
+    }
+
+    // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่มบน UI
+    function handleLogout() {
+        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
             if (window.AuthManager && typeof AuthManager.logout === 'function') {
                 AuthManager.logout();
             } else {
@@ -386,295 +391,302 @@
                 window.location.replace('../../login.html');
             }
         }
+    }
 
-        // ----------------------------------------------------
-        // ZERO-MOCK: ดึงตารางสอนจริงจากตาราง `schedules` ใน DB 100%
-        // ----------------------------------------------------
-        async function loadRealSubjectSchedules(teacherId) {
-            const modalList = document.getElementById('subjectModalList');
-            const customText = document.getElementById('customSubjectText');
-            const subjectInput = document.getElementById('subjectSelect');
+    // ----------------------------------------------------
+    // ZERO-MOCK: ดึงตารางสอนจริงจากตาราง `schedules` ใน DB 100%
+    // ----------------------------------------------------
+    async function loadRealSubjectSchedules(teacherId) {
+        const modalList = document.getElementById('subjectModalList');
+        const customText = document.getElementById('customSubjectText');
+        const subjectInput = document.getElementById('subjectSelect');
 
-            try {
-                const { data: schedules, error } = await db
-                    .from('schedules')
-                    .select('*')
-                    .eq('teacher_id', teacherId);
+        try {
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (!client) return;
 
-                if (error || !schedules || schedules.length === 0) {
-                    if (customText) customText.innerText = "-- ไม่พบตารางสอนในระบบ --";
-                    if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนของคุณครูในฐานข้อมูล<br>กรุณานำเข้าตารางเรียนที่แผง Admin</p>`;
-                    renderStudents();
-                    return;
-                }
+            const { data: schedules, error } = await client
+                .from('schedules')
+                .select('*')
+                .eq('teacher_id', teacherId);
 
-                // สกัดเอารายวิชาที่ไม่ซ้ำ
-                const uniqueSubjects = [];
-                const map = new Map();
-
-                for (const s of schedules) {
-                    const key = `${s.course_code}|${s.classroom}`;
-                    if (!map.has(key)) {
-                        map.set(key, true);
-                        uniqueSubjects.push(s);
-                    }
-                }
-
-                // สร้างปุ่มเลือกวิชาใน Modal
-                if (modalList) {
-                    modalList.innerHTML = uniqueSubjects.map(s => {
-                        const val = `${s.course_code}|${s.classroom}`;
-                        const label = `${s.course_name || s.course_code} (${s.course_code}) - ห้อง ${s.classroom}`;
-                        return `
-                            <button onclick="selectSubjectOption('${val}', '${label}')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 font-bold transition border border-transparent hover:border-emerald-200 flex items-center justify-between">
-                                <span>${label}</span>
-                                <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
-                            </button>
-                        `;
-                    }).join('');
-                }
-
-                // เลือกวิชาแรกเป็นค่าเริ่มต้น
-                const first = uniqueSubjects[0];
-                const defaultVal = `${first.course_code}|${first.classroom}`;
-                const defaultLabel = `${first.course_name || first.course_code} (${first.course_code}) - ห้อง ${first.classroom}`;
-
-                if (subjectInput) subjectInput.value = defaultVal;
-                if (customText) customText.innerText = defaultLabel;
-
-                await renderStudents();
-
-            } catch (err) {
-                console.warn('Load schedules error:', err);
-                if (customText) customText.innerText = "-- เลือกวิชาและห้องเรียน --";
-            }
-        }
-
-        window.toggleStatsDrawer = function() {
-            const trafficSec = document.getElementById('section-traffic');
-            const btnText = document.getElementById('btnStatsText');
-            const chevron = document.getElementById('statsChevron');
-            
-            if (trafficSec) {
-                trafficSec.classList.toggle('hidden');
-                const isHidden = trafficSec.classList.contains('hidden');
-                if (btnText) btnText.innerText = isHidden ? 'ดูสถิติสแกนประตู' : 'ซ่อนสถิติสแกนประตู';
-                if (chevron) chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
-            }
-        };
-
-        window.toggleStatsDrawerFromNav = function(btnElement) {
-            const trafficSec = document.getElementById('section-traffic');
-            if (trafficSec && trafficSec.classList.contains('hidden')) {
-                window.toggleStatsDrawer();
-            }
-            window.scrollToTeacherSection('section-traffic', btnElement);
-        };
-
-        window.scrollToTeacherSection = function(sectionId, btnElement) {
-            const target = document.getElementById(sectionId);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                if (btnElement) {
-                    document.querySelectorAll('.teacher-nav-btn').forEach(btn => btn.classList.remove('active'));
-                    btnElement.classList.add('active');
-                }
-            }
-        };
-
-        window.toggleSubjectModal = function() {
-            const modal = document.getElementById('subjectModal');
-            if (modal) modal.classList.toggle('hidden');
-        };
-
-        window.selectSubjectOption = function(val, labelText) {
-            document.getElementById('subjectSelect').value = val;
-            document.getElementById('customSubjectText').innerText = labelText;
-            window.toggleSubjectModal();
-            renderStudents();
-        };
-
-        // ----------------------------------------------------
-        // ดึงนักเรียนจริงจาก DB ตามห้องเรียนที่เลือก
-        // ----------------------------------------------------
-        async function renderStudents() {
-            const tbody = document.getElementById('studentList');
-            if (!tbody) return;
-
-            const selectEl = document.getElementById('subjectSelect');
-            const selectedVal = selectEl?.value;
-            
-            if (!selectedVal) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-xs text-slate-400">กรุณาเลือกวิชาและห้องเรียนเพื่อเริ่มเช็กชื่อ</td></tr>';
+            if (error || !schedules || schedules.length === 0) {
+                if (customText) customText.innerText = "-- ไม่พบตารางสอนในระบบ --";
+                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนของคุณครูในฐานข้อมูล<br>กรุณานำเข้าตารางเรียนที่แผง Admin</p>`;
+                renderStudents();
                 return;
             }
 
-            const className = selectedVal.split('|')[1] || '';
+            // สกัดเอารายวิชาที่ไม่ซ้ำ
+            const uniqueSubjects = [];
+            const map = new Map();
 
-            const headerTitle = document.getElementById('tableHeaderTitle');
-            if (headerTitle) headerTitle.innerText = `รายชื่อนักเรียนประจำห้อง ${className}`;
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-xs text-slate-400">กำลังดึงข้อมูลนักเรียน Real-time จากฐานข้อมูล...</td></tr>';
-
-            try {
-                const resStudents = await db.from('students').select('*').eq('classroom', className).order('student_no', { ascending: true });
-                const students = resStudents.data || [];
-
-                const resNurse = await db.from('clinic_records').select('*');
-                const resAffairs = await db.from('gate_pass_logs').select('*');
-                const resLeave = await db.from('attendance_logs').select('*');
-                const resAbsent = await db.from('attendance_logs').select('student_id, status');
-
-                if (students.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-xs text-slate-400">ไม่พบข้อมูลนักเรียนในห้อง ${className} (รอการนำเข้าข้อมูลจริง)</td></tr>`;
-                    return;
+            for (const s of schedules) {
+                const key = `${s.course_code}|${s.classroom}`;
+                if (!map.has(key)) {
+                    map.set(key, true);
+                    uniqueSubjects.push(s);
                 }
+            }
 
-                const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
-
-                tbody.innerHTML = students.map((s, idx) => {
-                    const studentId = s.student_id || s.id;
-                    const studentNo = s.student_no || (idx + 1);
-                    const prefix = (s.prefix || '').trim();
-                    const firstName = (s.first_name || '').trim();
-                    const lastName = (s.last_name || '').trim();
-                    const fullName = `${prefix}${firstName} ${lastName}`.trim() || 'นักเรียน';
-
-                    const nurseInfo = (resNurse.data || []).find(n => n.student_id === studentId);
-                    const affairInfo = (resAffairs.data || []).find(a => a.student_id === studentId);
-                    const leaveInfo = (resLeave.data || []).find(l => l.student_id === studentId);
-                    const absentCount = (resAbsent.data || []).filter(l => l.student_id === studentId && (l.status === 'absent' || l.status === 'truant')).length;
-
-                    let specialTagHtml = '';
-                    let autoNoteText = '';
-                    let defaultStatus = 'present';
-
-                    if (absentCount >= 3) {
-                        specialTagHtml += `<span class="bg-rose-600 text-white text-[9px] font-bold px-1 py-0.2 rounded">⚠️ ขาด ${absentCount}คาบ</span> `;
-                    }
-
-                    if (nurseInfo) {
-                        specialTagHtml += `<span class="bg-rose-100 text-rose-800 text-[9px] font-bold px-1 py-0.2 rounded border">🏥 ห้องพยาบาล</span>`;
-                        autoNoteText = `พักห้องพยาบาล: ${nurseInfo.symptom || 'ป่วย'}`;
-                        defaultStatus = 'leave';
-                    } else if (affairInfo) {
-                        specialTagHtml += `<span class="bg-sky-100 text-sky-800 text-[9px] font-bold px-1 py-0.2 rounded border">🚪 ออกนอก</span>`;
-                        autoNoteText = `ขอออกนอก: ${affairInfo.reason || 'ธุระ'}`;
-                        defaultStatus = 'leave';
-                    } else if (leaveInfo) {
-                        specialTagHtml += `<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1 py-0.2 rounded border">✉️ ผู้ปกครองแจ้งลา</span>`;
-                        autoNoteText = `ผู้ปกครองแจ้งลา: ${leaveInfo.reason || 'ลากิจ/ป่วย'}`;
-                        defaultStatus = 'leave';
-                    }
-
-                    const avatarUrl = s.avatar_url || `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.webp`;
-
+            // สร้างปุ่มเลือกวิชาใน Modal
+            if (modalList) {
+                modalList.innerHTML = uniqueSubjects.map(s => {
+                    const val = `${s.course_code}|${s.classroom}`;
+                    const label = `${s.course_name || s.course_code} (${s.course_code}) - ห้อง ${s.classroom}`;
                     return `
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="p-2 sm:p-3 text-center font-bold text-slate-600 text-xs sm:text-sm">${studentNo}</td>
-                            <td class="p-2 sm:p-3">
-                                <div class="flex items-center gap-2">
-                                    <img src="${avatarUrl}" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover border shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
-                                    <div class="overflow-hidden">
-                                        <div class="font-bold text-slate-800 whitespace-nowrap text-xs sm:text-sm leading-tight">${fullName}</div>
-                                        <div class="flex items-center gap-0.5 mt-0.5 flex-wrap">${specialTagHtml || `<span class="text-[10px] text-slate-400 font-normal">ID: ${studentId}</span>`}</div>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <td class="p-3 text-center hidden sm:table-cell">
-                                <div class="flex items-center justify-center gap-1 font-bold text-xs sm:text-sm">
-                                    <label class="cursor-pointer bg-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-lg hover:bg-emerald-200">
-                                        <input type="radio" name="att_${studentId}" value="present" ${defaultStatus==='present'?'checked':''} class="accent-emerald-600"> มา
-                                    </label>
-                                    <label class="cursor-pointer bg-amber-100 text-amber-800 px-2.5 py-1.5 rounded-lg hover:bg-amber-200">
-                                        <input type="radio" name="att_${studentId}" value="late" class="accent-amber-600"> สาย
-                                    </label>
-                                    <label class="cursor-pointer bg-blue-100 text-blue-800 px-2.5 py-1.5 rounded-lg hover:bg-blue-200">
-                                        <input type="radio" name="att_${studentId}" value="leave" ${defaultStatus==='leave'?'checked':''} class="accent-blue-600"> ลา
-                                    </label>
-                                    <label class="cursor-pointer bg-rose-100 text-rose-800 px-2.5 py-1.5 rounded-lg hover:bg-rose-200">
-                                        <input type="radio" name="att_${studentId}" value="absent" class="accent-rose-600"> ขาด
-                                    </label>
-                                    <label class="cursor-pointer bg-purple-100 text-purple-800 px-2.5 py-1.5 rounded-lg hover:bg-purple-200">
-                                        <input type="radio" name="att_${studentId}" value="truant" class="accent-purple-600"> หนี
-                                    </label>
-                                </div>
-                            </td>
-
-                            <td class="p-2 sm:hidden">
-                                <div class="flex flex-col gap-1.5">
-                                    <div class="grid grid-cols-5 gap-1 text-center items-center">
-                                        <label class="cursor-pointer py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-300 flex justify-center items-center">
-                                            <input type="radio" name="att_${studentId}" value="present" ${defaultStatus==='present'?'checked':''} class="accent-emerald-600 w-4 h-4">
-                                        </label>
-                                        <label class="cursor-pointer py-1.5 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-300 flex justify-center items-center">
-                                            <input type="radio" name="att_${studentId}" value="late" class="accent-amber-600 w-4 h-4">
-                                        </label>
-                                        <label class="cursor-pointer py-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-300 flex justify-center items-center">
-                                            <input type="radio" name="att_${studentId}" value="leave" ${defaultStatus==='leave'?'checked':''} class="accent-blue-600 w-4 h-4">
-                                        </label>
-                                        <label class="cursor-pointer py-1.5 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-300 flex justify-center items-center">
-                                            <input type="radio" name="att_${studentId}" value="absent" class="accent-rose-600 w-4 h-4">
-                                        </label>
-                                        <label class="cursor-pointer py-1.5 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-300 flex justify-center items-center">
-                                            <input type="radio" name="att_${studentId}" value="truant" class="accent-purple-600 w-4 h-4">
-                                        </label>
-                                    </div>
-                                    <input type="text" id="note_mobile_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุหมายเหตุ..." class="w-full p-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
-                                </div>
-                            </td>
-
-                            <td class="p-3 hidden sm:table-cell">
-                                <input type="text" id="note_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุเหตุผล/หมายเหตุ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
-                            </td>
-                        </tr>
+                        <button onclick="selectSubjectOption('${val}', '${label}')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 font-bold transition border border-transparent hover:border-emerald-200 flex items-center justify-between">
+                            <span>${label}</span>
+                            <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+                        </button>
                     `;
                 }).join('');
+            }
 
-            } catch (err) {
-                console.error('Data Fetch Error:', err);
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-xs text-rose-500">เกิดข้อผิดพลาดในการดึงข้อมูลจากฐานข้อมูล</td></tr>';
+            // เลือกวิชาแรกเป็นค่าเริ่มต้น
+            const first = uniqueSubjects[0];
+            const defaultVal = `${first.course_code}|${first.classroom}`;
+            const defaultLabel = `${first.course_name || first.course_code} (${first.course_code}) - ห้อง ${first.classroom}`;
+
+            if (subjectInput) subjectInput.value = defaultVal;
+            if (customText) customText.innerText = defaultLabel;
+
+            await renderStudents();
+
+        } catch (err) {
+            console.warn('Load schedules error:', err);
+            if (customText) customText.innerText = "-- เลือกวิชาและห้องเรียน --";
+        }
+    }
+
+    window.toggleStatsDrawer = function() {
+        const trafficSec = document.getElementById('section-traffic');
+        const btnText = document.getElementById('btnStatsText');
+        const chevron = document.getElementById('statsChevron');
+        
+        if (trafficSec) {
+            trafficSec.classList.toggle('hidden');
+            const isHidden = trafficSec.classList.contains('hidden');
+            if (btnText) btnText.innerText = isHidden ? 'ดูสถิติสแกนประตู' : 'ซ่อนสถิติสแกนประตู';
+            if (chevron) chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+    };
+
+    window.toggleStatsDrawerFromNav = function(btnElement) {
+        const trafficSec = document.getElementById('section-traffic');
+        if (trafficSec && trafficSec.classList.contains('hidden')) {
+            window.toggleStatsDrawer();
+        }
+        window.scrollToTeacherSection('section-traffic', btnElement);
+    };
+
+    window.scrollToTeacherSection = function(sectionId, btnElement) {
+        const target = document.getElementById(sectionId);
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (btnElement) {
+                document.querySelectorAll('.teacher-nav-btn').forEach(btn => btn.classList.remove('active'));
+                btnElement.classList.add('active');
             }
         }
+    };
 
-        window.renderStudents = renderStudents;
+    window.toggleSubjectModal = function() {
+        const modal = document.getElementById('subjectModal');
+        if (modal) modal.classList.toggle('hidden');
+    };
 
-        window.syncNote = function(studentId, val) {
-            const mInput = document.getElementById(`note_mobile_${studentId}`);
-            const dInput = document.getElementById(`note_${studentId}`);
-            if (mInput) mInput.value = val;
-            if (dInput) dInput.value = val;
-        };
+    window.selectSubjectOption = function(val, labelText) {
+        document.getElementById('subjectSelect').value = val;
+        document.getElementById('customSubjectText').innerText = labelText;
+        window.toggleSubjectModal();
+        renderStudents();
+    };
 
-        window.applyBatchLeave = function() {
-            const reason = prompt('กรอกเหตุผลการลายกห้อง:');
-            if (!reason) return;
-            document.querySelectorAll('input[type="radio"][value="leave"]').forEach(r => r.checked = true);
-            document.querySelectorAll('input[id^="note_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
-            document.querySelectorAll('input[id^="note_mobile_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
-            alert('ปรับสถานะให้ทั้งห้องเรียบร้อยแล้ว');
-        };
+    // ----------------------------------------------------
+    // ดึงนักเรียนจริงจาก DB ตามห้องเรียนที่เลือก
+    // ----------------------------------------------------
+    async function renderStudents() {
+        const tbody = document.getElementById('studentList');
+        if (!tbody) return;
 
-        window.openManualLeaveModal = function() {
-            const studentId = prompt('กรอกรหัสนักเรียน:');
-            if (!studentId) return;
-            const reason = prompt('กรอกเหตุผลการลา:');
-            if (!reason) return;
-            const mInput = document.getElementById(`note_mobile_${studentId}`);
-            const dInput = document.getElementById(`note_${studentId}`);
-            if (mInput) mInput.value = `รับแจ้งใบลา: ${reason}`;
-            if (dInput) dInput.value = `รับแจ้งใบลา: ${reason}`;
-            const leaveRadio = document.querySelector(`input[name="att_${studentId}"][value="leave"]`);
-            if (leaveRadio) leaveRadio.checked = true;
-            alert('บันทึกใบลาเรียบร้อยแล้ว');
-        };
+        const selectEl = document.getElementById('subjectSelect');
+        const selectedVal = selectEl?.value;
+        
+        if (!selectedVal) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-xs text-slate-400">กรุณาเลือกวิชาและห้องเรียนเพื่อเริ่มเช็กชื่อ</td></tr>';
+            return;
+        }
 
-        window.markAll = function(status) {
-            document.querySelectorAll(`input[type="radio"][value="${status}"]`).forEach(r => r.checked = true);
-        };
+        const className = selectedVal.split('|')[1] || '';
 
-        window.submitAttendance = function() { alert('บันทึกข้อมูลการเช็กชื่อเรียบร้อยแล้ว!'); };
-        window.saveHomework = function(e) { if(e) e.preventDefault(); alert('สั่งการบ้านเรียบร้อยแล้ว'); };
-    </script>
+        const headerTitle = document.getElementById('tableHeaderTitle');
+        if (headerTitle) headerTitle.innerText = `รายชื่อนักเรียนประจำห้อง ${className}`;
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-xs text-slate-400">กำลังดึงข้อมูลนักเรียน Real-time จากฐานข้อมูล...</td></tr>';
+
+        try {
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (!client) throw new Error("ไม่พบการเชื่อมต่อ Supabase");
+
+            const resStudents = await client.from('students').select('*').eq('classroom', className).order('student_no', { ascending: true });
+            const students = resStudents.data || [];
+
+            const resNurse = await client.from('clinic_records').select('*');
+            const resAffairs = await client.from('gate_pass_logs').select('*');
+            const resLeave = await client.from('attendance_logs').select('*');
+            const resAbsent = await client.from('attendance_logs').select('student_id, status');
+
+            if (students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-xs text-slate-400">ไม่พบข้อมูลนักเรียนในห้อง ${className} (รอการนำเข้าข้อมูลจริง)</td></tr>`;
+                return;
+            }
+
+            const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+
+            tbody.innerHTML = students.map((s, idx) => {
+                const studentId = s.student_id || s.id;
+                const studentNo = s.student_no || (idx + 1);
+                const prefix = (s.prefix || '').trim();
+                const firstName = (s.first_name || '').trim();
+                const lastName = (s.last_name || '').trim();
+                const fullName = `${prefix}${firstName} ${lastName}`.trim() || 'นักเรียน';
+
+                const nurseInfo = (resNurse.data || []).find(n => n.student_id === studentId);
+                const affairInfo = (resAffairs.data || []).find(a => a.student_id === studentId);
+                const leaveInfo = (resLeave.data || []).find(l => l.student_id === studentId);
+                const absentCount = (resAbsent.data || []).filter(l => l.student_id === studentId && (l.status === 'absent' || l.status === 'truant')).length;
+
+                let specialTagHtml = '';
+                let autoNoteText = '';
+                let defaultStatus = 'present';
+
+                if (absentCount >= 3) {
+                    specialTagHtml += `<span class="bg-rose-600 text-white text-[9px] font-bold px-1 py-0.2 rounded">⚠️ ขาด ${absentCount}คาบ</span> `;
+                }
+
+                if (nurseInfo) {
+                    specialTagHtml += `<span class="bg-rose-100 text-rose-800 text-[9px] font-bold px-1 py-0.2 rounded border">🏥 ห้องพยาบาล</span>`;
+                    autoNoteText = `พักห้องพยาบาล: ${nurseInfo.symptom || 'ป่วย'}`;
+                    defaultStatus = 'leave';
+                } else if (affairInfo) {
+                    specialTagHtml += `<span class="bg-sky-100 text-sky-800 text-[9px] font-bold px-1 py-0.2 rounded border">🚪 ออกนอก</span>`;
+                    autoNoteText = `ขอออกนอก: ${affairInfo.reason || 'ธุระ'}`;
+                    defaultStatus = 'leave';
+                } else if (leaveInfo) {
+                    specialTagHtml += `<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1 py-0.2 rounded border">✉️ ผู้ปกครองแจ้งลา</span>`;
+                    autoNoteText = `ผู้ปกครองแจ้งลา: ${leaveInfo.reason || 'ลากิจ/ป่วย'}`;
+                    defaultStatus = 'leave';
+                }
+
+                const avatarUrl = s.avatar_url || `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.webp`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-2 sm:p-3 text-center font-bold text-slate-600 text-xs sm:text-sm">${studentNo}</td>
+                        <td class="p-2 sm:p-3">
+                            <div class="flex items-center gap-2">
+                                <img src="${avatarUrl}" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover border shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
+                                <div class="overflow-hidden">
+                                    <div class="font-bold text-slate-800 whitespace-nowrap text-xs sm:text-sm leading-tight">${fullName}</div>
+                                    <div class="flex items-center gap-0.5 mt-0.5 flex-wrap">${specialTagHtml || `<span class="text-[10px] text-slate-400 font-normal">ID: ${studentId}</span>`}</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="p-3 text-center hidden sm:table-cell">
+                            <div class="flex items-center justify-center gap-1 font-bold text-xs sm:text-sm">
+                                <label class="cursor-pointer bg-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-lg hover:bg-emerald-200">
+                                    <input type="radio" name="att_${studentId}" value="present" ${defaultStatus==='present'?'checked':''} class="accent-emerald-600"> มา
+                                </label>
+                                <label class="cursor-pointer bg-amber-100 text-amber-800 px-2.5 py-1.5 rounded-lg hover:bg-amber-200">
+                                    <input type="radio" name="att_${studentId}" value="late" class="accent-amber-600"> สาย
+                                </label>
+                                <label class="cursor-pointer bg-blue-100 text-blue-800 px-2.5 py-1.5 rounded-lg hover:bg-blue-200">
+                                    <input type="radio" name="att_${studentId}" value="leave" ${defaultStatus==='leave'?'checked':''} class="accent-blue-600"> ลา
+                                </label>
+                                <label class="cursor-pointer bg-rose-100 text-rose-800 px-2.5 py-1.5 rounded-lg hover:bg-rose-200">
+                                    <input type="radio" name="att_${studentId}" value="absent" class="accent-rose-600"> ขาด
+                                </label>
+                                <label class="cursor-pointer bg-purple-100 text-purple-800 px-2.5 py-1.5 rounded-lg hover:bg-purple-200">
+                                    <input type="radio" name="att_${studentId}" value="truant" class="accent-purple-600"> หนี
+                                </label>
+                            </div>
+                        </td>
+
+                        <td class="p-2 sm:hidden">
+                            <div class="flex flex-col gap-1.5">
+                                <div class="grid grid-cols-5 gap-1 text-center items-center">
+                                    <label class="cursor-pointer py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-300 flex justify-center items-center">
+                                        <input type="radio" name="att_${studentId}" value="present" ${defaultStatus==='present'?'checked':''} class="accent-emerald-600 w-4 h-4">
+                                    </label>
+                                    <label class="cursor-pointer py-1.5 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-300 flex justify-center items-center">
+                                        <input type="radio" name="att_${studentId}" value="late" class="accent-amber-600 w-4 h-4">
+                                    </label>
+                                    <label class="cursor-pointer py-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-300 flex justify-center items-center">
+                                        <input type="radio" name="att_${studentId}" value="leave" ${defaultStatus==='leave'?'checked':''} class="accent-blue-600 w-4 h-4">
+                                    </label>
+                                    <label class="cursor-pointer py-1.5 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-300 flex justify-center items-center">
+                                        <input type="radio" name="att_${studentId}" value="absent" class="accent-rose-600 w-4 h-4">
+                                    </label>
+                                    <label class="cursor-pointer py-1.5 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-300 flex justify-center items-center">
+                                        <input type="radio" name="att_${studentId}" value="truant" class="accent-purple-600 w-4 h-4">
+                                    </label>
+                                </div>
+                                <input type="text" id="note_mobile_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุหมายเหตุ..." class="w-full p-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </td>
+
+                        <td class="p-3 hidden sm:table-cell">
+                            <input type="text" id="note_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุเหตุผล/หมายเหตุ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+        } catch (err) {
+            console.error('Data Fetch Error:', err);
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-xs text-rose-500">เกิดข้อผิดพลาดในการดึงข้อมูลจากฐานข้อมูล</td></tr>';
+        }
+    }
+
+    window.renderStudents = renderStudents;
+
+    window.syncNote = function(studentId, val) {
+        const mInput = document.getElementById(`note_mobile_${studentId}`);
+        const dInput = document.getElementById(`note_${studentId}`);
+        if (mInput) mInput.value = val;
+        if (dInput) dInput.value = val;
+    };
+
+    window.applyBatchLeave = function() {
+        const reason = prompt('กรอกเหตุผลการลายกห้อง:');
+        if (!reason) return;
+        document.querySelectorAll('input[type="radio"][value="leave"]').forEach(r => r.checked = true);
+        document.querySelectorAll('input[id^="note_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
+        document.querySelectorAll('input[id^="note_mobile_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
+        alert('ปรับสถานะให้ทั้งห้องเรียบร้อยแล้ว');
+    };
+
+    window.openManualLeaveModal = function() {
+        const studentId = prompt('กรอกรหัสนักเรียน:');
+        if (!studentId) return;
+        const reason = prompt('กรอกเหตุผลการลา:');
+        if (!reason) return;
+        const mInput = document.getElementById(`note_mobile_${studentId}`);
+        const dInput = document.getElementById(`note_${studentId}`);
+        if (mInput) mInput.value = `รับแจ้งใบลา: ${reason}`;
+        if (dInput) dInput.value = `รับแจ้งใบลา: ${reason}`;
+        const leaveRadio = document.querySelector(`input[name="att_${studentId}"][value="leave"]`);
+        if (leaveRadio) leaveRadio.checked = true;
+        alert('บันทึกใบลาเรียบร้อยแล้ว');
+    };
+
+    window.markAll = function(status) {
+        document.querySelectorAll(`input[type="radio"][value="${status}"]`).forEach(r => r.checked = true);
+    };
+
+    window.submitAttendance = function() { alert('บันทึกข้อมูลการเช็กชื่อเรียบร้อยแล้ว!'); };
+    window.saveHomework = function(e) { if(e) e.preventDefault(); alert('สั่งการบ้านเรียบร้อยแล้ว'); };
+</script>
 </body>
 </html>
