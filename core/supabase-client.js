@@ -10,9 +10,9 @@ if (!window.supabaseClient) {
     } else {
         window.supabaseClient = supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
-                autoRefreshToken: true,     // 🟢 เปิดไว้เพื่อให้ Session ไม่หมดอายุ
-                persistSession: true,       // 🟢 เปิดไว้เพื่อจำ Session การเข้าใช้
-                detectSessionInUrl: true    // 🟢 ต้องเป็น true เพื่อให้อ่าน Hash Token (#access_token) จาก Google/LINE SSO!
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true
             }
         });
     }
