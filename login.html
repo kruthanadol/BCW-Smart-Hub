@@ -131,7 +131,6 @@
         <script src="core/auth-manager.js?v=9"></script>
         
 <script>
-    // 🟢 สั่งปุ่ม Google / LINE SSO จากหน้า HTML Direct เข้า AuthService
     function loginWithGoogle() {
         if (window.AuthService && typeof AuthService.loginWithGoogle === 'function') {
             AuthService.loginWithGoogle();
@@ -151,9 +150,8 @@
     document.addEventListener('DOMContentLoaded', async () => {
         const client = window.supabaseClient || window.db || window.supabase;
 
-        // 🟢 1. ดักรับ Event เมื่อมี Token วิ่งกลับมาจาก Google / LINE SSO
         if (client && client.auth) {
-            // A. ดักรับแบบ Real-time Auth State Change (จับ Hash Token จาก SSO ได้ชัวร์ 100%)
+            // 🟢 1. ดักรับ Event เมื่อล็อกอิน Google/LINE สำเร็จ (ทำงานทันทีเมื่อพบ Token ใน URL)
             client.auth.onAuthStateChange(async (event, session) => {
                 if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
                     if (window.AuthService && typeof AuthService.handlePostLogin === 'function') {
@@ -162,7 +160,7 @@
                 }
             });
 
-            // B. ตรวจสอบ Session ที่มีอยู่แล้วในเครื่อง
+            // 🟢 2. เช็ก Session ที่มีอยู่แล้ว หรือเช็กกรณี Token มาจาก Hash URL
             try {
                 const { data: { session } } = await client.auth.getSession();
                 if (session && session.user) {
@@ -176,7 +174,7 @@
             }
         }
 
-        // 🟢 2. ถ้ามี Session กลางค้างอยู่ใน LocalStorage อยู่แล้ว ให้ดีดไปหน้าตาม Role ทันที
+        // 🟢 3. ถ้าล็อกอินค้างไว้อยู่แล้ว ให้ดีดไปตาม Role ทันที
         if (window.AuthManager && window.AuthService) {
             const currentUser = AuthManager.getCurrentUser();
             if (currentUser && currentUser.role) {
@@ -185,7 +183,7 @@
         }
     });
 
-    // 🟢 3. ฟังก์ชันล็อกอิน Email / Password
+    // 🟢 4. ฟังก์ชันล็อกอิน Email / Password
     async function handleAccountLogin(event) {
         event.preventDefault();
         const inputVal = document.getElementById('account-email')?.value.trim() || '';
@@ -203,11 +201,9 @@
             const client = window.supabaseClient || window.db || window.supabase;
             if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
 
-            // ล้าง Cache เก่าก่อนเริ่ม Authenticate ใหม่
             localStorage.clear();
             sessionStorage.clear();
 
-            // เติม Domain @buached.ac.th ให้อัตโนมัติหากกรอกแค่เลขประจำตัว/ชื่อผู้ใช้
             const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
 
             const { data, error } = await client.auth.signInWithPassword({
