@@ -529,96 +529,97 @@
     </div>
 
 <!-- ⚙️ JavaScript ควบคุม UI & Interaction -->
-    <script>
-        function openGatepassModal() {
-            const modal = document.getElementById('gatepass-modal');
-            if (modal) {
-                modal.classList.add('active');
-                document.body.style.overflow = 'hidden';
+<script>
+    function openGatepassModal() {
+        const modal = document.getElementById('gatepass-modal');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeGatepassModalDirect() {
+        const modal = document.getElementById('gatepass-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    function closeGatepassModal(event) {
+        if (event.target.id === 'gatepass-modal') closeGatepassModalDirect();
+    }
+
+    function openDayPickerModal() {
+        const modal = document.getElementById('day-picker-modal');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeDayPickerModalDirect() {
+        const modal = document.getElementById('day-picker-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    function closeDayPickerModal(event) {
+        if (event.target.id === 'day-picker-modal') closeDayPickerModalDirect();
+    }
+
+    function selectScheduleDay(dayKey, dayLabel) {
+        document.getElementById('currentDayText').innerText = dayLabel;
+        closeDayPickerModalDirect();
+        if (window.onScheduleDayChange) window.onScheduleDayChange(dayKey);
+    }
+
+    function scrollToSection(sectionId, btnElement) {
+        const target = document.getElementById(sectionId);
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (btnElement) {
+                document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+                btnElement.classList.add('active');
             }
         }
+    }
 
-        function closeGatepassModalDirect() {
-            const modal = document.getElementById('gatepass-modal');
-            if (modal) {
-                modal.classList.remove('active');
-                document.body.style.overflow = '';
-            }
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+        const glassWidget = document.getElementById('glassNextClassWidget');
+        if (!glassWidget) return;
+
+        if (window.scrollY > 60) {
+            glassWidget.classList.add('is-scrolling');
+        } else {
+            glassWidget.classList.remove('is-scrolling');
         }
 
-        function closeGatepassModal(event) {
-            if (event.target.id === 'gatepass-modal') closeGatepassModalDirect();
-        }
-
-        function openDayPickerModal() {
-            const modal = document.getElementById('day-picker-modal');
-            if (modal) {
-                modal.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            }
-        }
-
-        function closeDayPickerModalDirect() {
-            const modal = document.getElementById('day-picker-modal');
-            if (modal) {
-                modal.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        }
-
-        function closeDayPickerModal(event) {
-            if (event.target.id === 'day-picker-modal') closeDayPickerModalDirect();
-        }
-
-        function selectScheduleDay(dayKey, dayLabel) {
-            document.getElementById('currentDayText').innerText = dayLabel;
-            closeDayPickerModalDirect();
-            if (window.onScheduleDayChange) window.onScheduleDayChange(dayKey);
-        }
-
-        function scrollToSection(sectionId, btnElement) {
-            const target = document.getElementById(sectionId);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                if (btnElement) {
-                    document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
-                    btnElement.classList.add('active');
-                }
-            }
-        }
-
-        let scrollTimeout;
-        window.addEventListener('scroll', () => {
-            const glassWidget = document.getElementById('glassNextClassWidget');
-            if (!glassWidget) return;
-
-            if (window.scrollY > 60) {
-                glassWidget.classList.add('is-scrolling');
-            } else {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            if (window.scrollY < 200) {
                 glassWidget.classList.remove('is-scrolling');
             }
+        }, 1500);
+    });
+</script>
 
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                if (window.scrollY < 200) {
-                    glassWidget.classList.remove('is-scrolling');
-                }
-            }, 1500);
-        });
-    </script>
+<script src="../../core/supabase-client.js?v=400"></script>
+<script src="../../core/auth-service.js?v=400"></script>
+<script src="../../core/auth-manager.js?v=400"></script>
 
-<script src="../../core/supabase-client.js?v=300"></script>
-    <script src="../../core/auth-service.js?v=300"></script>
-    <script src="../../core/auth-manager.js?v=300"></script>
+<!-- Pure Zero-Mock Integration Script -->
+<script>
+    let CURRENT_STUDENT_ID = null;
+    let currentStudentClass = '';
+    let SELECTED_SCHEDULE_DAY = 'Monday';
+    let gatepassTimerInterval = null;
 
-    <!-- Pure Zero-Mock Integration Script -->
-    <script>
-        let CURRENT_STUDENT_ID = null;
-        let currentStudentClass = '';
-        let SELECTED_SCHEDULE_DAY = 'Monday';
-        let gatepassTimerInterval = null;
-
-        document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
             // 🔒 1. Auth Guard: ตรวจสอบสิทธิ์ (อนุญาตเฉพาะ STUDENT โดย ADMIN และ EXECUTIVE เข้าได้ไม่อั้น)
             const currentUser = window.AuthManager 
                 ? AuthManager.requireAuth(['STUDENT']) 
@@ -667,10 +668,58 @@
                     if (avatarIcon) avatarIcon.classList.remove('hidden');
                 }
             }
-        });
 
-        // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่ม Logout บน UI หน้านักเรียน
-        function handleLogout() {
+            // 📚 6. ดึงข้อมูลห้องเรียนของนักเรียนปัจจุบัน
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (client && CURRENT_STUDENT_ID) {
+                const { data: student } = await client
+                    .from('students')
+                    .select('classroom')
+                    .or(`student_id.eq.${CURRENT_STUDENT_ID},id.eq.${CURRENT_STUDENT_ID}`)
+                    .maybeSingle();
+
+                if (student) currentStudentClass = student.classroom || '';
+            }
+
+            // 📅 7. กำหนดวันเริ่มต้นตารางเรียน
+            const dayMap = {
+                'Sunday': { key: 'Monday', label: 'วันจันทร์' },
+                'Monday': { key: 'Monday', label: 'วันจันทร์' },
+                'Tuesday': { key: 'Tuesday', label: 'วันอังคาร' },
+                'Wednesday': { key: 'Wednesday', label: 'วันพุธ' },
+                'Thursday': { key: 'Thursday', label: 'วันพฤหัสบดี' },
+                'Friday': { key: 'Friday', label: 'วันศุกร์' },
+                'Saturday': { key: 'Monday', label: 'วันจันทร์' }
+            };
+            const currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            const defaultDay = dayMap[currentDayName] || { key: 'Monday', label: 'วันจันทร์' };
+            
+            SELECTED_SCHEDULE_DAY = defaultDay.key;
+            const dayText = document.getElementById('currentDayText');
+            if (dayText) dayText.innerText = defaultDay.label;
+
+            // 🚀 8. ดึงข้อมูลย่อยทุกส่วนแบบ Parallel จาก DB จริง
+            await Promise.all([
+                renderActiveGatepass(),
+                renderStudentSchedule(),
+                renderClassAdvisors(currentStudentClass),
+                renderAcademicData(CURRENT_STUDENT_ID),
+                renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
+                renderHomeworkData(currentStudentClass),
+                renderClinicData(CURRENT_STUDENT_ID)
+            ]);
+
+            // ⚙️ 9. ผูก Event Listeners ประจำหน้านักเรียน
+            setupEventListeners();
+
+        } catch (err) {
+            console.error('Error in Student Portal Init:', err);
+        }
+    });
+
+    // 🚪 ฟังก์ชันออกจากระบบสำหรับปุ่ม Logout บน UI หน้านักเรียน
+    function handleLogout() {
+        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
             if (window.AuthManager && typeof AuthManager.logout === 'function') {
                 AuthManager.logout();
             } else {
@@ -679,440 +728,420 @@
                 window.location.replace('../../login.html');
             }
         }
+    }
 
-                // กำหนดวันเริ่มต้นตารางเรียน
-                const dayMap = {
-                    'Sunday': { key: 'Monday', label: 'วันจันทร์' },
-                    'Monday': { key: 'Monday', label: 'วันจันทร์' },
-                    'Tuesday': { key: 'Tuesday', label: 'วันอังคาร' },
-                    'Wednesday': { key: 'Wednesday', label: 'วันพุธ' },
-                    'Thursday': { key: 'Thursday', label: 'วันพฤหัสบดี' },
-                    'Friday': { key: 'Friday', label: 'วันศุกร์' },
-                    'Saturday': { key: 'Monday', label: 'วันจันทร์' }
-                };
-                const currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-                const defaultDay = dayMap[currentDayName] || { key: 'Monday', label: 'วันจันทร์' };
-                
-                SELECTED_SCHEDULE_DAY = defaultDay.key;
-                const dayText = document.getElementById('currentDayText');
-                if (dayText) dayText.innerText = defaultDay.label;
+    async function renderActiveGatepass() {
+        if (!CURRENT_STUDENT_ID) return;
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) return;
+        
+        const { data: pass } = await client.from('gate_pass_logs')
+            .select('*')
+            .eq('student_id', CURRENT_STUDENT_ID)
+            .in('status', ['pending', 'approved', 'out'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-                // ดึงข้อมูลย่อยทุกส่วนแบบ Parallel จาก DB จริง
-                await Promise.all([
-                    renderActiveGatepass(),
-                    renderStudentSchedule(),
-                    renderClassAdvisors(currentStudentClass),
-                    renderAcademicData(CURRENT_STUDENT_ID),
-                    renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
-                    renderHomeworkData(currentStudentClass),
-                    renderClinicData(CURRENT_STUDENT_ID)
-                ]);
+        const activeCard = document.getElementById('activePassCard');
+        const qrContainer = document.getElementById('qrcodeContainer');
+        const topTimerBadge = document.getElementById('topGatepassTimerBadge');
+        const btnOpenGatepass = document.getElementById('btnOpenGatepass');
 
-            } catch (err) {
-                console.error('Error in Student Portal Init:', err);
-            }
-        }
+        if (pass) {
+            if (activeCard) activeCard.classList.remove('hidden');
+            if (document.getElementById('passReason')) document.getElementById('passReason').innerText = `เหตุผล: ${pass.reason || '-'}`;
+            if (document.getElementById('passTimeRange')) document.getElementById('passTimeRange').innerText = `เวลาอนุญาต: ${pass.exit_time} ถึง ${pass.return_time}`;
 
-        async function renderActiveGatepass() {
-            if (!CURRENT_STUDENT_ID) return;
-            
-            const { data: pass } = await db.from('gate_pass_logs')
-                .select('*')
-                .eq('student_id', CURRENT_STUDENT_ID)
-                .in('status', ['pending', 'approved', 'out'])
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
+            const statusBadge = document.getElementById('passStatusBadge');
+            if (qrContainer) qrContainer.innerHTML = "";
 
-            const activeCard = document.getElementById('activePassCard');
-            const qrContainer = document.getElementById('qrcodeContainer');
-            const topTimerBadge = document.getElementById('topGatepassTimerBadge');
-            const btnOpenGatepass = document.getElementById('btnOpenGatepass');
-
-            if (pass) {
-                if (activeCard) activeCard.classList.remove('hidden');
-                if (document.getElementById('passReason')) document.getElementById('passReason').innerText = `เหตุผล: ${pass.reason || '-'}`;
-                if (document.getElementById('passTimeRange')) document.getElementById('passTimeRange').innerText = `เวลาอนุญาต: ${pass.exit_time} ถึง ${pass.return_time}`;
-
-                const statusBadge = document.getElementById('passStatusBadge');
-                if (qrContainer) qrContainer.innerHTML = "";
-
-                if (pass.status === 'pending') {
-                    if (statusBadge) {
-                        statusBadge.className = "bg-amber-400 text-slate-950 text-xs sm:text-[10px] font-black px-2.5 py-0.5 rounded-md";
-                        statusBadge.innerText = "⏳ รอครู/ฝ่ายปกครองอนุมัติ";
-                    }
-                    if (qrContainer) qrContainer.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">เมื่อครูอนุมัติแล้ว<br>QR Code จะแสดงที่นี่</p>`;
-                    if (topTimerBadge) topTimerBadge.classList.add('hidden');
-                    if (btnOpenGatepass) btnOpenGatepass.classList.remove('hidden');
-                } else if (pass.status === 'approved' || pass.status === 'out') {
-                    if (statusBadge) {
-                        statusBadge.className = "bg-emerald-400 text-slate-950 text-xs sm:text-[10px] font-black px-2.5 py-0.5 rounded-md";
-                        statusBadge.innerText = pass.status === 'out' ? "🚪 อยู่นอกโรงเรียน" : "✅ อนุมัติแล้ว (สแกนผ่านประตูได้)";
-                    }
-
-                    if (typeof QRCode !== 'undefined' && qrContainer) {
-                        new QRCode(qrContainer, {
-                            text: `GATEPASS:${pass.id}:${pass.student_id}`,
-                            width: 100, height: 100
-                        });
-                    }
-
-                    if (pass.return_time) {
-                        if (topTimerBadge) topTimerBadge.classList.remove('hidden');
-                        if (btnOpenGatepass) btnOpenGatepass.classList.add('hidden');
-                        startCountDownTimer(pass.return_time);
-                    }
+            if (pass.status === 'pending') {
+                if (statusBadge) {
+                    statusBadge.className = "bg-amber-400 text-slate-950 text-xs sm:text-[10px] font-black px-2.5 py-0.5 rounded-md";
+                    statusBadge.innerText = "⏳ รอครู/ฝ่ายปกครองอนุมัติ";
                 }
-            } else {
-                if (activeCard) activeCard.classList.add('hidden');
+                if (qrContainer) qrContainer.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">เมื่อครูอนุมัติแล้ว<br>QR Code จะแสดงที่นี่</p>`;
                 if (topTimerBadge) topTimerBadge.classList.add('hidden');
                 if (btnOpenGatepass) btnOpenGatepass.classList.remove('hidden');
-                if (gatepassTimerInterval) clearInterval(gatepassTimerInterval);
-            }
-        }
+            } else if (pass.status === 'approved' || pass.status === 'out') {
+                if (statusBadge) {
+                    statusBadge.className = "bg-emerald-400 text-slate-950 text-xs sm:text-[10px] font-black px-2.5 py-0.5 rounded-md";
+                    statusBadge.innerText = pass.status === 'out' ? "🚪 อยู่นอกโรงเรียน" : "✅ อนุมัติแล้ว (สแกนผ่านประตูได้)";
+                }
 
-        function startCountDownTimer(returnTimeStr) {
+                if (typeof QRCode !== 'undefined' && qrContainer) {
+                    new QRCode(qrContainer, {
+                        text: `GATEPASS:${pass.id}:${pass.student_id}`,
+                        width: 100, height: 100
+                    });
+                }
+
+                if (pass.return_time) {
+                    if (topTimerBadge) topTimerBadge.classList.remove('hidden');
+                    if (btnOpenGatepass) btnOpenGatepass.classList.add('hidden');
+                    startCountDownTimer(pass.return_time);
+                }
+            }
+        } else {
+            if (activeCard) activeCard.classList.add('hidden');
+            if (topTimerBadge) topTimerBadge.classList.add('hidden');
+            if (btnOpenGatepass) btnOpenGatepass.classList.remove('hidden');
             if (gatepassTimerInterval) clearInterval(gatepassTimerInterval);
+        }
+    }
 
-            function updateTimer() {
-                const now = new Date();
-                const [targetHour, targetMinute] = returnTimeStr.split(':').map(Number);
-                const targetTime = new Date();
-                targetTime.setHours(targetHour, targetMinute, 0, 0);
+    function startCountDownTimer(returnTimeStr) {
+        if (gatepassTimerInterval) clearInterval(gatepassTimerInterval);
 
-                let diffMs = targetTime - now;
-                const countdownEl = document.getElementById('topGatepassCountdown');
-                if (!countdownEl) return;
+        function updateTimer() {
+            const now = new Date();
+            const [targetHour, targetMinute] = returnTimeStr.split(':').map(Number);
+            const targetTime = new Date();
+            targetTime.setHours(targetHour, targetMinute, 0, 0);
 
-                if (diffMs <= 0) {
-                    countdownEl.innerText = "หมดเวลา";
-                    countdownEl.className = "text-xs sm:text-sm font-black text-rose-400 font-mono animate-pulse";
-                    clearInterval(gatepassTimerInterval);
-                    return;
-                }
+            let diffMs = targetTime - now;
+            const countdownEl = document.getElementById('topGatepassCountdown');
+            if (!countdownEl) return;
 
-                const hrs = String(Math.floor(diffMs / (1000 * 60 * 60))).padStart(2, '0');
-                const mins = String(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
-                const secs = String(Math.floor((diffMs % (1000 * 60)) / 1000)).padStart(2, '0');
-
-                countdownEl.innerText = `${hrs}:${mins}:${secs}`;
+            if (diffMs <= 0) {
+                countdownEl.innerText = "หมดเวลา";
+                countdownEl.className = "text-xs sm:text-sm font-black text-rose-400 font-mono animate-pulse";
+                clearInterval(gatepassTimerInterval);
+                return;
             }
 
-            updateTimer();
-            gatepassTimerInterval = setInterval(updateTimer, 1000);
+            const hrs = String(Math.floor(diffMs / (1000 * 60 * 60))).padStart(2, '0');
+            const mins = String(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            const secs = String(Math.floor((diffMs % (1000 * 60)) / 1000)).padStart(2, '0');
+
+            countdownEl.innerText = `${hrs}:${mins}:${secs}`;
         }
 
-        async function renderStudentSchedule() {
-            const container = document.getElementById('scheduleContainer');
-            if (!container) return;
+        updateTimer();
+        gatepassTimerInterval = setInterval(updateTimer, 1000);
+    }
 
-            if (!currentStudentClass) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่พบข้อมูลห้องเรียนของนักเรียนในฐานข้อมูล</div>`;
-                updateNextClassWidget([]);
-                return;
-            }
+    async function renderStudentSchedule() {
+        const container = document.getElementById('scheduleContainer');
+        if (!container) return;
+        const client = window.supabaseClient || window.db || window.supabase;
 
-            const { data: schedules } = await db.from('course_assignments')
-                .select('*')
-                .eq('class_name', currentStudentClass);
+        if (!currentStudentClass || !client) {
+            container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่พบข้อมูลห้องเรียนของนักเรียนในฐานข้อมูล</div>`;
+            updateNextClassWidget([]);
+            return;
+        }
 
-            if (!schedules || schedules.length === 0) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${currentStudentClass})</div>`;
-                updateNextClassWidget([]);
-                return;
-            }
+        const { data: schedules } = await client.from('course_assignments')
+            .select('*')
+            .eq('class_name', currentStudentClass);
 
-            container.innerHTML = schedules.map((s, idx) => {
-                const teacherAvatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-                return `
-                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl hover:border-indigo-200 transition">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
-                                <span class="text-[9px] text-indigo-500 uppercase leading-none">คาบ</span>
-                                <span class="text-sm font-extrabold leading-tight">${idx + 1}</span>
-                            </div>
-                            <div class="min-w-0">
-                                <h4 class="text-xs font-bold text-slate-800 truncate">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
-                                <p class="text-[10px] text-slate-500 truncate"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.class_name || 'ไม่ระบุ'}</p>
-                            </div>
+        if (!schedules || schedules.length === 0) {
+            container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${currentStudentClass})</div>`;
+            updateNextClassWidget([]);
+            return;
+        }
+
+        container.innerHTML = schedules.map((s, idx) => {
+            const teacherAvatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            return `
+                <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl hover:border-indigo-200 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
+                            <span class="text-[9px] text-indigo-500 uppercase leading-none">คาบ</span>
+                            <span class="text-sm font-extrabold leading-tight">${idx + 1}</span>
                         </div>
-
-                        <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shadow-xs shrink-0">
-                            <img src="${teacherAvatar}" class="w-6 h-6 rounded-md object-cover">
-                            <div class="text-left hidden sm:block">
-                                <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_id || 'ผู้สอน'}</p>
-                                <p class="text-[8px] text-slate-400">ผู้สอน</p>
-                            </div>
+                        <div class="min-w-0">
+                            <h4 class="text-xs font-bold text-slate-800 truncate">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
+                            <p class="text-[10px] text-slate-500 truncate"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>ห้องเรียน: ${s.class_name || 'ไม่ระบุ'}</p>
                         </div>
                     </div>
-                `;
-            }).join('');
 
-            updateNextClassWidget(schedules);
-        }
-
-        function updateNextClassWidget(schedules) {
-            const widget = document.getElementById('glassNextClassWidget');
-            const widgetBody = document.getElementById('glassNextClassBody');
-            const widgetCurrentText = document.getElementById('widgetCurrentPeriodText');
-            if (!widget || !widgetBody) return;
-
-            if (!schedules || schedules.length === 0) {
-                widget.classList.add('hidden');
-                return;
-            }
-
-            const currentHour = new Date().getHours();
-            let currentPeriod = 1;
-            if (currentHour >= 9) currentPeriod = 2;
-            if (currentHour >= 10) currentPeriod = 3;
-            if (currentHour >= 11) currentPeriod = 4;
-            if (currentHour >= 12) currentPeriod = 5;
-
-            if (widgetCurrentText) widgetCurrentText.innerText = `คาบปัจจุบัน: คาบ ${currentPeriod}`;
-            const nextClasses = schedules.slice(currentPeriod, currentPeriod + 2);
-
-            if (nextClasses.length === 0) {
-                widget.classList.add('hidden');
-                return;
-            }
-
-            widget.classList.remove('hidden');
-            widgetBody.innerHTML = nextClasses.map((nc, i) => `
-                <div class="flex items-center justify-between gap-2 text-[11px] bg-white/70 p-1.5 rounded-lg border border-slate-100">
-                    <span class="font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">คาบ ${currentPeriod + i + 1}</span>
-                    <span class="font-bold text-slate-800 truncate">${nc.course_code || nc.subject_name || ''}</span>
-                    <span class="text-[10px] text-rose-600 font-bold shrink-0"><i class="fa-solid fa-location-dot mr-0.5"></i>${nc.class_name || 'ห้องเรียน'}</span>
+                    <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shadow-xs shrink-0">
+                        <img src="${teacherAvatar}" class="w-6 h-6 rounded-md object-cover">
+                        <div class="text-left hidden sm:block">
+                            <p class="text-[10px] font-bold text-slate-700 leading-tight">${s.teacher_id || 'ผู้สอน'}</p>
+                            <p class="text-[8px] text-slate-400">ผู้สอน</p>
+                        </div>
+                    </div>
                 </div>
-            `).join('');
+            `;
+        }).join('');
+
+        updateNextClassWidget(schedules);
+    }
+
+    function updateNextClassWidget(schedules) {
+        const widget = document.getElementById('glassNextClassWidget');
+        const widgetBody = document.getElementById('glassNextClassBody');
+        const widgetCurrentText = document.getElementById('widgetCurrentPeriodText');
+        if (!widget || !widgetBody) return;
+
+        if (!schedules || schedules.length === 0) {
+            widget.classList.add('hidden');
+            return;
         }
 
-        async function renderClassAdvisors(className) {
-            const container = document.getElementById('advisorsContainer');
-            const badge = document.getElementById('advisorCountBadge');
-            if (!container) return;
+        const currentHour = new Date().getHours();
+        let currentPeriod = 1;
+        if (currentHour >= 9) currentPeriod = 2;
+        if (currentHour >= 10) currentPeriod = 3;
+        if (currentHour >= 11) currentPeriod = 4;
+        if (currentHour >= 12) currentPeriod = 5;
 
-            if (!className) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ไม่พบข้อมูลห้องเรียน</p>`;
-                if (badge) badge.innerText = '0 คน';
-                return;
+        if (widgetCurrentText) widgetCurrentText.innerText = `คาบปัจจุบัน: คาบ ${currentPeriod}`;
+        const nextClasses = schedules.slice(currentPeriod, currentPeriod + 2);
+
+        if (nextClasses.length === 0) {
+            widget.classList.add('hidden');
+            return;
+        }
+
+        widget.classList.remove('hidden');
+        widgetBody.innerHTML = nextClasses.map((nc, i) => `
+            <div class="flex items-center justify-between gap-2 text-[11px] bg-white/70 p-1.5 rounded-lg border border-slate-100">
+                <span class="font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">คาบ ${currentPeriod + i + 1}</span>
+                <span class="font-bold text-slate-800 truncate">${nc.course_code || nc.subject_name || ''}</span>
+                <span class="text-[10px] text-rose-600 font-bold shrink-0"><i class="fa-solid fa-location-dot mr-0.5"></i>${nc.class_name || 'ห้องเรียน'}</span>
+            </div>
+        `).join('');
+    }
+
+    async function renderClassAdvisors(className) {
+        const container = document.getElementById('advisorsContainer');
+        const badge = document.getElementById('advisorCountBadge');
+        if (!container) return;
+        const client = window.supabaseClient || window.db || window.supabase;
+
+        if (!className || !client) {
+            container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ไม่พบข้อมูลห้องเรียน</p>`;
+            if (badge) badge.innerText = '0 คน';
+            return;
+        }
+
+        const { data: advisors } = await client.from('class_advisors')
+            .select('*')
+            .eq('class_name', className);
+
+        if (!advisors || advisors.length === 0) {
+            container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษาประจำห้อง ${className}</p>`;
+            if (badge) badge.innerText = '0 คน';
+            return;
+        }
+
+        if (badge) badge.innerText = `${advisors.length} คน`;
+        container.innerHTML = advisors.map(adv => `
+            <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-xs">
+                <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-12 h-12 rounded-xl object-cover ring-2 ring-white shrink-0">
+                <div class="overflow-hidden space-y-0.5 min-w-0">
+                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${adv.advisor_type === 'main' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}">
+                        ${adv.advisor_type === 'main' ? 'ที่ปรึกษาหลัก' : 'ที่ปรึกษา'}
+                    </span>
+                    <h4 class="text-xs font-bold text-slate-800 truncate mt-1">รหัสครู: ${adv.teacher_id}</h4>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function renderAcademicData(studentId) {
+        const container = document.getElementById('studentAcademicContainer');
+        if (!container || !studentId) return;
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) return;
+
+        const { data: risks } = await client.from('academic_attendance_summary')
+            .select('*')
+            .eq('student_id', studentId);
+
+        if (!risks || risks.length === 0) {
+            container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">เวลาเรียนปกติทุกรายวิชา (ไม่พบความเสี่ยง มส.)</p>`;
+            return;
+        }
+
+        container.innerHTML = risks.map(item => {
+            const percent = item.attendance_percent ?? 100;
+            let badgeStyle = 'bg-emerald-100 text-emerald-800';
+            let barColor = 'bg-emerald-500';
+            let statusText = 'ปกติ';
+
+            if (percent < 80) {
+                badgeStyle = 'bg-rose-100 text-rose-800';
+                barColor = 'bg-rose-500';
+                statusText = 'ติด มส.';
+            } else if (percent < 85) {
+                badgeStyle = 'bg-amber-100 text-amber-800';
+                barColor = 'bg-amber-500';
+                statusText = 'เสี่ยง มส.';
             }
 
-            const { data: advisors } = await db.from('class_advisors')
-                .select('*')
-                .eq('class_name', className);
+            return `
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+                    <div class="flex justify-between items-center gap-2">
+                        <div>
+                            <span class="font-bold text-slate-800 text-xs block">${item.subject_name || item.subject_code}</span>
+                            <span class="text-[10px] text-slate-500">ขาดเรียน ${item.absent_count || 0} คาบ</span>
+                        </div>
+                        <span class="${badgeStyle} text-[10px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap">${statusText} (${percent}%)</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                        <div class="${barColor} h-full rounded-full transition-all duration-300" style="width: ${percent}%;"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
 
-            if (!advisors || advisors.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center col-span-2 py-2">ยังไม่ได้ตั้งค่าครูที่ปรึกษาประจำห้อง ${className}</p>`;
-                if (badge) badge.innerText = '0 คน';
-                return;
-            }
+    async function renderBehaviorScoreAndHistory(studentId) {
+        const container = document.getElementById('behaviorHistoryList');
+        if (!container || !studentId) return;
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) return;
 
-            if (badge) badge.innerText = `${advisors.length} คน`;
-            container.innerHTML = advisors.map(adv => `
-                <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-xs">
-                    <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="w-12 h-12 rounded-xl object-cover ring-2 ring-white shrink-0">
-                    <div class="overflow-hidden space-y-0.5 min-w-0">
-                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${adv.advisor_type === 'main' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}">
-                            ${adv.advisor_type === 'main' ? 'ที่ปรึกษาหลัก' : 'ที่ปรึกษา'}
+        const { data: logs } = await client.from('behavior_logs')
+            .select('*')
+            .eq('student_id', studentId)
+            .order('created_at', { ascending: false });
+
+        if (!logs || logs.length === 0) {
+            container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">ไม่มีประวัติการหักคะแนนพฤติกรรม</p>`;
+            return;
+        }
+
+        container.innerHTML = logs.map(item => {
+            const isDeduction = (item.points || item.score || 0) < 0 || item.type === 'deduct';
+            const pts = Math.abs(item.points || item.score || 0);
+
+            return `
+                <div class="p-3 ${isDeduction ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'} border rounded-xl text-xs flex justify-between items-center">
+                    <div class="space-y-0.5 min-w-0">
+                        <span class="font-bold text-xs ${isDeduction ? 'text-rose-900' : 'text-emerald-900'} block truncate">
+                            <i class="fa-solid ${isDeduction ? 'fa-minus-circle' : 'fa-plus-circle'} mr-1"></i>${item.action || item.note || 'บันทึกพฤติกรรม'}
                         </span>
-                        <h4 class="text-xs font-bold text-slate-800 truncate mt-1">รหัสครู: ${adv.teacher_id}</h4>
+                        <span class="text-[10px] text-slate-500">${item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : '-'}</span>
                     </div>
+                    <span class="text-sm font-black ${isDeduction ? 'text-rose-600' : 'text-emerald-600'} shrink-0 ml-2">${isDeduction ? '-' : '+'}${pts}</span>
                 </div>
-            `).join('');
+            `;
+        }).join('');
+    }
+
+    async function renderHomeworkData(className) {
+        const container = document.getElementById('studentHomeworkList');
+        if (!container) return;
+        const client = window.supabaseClient || window.db || window.supabase;
+
+        if (!className || !client) {
+            container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
+            return;
         }
 
-        async function renderAcademicData(studentId) {
-            const container = document.getElementById('studentAcademicContainer');
-            if (!container || !studentId) return;
+        const { data: list } = await client.from('academic_assignments')
+            .select('*')
+            .eq('class_room', className);
 
-            const { data: risks } = await db.from('academic_attendance_summary')
-                .select('*')
-                .eq('student_id', studentId);
+        if (!list || list.length === 0) {
+            container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
+            return;
+        }
 
-            if (!risks || risks.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">เวลาเรียนปกติทุกรายวิชา (ไม่พบความเสี่ยง มส.)</p>`;
-                return;
+        container.innerHTML = list.map(h => `
+            <div class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-xs space-y-1">
+                <span class="font-bold text-xs text-indigo-900 block">${h.task_title || 'การบ้าน'}</span>
+                <div class="flex justify-between text-[10px] text-slate-500">
+                    <span>วิชา: ${h.subject_name || '-'}</span>
+                    <span class="text-rose-600 font-bold">กำหนดส่ง: ${h.due_date || '-'}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function renderClinicData(studentId) {
+        const container = document.getElementById('studentClinicList');
+        if (!container || !studentId) return;
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) return;
+
+        const { data: list } = await client.from('clinic_records')
+            .select('*')
+            .eq('student_id', studentId)
+            .order('created_at', { ascending: false });
+
+        if (!list || list.length === 0) {
+            container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติห้องพยาบาล</p>`;
+            return;
+        }
+
+        container.innerHTML = list.map(c => `
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-0.5">
+                <span class="font-bold text-xs text-slate-700 block">${c.symptom || 'ปฐมพยาบาล'}</span>
+                <p class="text-[10px] text-slate-500">${c.created_at ? new Date(c.created_at).toLocaleDateString('th-TH') : '-'} &bull; สถานะ: ${c.status || 'ปกติ'}</p>
+            </div>
+        `).join('');
+    }
+
+    function setupEventListeners() {
+        window.onScheduleDayChange = (dayKey) => {
+            SELECTED_SCHEDULE_DAY = dayKey;
+            renderStudentSchedule();
+        };
+
+        document.getElementById('requestReasonSelect')?.addEventListener('change', (e) => {
+            const customBox = document.getElementById('customReasonBox');
+            const customInput = document.getElementById('customReasonInput');
+            if (e.target.value === 'other') {
+                customBox.classList.remove('hidden');
+                if (customInput) customInput.required = true;
+            } else {
+                customBox.classList.add('hidden');
+                if (customInput) customInput.required = false;
             }
+        });
 
-            container.innerHTML = risks.map(item => {
-                const percent = item.attendance_percent ?? 100;
-                let badgeStyle = 'bg-emerald-100 text-emerald-800';
-                let barColor = 'bg-emerald-500';
-                let statusText = 'ปกติ';
+        // ยื่นขอ Gatepass บันทึกลงตาราง gate_pass_logs จริง
+        document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const client = window.supabaseClient || window.db || window.supabase;
+                if (!client) throw new Error("ไม่พบการเชื่อมต่อ Supabase");
 
-                if (percent < 80) {
-                    badgeStyle = 'bg-rose-100 text-rose-800';
-                    barColor = 'bg-rose-500';
-                    statusText = 'ติด มส.';
-                } else if (percent < 85) {
-                    badgeStyle = 'bg-amber-100 text-amber-800';
-                    barColor = 'bg-amber-500';
-                    statusText = 'เสี่ยง มส.';
+                const selectVal = document.getElementById('requestReasonSelect').value;
+                const customVal = document.getElementById('customReasonInput').value;
+                const reasonText = selectVal === 'other' ? customVal : selectVal;
+
+                const { error } = await client.from('gate_pass_logs').insert([{
+                    student_id: CURRENT_STUDENT_ID,
+                    reason: reasonText,
+                    exit_time: document.getElementById('exitTimeInput').value,
+                    return_time: document.getElementById('returnTimeInput').value,
+                    status: 'pending'
+                }]);
+
+                if (error) throw error;
+
+                alert('🎉 ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครองเรียบร้อยแล้ว!');
+                document.getElementById('gatepassForm').reset();
+                
+                if (window.closeGatepassModalDirect) {
+                    window.closeGatepassModalDirect();
                 }
 
-                return `
-                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
-                        <div class="flex justify-between items-center gap-2">
-                            <div>
-                                <span class="font-bold text-slate-800 text-xs block">${item.subject_name || item.subject_code}</span>
-                                <span class="text-[10px] text-slate-500">ขาดเรียน ${item.absent_count || 0} คาบ</span>
-                            </div>
-                            <span class="${badgeStyle} text-[10px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap">${statusText} (${percent}%)</span>
-                        </div>
-                        <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                            <div class="${barColor} h-full rounded-full transition-all duration-300" style="width: ${percent}%;"></div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function renderBehaviorScoreAndHistory(studentId) {
-            const container = document.getElementById('behaviorHistoryList');
-            if (!container || !studentId) return;
-
-            const { data: logs } = await db.from('behavior_logs')
-                .select('*')
-                .eq('student_id', studentId)
-                .order('created_at', { ascending: false });
-
-            if (!logs || logs.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">ไม่มีประวัติการหักคะแนนพฤติกรรม</p>`;
-                return;
+                await renderActiveGatepass();
+            } catch (err) {
+                console.error('Submit Gatepass Error:', err);
+                alert('เกิดข้อผิดพลาดในการยื่นขออนุญาต: ' + err.message);
             }
+        });
 
-            container.innerHTML = logs.map(item => {
-                const isDeduction = (item.points || item.score || 0) < 0 || item.type === 'deduct';
-                const pts = Math.abs(item.points || item.score || 0);
-
-                return `
-                    <div class="p-3 ${isDeduction ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'} border rounded-xl text-xs flex justify-between items-center">
-                        <div class="space-y-0.5 min-w-0">
-                            <span class="font-bold text-xs ${isDeduction ? 'text-rose-900' : 'text-emerald-900'} block truncate">
-                                <i class="fa-solid ${isDeduction ? 'fa-minus-circle' : 'fa-plus-circle'} mr-1"></i>${item.action || item.note || 'บันทึกพฤติกรรม'}
-                            </span>
-                            <span class="text-[10px] text-slate-500">${item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : '-'}</span>
-                        </div>
-                        <span class="text-sm font-black ${isDeduction ? 'text-rose-600' : 'text-emerald-600'} shrink-0 ml-2">${isDeduction ? '-' : '+'}${pts}</span>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function renderHomeworkData(className) {
-            const container = document.getElementById('studentHomeworkList');
-            if (!container) return;
-
-            if (!className) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
-                return;
-            }
-
-            const { data: list } = await db.from('academic_assignments')
-                .select('*')
-                .eq('class_room', className);
-
-            if (!list || list.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีการบ้านค้างส่ง</p>`;
-                return;
-            }
-
-            container.innerHTML = list.map(h => `
-                <div class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-xs space-y-1">
-                    <span class="font-bold text-xs text-indigo-900 block">${h.task_title || 'การบ้าน'}</span>
-                    <div class="flex justify-between text-[10px] text-slate-500">
-                        <span>วิชา: ${h.subject_name || '-'}</span>
-                        <span class="text-rose-600 font-bold">กำหนดส่ง: ${h.due_date || '-'}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function renderClinicData(studentId) {
-            const container = document.getElementById('studentClinicList');
-            if (!container || !studentId) return;
-
-            const { data: list } = await db.from('clinic_records')
-                .select('*')
-                .eq('student_id', studentId)
-                .order('created_at', { ascending: false });
-
-            if (!list || list.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">ไม่มีประวัติห้องพยาบาล</p>`;
-                return;
-            }
-
-            container.innerHTML = list.map(c => `
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-0.5">
-                    <span class="font-bold text-xs text-slate-700 block">${c.symptom || 'ปฐมพยาบาล'}</span>
-                    <p class="text-[10px] text-slate-500">${c.created_at ? new Date(c.created_at).toLocaleDateString('th-TH') : '-'} &bull; สถานะ: ${c.status || 'ปกติ'}</p>
-                </div>
-            `).join('');
-        }
-
-        function setupEventListeners() {
-            window.onScheduleDayChange = (dayKey) => {
-                SELECTED_SCHEDULE_DAY = dayKey;
-                renderStudentSchedule();
-            };
-
-            document.getElementById('requestReasonSelect')?.addEventListener('change', (e) => {
-                const customBox = document.getElementById('customReasonBox');
-                const customInput = document.getElementById('customReasonInput');
-                if (e.target.value === 'other') {
-                    customBox.classList.remove('hidden');
-                    if (customInput) customInput.required = true;
-                } else {
-                    customBox.classList.add('hidden');
-                    if (customInput) customInput.required = false;
-                }
-            });
-
-            // ยื่นขอ Gatepass บันทึกลงตาราง gate_pass_logs จริง
-            document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
+        // ปุ่มออกจากระบบ (Logout)
+        document.querySelectorAll('#btnLogout, .btn-logout, [onclick*="logout"]').forEach(btn => {
+            btn.removeAttribute('onclick');
+            btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                try {
-                    const selectVal = document.getElementById('requestReasonSelect').value;
-                    const customVal = document.getElementById('customReasonInput').value;
-                    const reasonText = selectVal === 'other' ? customVal : selectVal;
-
-                    const { error } = await db.from('gate_pass_logs').insert([{
-                        student_id: CURRENT_STUDENT_ID,
-                        reason: reasonText,
-                        exit_time: document.getElementById('exitTimeInput').value,
-                        return_time: document.getElementById('returnTimeInput').value,
-                        status: 'pending'
-                    }]);
-
-                    if (error) throw error;
-
-                    alert('🎉 ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครองเรียบร้อยแล้ว!');
-                    document.getElementById('gatepassForm').reset();
-                    
-                    if (window.closeGatepassModalDirect) {
-                        window.closeGatepassModalDirect();
-                    }
-
-                    await renderActiveGatepass();
-                } catch (err) {
-                    console.error('Submit Gatepass Error:', err);
-                    alert('เกิดข้อผิดพลาดในการยื่นขออนุญาต: ' + err.message);
-                }
+                handleLogout();
             });
-
-            // ปุ่มออกจากระบบ (Logout)
-            document.querySelectorAll('#btnLogout, .btn-logout, [onclick*="logout"]').forEach(btn => {
-                btn.removeAttribute('onclick');
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                        logout('../../login.html');
-                    }
-                });
-            });
-        }
-    </script>
+        });
+    }
+</script>
 </body>
 </html>
