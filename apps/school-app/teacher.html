@@ -408,23 +408,21 @@ async function loadRealSubjectSchedules(teacherId) {
             const client = window.supabaseClient || window.db || window.supabase;
             if (!client) return;
 
-            // 1. ดึงตารางสอนแบบ Safe-Query
             let schedules = null;
-            let error = null;
 
-            // พยายามค้นหาตาม teacher_id ก่อน
-            if (teacherId) {
-                const res = await client
-                    .from('schedules')
-                    .select('*')
-                    .eq('teacher_id', teacherId);
-                schedules = res.data;
-                error = res.error;
-            }
+            // 🟢 กำหนดรหัสครูเป็น T011 หรือดึงจาก Object โปรไฟล์
+            const targetTeacherId = CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.teacherId || 'T011';
 
-            // ถ้าค้นหาด้วย teacherId แล้วเจอ Error 400 หรือไม่พบข้อมูล ให้ดึงรายการทั้งหมดใน schedules มาให้เลือก
-            if (error || !schedules || schedules.length === 0) {
-                console.warn("ไม่พบตารางสอนเฉพาะรหัสครู ดึงตารางสอนทั้งหมดเป็น fallback");
+            // ค้นหาด้วยรหัสครู T011 ในตาราง schedules
+            const { data, error } = await client
+                .from('schedules')
+                .select('*')
+                .eq('teacher_id', targetTeacherId);
+
+            if (!error && data && data.length > 0) {
+                schedules = data;
+            } else {
+                // กรณีหาไม่เจอ ให้ดึงตารางสอนขึ้นมาแสดงทั้งหมด
                 const resAll = await client.from('schedules').select('*').limit(100);
                 schedules = resAll.data || [];
             }
@@ -448,7 +446,7 @@ async function loadRealSubjectSchedules(teacherId) {
                 }
             }
 
-            // สร้างปุ่มเลือกวิชาใน Modal
+            // แสดงรายการให้เลือกใน Modal
             if (modalList) {
                 modalList.innerHTML = uniqueSubjects.map(s => {
                     const cCode = s.course_code || s.subject_code || 'วิชา';
@@ -466,7 +464,7 @@ async function loadRealSubjectSchedules(teacherId) {
                 }).join('');
             }
 
-            // เลือกวิชาแรกเป็นค่าเริ่มต้น
+            // ค่าเริ่มต้นวิชาแรก
             const first = uniqueSubjects[0];
             const firstCode = first.course_code || first.subject_code || 'วิชา';
             const firstRoom = first.classroom || first.class_name || 'ไม่ระบุ';
@@ -485,6 +483,7 @@ async function loadRealSubjectSchedules(teacherId) {
             if (customText) customText.innerText = "-- เลือกวิชาและห้องเรียน --";
         }
     }
+    
     window.toggleStatsDrawer = function() {
         const trafficSec = document.getElementById('section-traffic');
         const btnText = document.getElementById('btnStatsText');
