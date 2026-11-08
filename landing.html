@@ -650,9 +650,20 @@
         }, { passive: true });
     }
 
+    // 🔒 ระบบเปิด/ปิด Admin Drawer พร้อม Guard ตรวจสิทธิ์เฉพาะ ADMIN เท่านั้น
     window.toggleAdminDrawer = function(e) {
         if (e) e.stopPropagation();
-        const backdrop = document.getElementById('adminDrawerBackdrop');
+
+        const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+        const userRole = currentUser ? (currentUser.role || '').toUpperCase() : '';
+
+        // ⛔ ป้องกันกรณี TEACHER หรือสิทธิ์อื่นพยายามสั่งเปิด Drawer
+        if (!['ADMIN', 'SUPERADMIN'].includes(userRole)) {
+            alert('⛔ เฉพาะผู้ดูแลระบบ (ADMIN) เท่านั้นที่สามารถเข้าถึงเมนูนี้ได้');
+            return;
+        }
+
+        const backdrop = document.getElementById('adminDrawerBackdrop') || document.getElementById('adminSideDrawer');
         if (backdrop) {
             if (backdrop.classList.contains('active')) {
                 closeAdminDrawer();
@@ -664,7 +675,7 @@
     };
 
     window.closeAdminDrawer = function() {
-        const backdrop = document.getElementById('adminDrawerBackdrop');
+        const backdrop = document.getElementById('adminDrawerBackdrop') || document.getElementById('adminSideDrawer');
         if (backdrop) backdrop.classList.remove('active');
     };
 
@@ -681,7 +692,7 @@
     };
 
     function closeAllDrawers() {
-        document.querySelectorAll('.bottom-sheet-backdrop').forEach(function(el) {
+        document.querySelectorAll('.bottom-sheet-backdrop, #adminSideDrawer, #adminDrawerBackdrop').forEach(function(el) {
             el.classList.remove('active');
         });
     }
@@ -711,24 +722,51 @@
 
     // 🟢 1. Main Controller Initialization
     document.addEventListener('DOMContentLoaded', async () => {
-        // 🔒 1.1 อ่าน Session ของผู้ใช้งาน ( guard-admin-teacher.js คอยคัดกรองให้อัตโนมัติในเบื้องหลังแล้ว )
-        const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
-        if (!currentUser) return; // ป้องกันไว้ในกรณีเร่งด่วน
+        try {
+            // 1. อ่าน Session ผู้ใช้งาน
+            const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+            if (!currentUser) return;
 
-        console.log('เข้าสู่หน้า Landing สำเร็จ โดย:', currentUser);
+            const userRole = (currentUser.role || '').toUpperCase();
 
-        // 🟢 1.2 แสดงผลโปรไฟล์ผู้ใช้งานบน UI
-        renderUniversalProfile(currentUser);
+            // 🔒 2. เช็กสิทธิ์ซ่อน/แสดง เมนู ADMIN CONTROL
+            const adminDrawerBtn = document.getElementById('adminDrawerBtn') || document.querySelector('[onclick*="toggleAdminDrawer"]');
+            const adminSideDrawer = document.getElementById('adminSideDrawer') || document.getElementById('adminDrawerBackdrop');
+            const adminCardBtn = document.getElementById('adminModuleCard');
 
-        // 🟢 1.3 ดึงข้อมูลสถิติจริงจาก Supabase Database
-        const client = window.supabaseClient || window.db || window.supabase;
-        await loadLandingRealStats(client);
+            const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(userRole);
 
-        // 🟢 1.4 เรียกใช้อุปกรณ์เสริม UI (นาฬิกา, เมนูเลื่อน, Gesture)
-        startClock();
-        initAutoScrollNav();
-        initSwipeGestures();
-        hidePageLoader();
+            if (!isAdmin) {
+                // หากเป็น TEACHER หรือสิทธิ์อื่น ให้ซ่อนปุ่มและเมนูแอดมินทั้งหมด
+                if (adminDrawerBtn) adminDrawerBtn.style.display = 'none';
+                if (adminSideDrawer) {
+                    adminSideDrawer.style.display = 'none';
+                    adminSideDrawer.classList.remove('active');
+                }
+                if (adminCardBtn) adminCardBtn.style.display = 'none';
+            } else {
+                // หากเป็น ADMIN ให้แสดงตามปกติ
+                if (adminDrawerBtn) adminDrawerBtn.style.display = 'flex';
+                if (adminSideDrawer) adminSideDrawer.style.display = '';
+            }
+
+            // 🟢 3. แสดงผลโปรไฟล์สดจาก SSO บน Header
+            renderUniversalProfile(currentUser);
+
+            // 🟢 4. ดึงสถิตินักเรียน Real-Time
+            const client = window.supabaseClient || window.db || window.supabase;
+            await loadLandingRealStats(client);
+
+            // 🟢 5. เรียกใช้อุปกรณ์เสริม UI (นาฬิกา, เมนูเลื่อน, Gesture)
+            startClock();
+            initAutoScrollNav();
+            initSwipeGestures();
+            hidePageLoader();
+
+        } catch (err) {
+            console.error('[Landing] Init Error:', err);
+            hidePageLoader();
+        }
     });
 
     // 🟢 2. ฟังก์ชันออกจากระบบ
@@ -761,11 +799,22 @@
         if (nameEl) nameEl.textContent = displayName;
 
         if (badgeEl) {
-            badgeEl.textContent = roleName === 'ADMIN' ? 'ผู้ดูแลระบบ (ADMIN)' : roleName;
+            const roleMap = {
+                'ADMIN': 'ผู้ดูแลระบบ (ADMIN)',
+                'SUPERADMIN': 'ผู้ดูแลระบบสูงสุด',
+                'EXECUTIVE': 'ผู้บริหาร',
+                'TEACHER': 'ครูผู้สอน',
+                'STUDENT': 'นักเรียน',
+                'PARENT': 'ผู้ปกครอง'
+            };
+            badgeEl.textContent = roleMap[roleName] || roleName;
+            
             if (roleName === 'STUDENT') {
                 badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
-            } else if (['ADMIN', 'EXECUTIVE', 'SUPERADMIN'].includes(roleName)) {
+            } else if (['ADMIN', 'SUPERADMIN'].includes(roleName)) {
                 badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+            } else if (roleName === 'EXECUTIVE') {
+                badgeEl.className = "bg-purple-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
             } else {
                 badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
             }
@@ -859,7 +908,7 @@
 
     // 🟢 5. ระบบ Touch Swipe สำหรับ Bottom Sheet และ Drawer
     function initSwipeGestures() {
-        var adminDrawer = document.getElementById('adminSideDrawer');
+        var adminDrawer = document.getElementById('adminSideDrawer') || document.getElementById('adminDrawerBackdrop');
         if (adminDrawer) {
             var startX = 0, currentX = 0;
             adminDrawer.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
