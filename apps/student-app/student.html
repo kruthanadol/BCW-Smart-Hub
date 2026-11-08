@@ -617,12 +617,45 @@
 <!-- 🔒 Dedicated Guard คุ้มครองหน้า Student & Parent -->
 <script src="../../core/guard-student-parent.js?v=400"></script>
 
-<!-- Pure Zero-Mock Integration Script (Safe-Query Edition) -->
+<!-- Pure Zero-Mock Integration Script (Safe-Query & Full-Avatar Edition) -->
 <script>
     let CURRENT_STUDENT_ID = null;
     let currentStudentClass = '';
     let SELECTED_SCHEDULE_DAY = 'Monday';
     let gatepassTimerInterval = null;
+
+    // 🖼️ ฟังก์ชันผู้ช่วย: ฉีดและแสดงรูปภาพโปรไฟล์ไปยัง Element รูปภาพทุกจุดบน UI
+    function updateStudentAvatar(avatarUrl) {
+        if (!avatarUrl || avatarUrl.trim() === '' || avatarUrl === 'null' || avatarUrl === 'undefined') return;
+
+        // รวบรวม ID Element รูปภาพทั้งหมด (รวมทั้งรูปใบใหญ่ตรงกลาง และรูปเล็กบน Header)
+        const avatarImgs = [
+            document.getElementById('student-avatar'),
+            document.getElementById('studentProfileImg'),
+            document.getElementById('studentAvatarImg'),
+            document.getElementById('userAvatarImg')
+        ].filter(Boolean);
+
+        const avatarIcons = [
+            document.getElementById('studentAvatarIcon'),
+            document.getElementById('userAvatarIcon')
+        ].filter(Boolean);
+
+        avatarImgs.forEach(img => {
+            img.src = avatarUrl;
+            img.classList.remove('hidden');
+            img.style.display = 'block';
+
+            // หากลิงก์รูปเสีย ให้ซ่อนรูป แล้วแสดงไอคอนสำรอง
+            img.onerror = () => {
+                img.classList.add('hidden');
+                img.style.display = 'none';
+                avatarIcons.forEach(icon => icon.classList.remove('hidden'));
+            };
+        });
+
+        avatarIcons.forEach(icon => icon.classList.add('hidden'));
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
         try {
@@ -646,31 +679,17 @@
             // 🎯 3. จับ Element บน UI หน้านักเรียน
             const nameEl = document.getElementById('studentDisplayName') || document.getElementById('userDisplayName') || document.getElementById('student-fullname');
             const badgeEl = document.getElementById('studentRoleBadge') || document.getElementById('userRoleBadge');
-            const avatarImg = document.getElementById('studentAvatarImg') || document.getElementById('userAvatarImg');
-            const avatarIcon = document.getElementById('studentAvatarIcon') || document.getElementById('userAvatarIcon');
 
-            // 📝 4. ฉีดข้อมูลเบื้องต้นจาก Session ทันที (แก้ปัญหาชื่อค้างว่า "กำลังเชื่อมต่อระบบ...")
+            // 📝 4. ฉีดข้อมูลเบื้องต้นจาก Session ทันที
             if (nameEl && currentUser.name) nameEl.textContent = currentUser.name;
             if (badgeEl) badgeEl.textContent = displayRole;
 
-            // 🖼️ 5. แสดงรูปภาพสดจาก SSO (Google/LINE)
-            if (avatarImg) {
-                if (currentUser.avatar) {
-                    avatarImg.src = currentUser.avatar;
-                    avatarImg.classList.remove('hidden');
-                    if (avatarIcon) avatarIcon.classList.add('hidden');
-
-                    avatarImg.onerror = () => {
-                        avatarImg.classList.add('hidden');
-                        if (avatarIcon) avatarIcon.classList.remove('hidden');
-                    };
-                } else {
-                    avatarImg.classList.add('hidden');
-                    if (avatarIcon) avatarIcon.classList.remove('hidden');
-                }
+            // 🖼️ 5. แสดงรูปภาพสดจาก SSO (Google/LINE) ล่วงหน้าก่อน
+            if (currentUser.avatar) {
+                updateStudentAvatar(currentUser.avatar);
             }
 
-            // 📚 6. ดึงข้อมูลนักเรียนฉบับสมบูรณ์จาก DB (แบบ Safe Query ป้องกัน Error 400)
+            // 📚 6. ดึงข้อมูลนักเรียนฉบับสมบูรณ์จาก DB (แบบ Safe Query ป้องกัน Error 400)[cite: 4]
             const client = window.supabaseClient || window.db || window.supabase;
             if (client && CURRENT_STUDENT_ID) {
                 let student = null;
@@ -708,6 +727,11 @@
                     if (classEl) classEl.textContent = student.classroom || student.class_name || '-';
                     if (noEl) noEl.textContent = student.student_no || student.no || '-';
                     if (idEl) idEl.textContent = student.student_id || student.code || CURRENT_STUDENT_ID;
+
+                    // 🖼️ หากในตาราง DB มี avatar_url ให้แสดงรูปภาพจาก DB ทับ
+                    if (student.avatar_url) {
+                        updateStudentAvatar(student.avatar_url);
+                    }
                 }
             }
 
@@ -767,10 +791,10 @@
         if (!client) return;
         
         try {
+            // 🟢 ปรับเปลี่ยนคำสั่งค้นหาให้กระชับ ป้องกัน Error 400 (Bad Request)
             const { data: pass } = await client.from('gate_pass_logs')
                 .select('*')
-                .eq('student_id', CURRENT_STUDENT_ID)
-                .in('status', ['pending', 'approved', 'out'])
+                .eq('student_id', String(CURRENT_STUDENT_ID))
                 .limit(1)
                 .maybeSingle();
 
@@ -779,7 +803,7 @@
             const topTimerBadge = document.getElementById('topGatepassTimerBadge');
             const btnOpenGatepass = document.getElementById('btnOpenGatepass');
 
-            if (pass) {
+            if (pass && ['pending', 'approved', 'out'].includes(pass.status)) {
                 if (activeCard) activeCard.classList.remove('hidden');
                 if (document.getElementById('passReason')) document.getElementById('passReason').innerText = `เหตุผล: ${pass.reason || '-'}`;
                 if (document.getElementById('passTimeRange')) document.getElementById('passTimeRange').innerText = `เวลาอนุญาต: ${pass.exit_time} ถึง ${pass.return_time}`;
