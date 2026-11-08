@@ -189,14 +189,14 @@ const AuthService = {
         const currentPath = window.location.pathname;
         const repoPrefix = this.getRepoPrefix();
 
-        let relativeTarget = '/apps/school-app/student.html';
+        let relativeTarget = '/apps/student-app/student.html';
 
         if (['ADMIN', 'EXECUTIVE', 'SUPERADMIN'].includes(r)) {
             relativeTarget = '/landing.html';
         } else if (r === 'TEACHER') {
             relativeTarget = '/apps/school-app/teacher.html';
         } else if (r === 'PARENT') {
-            relativeTarget = '/apps/school-app/parent.html';
+            relativeTarget = '/apps/parent-app/parent.html';
         }
 
         const fullTargetUrl = repoPrefix + relativeTarget;
