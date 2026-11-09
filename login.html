@@ -156,7 +156,7 @@
         }
     }
 
-    // 🟢 ดักจับ SSO Listener ทันที ไม่ต้องรอ DOMContentLoaded เพื่อป้องกัน Event ตกหล่น
+    // 🟢 ดักจับ SSO Listener ทันที ไม่ต้องรอ DOMContentLoaded เพื่อป้องกัน Event ตกหล่น (สำหรับ Google / LINE SSO)
     (function initSSOListener() {
         // หากติด error ใน URL ให้หยุด listener ทันที
         const urlParams = new URLSearchParams(window.location.search);
@@ -186,20 +186,32 @@
         const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
         if (currentUser && currentUser.role) {
             console.log('พบ Session ค้างอยู่ ดีดไปยังบทบาท:', currentUser.role);
-            if (window.AuthService) {
+            if (window.AuthService && typeof AuthService.redirectToRolePage === 'function') {
                 AuthService.redirectToRolePage(currentUser.role);
             }
         }
+
+        // 🟢 Step 2: ผูก Event Submit ของฟอร์ม Direct Login (ถ้ามี element form)
+        const directForm = document.getElementById('directLoginForm') || document.querySelector('form');
+        if (directForm) {
+            directForm.addEventListener('submit', handleAccountLogin);
+        }
     });
 
-    // 🟢 Step 2: ฟังก์ชันล็อกอินด้วย อีเมล / รหัสประจำตัว Direct Form
+    // 🟢 Step 3: ฟังก์ชันล็อกอินด้วย อีเมล / รหัสประจำตัว Direct Form (อัปเดตให้รองรับ T001, 13174 และอีเมลจริง)
     async function handleAccountLogin(event) {
         if (event) event.preventDefault();
-        const inputVal = document.getElementById('account-email')?.value.trim() || '';
-        const passwordVal = document.getElementById('account-password')?.value.trim() || '';
-        const btnSubmit = document.getElementById('btn-account-submit');
 
-        if (!inputVal || !passwordVal) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+        const inputVal = document.getElementById('account-email')?.value.trim() || 
+                         document.getElementById('usernameInput')?.value.trim() || '';
+        const passwordVal = document.getElementById('account-password')?.value.trim() || 
+                            document.getElementById('passwordInput')?.value.trim() || '';
+        const btnSubmit = document.getElementById('btn-account-submit') || 
+                          document.querySelector('button[type="submit"]');
+
+        if (!inputVal || !passwordVal) {
+            return alert('กรุณากรอกอีเมล/รหัสประจำตัว และรหัสผ่านให้ครบถ้วน');
+        }
 
         if (btnSubmit) {
             btnSubmit.disabled = true;
@@ -207,27 +219,19 @@
         }
 
         try {
-            const client = window.supabaseClient || window.db || window.supabase;
-            if (!client || !client.auth) throw new Error('ยังไม่ได้เชื่อมต่อระบบฐานข้อมูล');
-
+            // ล้าง Session เก่าก่อนทำการเข้าสู่ระบบใหม่
             localStorage.removeItem('bcw_user_session');
             sessionStorage.removeItem('bcw_user_session');
 
-            const fullEmail = inputVal.includes('@') ? inputVal.toLowerCase() : `${inputVal}@buached.ac.th`.toLowerCase();
-
-            const { data, error } = await client.auth.signInWithPassword({
-                email: fullEmail,
-                password: passwordVal
-            });
-
-            if (error) throw error;
-
-            if (data?.user) {
-                await AuthService.handlePostLogin(data.user);
+            // เรียกใช้ AuthService.loginWithPassword เพื่อให้ค้นหาจากตาราง users / students ตาม Logic รวมศูนย์
+            if (window.AuthService && typeof AuthService.loginWithPassword === 'function') {
+                await AuthService.loginWithPassword(inputVal, passwordVal);
+            } else {
+                throw new Error('ไม่พบโมดูล AuthService');
             }
         } catch (err) {
             console.error('Account Login Error:', err);
-            alert('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมล/รหัสประจำตัว และรหัสผ่านอีกครั้ง');
+            // ข้อความแจ้งเตือนถูกจัดการภายใน AuthService.loginWithPassword แล้ว
         } finally {
             if (btnSubmit) {
                 btnSubmit.disabled = false;
