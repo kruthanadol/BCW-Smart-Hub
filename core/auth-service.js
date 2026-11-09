@@ -1,4 +1,4 @@
-// core/auth-service.js
+// core/auth-service.js - Unified Auth Architecture Edition (บำรุงรักษาจากโค้ดเดิม)
 const AuthService = {
     isProcessingLogin: false,
 
@@ -60,7 +60,122 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
     },
 
-    // 🟢 5. ประมวลผลหลัง SSO สกัดบทบาทผู้ใช้งาน (RBAC)
+    // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login (ครู: T001/อีเมลจริง, นักเรียน: 13174, ผู้ปกครอง)
+    loginWithPassword: async function(identifier, password) {
+        if (this.isProcessingLogin) return;
+        this.isProcessingLogin = true;
+
+        try {
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (!client) throw new Error("ไม่พบการเชื่อมต่อ Supabase Client");
+
+            const input = (identifier || '').trim();
+            const pass = (password || '').trim();
+            const inputLower = input.toLowerCase();
+
+            let detectedRole = null;
+            let dbName = '';
+            let userEmail = '';
+            let teacherCode = '';
+            let studentId = '';
+            let avatarUrl = '';
+
+            // Step 1: ค้นหาในตาราง users (ครู / Admin / ผู้บริหาร)
+            try {
+                let userQuery = client.from('users').select('*');
+                if (inputLower.includes('@')) {
+                    userQuery = userQuery.or(`email.eq.${inputLower},google_email.eq.${inputLower}`);
+                } else {
+                    userQuery = userQuery.or(`teacher_id.eq.${input},user_id.eq.${input},id.eq.${input}`);
+                }
+
+                const { data: userRec } = await userQuery.maybeSingle();
+
+                if (userRec) {
+                    if (userRec.password && userRec.password !== pass) {
+                        throw new Error("รหัสผ่านไม่ถูกต้อง");
+                    }
+                    detectedRole = (userRec.role || 'TEACHER').toUpperCase();
+                    dbName = userRec.full_name || userRec.name || 'คุณครู';
+                    userEmail = userRec.email || inputLower;
+                    teacherCode = userRec.teacher_id || userRec.user_id || input;
+                    avatarUrl = userRec.avatar_url || '';
+                }
+            } catch (e) {
+                if (e.message === "รหัสผ่านไม่ถูกต้อง") throw e;
+                console.warn('Direct login users query notice:', e);
+            }
+
+            // Step 2: ถ้าไม่พบ ค้นหาต่อในตาราง students (นักเรียน / ผู้ปกครอง)
+            if (!detectedRole) {
+                try {
+                    let studentQuery = client.from('students').select('*');
+                    if (inputLower.includes('@')) {
+                        studentQuery = studentQuery.or(`email.eq.${inputLower},student_google_email.eq.${inputLower}`);
+                    } else {
+                        studentQuery = studentQuery.or(`student_id.eq.${input},id.eq.${input}`);
+                    }
+
+                    const { data: student } = await studentQuery.maybeSingle();
+
+                    if (student) {
+                        // เช็กว่าเป็นรหัสผ่านผู้ปกครองหรือนักเรียน
+                        if (student.parent_password && student.parent_password === pass) {
+                            detectedRole = 'PARENT';
+                        } else if (student.student_id && student.student_id === pass) {
+                            detectedRole = 'STUDENT';
+                        } else if (pass === '123456' || pass === student.student_id) {
+                            detectedRole = 'STUDENT';
+                        } else {
+                            throw new Error("รหัสผ่านไม่ถูกต้อง");
+                        }
+
+                        const prefix = (student.prefix || '').trim();
+                        const firstName = (student.first_name || '').trim();
+                        const lastName = (student.last_name || '').trim();
+                        
+                        dbName = `${prefix}${firstName} ${lastName}`.trim() || 'นักเรียน';
+                        userEmail = student.email || inputLower;
+                        studentId = student.student_id || student.id;
+                        avatarUrl = student.avatar_url || '';
+                    }
+                } catch (e) {
+                    if (e.message === "รหัสผ่านไม่ถูกต้อง") throw e;
+                    console.warn('Direct login students query notice:', e);
+                }
+            }
+
+            if (!detectedRole) {
+                throw new Error("ไม่พบข้อมูลผู้ใช้งาน หรือรหัสประจำตัวนี้ในระบบ");
+            }
+
+            // บันทึก Session และส่งไปยังหน้าปลายทาง
+            const userProfile = {
+                id: studentId || teacherCode || input,
+                name: dbName,
+                avatar: avatarUrl,
+                role: detectedRole,
+                email: userEmail,
+                teacherId: teacherCode,
+                studentId: studentId,
+                provider: 'direct'
+            };
+
+            const sessionStr = JSON.stringify(userProfile);
+            localStorage.setItem('bcw_user_session', sessionStr);
+            sessionStorage.setItem('bcw_user_session', sessionStr);
+
+            this.isProcessingLogin = false;
+            this.redirectToRolePage(detectedRole);
+
+        } catch (err) {
+            this.isProcessingLogin = false;
+            console.error('Direct Login Error:', err);
+            alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + err.message);
+        }
+    },
+
+    // 🟢 6. ประมวลผลหลัง SSO สกัดบทบาทผู้ใช้งาน (RBAC - รองรับ Google & LINE)
     handlePostLogin: async function(ssoUser) {
         // หาก URL ติด Error ให้หยุดและล้างค่าทันที
         if (this.checkAndCleanUrlError()) return;
@@ -79,19 +194,23 @@ const AuthService = {
             let detectedRole = null;
             let dbName = '';
             let teacherCode = '';
+            let studentId = '';
 
-            // Step 0: ตรวจสอบ Admin ล็อกเฉพาะอีเมล
+            // Step 0: ตรวจสอบ Admin ล็อกเฉพาะอีเมลประจำ
             if (email === 'kruthanadol@buached.ac.th') {
                 detectedRole = 'ADMIN';
                 dbName = ssoUser.user_metadata?.full_name || 'ผู้ดูแลระบบ';
             }
 
-            // Step 1: ตรวจสอบจากตาราง users
+            // Step 1: ตรวจสอบจากตาราง users (ครู / Admin / ผู้บริหาร)
             if (!detectedRole && client && (email || userId)) {
                 try {
                     let userQuery = client.from('users').select('*');
-                    if (email) userQuery = userQuery.eq('email', email);
-                    else if (userId) userQuery = userQuery.eq('id', userId);
+                    if (email) {
+                        userQuery = userQuery.or(`email.eq.${email},google_email.eq.${email}`);
+                    } else if (userId) {
+                        userQuery = userQuery.or(`id.eq.${userId},line_user_id.eq.${userId}`);
+                    }
                     
                     const { data: userRec } = await userQuery.maybeSingle();
                     if (userRec && userRec.role) {
@@ -122,32 +241,27 @@ const AuthService = {
 
                     if (teacher) {
                         detectedRole = 'TEACHER';
-                        dbName = teacher.full_name || teacher.teacher_name || 'คุณครู';
+                        dbName = `${teacher.prefix || ''}${teacher.first_name || teacher.teacher_name || ''} ${teacher.last_name || ''}`.trim() || 'คุณครู';
                         teacherCode = teacher.teacher_id || teacher.code || teacher.teacher_code || 'T011';
                     }
                 } catch (e) { console.warn('Teacher Query Error:', e); }
             }
 
-            // Step 3: ตรวจสอบจากตาราง students
-            if (!detectedRole && client && email) {
+            // Step 3: ตรวจสอบจากตาราง students (นักเรียน)
+            if (!detectedRole && client && (email || userId)) {
                 try {
-                    let { data: student } = await client
-                        .from('students')
-                        .select('*')
-                        .eq('email', email)
-                        .maybeSingle();
-
-                    if (!student && userId) {
-                        const { data: sById } = await client
-                            .from('students')
-                            .select('*')
-                            .eq('id', userId)
-                            .maybeSingle();
-                        student = sById;
+                    let studentQuery = client.from('students').select('*');
+                    if (email) {
+                        studentQuery = studentQuery.or(`email.eq.${email},student_google_email.eq.${email}`);
+                    } else if (userId) {
+                        studentQuery = studentQuery.or(`id.eq.${userId},student_line_id.eq.${userId}`);
                     }
+
+                    const { data: student } = await studentQuery.maybeSingle();
 
                     if (student) {
                         detectedRole = 'STUDENT';
+                        studentId = student.student_id || student.id;
                         dbName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
                     }
                 } catch (e) { console.warn('Student Query Error:', e); }
@@ -162,12 +276,14 @@ const AuthService = {
             if (!dbName) dbName = 'ผู้ใช้งานระบบ';
 
             const hybridProfile = {
-                id: userId,
+                id: userId || studentId || teacherCode,
                 name: dbName,
                 avatar: ssoAvatar,
                 role: detectedRole,
                 email: email,
-                teacherId: teacherCode || 'T011'
+                teacherId: teacherCode || 'T011',
+                studentId: studentId,
+                provider: ssoUser.app_metadata?.provider || 'sso'
             };
 
             const sessionStr = JSON.stringify(hybridProfile);
@@ -183,7 +299,7 @@ const AuthService = {
         }
     },
 
-    // 🟢 6. Redirect ไปยังหน้าประจำสิทธิ์ (ป้องกัน Loop และ URL เพี้ยน)
+    // 🟢 7. Redirect ไปยังหน้าประจำสิทธิ์ (ป้องกัน Loop และ URL เพี้ยน)
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
