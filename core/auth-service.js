@@ -46,18 +46,24 @@ const AuthService = {
     },
 
     // 🟢 4. เรียก OAuth LINE
-    loginWithLine: function() {
-        const channelId = '2012514131';
-        
-        // ดึง URL ปัจจุบันและปรับให้เป็นตัวพิมพ์เล็กเพื่อความแม่นยำ
-        const redirectUri = encodeURIComponent((window.location.origin + window.location.pathname).toLowerCase());
-        const state = Math.random().toString(36).substring(7);
-    
-        // ส่ง request ตรงไปยัง LINE OAuth 2.0 API
-        const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${channelId}&redirect_uri=${redirectUri}&state=${state}&scope=profile%20openid`;
-    
-        window.location.href = lineAuthUrl;
-    },
+loginWithLine: async function() {
+    const client = window.supabaseClient || window.db || window.supabase;
+    const repoPrefix = typeof getRepoPrefix === 'function' ? getRepoPrefix() : '';
+    const redirectTo = `${window.location.origin}${repoPrefix}/login.html`;
+
+    const { data, error } = await client.auth.signInWithOAuth({
+        provider: 'custom:line', // ต้องตรงกับ Provider Identifier ใน Supabase
+        options: {
+            redirectTo: redirectTo,
+            scopes: 'profile openid' // คั่นด้วยช่องว่าง
+        }
+    });
+
+    if (error) {
+        console.error('LINE Login Error:', error);
+        alert('ไม่สามารถเชื่อมต่อ LINE Login ได้: ' + error.message);
+    }
+},
 
     // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login (ครู: T001/อีเมลจริง, นักเรียน: 13174, ผู้ปกครอง)
     loginWithPassword: async function(identifier, password) {
