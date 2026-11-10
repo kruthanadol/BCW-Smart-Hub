@@ -47,16 +47,13 @@ const AuthService = {
 
     // 🟢 4. เรียก OAuth LINE
     loginWithLine: function() {
-        const channelId = '2012514131'; // Channel ID ของคุณครู
+        const channelId = '2012514131';
         
-        // ดึง URL หน้า login ปัจจุบันแบบถูกต้อง ไม่ตัดชื่อ repository
-        const currentOrigin = window.location.origin; // เช่น https://kruthanadol.github.io
-        const currentPathname = window.location.pathname; // เช่น /BCW-Smart-Hub/login.html
-        const redirectUri = encodeURIComponent(currentOrigin + currentPathname);
-        
+        // ดึง URL ปัจจุบันและปรับให้เป็นตัวพิมพ์เล็กเพื่อความแม่นยำ
+        const redirectUri = encodeURIComponent((window.location.origin + window.location.pathname).toLowerCase());
         const state = Math.random().toString(36).substring(7);
     
-        // ยิงตรงไป LINE Login API (ไม่ผ่าน Supabase Custom OIDC เพื่อตัดปัญหา Email Error)
+        // ส่ง request ตรงไปยัง LINE OAuth 2.0 API
         const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${channelId}&redirect_uri=${redirectUri}&state=${state}&scope=profile%20openid`;
     
         window.location.href = lineAuthUrl;
