@@ -47,15 +47,16 @@ const AuthService = {
 
     // 🟢 4. เรียก OAuth LINE
     loginWithLine: function() {
-        // 1. ระบุ Channel ID ของ LINE Login
-        const channelId = '2012514131'; // ใส่ Channel ID ของคุณครูที่นี่
+        const channelId = '2012514131'; // Channel ID ของคุณครู
         
-        // 2. ดึง Path URL ปัจจุบันให้ตรงกับ GitHub Pages เสมอ
-        const repoPrefix = typeof getRepoPrefix === 'function' ? getRepoPrefix() : '';
-        const redirectUri = encodeURIComponent(`${window.location.origin}${repoPrefix}/login.html`);
+        // ดึง URL หน้า login ปัจจุบันแบบถูกต้อง ไม่ตัดชื่อ repository
+        const currentOrigin = window.location.origin; // เช่น https://kruthanadol.github.io
+        const currentPathname = window.location.pathname; // เช่น /BCW-Smart-Hub/login.html
+        const redirectUri = encodeURIComponent(currentOrigin + currentPathname);
+        
         const state = Math.random().toString(36).substring(7);
     
-        // 3. วิ่งตรงไปขอสิทธิ์จาก LINE Login API (ยิงตรงไม่ผ่าน Supabase Auth Provider)
+        // ยิงตรงไป LINE Login API (ไม่ผ่าน Supabase Custom OIDC เพื่อตัดปัญหา Email Error)
         const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${channelId}&redirect_uri=${redirectUri}&state=${state}&scope=profile%20openid`;
     
         window.location.href = lineAuthUrl;
