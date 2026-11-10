@@ -59,6 +59,34 @@ const AuthService = {
         window.location.href = lineAuthUrl;
     },
 
+    handleLineCallback: async function(code) {
+    try {
+        // 1. นำ code ไปแลก Profile หรือ line_user_id (ผ่าน Edge Function หรือ Direct Fetch)
+        // 2. ค้นหาผู้ใช้ในตาราง users หรือ students ด้วย line_user_id
+        const client = window.supabaseClient || window.db || window.supabase;
+        
+        // ตัวอย่าง: ค้นหาผู้ใช้จากตาราง users
+        const { data: user, error } = await client
+            .from('users')
+            .select('*')
+            .eq('line_code', code) // หรือค้นหาด้วย line_user_id
+            .maybeSingle();
+
+        if (user && user.role) {
+            // บันทึก Session ลงใน AuthManager
+            if (window.AuthManager) {
+                AuthManager.setCurrentUser(user);
+            }
+            // ย้ายหน้าไปยัง Dashboard ตาม Role (ADMIN, TEACHER, STUDENT)
+            this.redirectToRolePage(user.role);
+        } else {
+            alert('ไม่พบบัญชีผู้ใช้ที่เชื่อมต่อกับ LINE นี้ในระบบ');
+        }
+    } catch (err) {
+        console.error('Line Callback Processing Error:', err);
+    }
+}
+        
     // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login (ครู: T001/อีเมลจริง, นักเรียน: 13174, ผู้ปกครอง)
     loginWithPassword: async function(identifier, password) {
         if (this.isProcessingLogin) return;
