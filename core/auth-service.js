@@ -46,17 +46,17 @@ const AuthService = {
     },
 
     // 🟢 4. เรียก OAuth LINE
-        loginWithLine: async function() {
+    loginWithLine: async function() {
         const client = window.supabaseClient || window.db || window.supabase;
+        // ดึง repoPrefix (เช่น /BCW-Smart-Hub) มาต่อ path
         const repoPrefix = typeof getRepoPrefix === 'function' ? getRepoPrefix() : '';
-        // ระบุ path ของ GitHub Pages ให้ถูกต้องครบถ้วน
         const redirectTo = `${window.location.origin}${repoPrefix}/login.html`;
     
         const { data, error } = await client.auth.signInWithOAuth({
             provider: 'custom:line',
             options: {
                 redirectTo: redirectTo,
-                scopes: 'profile openid' // ใช้ profile openid เพื่อเลี่ยง error getting user info email
+                scopes: 'profile openid' // ไม่ส่ง email เพื่อป้องกัน error
             }
         });
     
