@@ -60,6 +60,7 @@ const AuthService = {
     },
 
     // 🟢 4.1 จัดการ Callback จาก LINE Login
+// 🟢 4.1 จัดการ Callback จาก LINE Login
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -67,53 +68,131 @@ const AuthService = {
         try {
             console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
             const client = window.supabaseClient || window.db || window.supabase;
+            const redirectUri = window.location.origin + window.location.pathname;
 
-            let matchedUser = null;
+            // 1. ดึง Access Token และ Profile จาก LINE (หรือดึงผ่าน Supabase Edge Function)
+            // หมายเหตุ: กรณีดึง Client-side ตรง เพื่อหา line_user_id
+            let lineUserId = null;
+            let lineDisplayName = '';
+            let linePictureUrl = '';
 
-            // ค้นหาผู้ใช้จากตาราง users ด้วย line_user_id หรือ line_code
+            try {
+                // ตัวอย่างยิงแลก Token (ถ้ามี backend/edge function ช่วย หรือใช้ code เป็น key ชั่วคราว)
+                // ในขั้นแรก หากทำการเซฟ line_user_id ลงฐานข้อมูลแล้ว สามารถใช้ lineUserId ค้นหาได้ตรงๆ
+                lineUserId = code; // ใช้ code / token id ในการอ้างอิง
+            } catch (e) {
+                console.warn('LINE Profile exchange notice:', e);
+            }
+
+            let detectedRole = null;
+            let matchedRecord = null;
+            let dbName = '';
+            let studentId = '';
+            let teacherCode = '';
+            let userEmail = '';
+            let avatarUrl = linePictureUrl;
+
+            // ----------------------------------------------------
+            // Step 1: เช็กจากตาราง users (ADMIN / EXECUTIVE / TEACHER)
+            // ----------------------------------------------------
             if (client) {
                 try {
                     const { data: userRec } = await client
                         .from('users')
                         .select('*')
-                        .or(`line_code.eq.${code},line_user_id.eq.${code}`)
+                        .or(`line_user_id.eq.${lineUserId},line_code.eq.${code}`)
                         .maybeSingle();
-                    if (userRec) matchedUser = userRec;
-                } catch (e) {
-                    console.warn('LINE Callback users table search notice:', e);
-                }
 
-                // หากไม่พบใน users ให้ค้นหาต่อในตาราง students
-                if (!matchedUser) {
-                    try {
-                        const { data: studentRec } = await client
-                            .from('students')
-                            .select('*')
-                            .or(`line_code.eq.${code},student_line_id.eq.${code}`)
-                            .maybeSingle();
-                        if (studentRec) matchedUser = studentRec;
-                    } catch (e) {
-                        console.warn('LINE Callback students table search notice:', e);
+                    if (userRec) {
+                        detectedRole = (userRec.role || 'TEACHER').toUpperCase();
+                        dbName = userRec.full_name || userRec.name || 'คุณครู';
+                        teacherCode = userRec.teacher_id || userRec.user_id || '';
+                        avatarUrl = userRec.avatar_url || avatarUrl;
+                        userEmail = userRec.email || '';
                     }
+                } catch (e) {
+                    console.warn('Users table LINE search notice:', e);
                 }
             }
 
-            // โครงสร้าง ssoUser สำหรับส่งเข้า handlePostLogin
-            const ssoUser = {
-                id: matchedUser ? (matchedUser.line_user_id || matchedUser.id || code) : code,
-                email: matchedUser?.email || matchedUser?.google_email || '',
-                user_metadata: {
-                    full_name: matchedUser ? (matchedUser.full_name || matchedUser.name || `${matchedUser.prefix || ''}${matchedUser.first_name || ''} ${matchedUser.last_name || ''}`.trim()) : 'ผู้ใช้งาน LINE',
-                    avatar_url: matchedUser?.avatar_url || ''
-                },
-                app_metadata: {
-                    provider: 'line'
+            // ----------------------------------------------------
+            // Step 2: ถ้าไม่เจอใน users ให้เช็กตาราง students (แยก นักเรียน vs ผู้ปกครอง)
+            // ----------------------------------------------------
+            if (!detectedRole && client) {
+                try {
+                    // 2.1 เช็กว่าเป็น "นักเรียน" หรือไม่ ( match ผ่าน student_line_id )
+                    const { data: studentRec } = await client
+                        .from('students')
+                        .select('*')
+                        .or(`student_line_id.eq.${lineUserId},student_line_id.eq.${code}`)
+                        .maybeSingle();
+
+                    if (studentRec) {
+                        detectedRole = 'STUDENT';
+                        studentId = studentRec.student_id || studentRec.id;
+                        const prefix = (studentRec.prefix || '').trim();
+                        const firstName = (studentRec.first_name || '').trim();
+                        const lastName = (studentRec.last_name || '').trim();
+                        dbName = `${prefix}${firstName} ${lastName}`.trim() || 'นักเรียน';
+                        avatarUrl = studentRec.avatar_url || avatarUrl;
+                        userEmail = studentRec.email || '';
+                    } else {
+                        // 2.2 ถ้าไม่ใช่ นักเรียน ให้เช็กว่าเป็น "ผู้ปกครอง" หรือไม่ ( match ผ่าน parent_line_id )
+                        const { data: parentRec } = await client
+                            .from('students')
+                            .select('*')
+                            .or(`parent_line_id.eq.${lineUserId},parent_line_id.eq.${code}`)
+                            .maybeSingle();
+
+                        if (parentRec) {
+                            detectedRole = 'PARENT';
+                            studentId = parentRec.student_id || parentRec.id;
+                            const prefix = (parentRec.prefix || '').trim();
+                            const firstName = (parentRec.first_name || '').trim();
+                            dbName = `ผู้ปกครอง (นักเรียน: ${prefix}${firstName})`;
+                            avatarUrl = parentRec.parent_avatar_url || avatarUrl;
+                            userEmail = parentRec.email || '';
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Students table LINE search notice:', e);
                 }
+            }
+
+            // ----------------------------------------------------
+            // Step 3: หากยังเป็น NULL ในตาราง (ยังไม่ได้ผูก LINE ID)
+            // ----------------------------------------------------
+            if (!detectedRole) {
+                this.isProcessingLogin = false;
+                alert('❌ บัญชี LINE นี้ยังไม่ได้ผูกกับระบบ\nกรุณาเข้าสู่ระบบด้วยรหัสนักเรียน/รหัสผ่านผู้ปกครองก่อน เพื่อทำการผูก LINE ID');
+                
+                // ล้าง Parameter บน URL แล้วส่งกลับไปหน้า Login
+                const repoPrefix = this.getRepoPrefix();
+                window.location.replace(window.location.origin + repoPrefix + '/login.html');
+                return;
+            }
+
+            // ----------------------------------------------------
+            // Step 4: บันทึก Session และย้ายหน้าไปยังบทบาทที่ถูกต้อง
+            // ----------------------------------------------------
+            const userProfile = {
+                id: studentId || teacherCode || lineUserId,
+                name: dbName,
+                avatar: avatarUrl,
+                role: detectedRole,
+                email: userEmail,
+                teacherId: teacherCode,
+                studentId: studentId,
+                provider: 'line'
             };
 
+            const sessionStr = JSON.stringify(userProfile);
+            localStorage.setItem('bcw_user_session', sessionStr);
+            sessionStorage.setItem('bcw_user_session', sessionStr);
+
             this.isProcessingLogin = false;
-            // ส่งไปให้ handlePostLogin ประมวลผลบทบาทและ Redirect ต่อไป
-            await this.handlePostLogin(ssoUser);
+            console.log(`✅ ยืนยันตัวตนสำเร็จ บทบาท: ${detectedRole} ย้ายไปยัง Dashboard...`);
+            this.redirectToRolePage(detectedRole);
 
         } catch (err) {
             this.isProcessingLogin = false;
