@@ -46,24 +46,19 @@ const AuthService = {
     },
 
     // 🟢 4. เรียก OAuth LINE
-    loginWithLine: async function() {
-        const client = window.supabaseClient || window.db || window.supabase;
-        // ดึง repoPrefix (เช่น /BCW-Smart-Hub) มาต่อ path
+    loginWithLine: function() {
+        // 1. ระบุ Channel ID ของ LINE Login
+        const channelId = '2012514131'; // ใส่ Channel ID ของคุณครูที่นี่
+        
+        // 2. ดึง Path URL ปัจจุบันให้ตรงกับ GitHub Pages เสมอ
         const repoPrefix = typeof getRepoPrefix === 'function' ? getRepoPrefix() : '';
-        const redirectTo = `${window.location.origin}${repoPrefix}/login.html`;
+        const redirectUri = encodeURIComponent(`${window.location.origin}${repoPrefix}/login.html`);
+        const state = Math.random().toString(36).substring(7);
     
-        const { data, error } = await client.auth.signInWithOAuth({
-            provider: 'custom:line',
-            options: {
-                redirectTo: redirectTo,
-                scopes: 'profile openid' // ไม่ส่ง email เพื่อป้องกัน error
-            }
-        });
+        // 3. วิ่งตรงไปขอสิทธิ์จาก LINE Login API (ยิงตรงไม่ผ่าน Supabase Auth Provider)
+        const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${channelId}&redirect_uri=${redirectUri}&state=${state}&scope=profile%20openid`;
     
-        if (error) {
-            console.error('LINE Login Error:', error);
-            alert('ไม่สามารถเชื่อมต่อ LINE Login ได้: ' + error.message);
-        }
+        window.location.href = lineAuthUrl;
     },
 
     // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login (ครู: T001/อีเมลจริง, นักเรียน: 13174, ผู้ปกครอง)
