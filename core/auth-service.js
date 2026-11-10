@@ -47,17 +47,22 @@ const AuthService = {
 
     // 🟢 4. เรียก OAuth LINE
     loginWithLine: async function() {
-        if (this.checkAndCleanUrlError()) return;
-
         const client = window.supabaseClient || window.db || window.supabase;
-        if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
-        
-        const redirectUrl = window.location.origin + this.getRepoPrefix() + '/login.html';
-        const { error } = await client.auth.signInWithOAuth({
-            provider: 'line',
-            options: { redirectTo: redirectUrl }
+        const repoPrefix = typeof getRepoPrefix === 'function' ? getRepoPrefix() : '';
+        const redirectTo = `${window.location.origin}${repoPrefix}/login.html`;
+    
+        const { data, error } = await client.auth.signInWithOAuth({
+            provider: 'custom:line', // เรียกใช้งาน custom provider
+            options: {
+                redirectTo: redirectTo,
+                scopes: 'profile openid email'
+            }
         });
-        if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย LINE: ' + error.message);
+    
+        if (error) {
+            console.error('LINE Login Error:', error);
+            alert('ไม่สามารถเชื่อมต่อ LINE Login ได้: ' + error.message);
+        }
     },
 
     // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login (ครู: T001/อีเมลจริง, นักเรียน: 13174, ผู้ปกครอง)
