@@ -59,33 +59,68 @@ const AuthService = {
         window.location.href = lineAuthUrl;
     },
 
+    // 🟢 4.1 จัดการ Callback จาก LINE Login
     handleLineCallback: async function(code) {
-    try {
-        // 1. นำ code ไปแลก Profile หรือ line_user_id (ผ่าน Edge Function หรือ Direct Fetch)
-        // 2. ค้นหาผู้ใช้ในตาราง users หรือ students ด้วย line_user_id
-        const client = window.supabaseClient || window.db || window.supabase;
-        
-        // ตัวอย่าง: ค้นหาผู้ใช้จากตาราง users
-        const { data: user, error } = await client
-            .from('users')
-            .select('*')
-            .eq('line_code', code) // หรือค้นหาด้วย line_user_id
-            .maybeSingle();
+        if (this.isProcessingLogin) return;
+        this.isProcessingLogin = true;
 
-        if (user && user.role) {
-            // บันทึก Session ลงใน AuthManager
-            if (window.AuthManager) {
-                AuthManager.setCurrentUser(user);
+        try {
+            console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
+            const client = window.supabaseClient || window.db || window.supabase;
+
+            let matchedUser = null;
+
+            // ค้นหาผู้ใช้จากตาราง users ด้วย line_user_id หรือ line_code
+            if (client) {
+                try {
+                    const { data: userRec } = await client
+                        .from('users')
+                        .select('*')
+                        .or(`line_code.eq.${code},line_user_id.eq.${code}`)
+                        .maybeSingle();
+                    if (userRec) matchedUser = userRec;
+                } catch (e) {
+                    console.warn('LINE Callback users table search notice:', e);
+                }
+
+                // หากไม่พบใน users ให้ค้นหาต่อในตาราง students
+                if (!matchedUser) {
+                    try {
+                        const { data: studentRec } = await client
+                            .from('students')
+                            .select('*')
+                            .or(`line_code.eq.${code},student_line_id.eq.${code}`)
+                            .maybeSingle();
+                        if (studentRec) matchedUser = studentRec;
+                    } catch (e) {
+                        console.warn('LINE Callback students table search notice:', e);
+                    }
+                }
             }
-            // ย้ายหน้าไปยัง Dashboard ตาม Role (ADMIN, TEACHER, STUDENT)
-            this.redirectToRolePage(user.role);
-        } else {
-            alert('ไม่พบบัญชีผู้ใช้ที่เชื่อมต่อกับ LINE นี้ในระบบ');
+
+            // โครงสร้าง ssoUser สำหรับส่งเข้า handlePostLogin
+            const ssoUser = {
+                id: matchedUser ? (matchedUser.line_user_id || matchedUser.id || code) : code,
+                email: matchedUser?.email || matchedUser?.google_email || '',
+                user_metadata: {
+                    full_name: matchedUser ? (matchedUser.full_name || matchedUser.name || `${matchedUser.prefix || ''}${matchedUser.first_name || ''} ${matchedUser.last_name || ''}`.trim()) : 'ผู้ใช้งาน LINE',
+                    avatar_url: matchedUser?.avatar_url || ''
+                },
+                app_metadata: {
+                    provider: 'line'
+                }
+            };
+
+            this.isProcessingLogin = false;
+            // ส่งไปให้ handlePostLogin ประมวลผลบทบาทและ Redirect ต่อไป
+            await this.handlePostLogin(ssoUser);
+
+        } catch (err) {
+            this.isProcessingLogin = false;
+            console.error('Line Callback Processing Error:', err);
+            alert('เกิดข้อผิดพลาดในการยืนยันตัวตนผ่าน LINE: ' + err.message);
         }
-    } catch (err) {
-        console.error('Line Callback Processing Error:', err);
-    }
-}
+    },
         
     // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login (ครู: T001/อีเมลจริง, นักเรียน: 13174, ผู้ปกครอง)
     loginWithPassword: async function(identifier, password) {
@@ -316,6 +351,8 @@ const AuthService = {
             const sessionStr = JSON.stringify(hybridProfile);
             localStorage.setItem('bcw_user_session', sessionStr);
             sessionStorage.setItem('bcw_user_session', sessionStr);
+
+            this.isProcessingLogin = false;
 
             // ส่งต่อไปยังปลายทาง
             this.redirectToRolePage(detectedRole);
