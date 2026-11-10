@@ -181,23 +181,34 @@
         }
     })();
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // 🟢 Step 1: ถ้าผู้ใช้มี Session ค้างใน Storage อยู่แล้ว ให้ย้ายหน้าไปยังบทบาทตนเองทันที
-        const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
-        if (currentUser && currentUser.role) {
-            console.log('พบ Session ค้างอยู่ ดีดไปยังบทบาท:', currentUser.role);
-            if (window.AuthService && typeof AuthService.redirectToRolePage === 'function') {
-                AuthService.redirectToRolePage(currentUser.role);
-            }
+   document.addEventListener('DOMContentLoaded', async () => {
+    // 🟢 Step 1: ถ้าผู้ใช้มี Session ค้างใน Storage อยู่แล้ว ให้ย้ายหน้าไปยังบทบาทตนเองทันที
+    const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+    if (currentUser && currentUser.role) {
+        console.log('พบ Session ค้างอยู่ ดีดไปยังบทบาท:', currentUser.role);
+        if (window.AuthService && typeof AuthService.redirectToRolePage === 'function') {
+            AuthService.redirectToRolePage(currentUser.role);
+            return; // หยุดการทำงานถ้ามี session แล้ว
         }
+    }
 
-        // 🟢 Step 2: ผูก Event Submit ของฟอร์ม Direct Login (ถ้ามี element form)
-        const directForm = document.getElementById('directLoginForm') || document.querySelector('form');
-        if (directForm) {
-            directForm.addEventListener('submit', handleAccountLogin);
+    // 🟢 Step 2: ผูก Event Submit ของฟอร์ม Direct Login
+    const directForm = document.getElementById('directLoginForm') || document.querySelector('form');
+    if (directForm) {
+        directForm.addEventListener('submit', handleAccountLogin);
+    }
+
+    // 🟢 Step 3: ตรวจสอบ LINE Login Callback (กรณีเพิ่งล็อกอินผ่าน LINE กลับมา)
+    const urlParams = new URLSearchParams(window.location.search);
+    const lineCode = urlParams.get('code');
+
+    if (lineCode) {
+        console.log('พบ LINE Authorization Code กำลังดำเนินการยืนยันตัวตน...');
+        if (window.AuthService && typeof AuthService.handleLineCallback === 'function') {
+            await AuthService.handleLineCallback(lineCode);
         }
-    });
-
+    }
+});
     // 🟢 Step 3: ฟังก์ชันล็อกอินด้วย อีเมล / รหัสประจำตัว Direct Form (อัปเดตให้รองรับ T001, 13174 และอีเมลจริง)
     async function handleAccountLogin(event) {
         if (event) event.preventDefault();
