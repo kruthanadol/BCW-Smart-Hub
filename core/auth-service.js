@@ -1,4 +1,4 @@
-// core/auth-service.js - Perfect LINE Auto-Remember Edition
+// core/auth-service.js - Perfect Auto-Remember LINE Edition (Fixed Binding Mismatch)
 const AuthService = {
     isProcessingLogin: false,
     currentSelectedRole: 'STUDENT',
@@ -46,8 +46,7 @@ const AuthService = {
         window.location.href = lineAuthUrl;
     },
 
-    // 🟢 4.1 ตรวจสอบและดึง Session สำเร็จทันทีถ้าระบบเคยบันทึกไว้
-// 🟢 4.1 จัดการ Callback จาก LINE Login (ปรับปรุงให้จำถาวร ไม่เด้ง Pop-up ซ้ำ)
+    // 🟢 4.1 จัดการ Callback จาก LINE Login (ดึง Identity ที่ผูกไว้แล้วมาใช้ทันที)
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -56,11 +55,12 @@ const AuthService = {
             console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
             const client = window.supabaseClient || window.db || window.supabase;
             
-            // 1. ดึงข้อมูลที่เคยผูกไว้ในเครื่องนี้ (ถ้ามี)
+            // 1. เช็กว่าเครื่องนี้เคยผูกรหัส/อีเมล ไว้หรือไม่
+            const boundIdentity = localStorage.getItem('bcw_bound_identity') || localStorage.getItem('bcw_bound_line_id');
+            const savedRole = localStorage.getItem('bcw_bound_role');
             const savedSessionStr = localStorage.getItem('bcw_user_session');
-            const boundIdentity = localStorage.getItem('bcw_bound_identity'); // เช่น รหัสนักเรียน หรือ อีเมล
 
-            // 2. ถ้ามี Session สมบูรณ์อยู่แล้ว พาเข้า Dashboard ทันที
+            // 2. ถ้ามี Session สมบูรณ์อยู่ในเครื่องแล้ว ➔ เข้า Dashboard ทันที
             if (savedSessionStr) {
                 try {
                     const session = JSON.parse(savedSessionStr);
@@ -79,9 +79,9 @@ const AuthService = {
             let teacherCode = '';
             let userEmail = '';
 
-            // 3. ถ้ามี boundIdentity (เคยผูกไว้แล้ว) ให้ค้นหาจาก ID/Email ใน DB
+            // 3. ถ้ามี boundIdentity ที่เคยบันทึกไว้ ให้ค้นหาข้อมูลล่าสุดจาก Supabase
             if (boundIdentity && client) {
-                // เช็กตาราง students ก่อน
+                // 3.1 เช็กตาราง students
                 try {
                     const { data: student } = await client
                         .from('students')
@@ -90,47 +90,46 @@ const AuthService = {
                         .maybeSingle();
 
                     if (student) {
-                        const savedRole = localStorage.getItem('bcw_bound_role') || 'STUDENT';
-                        detectedRole = savedRole;
+                        detectedRole = savedRole || 'STUDENT';
                         studentId = student.student_id;
                         const prefix = (student.prefix || '').trim();
                         const firstName = (student.first_name || '').trim();
                         const lastName = (student.last_name || '').trim();
 
-                        dbName = (savedRole === 'PARENT') 
+                        dbName = (detectedRole === 'PARENT') 
                             ? `ผู้ปกครอง (${prefix}${firstName})`
                             : `${prefix}${firstName} ${lastName}`.trim();
                         userEmail = student.email || `${studentId}@buached.ac.th`;
                     }
                 } catch(e) {}
 
-                // ถ้าไม่ใช่ student เช็กตาราง users (ครู/แอดมิน)
+                // 3.2 เช็กตาราง users (ครู/แอดมิน)
                 if (!detectedRole) {
                     try {
                         const { data: userRec } = await client
                             .from('users')
                             .select('*')
-                            .or(`teacher_id.eq.${boundIdentity},email.eq.${boundIdentity.toLowerCase()}`)
+                            .or(`teacher_id.eq.${boundIdentity},email.eq.${boundIdentity.toLowerCase()},user_id.eq.${boundIdentity}`)
                             .maybeSingle();
 
                         if (userRec) {
                             detectedRole = (userRec.role || 'TEACHER').toUpperCase();
                             dbName = userRec.full_name || userRec.name || 'คุณครู';
-                            teacherCode = userRec.teacher_id || userRec.id;
+                            teacherCode = userRec.teacher_id || userRec.user_id || userRec.id;
                             userEmail = userRec.email || '';
                         }
                     } catch(e) {}
                 }
             }
 
-            // 4. ถ้ายังไม่พบข้อมูลผูกไว้เลย ➔ แสดง Pop-up เพื่อผูกครั้งแรก
+            // 4. ถ้ายังไม่เคยผูกเลย ➔ เปิด Pop-up ผูกครั้งแรก
             if (!detectedRole) {
                 this.isProcessingLogin = false;
                 this.promptLineBinding(code);
                 return;
             }
 
-            // 5. บันทึก Session และนำเข้าสู่ระบบทันที
+            // 5. บันทึก Session และเข้าสู่ระบบ
             this.completeLoginSession(boundIdentity, dbName, detectedRole, studentId, teacherCode, userEmail);
 
         } catch (err) {
@@ -140,7 +139,7 @@ const AuthService = {
         }
     },
 
-    // 🟢 4.2 Pop-up UI แบบ Custom
+    // 🟢 4.2 Pop-up UI
     promptLineBinding: function(lineUserId) {
         const existingModal = document.getElementById('lineBindingModal');
         if (existingModal) existingModal.remove();
@@ -227,7 +226,7 @@ const AuthService = {
         }
     },
 
-    // 🟢 4.3 ประมวลผลผูกบัญชีและจำ Session
+    // 🟢 4.3 ประมวลผลผูกบัญชีและบันทึก Identity ถาวรลง LocalStorage
     processLineBinding: async function(lineUserId) {
         const inputVal = (document.getElementById('bindInputCode').value || '').trim();
         const statusMsg = document.getElementById('modalStatusMsg');
@@ -306,7 +305,9 @@ const AuthService = {
                 email = inputVal;
             }
 
-            // บันทึก Bound ID และ Session แบบสมบูรณ์
+            // 🟢 บันทึก Identity & Role ลงในเครื่องเพื่อข้าม Pop-up ในครั้งถัดไป
+            localStorage.setItem('bcw_bound_identity', inputVal);
+            localStorage.setItem('bcw_bound_role', assignedRole);
             localStorage.setItem('bcw_bound_line_id', lineUserId);
 
             statusMsg.style.display = 'block';
@@ -317,7 +318,7 @@ const AuthService = {
             setTimeout(() => {
                 const modal = document.getElementById('lineBindingModal');
                 if (modal) modal.remove();
-                this.completeLoginSession(lineUserId, displayName, assignedRole, studentId, teacherCode, email);
+                this.completeLoginSession(inputVal, displayName, assignedRole, studentId, teacherCode, email);
             }, 500);
 
         } catch (err) {
@@ -330,10 +331,18 @@ const AuthService = {
         }
     },
 
-    // 🟢 4.4 บันทึก Session ให้ครบโครงสร้างเพื่อไม่ให้หน้าปลายทางดีดกลับ
+    // 🟢 4.4 บันทึก Session สำเร็จ
     completeLoginSession: function(id, name, role, studentId, teacherId, email) {
+        const boundId = id || studentId || teacherId;
+        
+        // บันทึก Identity ถาวรกันหลุด
+        if (boundId) {
+            localStorage.setItem('bcw_bound_identity', boundId);
+            localStorage.setItem('bcw_bound_role', role);
+        }
+
         const userProfile = {
-            id: studentId || teacherId || id,
+            id: boundId,
             name: name,
             role: role,
             email: email,
