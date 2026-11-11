@@ -1,4 +1,4 @@
-// core/auth-service.js - Unified Auth Architecture Edition (บำรุงรักษาจากโค้ดเดิม)
+// core/auth-service.js - Unified Auth Architecture Edition (Professional Modal UI Edition)
 const AuthService = {
     isProcessingLogin: false,
 
@@ -13,7 +13,7 @@ const AuthService = {
         return '';
     },
 
-    // 🟢 2. ดักจับและล้าง Error SSO ใน URL อัตโนมัติ (แก้ปัญหา Popup แจ้งสิทธิ์เด้งกวนใจ)
+    // 🟢 2. ดักจับและล้าง Error SSO ใน URL อัตโนมัติ
     checkAndCleanUrlError: function() {
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -47,19 +47,17 @@ const AuthService = {
 
     // 🟢 4. เรียก OAuth LINE
     loginWithLine: function() {
-        const channelId = '2012514131'; // LINE Channel ID ของคุณครู
+        const channelId = '2012514131'; // LINE Channel ID
         
-        // ดึง URL หน้า login ปัจจุบันให้ถูกต้องครบถ้วนตาม Path ของ GitHub Pages
         const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
         const state = Math.random().toString(36).substring(7);
     
-        // ยิงตรงไปขอสิทธิ์จาก LINE Login API โดยไม่ผ่าน Supabase Custom Provider
         const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${channelId}&redirect_uri=${redirectUri}&state=${state}&scope=profile%20openid`;
     
         window.location.href = lineAuthUrl;
     },
 
-    // 🟢 4.1 จัดการ Callback จาก LINE Login (เช็กและเรียกผูกบัญชีอัตโนมัติ)
+    // 🟢 4.1 จัดการ Callback จาก LINE Login
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -126,10 +124,10 @@ const AuthService = {
                 } catch (e) { console.warn('Students table notice:', e); }
             }
 
-            // Step 3: หากยังไม่เคยผูก LINE ID ในระบบ ➔ เรียก Pop-up ถามผูกบัญชีอัตโนมัติ
+            // Step 3: หากยังไม่เคยผูก LINE ID ในระบบ ➔ แสดง Professional Custom Modal
             if (!detectedRole) {
                 this.isProcessingLogin = false;
-                await this.promptLineBinding(lineUserId);
+                this.promptLineBinding(lineUserId);
                 return;
             }
 
@@ -143,76 +141,169 @@ const AuthService = {
         }
     },
 
-    // 🟢 4.2 ฟังก์ชันถามและผูกบัญชีอัตโนมัติสำหรับผู้ใช้งานใหม่ทุกบทบาท
-    promptLineBinding: async function(lineUserId) {
-        const roleOption = prompt(
-            "ยินดีต้อนรับสู่ BCW Smart Hub!\n" +
-            "กรุณาเลือกประเภทผู้ใช้งานสำหรับผูกบัญชี LINE:\n\n" +
-            "1 = นักเรียน\n" +
-            "2 = ผู้ปกครอง\n" +
-            "3 = ครู / ผู้บริหาร\n" +
-            "4 = แอดมิน (Admin)", 
-            "1"
-        );
+    // 🟢 4.2 สร้างและแสดง Custom Modal สไตล์มืออาชีพสำหรับผูกบัญชี LINE
+    promptLineBinding: function(lineUserId) {
+        // ลบ Modal เก่าหากมีค้างอยู่
+        const existingModal = document.getElementById('lineBindingModal');
+        if (existingModal) existingModal.remove();
 
-        if (!roleOption) return;
+        // โครงสร้าง HTML Modal แบบหรูหรา
+        const modalHtml = `
+            <div id="lineBindingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" style="font-family: 'Prompt', sans-serif;">
+                <div class="bg-white rounded-3xl shadow-2xl border border-emerald-100 max-w-lg w-full overflow-hidden transform transition-all duration-300 scale-95 hover:scale-100">
+                    <!-- Modal Header -->
+                    <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 p-6 text-white text-center relative">
+                        <div class="w-16 h-16 bg-white/20 rounded-2xl backdrop-blur-md flex items-center justify-center mx-auto mb-3 border border-white/30 shadow-lg">
+                            <i class="fab font-bold text-3xl">LINE</i>
+                        </div>
+                        <h3 class="text-2xl font-bold tracking-wide">ผูกบัญชี LINE เข้าใช้งาน</h3>
+                        <p class="text-emerald-100 text-sm mt-1">กรุณายืนยันตัวตนเพียงครั้งเดียวเพื่อใช้งานยาวๆ</p>
+                    </div>
+
+                    <!-- Modal Body / Form -->
+                    <div class="p-6 space-y-5">
+                        <!-- Step 1: Select Role -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">เลือกประเภทผู้ใช้งาน</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button type="button" onclick="AuthService.selectRoleOption('STUDENT')" id="btnRoleStudent" class="role-btn border-2 border-emerald-500 bg-emerald-50 text-emerald-700 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md">
+                                    <span class="text-xl mb-1">👨‍🎓</span>
+                                    <span>นักเรียน</span>
+                                </button>
+                                <button type="button" onclick="AuthService.selectRoleOption('PARENT')" id="btnRoleParent" class="role-btn border-2 border-gray-200 text-gray-600 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md hover:border-emerald-300">
+                                    <span class="text-xl mb-1">👨‍👩‍👦</span>
+                                    <span>ผู้ปกครอง</span>
+                                </button>
+                                <button type="button" onclick="AuthService.selectRoleOption('TEACHER')" id="btnRoleTeacher" class="role-btn border-2 border-gray-200 text-gray-600 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md hover:border-emerald-300">
+                                    <span class="text-xl mb-1">👨‍🏫</span>
+                                    <span>ครู / ผู้บริหาร</span>
+                                </button>
+                                <button type="button" onclick="AuthService.selectRoleOption('ADMIN')" id="btnRoleAdmin" class="role-btn border-2 border-gray-200 text-gray-600 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md hover:border-emerald-300">
+                                    <span class="text-xl mb-1">🛠️</span>
+                                    <span>แอดมิน (Admin)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Input ID/Email -->
+                        <div>
+                            <label id="inputLabel" class="block text-sm font-semibold text-gray-700 mb-2">กรอกรหัสนักเรียน (5 หลัก)</label>
+                            <input type="text" id="bindInputCode" placeholder="ระบุรหัสยืนยันตัวตน..." 
+                                class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all font-medium text-gray-800 outline-none shadow-sm">
+                        </div>
+
+                        <!-- Status Message -->
+                        <div id="modalStatusMsg" class="hidden text-sm p-3 rounded-xl text-center font-medium"></div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center space-x-3 pt-2">
+                            <button type="button" onclick="document.getElementById('lineBindingModal').remove()" 
+                                class="w-1/3 py-3 rounded-xl border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-all">
+                                ยกเลิก
+                            </button>
+                            <button type="button" id="btnSubmitBind" onclick="AuthService.processLineBinding('${lineUserId}')" 
+                                class="w-2/3 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg hover:shadow-emerald-500/30 hover:opacity-95 transition-all">
+                                🔗 เชื่อมต่อบัญชีทันที
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        this.currentSelectedRole = 'STUDENT'; // default role
+    },
+
+    // เลือก Role ใน Modal
+    selectRoleOption: function(role) {
+        this.currentSelectedRole = role;
+        
+        // Reset Style ปุ่มทั้งหมด
+        document.querySelectorAll('.role-btn').forEach(btn => {
+            btn.className = 'role-btn border-2 border-gray-200 text-gray-600 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md hover:border-emerald-300';
+        });
+
+        // Highlight ปุ่มที่เลือก
+        const activeBtn = document.getElementById(`btnRole${role.charAt(0) + role.slice(1).toLowerCase()}`);
+        if (activeBtn) {
+            activeBtn.className = 'role-btn border-2 border-emerald-500 bg-emerald-50 text-emerald-700 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md';
+        }
+
+        // ปรับ Label ตามบทบาท
+        const label = document.getElementById('inputLabel');
+        const input = document.getElementById('bindInputCode');
+
+        if (role === 'STUDENT' || role === 'PARENT') {
+            label.innerText = 'กรอกรหัสนักเรียน (5 หลัก)';
+            input.placeholder = 'เช่น 13174';
+        } else if (role === 'TEACHER') {
+            label.innerText = 'กรอกรหัสครู (เช่น T001) หรือ อีเมลโรงเรียน';
+            input.placeholder = 'เช่น T011 หรือ teacher@buached.ac.th';
+        } else if (role === 'ADMIN') {
+            label.innerText = 'กรอกอีเมลผู้ดูแลระบบ (Admin Email)';
+            input.placeholder = 'เช่น kruthanadol@buached.ac.th';
+        }
+    },
+
+    // ยืนยันข้อมูลใน Modal และบันทึกเข้า Supabase
+    processLineBinding: async function(lineUserId) {
+        const inputVal = (document.getElementById('bindInputCode').value || '').trim();
+        const statusMsg = document.getElementById('modalStatusMsg');
+        const btnSubmit = document.getElementById('btnSubmitBind');
+        const role = this.currentSelectedRole || 'STUDENT';
+
+        if (!inputVal) {
+            statusMsg.className = 'text-sm p-3 rounded-xl text-center font-medium bg-red-50 text-red-600 block';
+            statusMsg.innerText = '⚠️ กรุณากรอกรหัส หรือ อีเมลยืนยันตัวตน';
+            return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = '⏳ กำลังบันทึกข้อมูล...';
 
         const client = window.supabaseClient || window.db || window.supabase;
-        if (!client) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
+        if (!client) {
+            alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
+            btnSubmit.disabled = false;
+            return;
+        }
 
         try {
-            // ----------------------------------------------------
-            // กรณีที่ 1 & 2: นักเรียน และ ผู้ปกครอง
-            // ----------------------------------------------------
-            if (roleOption === '1' || roleOption === '2') {
-                const inputStudentId = prompt("กรุณากรอก รหัสนักเรียน (5 หลัก):");
-                if (!inputStudentId) return;
+            let assignedRole = role;
+            let displayName = '';
+            let studentId = '';
+            let teacherCode = '';
+            let email = '';
 
+            // 1. นักเรียน / ผู้ปกครอง
+            if (role === 'STUDENT' || role === 'PARENT') {
                 const { data: student, error } = await client
                     .from('students')
                     .select('*')
-                    .eq('student_id', inputStudentId.trim())
+                    .eq('student_id', inputVal)
                     .maybeSingle();
 
                 if (error || !student) {
-                    alert('❌ ไม่พบรหัสนักเรียนนี้ในระบบ กรุณาตรวจสอบรหัสอีกครั้ง');
-                    return;
+                    throw new Error('ไม่พบรหัสนักเรียนนี้ในระบบ กรุณาตรวจสอบอีกครั้ง');
                 }
 
                 let updateData = {};
-                let assignedRole = '';
-                let displayName = '';
-
-                if (roleOption === '2') {
+                if (role === 'PARENT') {
                     updateData = { parent_line_id: lineUserId };
-                    assignedRole = 'PARENT';
                     displayName = `ผู้ปกครอง (${student.prefix || ''}${student.first_name || ''})`;
                 } else {
                     updateData = { student_line_id: lineUserId };
-                    assignedRole = 'STUDENT';
                     displayName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
                 }
 
-                const { error: updateError } = await client
-                    .from('students')
-                    .update(updateData)
-                    .eq('id', student.id);
-
-                if (updateError) throw updateError;
-
-                alert('✅ ผูกบัญชี LINE สำเร็จ! กำลังนำท่านเข้าสู่ระบบ...');
-                this.completeLoginSession(lineUserId, displayName, assignedRole, student.student_id, '', student.email || '');
-            }
-
-            // ----------------------------------------------------
-            // กรณีที่ 3: ครู / ผู้บริหาร
-            // ----------------------------------------------------
-            else if (roleOption === '3') {
-                const inputTeacher = prompt("กรุณากรอก รหัสประจำตัวครู (เช่น T001) หรือ อีเมลโรงเรียน:");
-                if (!inputTeacher) return;
-
-                const inputClean = inputTeacher.trim().toLowerCase();
-
+                await client.from('students').update(updateData).eq('id', student.id);
+                studentId = student.student_id;
+                email = student.email || '';
+            } 
+            // 2. ครู / ผู้บริหาร
+            else if (role === 'TEACHER') {
+                const inputClean = inputVal.toLowerCase();
                 const { data: userRec, error } = await client
                     .from('users')
                     .select('*')
@@ -220,48 +311,41 @@ const AuthService = {
                     .maybeSingle();
 
                 if (error || !userRec) {
-                    alert('❌ ไม่พบข้อมูลคุณครู/ผู้บริหารในระบบ กรุณาตรวจสอบรหัสอีกครั้ง');
-                    return;
+                    throw new Error('ไม่พบรหัสครูหรืออีเมลนี้ในระบบ');
                 }
 
-                const { error: updateError } = await client
-                    .from('users')
-                    .update({ line_user_id: lineUserId })
-                    .eq('id', userRec.id);
-
-                if (updateError) throw updateError;
-
-                const assignedRole = (userRec.role || 'TEACHER').toUpperCase();
-                const displayName = userRec.full_name || userRec.name || 'คุณครู';
-
-                alert('✅ ผูกบัญชี LINE คุณครูสำเร็จ! กำลังนำท่านเข้าสู่ระบบ...');
-                this.completeLoginSession(lineUserId, displayName, assignedRole, '', userRec.teacher_id || userRec.user_id, userRec.email || '');
+                await client.from('users').update({ line_user_id: lineUserId }).eq('id', userRec.id);
+                assignedRole = (userRec.role || 'TEACHER').toUpperCase();
+                displayName = userRec.full_name || userRec.name || 'คุณครู';
+                teacherCode = userRec.teacher_id || userRec.user_id || '';
+                email = userRec.email || '';
             }
-
-            // ----------------------------------------------------
-            // กรณีที่ 4: แอดมิน (ADMIN)
-            // ----------------------------------------------------
-            else if (roleOption === '4') {
-                const adminEmail = prompt("กรุณากรอก อีเมลผู้ดูแลระบบ (Admin Email):");
-                if (!adminEmail) return;
-
-                if (adminEmail.trim().toLowerCase() !== 'kruthanadol@buached.ac.th') {
-                    alert('❌ อีเมลนี้ไม่มีสิทธิ์ใช้งานในบทบาท Admin');
-                    return;
+            // 3. แอดมิน
+            else if (role === 'ADMIN') {
+                if (inputVal.toLowerCase() !== 'kruthanadol@buached.ac.th') {
+                    throw new Error('อีเมลนี้ไม่มีสิทธิ์ใช้งานในบทบาท Admin');
                 }
 
-                await client
-                    .from('users')
-                    .update({ line_user_id: lineUserId })
-                    .eq('email', adminEmail.trim().toLowerCase());
-
-                alert('✅ ผูกบัญชี LINE สำหรับ Admin สำเร็จ!');
-                this.completeLoginSession(lineUserId, 'ผู้ดูแลระบบ', 'ADMIN', '', 'ADMIN01', adminEmail.trim());
+                await client.from('users').update({ line_user_id: lineUserId }).eq('email', inputVal.toLowerCase());
+                assignedRole = 'ADMIN';
+                displayName = 'ผู้ดูแลระบบ';
+                email = inputVal;
             }
+
+            // สำเร็จ ➔ ลบ Modal และย้ายหน้า
+            statusMsg.className = 'text-sm p-3 rounded-xl text-center font-medium bg-emerald-50 text-emerald-600 block';
+            statusMsg.innerText = '✅ ผูกบัญชี LINE สำเร็จ! กำลังเข้าสู่ระบบ...';
+
+            setTimeout(() => {
+                document.getElementById('lineBindingModal').remove();
+                this.completeLoginSession(lineUserId, displayName, assignedRole, studentId, teacherCode, email);
+            }, 1000);
 
         } catch (err) {
-            console.error('Line Binding Error:', err);
-            alert('เกิดข้อผิดพลาดในการผูกบัญชี: ' + err.message);
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = '🔗 เชื่อมต่อบัญชีทันที';
+            statusMsg.className = 'text-sm p-3 rounded-xl text-center font-medium bg-red-50 text-red-600 block';
+            statusMsg.innerText = '❌ ' + err.message;
         }
     },
 
@@ -284,7 +368,7 @@ const AuthService = {
         this.redirectToRolePage(role);
     },
         
-    // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login (ครู: T001/อีเมลจริง, นักเรียน: 13174, ผู้ปกครอง)
+    // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login
     loginWithPassword: async function(identifier, password) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -304,7 +388,6 @@ const AuthService = {
             let studentId = '';
             let avatarUrl = '';
 
-            // Step 1: ค้นหาในตาราง users (ครู / Admin / ผู้บริหาร)
             try {
                 let userQuery = client.from('users').select('*');
                 if (inputLower.includes('@')) {
@@ -327,10 +410,8 @@ const AuthService = {
                 }
             } catch (e) {
                 if (e.message === "รหัสผ่านไม่ถูกต้อง") throw e;
-                console.warn('Direct login users query notice:', e);
             }
 
-            // Step 2: ถ้าไม่พบ ค้นหาต่อในตาราง students (นักเรียน / ผู้ปกครอง)
             if (!detectedRole) {
                 try {
                     let studentQuery = client.from('students').select('*');
@@ -343,7 +424,6 @@ const AuthService = {
                     const { data: student } = await studentQuery.maybeSingle();
 
                     if (student) {
-                        // เช็กว่าเป็นรหัสผ่านผู้ปกครองหรือนักเรียน
                         if (student.parent_password && student.parent_password === pass) {
                             detectedRole = 'PARENT';
                         } else if (student.student_id && student.student_id === pass) {
@@ -365,7 +445,6 @@ const AuthService = {
                     }
                 } catch (e) {
                     if (e.message === "รหัสผ่านไม่ถูกต้อง") throw e;
-                    console.warn('Direct login students query notice:', e);
                 }
             }
 
@@ -373,7 +452,6 @@ const AuthService = {
                 throw new Error("ไม่พบข้อมูลผู้ใช้งาน หรือรหัสประจำตัวนี้ในระบบ");
             }
 
-            // บันทึก Session และส่งไปยังหน้าปลายทาง
             const userProfile = {
                 id: studentId || teacherCode || input,
                 name: dbName,
@@ -399,11 +477,9 @@ const AuthService = {
         }
     },
 
-    // 🟢 6. ประมวลผลหลัง SSO สกัดบทบาทผู้ใช้งาน (RBAC - รองรับ Google & LINE)
+    // 🟢 6. ประมวลผลหลัง SSO
     handlePostLogin: async function(ssoUser) {
-        // หาก URL ติด Error ให้หยุดและล้างค่าทันที
         if (this.checkAndCleanUrlError()) return;
-
         if (!ssoUser || this.isProcessingLogin) return;
         this.isProcessingLogin = true;
 
@@ -420,13 +496,11 @@ const AuthService = {
             let teacherCode = '';
             let studentId = '';
 
-            // Step 0: ตรวจสอบ Admin ล็อกเฉพาะอีเมลประจำ
             if (email === 'kruthanadol@buached.ac.th') {
                 detectedRole = 'ADMIN';
                 dbName = ssoUser.user_metadata?.full_name || 'ผู้ดูแลระบบ';
             }
 
-            // Step 1: ตรวจสอบจากตาราง users (ครู / Admin / ผู้บริหาร)
             if (!detectedRole && client && (email || userId)) {
                 try {
                     let userQuery = client.from('users').select('*');
@@ -445,7 +519,6 @@ const AuthService = {
                 } catch (e) { console.warn('Users table query notice:', e); }
             }
 
-            // Step 2: ตรวจสอบจากตาราง teachers
             if (!detectedRole && client && email) {
                 try {
                     let { data: teacher } = await client
@@ -471,7 +544,6 @@ const AuthService = {
                 } catch (e) { console.warn('Teacher Query Error:', e); }
             }
 
-            // Step 3: ตรวจสอบจากตาราง students (นักเรียน)
             if (!detectedRole && client && (email || userId)) {
                 try {
                     let studentQuery = client.from('students').select('*');
@@ -491,7 +563,6 @@ const AuthService = {
                 } catch (e) { console.warn('Student Query Error:', e); }
             }
 
-            // Step 4: Fallback
             if (!detectedRole) {
                 dbName = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || (email ? email.split('@')[0] : 'ผู้ใช้งาน');
                 detectedRole = email.endsWith('@buached.ac.th') ? 'STUDENT' : 'PARENT';
@@ -515,8 +586,6 @@ const AuthService = {
             sessionStorage.setItem('bcw_user_session', sessionStr);
 
             this.isProcessingLogin = false;
-
-            // ส่งต่อไปยังปลายทาง
             this.redirectToRolePage(detectedRole);
 
         } catch (err) {
@@ -525,7 +594,7 @@ const AuthService = {
         }
     },
 
-    // 🟢 7. Redirect ไปยังหน้าประจำสิทธิ์ (ป้องกัน Loop และ URL เพี้ยน)
+    // 🟢 7. Redirect ไปยังหน้าประจำสิทธิ์
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
