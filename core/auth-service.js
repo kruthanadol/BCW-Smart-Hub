@@ -47,16 +47,20 @@ const AuthService = {
     },
 
     // 🟢 4.1 ตรวจสอบและดึง Session สำเร็จทันทีถ้าระบบเคยบันทึกไว้
+// 🟢 4.1 จัดการ Callback จาก LINE Login (ปรับปรุงให้จำถาวร ไม่เด้ง Pop-up ซ้ำ)
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
 
         try {
-            console.log('🔄 กำลังประมวลผล LINE Callback Code:', code);
+            console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
             const client = window.supabaseClient || window.db || window.supabase;
-
-            // 1. เช็ก Session ที่เคยผูกสำเร็จในเครื่องก่อนทันที
+            
+            // 1. ดึงข้อมูลที่เคยผูกไว้ในเครื่องนี้ (ถ้ามี)
             const savedSessionStr = localStorage.getItem('bcw_user_session');
+            const boundIdentity = localStorage.getItem('bcw_bound_identity'); // เช่น รหัสนักเรียน หรือ อีเมล
+
+            // 2. ถ้ามี Session สมบูรณ์อยู่แล้ว พาเข้า Dashboard ทันที
             if (savedSessionStr) {
                 try {
                     const session = JSON.parse(savedSessionStr);
@@ -66,12 +70,8 @@ const AuthService = {
                         this.redirectToRolePage(session.role);
                         return;
                     }
-                } catch (e) {}
+                } catch(e) {}
             }
-
-            // 2. ถ้าไม่มีใน LocalStorage ค้นหาใน DB ด้วย saved_id หรือ code
-            const savedBoundId = localStorage.getItem('bcw_bound_line_id');
-            const targetLineKey = savedBoundId || code;
 
             let detectedRole = null;
             let dbName = '';
@@ -79,68 +79,63 @@ const AuthService = {
             let teacherCode = '';
             let userEmail = '';
 
-            // Step A: ค้นหาในตาราง users
-            if (client) {
+            // 3. ถ้ามี boundIdentity (เคยผูกไว้แล้ว) ให้ค้นหาจาก ID/Email ใน DB
+            if (boundIdentity && client) {
+                // เช็กตาราง students ก่อน
                 try {
-                    const { data: userRec } = await client
-                        .from('users')
-                        .select('*')
-                        .or(`line_user_id.eq.${targetLineKey},line_user_id.eq.${code}`)
-                        .maybeSingle();
-
-                    if (userRec) {
-                        detectedRole = (userRec.role || 'TEACHER').toUpperCase();
-                        dbName = userRec.full_name || userRec.name || 'คุณครู';
-                        teacherCode = userRec.teacher_id || userRec.user_id || userRec.id;
-                        userEmail = userRec.email || '';
-                    }
-                } catch (e) { console.warn('Users table notice:', e); }
-            }
-
-            // Step B: ค้นหาในตาราง students
-            if (!detectedRole && client) {
-                try {
-                    const { data: studentRec } = await client
+                    const { data: student } = await client
                         .from('students')
                         .select('*')
-                        .or(`student_line_id.eq.${targetLineKey},student_line_id.eq.${code}`)
+                        .eq('student_id', boundIdentity)
                         .maybeSingle();
 
-                    if (studentRec) {
-                        detectedRole = 'STUDENT';
-                        studentId = studentRec.student_id || studentRec.id;
-                        dbName = `${studentRec.prefix || ''}${studentRec.first_name || ''} ${studentRec.last_name || ''}`.trim();
-                        userEmail = studentRec.email || `${studentId}@buached.ac.th`;
-                    } else {
-                        const { data: parentRec } = await client
-                            .from('students')
+                    if (student) {
+                        const savedRole = localStorage.getItem('bcw_bound_role') || 'STUDENT';
+                        detectedRole = savedRole;
+                        studentId = student.student_id;
+                        const prefix = (student.prefix || '').trim();
+                        const firstName = (student.first_name || '').trim();
+                        const lastName = (student.last_name || '').trim();
+
+                        dbName = (savedRole === 'PARENT') 
+                            ? `ผู้ปกครอง (${prefix}${firstName})`
+                            : `${prefix}${firstName} ${lastName}`.trim();
+                        userEmail = student.email || `${studentId}@buached.ac.th`;
+                    }
+                } catch(e) {}
+
+                // ถ้าไม่ใช่ student เช็กตาราง users (ครู/แอดมิน)
+                if (!detectedRole) {
+                    try {
+                        const { data: userRec } = await client
+                            .from('users')
                             .select('*')
-                            .or(`parent_line_id.eq.${targetLineKey},parent_line_id.eq.${code}`)
+                            .or(`teacher_id.eq.${boundIdentity},email.eq.${boundIdentity.toLowerCase()}`)
                             .maybeSingle();
 
-                        if (parentRec) {
-                            detectedRole = 'PARENT';
-                            studentId = parentRec.student_id || parentRec.id;
-                            dbName = `ผู้ปกครอง (${parentRec.prefix || ''}${parentRec.first_name || ''})`;
-                            userEmail = parentRec.email || `${studentId}@buached.ac.th`;
+                        if (userRec) {
+                            detectedRole = (userRec.role || 'TEACHER').toUpperCase();
+                            dbName = userRec.full_name || userRec.name || 'คุณครู';
+                            teacherCode = userRec.teacher_id || userRec.id;
+                            userEmail = userRec.email || '';
                         }
-                    }
-                } catch (e) { console.warn('Students table notice:', e); }
+                    } catch(e) {}
+                }
             }
 
-            // Step C: ถ้ายังไม่มีในระบบ ➔ เปิด Pop-up ผูกบัญชี
+            // 4. ถ้ายังไม่พบข้อมูลผูกไว้เลย ➔ แสดง Pop-up เพื่อผูกครั้งแรก
             if (!detectedRole) {
                 this.isProcessingLogin = false;
                 this.promptLineBinding(code);
                 return;
             }
 
-            // Step D: เข้าสู่ระบบและบันทึก Session
-            this.completeLoginSession(targetLineKey, dbName, detectedRole, studentId, teacherCode, userEmail);
+            // 5. บันทึก Session และนำเข้าสู่ระบบทันที
+            this.completeLoginSession(boundIdentity, dbName, detectedRole, studentId, teacherCode, userEmail);
 
         } catch (err) {
             this.isProcessingLogin = false;
-            console.error('Line Callback Error:', err);
+            console.error('Line Callback Processing Error:', err);
             alert('เกิดข้อผิดพลาดในการยืนยันตัวตนผ่าน LINE: ' + err.message);
         }
     },
