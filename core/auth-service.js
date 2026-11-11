@@ -1,28 +1,23 @@
-// core/auth-service.js - Unified Auth Architecture Edition (Fixed LINE Binding Bug)
+// core/auth-service.js - Perfect LINE Auto-Remember Edition
 const AuthService = {
     isProcessingLogin: false,
     currentSelectedRole: 'STUDENT',
 
-    // 🟢 1. คำนวณ Prefix ของ Repo บน GitHub Pages
     getRepoPrefix: function() {
         const hostname = window.location.hostname;
         const pathSegments = window.location.pathname.split('/').filter(Boolean);
-
         if (hostname.includes('github.io') && pathSegments.length > 0) {
             return '/' + pathSegments[0];
         }
         return '';
     },
 
-    // 🟢 2. ดักจับและล้าง Error SSO ใน URL
     checkAndCleanUrlError: function() {
         const urlParams = new URLSearchParams(window.location.search);
-        
         if (urlParams.has('error') || urlParams.has('error_code')) {
-            console.warn('⚠️ พบ Error จาก SSO ทำการล้าง URL และส่งกลับไปหน้า Login');
+            console.warn('⚠️ พบ Error จาก SSO ทำการล้าง URL');
             localStorage.removeItem('bcw_user_session');
             sessionStorage.removeItem('bcw_user_session');
-
             const repoPrefix = this.getRepoPrefix();
             window.location.replace(window.location.origin + repoPrefix + '/login.html');
             return true;
@@ -30,10 +25,8 @@ const AuthService = {
         return false;
     },
 
-    // 🟢 3. เรียก OAuth Google
     loginWithGoogle: async function() {
         if (this.checkAndCleanUrlError()) return;
-
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client || !client.auth) return alert('ไม่พบการเชื่อมต่อ Supabase');
         
@@ -45,53 +38,48 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
     },
 
-    // 🟢 4. เรียก OAuth LINE
     loginWithLine: function() {
         const channelId = '2012514131';
-        localStorage.setItem('bcw_line_login_in_progress', 'true');
-
         const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
         const state = Math.random().toString(36).substring(7);
         const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${channelId}&redirect_uri=${redirectUri}&state=${state}&scope=profile%20openid`;
-    
         window.location.href = lineAuthUrl;
     },
 
-// 🟢 4.1 จัดการ Callback จาก LINE Login (เช็ก LocalStorage ก่อน เพื่อข้าม Pop-up เด้งซ้ำ)
+    // 🟢 4.1 ตรวจสอบและดึง Session สำเร็จทันทีถ้าระบบเคยบันทึกไว้
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
 
         try {
-            console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
+            console.log('🔄 กำลังประมวลผล LINE Callback Code:', code);
             const client = window.supabaseClient || window.db || window.supabase;
-            
-            // 1. ดึงคีย์ที่เคยผูกบัญชีไว้แล้วในเครื่องนี้
-            const savedBoundId = localStorage.getItem('bcw_bound_line_id');
-            const savedSessionStr = localStorage.getItem('bcw_user_session');
 
-            // 2. ถ้าเคยผูกบัญชีและมี Session ในเครื่องแล้ว ให้เข้าสู่ระบบตรงทันที (ข้าม Pop-up)
+            // 1. เช็ก Session ที่เคยผูกสำเร็จในเครื่องก่อนทันที
+            const savedSessionStr = localStorage.getItem('bcw_user_session');
             if (savedSessionStr) {
                 try {
                     const session = JSON.parse(savedSessionStr);
                     if (session && session.role) {
-                        console.log('✅ พบ Session ผูกบัญชีเดิม นำเข้าสู่ระบบทันที:', session.role);
+                        console.log('✅ พบ Session LINE ในเครื่อง นำเข้าสู่ระบบทันที:', session.role);
                         this.isProcessingLogin = false;
                         this.redirectToRolePage(session.role);
                         return;
                     }
-                } catch(e) {}
+                } catch (e) {}
             }
 
-            // 3. ถ้าไม่มี Session ให้ใช้คีย์ที่เคยผูกไว้ หรือ code ในการค้นหา Supabase
+            // 2. ถ้าไม่มีใน LocalStorage ค้นหาใน DB ด้วย saved_id หรือ code
+            const savedBoundId = localStorage.getItem('bcw_bound_line_id');
             const targetLineKey = savedBoundId || code;
+
             let detectedRole = null;
             let dbName = '';
             let studentId = '';
             let teacherCode = '';
             let userEmail = '';
 
-            // Step A: ค้นหาในตาราง users (ครู / Admin / ผู้บริหาร)
+            // Step A: ค้นหาในตาราง users
             if (client) {
                 try {
                     const { data: userRec } = await client
@@ -109,10 +97,9 @@ const AuthService = {
                 } catch (e) { console.warn('Users table notice:', e); }
             }
 
-            // Step B: ค้นหาในตาราง students (นักเรียน & ผู้ปกครอง)
+            // Step B: ค้นหาในตาราง students
             if (!detectedRole && client) {
                 try {
-                    // เช็กนักเรียน
                     const { data: studentRec } = await client
                         .from('students')
                         .select('*')
@@ -123,9 +110,8 @@ const AuthService = {
                         detectedRole = 'STUDENT';
                         studentId = studentRec.student_id || studentRec.id;
                         dbName = `${studentRec.prefix || ''}${studentRec.first_name || ''} ${studentRec.last_name || ''}`.trim();
-                        userEmail = studentRec.email || '';
+                        userEmail = studentRec.email || `${studentId}@buached.ac.th`;
                     } else {
-                        // เช็กผู้ปกครอง
                         const { data: parentRec } = await client
                             .from('students')
                             .select('*')
@@ -136,144 +122,30 @@ const AuthService = {
                             detectedRole = 'PARENT';
                             studentId = parentRec.student_id || parentRec.id;
                             dbName = `ผู้ปกครอง (${parentRec.prefix || ''}${parentRec.first_name || ''})`;
-                            userEmail = parentRec.email || '';
+                            userEmail = parentRec.email || `${studentId}@buached.ac.th`;
                         }
                     }
                 } catch (e) { console.warn('Students table notice:', e); }
             }
 
-            // Step C: หากยังไม่เคยผูกบัญชีเลยจริงๆ ➔ เปิด Pop-up ให้ผูกครั้งแรก
+            // Step C: ถ้ายังไม่มีในระบบ ➔ เปิด Pop-up ผูกบัญชี
             if (!detectedRole) {
                 this.isProcessingLogin = false;
                 this.promptLineBinding(code);
                 return;
             }
 
-            // Step D: พบบัญชีแล้ว ➔ เซฟ Key และเข้าสู่ระบบทันที
-            localStorage.setItem('bcw_bound_line_id', targetLineKey);
+            // Step D: เข้าสู่ระบบและบันทึก Session
             this.completeLoginSession(targetLineKey, dbName, detectedRole, studentId, teacherCode, userEmail);
 
         } catch (err) {
             this.isProcessingLogin = false;
-            console.error('Line Callback Processing Error:', err);
+            console.error('Line Callback Error:', err);
             alert('เกิดข้อผิดพลาดในการยืนยันตัวตนผ่าน LINE: ' + err.message);
         }
     },
 
-    // 🟢 4.2 ปรับปรุงการกดเชื่อมต่อบัญชีให้เซฟคีย์ถาวรลง Browser
-    processLineBinding: async function(lineUserId) {
-        const inputVal = (document.getElementById('bindInputCode').value || '').trim();
-        const statusMsg = document.getElementById('modalStatusMsg');
-        const btnSubmit = document.getElementById('btnSubmitBind');
-        const role = this.currentSelectedRole || 'STUDENT';
-
-        if (!inputVal) {
-            statusMsg.style.display = 'block';
-            statusMsg.style.background = '#fef2f2';
-            statusMsg.style.color = '#dc2626';
-            statusMsg.innerText = '⚠️ กรุณากรอกรหัส หรือ อีเมลยืนยันตัวตน';
-            return;
-        }
-
-        btnSubmit.disabled = true;
-        btnSubmit.innerText = '⏳ กำลังบันทึกข้อมูล...';
-
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (!client) {
-            alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
-            btnSubmit.disabled = false;
-            btnSubmit.innerText = '🔗 เชื่อมต่อบัญชีทันที';
-            return;
-        }
-
-        try {
-            let assignedRole = role;
-            let displayName = '';
-            let studentId = '';
-            let teacherCode = '';
-            let email = '';
-
-            // 1. นักเรียน / ผู้ปกครอง
-            if (role === 'STUDENT' || role === 'PARENT') {
-                const { data: student, error } = await client
-                    .from('students')
-                    .select('*')
-                    .eq('student_id', inputVal)
-                    .maybeSingle();
-
-                if (error || !student) {
-                    throw new Error('ไม่พบรหัสนักเรียนนี้ในระบบ กรุณาตรวจสอบอีกครั้ง');
-                }
-
-                let updateData = {};
-                if (role === 'PARENT') {
-                    updateData = { parent_line_id: lineUserId };
-                    displayName = `ผู้ปกครอง (${student.prefix || ''}${student.first_name || ''})`;
-                } else {
-                    updateData = { student_line_id: lineUserId };
-                    displayName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
-                }
-
-                await client.from('students').update(updateData).eq('id', student.id);
-                studentId = student.student_id;
-                email = student.email || '';
-            } 
-            // 2. ครู / ผู้บริหาร
-            else if (role === 'TEACHER') {
-                const inputClean = inputVal.toLowerCase();
-                const { data: userRec, error } = await client
-                    .from('users')
-                    .select('*')
-                    .or(`teacher_id.eq.${inputVal},email.eq.${inputClean},user_id.eq.${inputVal}`)
-                    .maybeSingle();
-
-                if (error || !userRec) {
-                    throw new Error('ไม่พบรหัสครูหรืออีเมลนี้ในระบบ');
-                }
-
-                await client.from('users').update({ line_user_id: lineUserId }).eq('id', userRec.id);
-                assignedRole = (userRec.role || 'TEACHER').toUpperCase();
-                displayName = userRec.full_name || userRec.name || 'คุณครู';
-                teacherCode = userRec.teacher_id || userRec.user_id || '';
-                email = userRec.email || '';
-            }
-            // 3. แอดมิน
-            else if (role === 'ADMIN') {
-                if (inputVal.toLowerCase() !== 'kruthanadol@buached.ac.th') {
-                    throw new Error('อีเมลนี้ไม่มีสิทธิ์ใช้งานในบทบาท Admin');
-                }
-
-                await client.from('users').update({ line_user_id: lineUserId }).eq('email', inputVal.toLowerCase());
-                assignedRole = 'ADMIN';
-                displayName = 'ผู้ดูแลระบบ';
-                email = inputVal;
-            }
-
-            // 🟢 บันทึก Key ยืนยันการผูกไว้ใน Browser อย่างถาวร
-            localStorage.setItem('bcw_bound_line_id', lineUserId);
-
-            statusMsg.style.display = 'block';
-            statusMsg.style.background = '#ecfdf5';
-            statusMsg.style.color = '#047857';
-            statusMsg.innerText = '✅ ผูกบัญชี LINE สำเร็จ! กำลังเข้าสู่ระบบ...';
-
-            setTimeout(() => {
-                const modal = document.getElementById('lineBindingModal');
-                if (modal) modal.remove();
-                this.completeLoginSession(lineUserId, displayName, assignedRole, studentId, teacherCode, email);
-            }, 800);
-
-        } catch (err) {
-            btnSubmit.disabled = false;
-            btnSubmit.innerText = '🔗 เชื่อมต่อบัญชีทันที';
-            statusMsg.style.display = 'block';
-            statusMsg.style.background = '#fef2f2';
-            statusMsg.style.color = '#dc2626';
-            statusMsg.innerText = '❌ ' + err.message;
-        }
-    },
-
-    // 🟢 4.2 สร้างและแสดง Custom Modal UI สวยงาม ละเอียด
+    // 🟢 4.2 Pop-up UI แบบ Custom
     promptLineBinding: function(lineUserId) {
         const existingModal = document.getElementById('lineBindingModal');
         if (existingModal) existingModal.remove();
@@ -281,8 +153,6 @@ const AuthService = {
         const modalHtml = `
             <div id="lineBindingModal" style="position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.75); backdrop-filter: blur(8px); padding: 16px; font-family: 'Prompt', sans-serif;">
                 <div style="background: #ffffff; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); max-width: 440px; width: 100%; overflow: hidden; animation: fadeInModal 0.3s ease-out forwards;">
-                    
-                    <!-- Header -->
                     <div style="background: linear-gradient(135deg, #059669 0%, #0d9488 100%); padding: 24px; text-align: center; color: white;">
                         <div style="width: 56px; height: 56px; background: rgba(255,255,255,0.2); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; border: 1px solid rgba(255,255,255,0.4);">
                             <i class="fab fa-line" style="font-size: 32px; color: #ffffff;"></i>
@@ -290,12 +160,8 @@ const AuthService = {
                         <h3 style="font-size: 20px; font-weight: 700; margin: 0; color: #ffffff;">ผูกบัญชี LINE เข้าใช้งาน</h3>
                         <p style="font-size: 13px; color: #a7f3d0; margin-top: 4px;">กรุณายืนยันตัวตนครั้งแรกเพื่อเข้าใช้งานระบบ</p>
                     </div>
-
-                    <!-- Body -->
                     <div style="padding: 20px;">
                         <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">เลือกประเภทผู้ใช้งาน</label>
-                        
-                        <!-- Role Grid -->
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
                             <button type="button" onclick="AuthService.selectRoleOption('STUDENT')" id="btnRoleStudent" style="border: 2px solid #10b981; background: #ecfdf5; color: #047857; padding: 10px; border-radius: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 13px;">
                                 <span style="font-size: 20px; margin-bottom: 2px;">👨‍🎓</span> นักเรียน
@@ -310,27 +176,14 @@ const AuthService = {
                                 <span style="font-size: 20px; margin-bottom: 2px;">🛠️</span> แอดมิน (Admin)
                             </button>
                         </div>
-
-                        <!-- Input Code -->
                         <div style="margin-bottom: 16px;">
                             <label id="inputLabel" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">กรอกรหัสนักเรียน (5 หลัก)</label>
-                            <input type="text" id="bindInputCode" placeholder="เช่น 13174" 
-                                style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #d1d5db; font-size: 14px; outline: none; box-sizing: border-box;">
+                            <input type="text" id="bindInputCode" placeholder="เช่น 13174" style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #d1d5db; font-size: 14px; outline: none; box-sizing: border-box;">
                         </div>
-
-                        <!-- Status Message -->
                         <div id="modalStatusMsg" style="display: none; font-size: 13px; padding: 10px; border-radius: 10px; text-align: center; font-weight: 500; margin-bottom: 14px;"></div>
-
-                        <!-- Actions -->
                         <div style="display: flex; gap: 10px;">
-                            <button type="button" onclick="document.getElementById('lineBindingModal').remove()" 
-                                style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #d1d5db; background: #ffffff; color: #4b5563; font-weight: 600; cursor: pointer; font-size: 14px;">
-                                ยกเลิก
-                            </button>
-                            <button type="button" id="btnSubmitBind" onclick="AuthService.processLineBinding('${lineUserId}')" 
-                                style="flex: 2; padding: 12px; border-radius: 12px; border: none; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);">
-                                🔗 เชื่อมต่อบัญชีทันที
-                            </button>
+                            <button type="button" onclick="document.getElementById('lineBindingModal').remove()" style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #d1d5db; background: #ffffff; color: #4b5563; font-weight: 600; cursor: pointer; font-size: 14px;">ยกเลิก</button>
+                            <button type="button" id="btnSubmitBind" onclick="AuthService.processLineBinding('${lineUserId}')" style="flex: 2; padding: 12px; border-radius: 12px; border: none; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);">🔗 เชื่อมต่อบัญชีทันที</button>
                         </div>
                     </div>
                 </div>
@@ -342,16 +195,13 @@ const AuthService = {
                 }
             </style>
         `;
-
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         this.currentSelectedRole = 'STUDENT';
     },
 
-    // 🟢 4.3 เลือก Role ใน Modal
     selectRoleOption: function(role) {
         this.currentSelectedRole = role;
         const roles = ['STUDENT', 'PARENT', 'TEACHER', 'ADMIN'];
-
         roles.forEach(r => {
             const btnName = 'btnRole' + r.charAt(0) + r.slice(1).toLowerCase();
             const btn = document.getElementById(btnName);
@@ -370,7 +220,6 @@ const AuthService = {
 
         const label = document.getElementById('inputLabel');
         const input = document.getElementById('bindInputCode');
-
         if (role === 'STUDENT' || role === 'PARENT') {
             label.innerText = 'กรอกรหัสนักเรียน (5 หลัก)';
             input.placeholder = 'เช่น 13174';
@@ -383,7 +232,7 @@ const AuthService = {
         }
     },
 
-    // 🟢 4.4 ประมวลผลเมื่อกดปุ่ม "เชื่อมต่อบัญชีทันที" (แก้ไข Bug ล็อคค้างแล้ว)
+    // 🟢 4.3 ประมวลผลผูกบัญชีและจำ Session
     processLineBinding: async function(lineUserId) {
         const inputVal = (document.getElementById('bindInputCode').value || '').trim();
         const statusMsg = document.getElementById('modalStatusMsg');
@@ -403,7 +252,7 @@ const AuthService = {
 
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client) {
-            alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
+            alert('ไม่พบการเชื่อมต่อ Supabase');
             btnSubmit.disabled = false;
             btnSubmit.innerText = '🔗 เชื่อมต่อบัญชีทันที';
             return;
@@ -416,7 +265,6 @@ const AuthService = {
             let teacherCode = '';
             let email = '';
 
-            // 1. นักเรียน / ผู้ปกครอง
             if (role === 'STUDENT' || role === 'PARENT') {
                 const { data: student, error } = await client
                     .from('students')
@@ -424,9 +272,7 @@ const AuthService = {
                     .eq('student_id', inputVal)
                     .maybeSingle();
 
-                if (error || !student) {
-                    throw new Error('ไม่พบรหัสนักเรียนนี้ในระบบ กรุณาตรวจสอบอีกครั้ง');
-                }
+                if (error || !student) throw new Error('ไม่พบรหัสนักเรียนนี้ในระบบ');
 
                 let updateData = {};
                 if (role === 'PARENT') {
@@ -439,10 +285,8 @@ const AuthService = {
 
                 await client.from('students').update(updateData).eq('id', student.id);
                 studentId = student.student_id;
-                email = student.email || '';
-            } 
-            // 2. ครู / ผู้บริหาร
-            else if (role === 'TEACHER') {
+                email = student.email || `${studentId}@buached.ac.th`;
+            } else if (role === 'TEACHER') {
                 const inputClean = inputVal.toLowerCase();
                 const { data: userRec, error } = await client
                     .from('users')
@@ -450,29 +294,24 @@ const AuthService = {
                     .or(`teacher_id.eq.${inputVal},email.eq.${inputClean},user_id.eq.${inputVal}`)
                     .maybeSingle();
 
-                if (error || !userRec) {
-                    throw new Error('ไม่พบรหัสครูหรืออีเมลนี้ในระบบ');
-                }
+                if (error || !userRec) throw new Error('ไม่พบรหัสครูหรืออีเมลนี้ในระบบ');
 
                 await client.from('users').update({ line_user_id: lineUserId }).eq('id', userRec.id);
                 assignedRole = (userRec.role || 'TEACHER').toUpperCase();
                 displayName = userRec.full_name || userRec.name || 'คุณครู';
                 teacherCode = userRec.teacher_id || userRec.user_id || '';
                 email = userRec.email || '';
-            }
-            // 3. แอดมิน
-            else if (role === 'ADMIN') {
+            } else if (role === 'ADMIN') {
                 if (inputVal.toLowerCase() !== 'kruthanadol@buached.ac.th') {
                     throw new Error('อีเมลนี้ไม่มีสิทธิ์ใช้งานในบทบาท Admin');
                 }
-
                 await client.from('users').update({ line_user_id: lineUserId }).eq('email', inputVal.toLowerCase());
                 assignedRole = 'ADMIN';
                 displayName = 'ผู้ดูแลระบบ';
                 email = inputVal;
             }
 
-            // บันทึก Key ยืนยันไว้ใน Browser
+            // บันทึก Bound ID และ Session แบบสมบูรณ์
             localStorage.setItem('bcw_bound_line_id', lineUserId);
 
             statusMsg.style.display = 'block';
@@ -484,7 +323,7 @@ const AuthService = {
                 const modal = document.getElementById('lineBindingModal');
                 if (modal) modal.remove();
                 this.completeLoginSession(lineUserId, displayName, assignedRole, studentId, teacherCode, email);
-            }, 800);
+            }, 500);
 
         } catch (err) {
             btnSubmit.disabled = false;
@@ -496,15 +335,16 @@ const AuthService = {
         }
     },
 
-    // 🟢 4.5 บันทึก Session และ Redirect
+    // 🟢 4.4 บันทึก Session ให้ครบโครงสร้างเพื่อไม่ให้หน้าปลายทางดีดกลับ
     completeLoginSession: function(id, name, role, studentId, teacherId, email) {
         const userProfile = {
-            id: id,
+            id: studentId || teacherId || id,
             name: name,
             role: role,
             email: email,
-            teacherId: teacherId,
-            studentId: studentId,
+            teacherId: teacherId || '',
+            studentId: studentId || '',
+            student_id: studentId || '',
             provider: 'line'
         };
 
@@ -515,7 +355,6 @@ const AuthService = {
         this.redirectToRolePage(role);
     },
 
-    // 🟢 5. Direct Login
     loginWithPassword: async function(identifier, password) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -595,7 +434,7 @@ const AuthService = {
                             ? `ผู้ปกครอง (${prefix}${firstName})`
                             : `${prefix}${firstName} ${lastName}`.trim() || 'นักเรียน';
 
-                        userEmail = student.email || student.student_google_email || inputLower;
+                        userEmail = student.email || student.student_google_email || `${studentIdStr}@buached.ac.th`;
                         studentId = studentIdStr;
                         avatarUrl = student.avatar_url || '';
                     }
@@ -608,23 +447,7 @@ const AuthService = {
                 throw new Error("ไม่พบข้อมูลผู้ใช้งาน หรือรหัสประจำตัวนี้ในระบบ");
             }
 
-            const userProfile = {
-                id: studentId || teacherCode || input,
-                name: dbName,
-                avatar: avatarUrl,
-                role: detectedRole,
-                email: userEmail,
-                teacherId: teacherCode,
-                studentId: studentId,
-                provider: 'direct'
-            };
-
-            const sessionStr = JSON.stringify(userProfile);
-            localStorage.setItem('bcw_user_session', sessionStr);
-            sessionStorage.setItem('bcw_user_session', sessionStr);
-
-            this.isProcessingLogin = false;
-            this.redirectToRolePage(detectedRole);
+            this.completeLoginSession(studentId || teacherCode || input, dbName, detectedRole, studentId, teacherCode, userEmail);
 
         } catch (err) {
             this.isProcessingLogin = false;
@@ -633,7 +456,6 @@ const AuthService = {
         }
     },
 
-    // 🟢 6. ประมวลผลหลัง SSO
     handlePostLogin: async function(ssoUser) {
         if (this.checkAndCleanUrlError()) return;
         if (!ssoUser || this.isProcessingLogin) return;
@@ -724,25 +546,7 @@ const AuthService = {
                 detectedRole = email.endsWith('@buached.ac.th') ? 'STUDENT' : 'PARENT';
             }
 
-            if (!dbName) dbName = 'ผู้ใช้งานระบบ';
-
-            const hybridProfile = {
-                id: userId || studentId || teacherCode,
-                name: dbName,
-                avatar: ssoAvatar,
-                role: detectedRole,
-                email: email,
-                teacherId: teacherCode || 'T011',
-                studentId: studentId,
-                provider: ssoUser.app_metadata?.provider || 'sso'
-            };
-
-            const sessionStr = JSON.stringify(hybridProfile);
-            localStorage.setItem('bcw_user_session', sessionStr);
-            sessionStorage.setItem('bcw_user_session', sessionStr);
-
-            this.isProcessingLogin = false;
-            this.redirectToRolePage(detectedRole);
+            this.completeLoginSession(userId || studentId || teacherCode, dbName, detectedRole, studentId, teacherCode, email);
 
         } catch (err) {
             console.error('handlePostLogin Error:', err);
@@ -750,7 +554,6 @@ const AuthService = {
         }
     },
 
-    // 🟢 7. Redirect ไปยังหน้าประจำสิทธิ์
     redirectToRolePage: function(role) {
         const r = (role || 'STUDENT').toUpperCase();
         const currentPath = window.location.pathname;
