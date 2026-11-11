@@ -142,95 +142,101 @@ const AuthService = {
     },
 
     // 🟢 4.2 สร้างและแสดง Custom Modal สไตล์มืออาชีพสำหรับผูกบัญชี LINE
+// 🟢 4.2 Custom Modal UI สวยงาม ละเอียด ป้องกัน CSS ตกบนมือถือและคอม
     promptLineBinding: function(lineUserId) {
-        // ลบ Modal เก่าหากมีค้างอยู่
         const existingModal = document.getElementById('lineBindingModal');
         if (existingModal) existingModal.remove();
 
-        // โครงสร้าง HTML Modal แบบหรูหรา
         const modalHtml = `
-            <div id="lineBindingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" style="font-family: 'Prompt', sans-serif;">
-                <div class="bg-white rounded-3xl shadow-2xl border border-emerald-100 max-w-lg w-full overflow-hidden transform transition-all duration-300 scale-95 hover:scale-100">
-                    <!-- Modal Header -->
-                    <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 p-6 text-white text-center relative">
-                        <div class="w-16 h-16 bg-white/20 rounded-2xl backdrop-blur-md flex items-center justify-center mx-auto mb-3 border border-white/30 shadow-lg">
-                            <i class="fab font-bold text-3xl">LINE</i>
+            <div id="lineBindingModal" style="position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; background-color: rgba(0,0,0,0.75); backdrop-filter: blur(8px); padding: 16px; font-family: 'Prompt', sans-serif;">
+                <div style="background: #ffffff; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); max-width: 440px; width: 100%; overflow: hidden; animation: fadeInModal 0.3s ease-out forwards;">
+                    
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #059669 0%, #0d9488 100%); padding: 24px; text-align: center; color: white;">
+                        <div style="width: 56px; height: 56px; background: rgba(255,255,255,0.2); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; border: 1px solid rgba(255,255,255,0.4);">
+                            <i class="fab fa-line" style="font-size: 32px; color: #ffffff;"></i>
                         </div>
-                        <h3 class="text-2xl font-bold tracking-wide">ผูกบัญชี LINE เข้าใช้งาน</h3>
-                        <p class="text-emerald-100 text-sm mt-1">กรุณายืนยันตัวตนเพียงครั้งเดียวเพื่อใช้งานยาวๆ</p>
+                        <h3 style="font-size: 20px; font-weight: 700; margin: 0; color: #ffffff;">ผูกบัญชี LINE เข้าใช้งาน</h3>
+                        <p style="font-size: 13px; color: #a7f3d0; margin-top: 4px;">กรุณายืนยันตัวตนครั้งแรกเพื่อเข้าใช้งานระบบ</p>
                     </div>
 
-                    <!-- Modal Body / Form -->
-                    <div class="p-6 space-y-5">
-                        <!-- Step 1: Select Role -->
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">เลือกประเภทผู้ใช้งาน</label>
-                            <div class="grid grid-cols-2 gap-3">
-                                <button type="button" onclick="AuthService.selectRoleOption('STUDENT')" id="btnRoleStudent" class="role-btn border-2 border-emerald-500 bg-emerald-50 text-emerald-700 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md">
-                                    <span class="text-xl mb-1">👨‍🎓</span>
-                                    <span>นักเรียน</span>
-                                </button>
-                                <button type="button" onclick="AuthService.selectRoleOption('PARENT')" id="btnRoleParent" class="role-btn border-2 border-gray-200 text-gray-600 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md hover:border-emerald-300">
-                                    <span class="text-xl mb-1">👨‍👩‍👦</span>
-                                    <span>ผู้ปกครอง</span>
-                                </button>
-                                <button type="button" onclick="AuthService.selectRoleOption('TEACHER')" id="btnRoleTeacher" class="role-btn border-2 border-gray-200 text-gray-600 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md hover:border-emerald-300">
-                                    <span class="text-xl mb-1">👨‍🏫</span>
-                                    <span>ครู / ผู้บริหาร</span>
-                                </button>
-                                <button type="button" onclick="AuthService.selectRoleOption('ADMIN')" id="btnRoleAdmin" class="role-btn border-2 border-gray-200 text-gray-600 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md hover:border-emerald-300">
-                                    <span class="text-xl mb-1">🛠️</span>
-                                    <span>แอดมิน (Admin)</span>
-                                </button>
-                            </div>
+                    <!-- Body -->
+                    <div style="padding: 20px;">
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px;">เลือกประเภทผู้ใช้งาน</label>
+                        
+                        <!-- Role Selection Grid -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                            <button type="button" onclick="AuthService.selectRoleOption('STUDENT')" id="btnRoleStudent" style="border: 2px solid #10b981; background: #ecfdf5; color: #047857; padding: 10px; border-radius: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 13px;">
+                                <span style="font-size: 20px; margin-bottom: 2px;">👨‍🎓</span> นักเรียน
+                            </button>
+                            <button type="button" onclick="AuthService.selectRoleOption('PARENT')" id="btnRoleParent" style="border: 2px solid #e5e7eb; background: #ffffff; color: #4b5563; padding: 10px; border-radius: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 13px;">
+                                <span style="font-size: 20px; margin-bottom: 2px;">👨‍👩‍👦</span> ผู้ปกครอง
+                            </button>
+                            <button type="button" onclick="AuthService.selectRoleOption('TEACHER')" id="btnRoleTeacher" style="border: 2px solid #e5e7eb; background: #ffffff; color: #4b5563; padding: 10px; border-radius: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 13px;">
+                                <span style="font-size: 20px; margin-bottom: 2px;">👨‍🏫</span> ครู / ผู้บริหาร
+                            </button>
+                            <button type="button" onclick="AuthService.selectRoleOption('ADMIN')" id="btnRoleAdmin" style="border: 2px solid #e5e7eb; background: #ffffff; color: #4b5563; padding: 10px; border-radius: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 13px;">
+                                <span style="font-size: 20px; margin-bottom: 2px;">🛠️</span> แอดมิน (Admin)
+                            </button>
                         </div>
 
-                        <!-- Step 2: Input ID/Email -->
-                        <div>
-                            <label id="inputLabel" class="block text-sm font-semibold text-gray-700 mb-2">กรอกรหัสนักเรียน (5 หลัก)</label>
-                            <input type="text" id="bindInputCode" placeholder="ระบุรหัสยืนยันตัวตน..." 
-                                class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all font-medium text-gray-800 outline-none shadow-sm">
+                        <!-- Input -->
+                        <div style="margin-bottom: 16px;">
+                            <label id="inputLabel" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">กรอกรหัสนักเรียน (5 หลัก)</label>
+                            <input type="text" id="bindInputCode" placeholder="เช่น 13174" 
+                                style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #d1d5db; font-size: 14px; outline: none; box-sizing: border-box;">
                         </div>
 
                         <!-- Status Message -->
-                        <div id="modalStatusMsg" class="hidden text-sm p-3 rounded-xl text-center font-medium"></div>
+                        <div id="modalStatusMsg" style="display: none; font-size: 13px; padding: 10px; border-radius: 10px; text-align: center; font-weight: 500; margin-bottom: 14px;"></div>
 
-                        <!-- Action Buttons -->
-                        <div class="flex items-center space-x-3 pt-2">
+                        <!-- Actions -->
+                        <div style="display: flex; gap: 10px;">
                             <button type="button" onclick="document.getElementById('lineBindingModal').remove()" 
-                                class="w-1/3 py-3 rounded-xl border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-all">
+                                style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #d1d5db; background: #ffffff; color: #4b5563; font-weight: 600; cursor: pointer; font-size: 14px;">
                                 ยกเลิก
                             </button>
                             <button type="button" id="btnSubmitBind" onclick="AuthService.processLineBinding('${lineUserId}')" 
-                                class="w-2/3 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg hover:shadow-emerald-500/30 hover:opacity-95 transition-all">
+                                style="flex: 2; padding: 12px; border-radius: 12px; border: none; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);">
                                 🔗 เชื่อมต่อบัญชีทันที
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+            <style>
+                @keyframes fadeInModal {
+                    from { opacity: 0; transform: scale(0.92); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+            </style>
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        this.currentSelectedRole = 'STUDENT'; // default role
+        this.currentSelectedRole = 'STUDENT';
     },
 
-    // เลือก Role ใน Modal
+    // เลือก Role ใน Modal (อัปเดตสไตล์ Inline ป้องกันปัญหา CSS)
     selectRoleOption: function(role) {
         this.currentSelectedRole = role;
-        
-        // Reset Style ปุ่มทั้งหมด
-        document.querySelectorAll('.role-btn').forEach(btn => {
-            btn.className = 'role-btn border-2 border-gray-200 text-gray-600 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md hover:border-emerald-300';
+        const roles = ['STUDENT', 'PARENT', 'TEACHER', 'ADMIN'];
+
+        roles.forEach(r => {
+            const btnName = 'btnRole' + r.charAt(0) + r.slice(1).toLowerCase();
+            const btn = document.getElementById(btnName);
+            if (btn) {
+                if (r === role) {
+                    btn.style.border = '2px solid #10b981';
+                    btn.style.background = '#ecfdf5';
+                    btn.style.color = '#047857';
+                } else {
+                    btn.style.border = '2px solid #e5e7eb';
+                    btn.style.background = '#ffffff';
+                    btn.style.color = '#4b5563';
+                }
+            }
         });
 
-        // Highlight ปุ่มที่เลือก
-        const activeBtn = document.getElementById(`btnRole${role.charAt(0) + role.slice(1).toLowerCase()}`);
-        if (activeBtn) {
-            activeBtn.className = 'role-btn border-2 border-emerald-500 bg-emerald-50 text-emerald-700 p-3 rounded-xl flex flex-col items-center justify-center font-medium transition-all hover:shadow-md';
-        }
-
-        // ปรับ Label ตามบทบาท
         const label = document.getElementById('inputLabel');
         const input = document.getElementById('bindInputCode');
 
