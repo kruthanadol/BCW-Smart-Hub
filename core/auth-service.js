@@ -57,8 +57,7 @@ const AuthService = {
         window.location.href = lineAuthUrl;
     },
 
-    // 🟢 4.1 จัดการ Callback จาก LINE Login
-// 🟢 4.1 จัดการ Callback จาก LINE Login (เช็ก Session ในเครื่องก่อน ป้องกันเด้ง Pop-up ซ้ำ)
+// 🟢 4.1 จัดการ Callback จาก LINE Login (เช็ก LocalStorage ก่อน เพื่อข้าม Pop-up เด้งซ้ำ)
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -67,15 +66,16 @@ const AuthService = {
             console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
             const client = window.supabaseClient || window.db || window.supabase;
             
-            // 1. ตรวจสอบว่าในเครื่องมี Session ที่เคยผูกสำเร็จไว้แล้วหรือไม่
-            const savedSessionStr = localStorage.getItem('bcw_user_session');
+            // 1. ดึงคีย์ที่เคยผูกบัญชีไว้แล้วในเครื่องนี้
             const savedBoundId = localStorage.getItem('bcw_bound_line_id');
+            const savedSessionStr = localStorage.getItem('bcw_user_session');
 
+            // 2. ถ้าเคยผูกบัญชีและมี Session ในเครื่องแล้ว ให้เข้าสู่ระบบตรงทันที (ข้าม Pop-up)
             if (savedSessionStr) {
                 try {
                     const session = JSON.parse(savedSessionStr);
                     if (session && session.role) {
-                        console.log('✅ พบ Session เดิมในเครื่อง นำเข้าสู่ระบบทันที:', session.role);
+                        console.log('✅ พบ Session ผูกบัญชีเดิม นำเข้าสู่ระบบทันที:', session.role);
                         this.isProcessingLogin = false;
                         this.redirectToRolePage(session.role);
                         return;
@@ -83,7 +83,7 @@ const AuthService = {
                 } catch(e) {}
             }
 
-            // 2. ถ้าไม่มี Session เดิม ให้ใช้คีย์ที่เคยผูกไว้ หรือ Code ในการค้นหา Supabase
+            // 3. ถ้าไม่มี Session ให้ใช้คีย์ที่เคยผูกไว้ หรือ code ในการค้นหา Supabase
             const targetLineKey = savedBoundId || code;
             let detectedRole = null;
             let dbName = '';
@@ -91,7 +91,7 @@ const AuthService = {
             let teacherCode = '';
             let userEmail = '';
 
-            // Step A: เช็กตาราง users (ครู / Admin / ผู้บริหาร)
+            // Step A: ค้นหาในตาราง users (ครู / Admin / ผู้บริหาร)
             if (client) {
                 try {
                     const { data: userRec } = await client
@@ -109,7 +109,7 @@ const AuthService = {
                 } catch (e) { console.warn('Users table notice:', e); }
             }
 
-            // Step B: เช็กตาราง students (นักเรียน & ผู้ปกครอง)
+            // Step B: ค้นหาในตาราง students (นักเรียน & ผู้ปกครอง)
             if (!detectedRole && client) {
                 try {
                     // เช็กนักเรียน
@@ -142,20 +142,134 @@ const AuthService = {
                 } catch (e) { console.warn('Students table notice:', e); }
             }
 
-            // Step C: หากยังไม่เคยผูกบัญชีเลย ➔ เปิด Pop-up ถามเพื่อผูกครั้งแรก
+            // Step C: หากยังไม่เคยผูกบัญชีเลยจริงๆ ➔ เปิด Pop-up ให้ผูกครั้งแรก
             if (!detectedRole) {
                 this.isProcessingLogin = false;
                 this.promptLineBinding(code);
                 return;
             }
 
-            // Step D: พบบัญชีผูกสำเร็จแล้ว ➔ เข้าสู่ระบบทันที
+            // Step D: พบบัญชีแล้ว ➔ เซฟ Key และเข้าสู่ระบบทันที
+            localStorage.setItem('bcw_bound_line_id', targetLineKey);
             this.completeLoginSession(targetLineKey, dbName, detectedRole, studentId, teacherCode, userEmail);
 
         } catch (err) {
             this.isProcessingLogin = false;
             console.error('Line Callback Processing Error:', err);
             alert('เกิดข้อผิดพลาดในการยืนยันตัวตนผ่าน LINE: ' + err.message);
+        }
+    },
+
+    // 🟢 4.2 ปรับปรุงการกดเชื่อมต่อบัญชีให้เซฟคีย์ถาวรลง Browser
+    processLineBinding: async function(lineUserId) {
+        const inputVal = (document.getElementById('bindInputCode').value || '').trim();
+        const statusMsg = document.getElementById('modalStatusMsg');
+        const btnSubmit = document.getElementById('btnSubmitBind');
+        const role = this.currentSelectedRole || 'STUDENT';
+
+        if (!inputVal) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = '#fef2f2';
+            statusMsg.style.color = '#dc2626';
+            statusMsg.innerText = '⚠️ กรุณากรอกรหัส หรือ อีเมลยืนยันตัวตน';
+            return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = '⏳ กำลังบันทึกข้อมูล...';
+
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) {
+            alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = '🔗 เชื่อมต่อบัญชีทันที';
+            return;
+        }
+
+        try {
+            let assignedRole = role;
+            let displayName = '';
+            let studentId = '';
+            let teacherCode = '';
+            let email = '';
+
+            // 1. นักเรียน / ผู้ปกครอง
+            if (role === 'STUDENT' || role === 'PARENT') {
+                const { data: student, error } = await client
+                    .from('students')
+                    .select('*')
+                    .eq('student_id', inputVal)
+                    .maybeSingle();
+
+                if (error || !student) {
+                    throw new Error('ไม่พบรหัสนักเรียนนี้ในระบบ กรุณาตรวจสอบอีกครั้ง');
+                }
+
+                let updateData = {};
+                if (role === 'PARENT') {
+                    updateData = { parent_line_id: lineUserId };
+                    displayName = `ผู้ปกครอง (${student.prefix || ''}${student.first_name || ''})`;
+                } else {
+                    updateData = { student_line_id: lineUserId };
+                    displayName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                }
+
+                await client.from('students').update(updateData).eq('id', student.id);
+                studentId = student.student_id;
+                email = student.email || '';
+            } 
+            // 2. ครู / ผู้บริหาร
+            else if (role === 'TEACHER') {
+                const inputClean = inputVal.toLowerCase();
+                const { data: userRec, error } = await client
+                    .from('users')
+                    .select('*')
+                    .or(`teacher_id.eq.${inputVal},email.eq.${inputClean},user_id.eq.${inputVal}`)
+                    .maybeSingle();
+
+                if (error || !userRec) {
+                    throw new Error('ไม่พบรหัสครูหรืออีเมลนี้ในระบบ');
+                }
+
+                await client.from('users').update({ line_user_id: lineUserId }).eq('id', userRec.id);
+                assignedRole = (userRec.role || 'TEACHER').toUpperCase();
+                displayName = userRec.full_name || userRec.name || 'คุณครู';
+                teacherCode = userRec.teacher_id || userRec.user_id || '';
+                email = userRec.email || '';
+            }
+            // 3. แอดมิน
+            else if (role === 'ADMIN') {
+                if (inputVal.toLowerCase() !== 'kruthanadol@buached.ac.th') {
+                    throw new Error('อีเมลนี้ไม่มีสิทธิ์ใช้งานในบทบาท Admin');
+                }
+
+                await client.from('users').update({ line_user_id: lineUserId }).eq('email', inputVal.toLowerCase());
+                assignedRole = 'ADMIN';
+                displayName = 'ผู้ดูแลระบบ';
+                email = inputVal;
+            }
+
+            // 🟢 บันทึก Key ยืนยันการผูกไว้ใน Browser อย่างถาวร
+            localStorage.setItem('bcw_bound_line_id', lineUserId);
+
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = '#ecfdf5';
+            statusMsg.style.color = '#047857';
+            statusMsg.innerText = '✅ ผูกบัญชี LINE สำเร็จ! กำลังเข้าสู่ระบบ...';
+
+            setTimeout(() => {
+                const modal = document.getElementById('lineBindingModal');
+                if (modal) modal.remove();
+                this.completeLoginSession(lineUserId, displayName, assignedRole, studentId, teacherCode, email);
+            }, 800);
+
+        } catch (err) {
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = '🔗 เชื่อมต่อบัญชีทันที';
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = '#fef2f2';
+            statusMsg.style.color = '#dc2626';
+            statusMsg.innerText = '❌ ' + err.message;
         }
     },
 
