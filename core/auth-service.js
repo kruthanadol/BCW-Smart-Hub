@@ -247,7 +247,7 @@ const AuthService = {
         }
     },
 
-    // 🟢 4.3 ประมวลผลผูกบัญชีและบันทึก Identity ถาวรลง LocalStorage
+// 🟢 4.3 ประมวลผลผูกบัญชี และเขียน line_id ลงตาราง Supabase ถาวร
     processLineBinding: async function(lineUserId) {
         const inputVal = (document.getElementById('bindInputCode').value || '').trim();
         const statusMsg = document.getElementById('modalStatusMsg');
@@ -280,15 +280,22 @@ const AuthService = {
             let teacherCode = '';
             let email = '';
 
+            // ------------------------------------------------------------------
+            // 1. กรณีเป็น นักเรียน หรือ ผู้ปกครอง (อัปเดตตาราง students)
+            // ------------------------------------------------------------------
             if (role === 'STUDENT' || role === 'PARENT') {
-                const { data: student, error } = await client
+                // ดึงข้อมูลนักเรียนจาก student_id
+                const { data: student, error: searchErr } = await client
                     .from('students')
                     .select('*')
                     .eq('student_id', inputVal)
                     .maybeSingle();
 
-                if (error || !student) throw new Error('ไม่พบรหัสนักเรียนนี้ในระบบ');
+                if (searchErr || !student) {
+                    throw new Error('ไม่พบรหัสนักเรียนนี้ในระบบ กรุณาตรวจสอบอีกครั้ง');
+                }
 
+                // กำหนดคอลัมน์ที่จะอัปเดตลงตาราง
                 let updateData = {};
                 if (role === 'PARENT') {
                     updateData = { parent_line_id: lineUserId };
@@ -298,35 +305,64 @@ const AuthService = {
                     displayName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
                 }
 
-                await client.from('students').update(updateData).eq('id', student.id);
+                // 🟢 สั่ง UPDATE โดยอ้างอิงจาก student_id โดยตรง
+                const { error: updateErr } = await client
+                    .from('students')
+                    .update(updateData)
+                    .eq('student_id', student.student_id);
+
+                if (updateErr) {
+                    console.error('Supabase Update Error:', updateErr);
+                    throw new Error('ไม่สามารถบันทึก LINE ID ลงฐานข้อมูลได้ (ติด RLS Policy หรือ Permission)');
+                }
+
                 studentId = student.student_id;
                 email = student.email || `${studentId}@buached.ac.th`;
-            } else if (role === 'TEACHER') {
+            } 
+            // ------------------------------------------------------------------
+            // 2. กรณีเป็น ครู หรือ ผู้บริหาร (อัปเดตตาราง users)
+            // ------------------------------------------------------------------
+            else if (role === 'TEACHER') {
                 const inputClean = inputVal.toLowerCase();
-                const { data: userRec, error } = await client
+                const { data: userRec, error: userSearchErr } = await client
                     .from('users')
                     .select('*')
                     .or(`teacher_id.eq.${inputVal},email.eq.${inputClean},user_id.eq.${inputVal}`)
                     .maybeSingle();
 
-                if (error || !userRec) throw new Error('ไม่พบรหัสครูหรืออีเมลนี้ในระบบ');
+                if (userSearchErr || !userRec) {
+                    throw new Error('ไม่พบรหัสครูหรืออีเมลนี้ในระบบ');
+                }
 
-                await client.from('users').update({ line_user_id: lineUserId }).eq('id', userRec.id);
+                const { error: userUpdateErr } = await client
+                    .from('users')
+                    .update({ line_user_id: lineUserId })
+                    .eq('id', userRec.id);
+
+                if (userUpdateErr) {
+                    throw new Error('ไม่สามารถบันทึก LINE ID ของครูลงฐานข้อมูลได้');
+                }
+
                 assignedRole = (userRec.role || 'TEACHER').toUpperCase();
                 displayName = userRec.full_name || userRec.name || 'คุณครู';
                 teacherCode = userRec.teacher_id || userRec.user_id || '';
                 email = userRec.email || '';
-            } else if (role === 'ADMIN') {
+            }
+            // ------------------------------------------------------------------
+            // 3. กรณีเป็น แอดมิน (Admin)
+            // ------------------------------------------------------------------
+            else if (role === 'ADMIN') {
                 if (inputVal.toLowerCase() !== 'kruthanadol@buached.ac.th') {
                     throw new Error('อีเมลนี้ไม่มีสิทธิ์ใช้งานในบทบาท Admin');
                 }
+
                 await client.from('users').update({ line_user_id: lineUserId }).eq('email', inputVal.toLowerCase());
                 assignedRole = 'ADMIN';
                 displayName = 'ผู้ดูแลระบบ';
                 email = inputVal;
             }
 
-            // บันทึก Identity, Role และ LINE Key ถาวรลงเบราว์เซอร์
+            // บันทึก Session และ Identity ไว้ในเครื่อง
             localStorage.setItem('bcw_bound_identity', inputVal);
             localStorage.setItem('bcw_bound_role', assignedRole);
             localStorage.setItem('bcw_bound_line_id', lineUserId);
