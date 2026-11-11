@@ -375,7 +375,7 @@ const AuthService = {
     },
         
     // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login
-// 🟢 5. Direct Login (รองรับทั้งรหัส และ อีเมลรหัสนักเรียน/อีเมลครู)
+// 🟢 5. Direct Login (แก้ไขการเรียกระบุบทบาท dbName ป้องกัน Script Error)
     loginWithPassword: async function(identifier, password) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -431,7 +431,6 @@ const AuthService = {
                 try {
                     let studentQuery = client.from('students').select('*');
                     
-                    // สกัดรหัสนักเรียนจากหน้า @ กรณีที่พิมพ์มาเป็นอีเมล (เช่น 13174@buached.ac.th ➔ 13174)
                     let extractedStudentId = input;
                     if (inputLower.includes('@')) {
                         extractedStudentId = inputLower.split('@')[0];
@@ -465,6 +464,7 @@ const AuthService = {
                         const firstName = (student.first_name || '').trim();
                         const lastName = (student.last_name || '').trim();
                         
+                        // 🟢 แก้ไขตรงนี้: ใช้ detectedRole แทน role
                         dbName = (detectedRole === 'PARENT') 
                             ? `ผู้ปกครอง (${prefix}${firstName})`
                             : `${prefix}${firstName} ${lastName}`.trim() || 'นักเรียน';
@@ -508,6 +508,8 @@ const AuthService = {
             alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + err.message);
         }
     },
+
+    
     // 🟢 6. ประมวลผลหลัง SSO
     handlePostLogin: async function(ssoUser) {
         if (this.checkAndCleanUrlError()) return;
