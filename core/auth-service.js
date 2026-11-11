@@ -58,6 +58,7 @@ const AuthService = {
     },
 
     // 🟢 4.1 จัดการ Callback จาก LINE Login
+// 🟢 4.1 จัดการ Callback จาก LINE Login (เช็ก Session ในเครื่องก่อน ป้องกันเด้ง Pop-up ซ้ำ)
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -66,14 +67,15 @@ const AuthService = {
             console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
             const client = window.supabaseClient || window.db || window.supabase;
             
+            // 1. ตรวจสอบว่าในเครื่องมี Session ที่เคยผูกสำเร็จไว้แล้วหรือไม่
             const savedSessionStr = localStorage.getItem('bcw_user_session');
             const savedBoundId = localStorage.getItem('bcw_bound_line_id');
 
             if (savedSessionStr) {
                 try {
                     const session = JSON.parse(savedSessionStr);
-                    if (session && session.role && session.provider === 'line') {
-                        console.log('✅ พบ Session LINE เดิม นำเข้าสู่ระบบทันที:', session.role);
+                    if (session && session.role) {
+                        console.log('✅ พบ Session เดิมในเครื่อง นำเข้าสู่ระบบทันที:', session.role);
                         this.isProcessingLogin = false;
                         this.redirectToRolePage(session.role);
                         return;
@@ -81,6 +83,7 @@ const AuthService = {
                 } catch(e) {}
             }
 
+            // 2. ถ้าไม่มี Session เดิม ให้ใช้คีย์ที่เคยผูกไว้ หรือ Code ในการค้นหา Supabase
             const targetLineKey = savedBoundId || code;
             let detectedRole = null;
             let dbName = '';
@@ -88,7 +91,7 @@ const AuthService = {
             let teacherCode = '';
             let userEmail = '';
 
-            // Step 1: ค้นหาตาราง users (ครู / Admin / ผู้บริหาร)
+            // Step A: เช็กตาราง users (ครู / Admin / ผู้บริหาร)
             if (client) {
                 try {
                     const { data: userRec } = await client
@@ -106,9 +109,10 @@ const AuthService = {
                 } catch (e) { console.warn('Users table notice:', e); }
             }
 
-            // Step 2: ค้นหาตาราง students (นักเรียน & ผู้ปกครอง)
+            // Step B: เช็กตาราง students (นักเรียน & ผู้ปกครอง)
             if (!detectedRole && client) {
                 try {
+                    // เช็กนักเรียน
                     const { data: studentRec } = await client
                         .from('students')
                         .select('*')
@@ -121,6 +125,7 @@ const AuthService = {
                         dbName = `${studentRec.prefix || ''}${studentRec.first_name || ''} ${studentRec.last_name || ''}`.trim();
                         userEmail = studentRec.email || '';
                     } else {
+                        // เช็กผู้ปกครอง
                         const { data: parentRec } = await client
                             .from('students')
                             .select('*')
@@ -137,14 +142,14 @@ const AuthService = {
                 } catch (e) { console.warn('Students table notice:', e); }
             }
 
-            // Step 3: ไม่พบข้อมูล ➔ แสดง Pop-up ถามเพื่อผูกบัญชี
+            // Step C: หากยังไม่เคยผูกบัญชีเลย ➔ เปิด Pop-up ถามเพื่อผูกครั้งแรก
             if (!detectedRole) {
                 this.isProcessingLogin = false;
                 this.promptLineBinding(code);
                 return;
             }
 
-            // Step 4: พบบัญชีแล้ว ➔ บันทึก Session และย้ายหน้า
+            // Step D: พบบัญชีผูกสำเร็จแล้ว ➔ เข้าสู่ระบบทันที
             this.completeLoginSession(targetLineKey, dbName, detectedRole, studentId, teacherCode, userEmail);
 
         } catch (err) {
