@@ -59,8 +59,7 @@ const AuthService = {
         window.location.href = lineAuthUrl;
     },
 
-    // 🟢 4.1 จัดการ Callback จาก LINE Login
-// 🟢 4.1 จัดการ Callback จาก LINE Login
+    // 🟢 4.1 จัดการ Callback จาก LINE Login (เช็กและเรียกผูกบัญชีอัตโนมัติ)
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -68,33 +67,15 @@ const AuthService = {
         try {
             console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
             const client = window.supabaseClient || window.db || window.supabase;
-            const redirectUri = window.location.origin + window.location.pathname;
-
-            // 1. ดึง Access Token และ Profile จาก LINE (หรือดึงผ่าน Supabase Edge Function)
-            // หมายเหตุ: กรณีดึง Client-side ตรง เพื่อหา line_user_id
-            let lineUserId = null;
-            let lineDisplayName = '';
-            let linePictureUrl = '';
-
-            try {
-                // ตัวอย่างยิงแลก Token (ถ้ามี backend/edge function ช่วย หรือใช้ code เป็น key ชั่วคราว)
-                // ในขั้นแรก หากทำการเซฟ line_user_id ลงฐานข้อมูลแล้ว สามารถใช้ lineUserId ค้นหาได้ตรงๆ
-                lineUserId = code; // ใช้ code / token id ในการอ้างอิง
-            } catch (e) {
-                console.warn('LINE Profile exchange notice:', e);
-            }
+            const lineUserId = code; 
 
             let detectedRole = null;
-            let matchedRecord = null;
             let dbName = '';
             let studentId = '';
             let teacherCode = '';
             let userEmail = '';
-            let avatarUrl = linePictureUrl;
 
-            // ----------------------------------------------------
-            // Step 1: เช็กจากตาราง users (ADMIN / EXECUTIVE / TEACHER)
-            // ----------------------------------------------------
+            // Step 1: เช็กตาราง users (ครู / Admin / ผู้บริหาร)
             if (client) {
                 try {
                     const { data: userRec } = await client
@@ -107,20 +88,15 @@ const AuthService = {
                         detectedRole = (userRec.role || 'TEACHER').toUpperCase();
                         dbName = userRec.full_name || userRec.name || 'คุณครู';
                         teacherCode = userRec.teacher_id || userRec.user_id || '';
-                        avatarUrl = userRec.avatar_url || avatarUrl;
                         userEmail = userRec.email || '';
                     }
-                } catch (e) {
-                    console.warn('Users table LINE search notice:', e);
-                }
+                } catch (e) { console.warn('Users table notice:', e); }
             }
 
-            // ----------------------------------------------------
-            // Step 2: ถ้าไม่เจอใน users ให้เช็กตาราง students (แยก นักเรียน vs ผู้ปกครอง)
-            // ----------------------------------------------------
+            // Step 2: เช็กตาราง students (นักเรียน & ผู้ปกครอง)
             if (!detectedRole && client) {
                 try {
-                    // 2.1 เช็กว่าเป็น "นักเรียน" หรือไม่ ( match ผ่าน student_line_id )
+                    // 2.1 เช็กนักเรียน
                     const { data: studentRec } = await client
                         .from('students')
                         .select('*')
@@ -130,14 +106,10 @@ const AuthService = {
                     if (studentRec) {
                         detectedRole = 'STUDENT';
                         studentId = studentRec.student_id || studentRec.id;
-                        const prefix = (studentRec.prefix || '').trim();
-                        const firstName = (studentRec.first_name || '').trim();
-                        const lastName = (studentRec.last_name || '').trim();
-                        dbName = `${prefix}${firstName} ${lastName}`.trim() || 'นักเรียน';
-                        avatarUrl = studentRec.avatar_url || avatarUrl;
+                        dbName = `${studentRec.prefix || ''}${studentRec.first_name || ''} ${studentRec.last_name || ''}`.trim();
                         userEmail = studentRec.email || '';
                     } else {
-                        // 2.2 ถ้าไม่ใช่ นักเรียน ให้เช็กว่าเป็น "ผู้ปกครอง" หรือไม่ ( match ผ่าน parent_line_id )
+                        // 2.2 เช็กผู้ปกครอง
                         const { data: parentRec } = await client
                             .from('students')
                             .select('*')
@@ -147,58 +119,169 @@ const AuthService = {
                         if (parentRec) {
                             detectedRole = 'PARENT';
                             studentId = parentRec.student_id || parentRec.id;
-                            const prefix = (parentRec.prefix || '').trim();
-                            const firstName = (parentRec.first_name || '').trim();
-                            dbName = `ผู้ปกครอง (นักเรียน: ${prefix}${firstName})`;
-                            avatarUrl = parentRec.parent_avatar_url || avatarUrl;
+                            dbName = `ผู้ปกครอง (${parentRec.prefix || ''}${parentRec.first_name || ''})`;
                             userEmail = parentRec.email || '';
                         }
                     }
-                } catch (e) {
-                    console.warn('Students table LINE search notice:', e);
-                }
+                } catch (e) { console.warn('Students table notice:', e); }
             }
 
-            // ----------------------------------------------------
-            // Step 3: หากยังเป็น NULL ในตาราง (ยังไม่ได้ผูก LINE ID)
-            // ----------------------------------------------------
+            // Step 3: หากยังไม่เคยผูก LINE ID ในระบบ ➔ เรียก Pop-up ถามผูกบัญชีอัตโนมัติ
             if (!detectedRole) {
                 this.isProcessingLogin = false;
-                alert('❌ บัญชี LINE นี้ยังไม่ได้ผูกกับระบบ\nกรุณาเข้าสู่ระบบด้วยรหัสนักเรียน/รหัสผ่านผู้ปกครองก่อน เพื่อทำการผูก LINE ID');
-                
-                // ล้าง Parameter บน URL แล้วส่งกลับไปหน้า Login
-                const repoPrefix = this.getRepoPrefix();
-                window.location.replace(window.location.origin + repoPrefix + '/login.html');
+                await this.promptLineBinding(lineUserId);
                 return;
             }
 
-            // ----------------------------------------------------
-            // Step 4: บันทึก Session และย้ายหน้าไปยังบทบาทที่ถูกต้อง
-            // ----------------------------------------------------
-            const userProfile = {
-                id: studentId || teacherCode || lineUserId,
-                name: dbName,
-                avatar: avatarUrl,
-                role: detectedRole,
-                email: userEmail,
-                teacherId: teacherCode,
-                studentId: studentId,
-                provider: 'line'
-            };
-
-            const sessionStr = JSON.stringify(userProfile);
-            localStorage.setItem('bcw_user_session', sessionStr);
-            sessionStorage.setItem('bcw_user_session', sessionStr);
-
-            this.isProcessingLogin = false;
-            console.log(`✅ ยืนยันตัวตนสำเร็จ บทบาท: ${detectedRole} ย้ายไปยัง Dashboard...`);
-            this.redirectToRolePage(detectedRole);
+            // Step 4: บันทึก Session และเข้าใช้งาน
+            this.completeLoginSession(lineUserId, dbName, detectedRole, studentId, teacherCode, userEmail);
 
         } catch (err) {
             this.isProcessingLogin = false;
             console.error('Line Callback Processing Error:', err);
             alert('เกิดข้อผิดพลาดในการยืนยันตัวตนผ่าน LINE: ' + err.message);
         }
+    },
+
+    // 🟢 4.2 ฟังก์ชันถามและผูกบัญชีอัตโนมัติสำหรับผู้ใช้งานใหม่ทุกบทบาท
+    promptLineBinding: async function(lineUserId) {
+        const roleOption = prompt(
+            "ยินดีต้อนรับสู่ BCW Smart Hub!\n" +
+            "กรุณาเลือกประเภทผู้ใช้งานสำหรับผูกบัญชี LINE:\n\n" +
+            "1 = นักเรียน\n" +
+            "2 = ผู้ปกครอง\n" +
+            "3 = ครู / ผู้บริหาร\n" +
+            "4 = แอดมิน (Admin)", 
+            "1"
+        );
+
+        if (!roleOption) return;
+
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) return alert('ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
+
+        try {
+            // ----------------------------------------------------
+            // กรณีที่ 1 & 2: นักเรียน และ ผู้ปกครอง
+            // ----------------------------------------------------
+            if (roleOption === '1' || roleOption === '2') {
+                const inputStudentId = prompt("กรุณากรอก รหัสนักเรียน (5 หลัก):");
+                if (!inputStudentId) return;
+
+                const { data: student, error } = await client
+                    .from('students')
+                    .select('*')
+                    .eq('student_id', inputStudentId.trim())
+                    .maybeSingle();
+
+                if (error || !student) {
+                    alert('❌ ไม่พบรหัสนักเรียนนี้ในระบบ กรุณาตรวจสอบรหัสอีกครั้ง');
+                    return;
+                }
+
+                let updateData = {};
+                let assignedRole = '';
+                let displayName = '';
+
+                if (roleOption === '2') {
+                    updateData = { parent_line_id: lineUserId };
+                    assignedRole = 'PARENT';
+                    displayName = `ผู้ปกครอง (${student.prefix || ''}${student.first_name || ''})`;
+                } else {
+                    updateData = { student_line_id: lineUserId };
+                    assignedRole = 'STUDENT';
+                    displayName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                }
+
+                const { error: updateError } = await client
+                    .from('students')
+                    .update(updateData)
+                    .eq('id', student.id);
+
+                if (updateError) throw updateError;
+
+                alert('✅ ผูกบัญชี LINE สำเร็จ! กำลังนำท่านเข้าสู่ระบบ...');
+                this.completeLoginSession(lineUserId, displayName, assignedRole, student.student_id, '', student.email || '');
+            }
+
+            // ----------------------------------------------------
+            // กรณีที่ 3: ครู / ผู้บริหาร
+            // ----------------------------------------------------
+            else if (roleOption === '3') {
+                const inputTeacher = prompt("กรุณากรอก รหัสประจำตัวครู (เช่น T001) หรือ อีเมลโรงเรียน:");
+                if (!inputTeacher) return;
+
+                const inputClean = inputTeacher.trim().toLowerCase();
+
+                const { data: userRec, error } = await client
+                    .from('users')
+                    .select('*')
+                    .or(`teacher_id.eq.${inputClean},email.eq.${inputClean},user_id.eq.${inputClean}`)
+                    .maybeSingle();
+
+                if (error || !userRec) {
+                    alert('❌ ไม่พบข้อมูลคุณครู/ผู้บริหารในระบบ กรุณาตรวจสอบรหัสอีกครั้ง');
+                    return;
+                }
+
+                const { error: updateError } = await client
+                    .from('users')
+                    .update({ line_user_id: lineUserId })
+                    .eq('id', userRec.id);
+
+                if (updateError) throw updateError;
+
+                const assignedRole = (userRec.role || 'TEACHER').toUpperCase();
+                const displayName = userRec.full_name || userRec.name || 'คุณครู';
+
+                alert('✅ ผูกบัญชี LINE คุณครูสำเร็จ! กำลังนำท่านเข้าสู่ระบบ...');
+                this.completeLoginSession(lineUserId, displayName, assignedRole, '', userRec.teacher_id || userRec.user_id, userRec.email || '');
+            }
+
+            // ----------------------------------------------------
+            // กรณีที่ 4: แอดมิน (ADMIN)
+            // ----------------------------------------------------
+            else if (roleOption === '4') {
+                const adminEmail = prompt("กรุณากรอก อีเมลผู้ดูแลระบบ (Admin Email):");
+                if (!adminEmail) return;
+
+                if (adminEmail.trim().toLowerCase() !== 'kruthanadol@buached.ac.th') {
+                    alert('❌ อีเมลนี้ไม่มีสิทธิ์ใช้งานในบทบาท Admin');
+                    return;
+                }
+
+                await client
+                    .from('users')
+                    .update({ line_user_id: lineUserId })
+                    .eq('email', adminEmail.trim().toLowerCase());
+
+                alert('✅ ผูกบัญชี LINE สำหรับ Admin สำเร็จ!');
+                this.completeLoginSession(lineUserId, 'ผู้ดูแลระบบ', 'ADMIN', '', 'ADMIN01', adminEmail.trim());
+            }
+
+        } catch (err) {
+            console.error('Line Binding Error:', err);
+            alert('เกิดข้อผิดพลาดในการผูกบัญชี: ' + err.message);
+        }
+    },
+
+    // 🟢 4.3 ฟังก์ชันบันทึก Session และ Redirect
+    completeLoginSession: function(id, name, role, studentId, teacherId, email) {
+        const userProfile = {
+            id: id,
+            name: name,
+            role: role,
+            email: email,
+            teacherId: teacherId,
+            studentId: studentId,
+            provider: 'line'
+        };
+
+        const sessionStr = JSON.stringify(userProfile);
+        localStorage.setItem('bcw_user_session', sessionStr);
+        sessionStorage.setItem('bcw_user_session', sessionStr);
+
+        this.redirectToRolePage(role);
     },
         
     // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login (ครู: T001/อีเมลจริง, นักเรียน: 13174, ผู้ปกครอง)
