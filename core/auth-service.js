@@ -1,4 +1,4 @@
-// core/auth-service.js - Perfect Auto-Remember LINE Edition (Fixed Binding Mismatch)
+// core/auth-service.js - Complete Seamless Auto-Remember LINE Edition
 const AuthService = {
     isProcessingLogin: false,
     currentSelectedRole: 'STUDENT',
@@ -38,7 +38,29 @@ const AuthService = {
         if (error) alert('เกิดข้อผิดพลาดในการล็อกอินด้วย Google: ' + error.message);
     },
 
+    // 🟢 4. เรียก OAuth LINE (เช็กว่าเคยผูกแล้วหรือไม่ ถ้าเคยแล้วให้เด้งเข้าระบบทันทีโดยไม่ไปหน้า LINE Consent)
     loginWithLine: function() {
+        const savedSessionStr = localStorage.getItem('bcw_user_session');
+        const boundIdentity = localStorage.getItem('bcw_bound_identity');
+        const savedRole = localStorage.getItem('bcw_bound_role');
+
+        // หากมี Session หรือมี Identity ที่เคยผูกสำเร็จในเครื่องแล้ว นำเข้าสู่ระบบทันที
+        if (savedSessionStr && boundIdentity) {
+            try {
+                const session = JSON.parse(savedSessionStr);
+                if (session && session.role) {
+                    console.log('✅ พบบัญชีที่เคยล็อกอินไว้แล้ว นำเข้าสู่ระบบทันที:', session.role);
+                    this.redirectToRolePage(session.role);
+                    return;
+                }
+            } catch (e) {}
+        } else if (savedRole && boundIdentity) {
+            console.log('✅ พบ Identity ที่เคยผูกไว้ นำเข้าสู่ระบบทันที:', savedRole);
+            this.redirectToRolePage(savedRole);
+            return;
+        }
+
+        // หากเป็นผู้ใช้ใหม่ ให้ส่งไปยัง LINE OAuth
         const channelId = '2012514131';
         const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
         const state = Math.random().toString(36).substring(7);
@@ -46,7 +68,7 @@ const AuthService = {
         window.location.href = lineAuthUrl;
     },
 
-    // 🟢 4.1 จัดการ Callback จาก LINE Login (ดึง Identity ที่ผูกไว้แล้วมาใช้ทันที)
+    // 🟢 4.1 จัดการ Callback จาก LINE Login (ใช้ identity ค้นหาใน DB ถ้าระบบเคยผูกไว้)
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -55,12 +77,11 @@ const AuthService = {
             console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
             const client = window.supabaseClient || window.db || window.supabase;
             
-            // 1. เช็กว่าเครื่องนี้เคยผูกรหัส/อีเมล ไว้หรือไม่
             const boundIdentity = localStorage.getItem('bcw_bound_identity') || localStorage.getItem('bcw_bound_line_id');
             const savedRole = localStorage.getItem('bcw_bound_role');
             const savedSessionStr = localStorage.getItem('bcw_user_session');
 
-            // 2. ถ้ามี Session สมบูรณ์อยู่ในเครื่องแล้ว ➔ เข้า Dashboard ทันที
+            // 1. ถ้ามี Session สมบูรณ์อยู่ในเครื่องแล้ว ➔ เข้า Dashboard ทันที
             if (savedSessionStr) {
                 try {
                     const session = JSON.parse(savedSessionStr);
@@ -79,9 +100,9 @@ const AuthService = {
             let teacherCode = '';
             let userEmail = '';
 
-            // 3. ถ้ามี boundIdentity ที่เคยบันทึกไว้ ให้ค้นหาข้อมูลล่าสุดจาก Supabase
+            // 2. ถ้ามี boundIdentity ที่เคยบันทึกไว้ ให้ค้นหาข้อมูลล่าสุดจาก Supabase
             if (boundIdentity && client) {
-                // 3.1 เช็กตาราง students
+                // เช็กตาราง students
                 try {
                     const { data: student } = await client
                         .from('students')
@@ -103,7 +124,7 @@ const AuthService = {
                     }
                 } catch(e) {}
 
-                // 3.2 เช็กตาราง users (ครู/แอดมิน)
+                // เช็กตาราง users (ครู/แอดมิน)
                 if (!detectedRole) {
                     try {
                         const { data: userRec } = await client
@@ -122,14 +143,14 @@ const AuthService = {
                 }
             }
 
-            // 4. ถ้ายังไม่เคยผูกเลย ➔ เปิด Pop-up ผูกครั้งแรก
+            // 3. ถ้ายังไม่เคยผูกเลย ➔ เปิด Pop-up ผูกครั้งแรก
             if (!detectedRole) {
                 this.isProcessingLogin = false;
                 this.promptLineBinding(code);
                 return;
             }
 
-            // 5. บันทึก Session และเข้าสู่ระบบ
+            // 4. บันทึก Session และเข้าสู่ระบบ
             this.completeLoginSession(boundIdentity, dbName, detectedRole, studentId, teacherCode, userEmail);
 
         } catch (err) {
@@ -305,7 +326,7 @@ const AuthService = {
                 email = inputVal;
             }
 
-            // 🟢 บันทึก Identity & Role ลงในเครื่องเพื่อข้าม Pop-up ในครั้งถัดไป
+            // บันทึก Identity, Role และ LINE Key ถาวรลงเบราว์เซอร์
             localStorage.setItem('bcw_bound_identity', inputVal);
             localStorage.setItem('bcw_bound_role', assignedRole);
             localStorage.setItem('bcw_bound_line_id', lineUserId);
@@ -335,7 +356,6 @@ const AuthService = {
     completeLoginSession: function(id, name, role, studentId, teacherId, email) {
         const boundId = id || studentId || teacherId;
         
-        // บันทึก Identity ถาวรกันหลุด
         if (boundId) {
             localStorage.setItem('bcw_bound_identity', boundId);
             localStorage.setItem('bcw_bound_role', role);
