@@ -375,6 +375,7 @@ const AuthService = {
     },
         
     // 🟢 5. เพิ่มการกรอกรหัสผ่าน Direct Login
+// 🟢 5. Direct Login (รองรับทั้งรหัส และ อีเมลรหัสนักเรียน/อีเมลครู)
     loginWithPassword: async function(identifier, password) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
@@ -394,49 +395,69 @@ const AuthService = {
             let studentId = '';
             let avatarUrl = '';
 
+            // ----------------------------------------------------
+            // Step 1: ค้นหาในตาราง users (ครู / ผู้บริหาร / Admin)
+            // ----------------------------------------------------
             try {
                 let userQuery = client.from('users').select('*');
+                
                 if (inputLower.includes('@')) {
                     userQuery = userQuery.or(`email.eq.${inputLower},google_email.eq.${inputLower}`);
                 } else {
-                    userQuery = userQuery.or(`teacher_id.eq.${input},user_id.eq.${input},id.eq.${input}`);
+                    userQuery = userQuery.or(`teacher_id.eq.${input},teacher_id.eq.${input.toUpperCase()},user_id.eq.${input},id.eq.${input}`);
                 }
 
                 const { data: userRec } = await userQuery.maybeSingle();
 
                 if (userRec) {
-                    if (userRec.password && userRec.password !== pass) {
+                    if (userRec.password && String(userRec.password).trim() !== pass) {
                         throw new Error("รหัสผ่านไม่ถูกต้อง");
                     }
                     detectedRole = (userRec.role || 'TEACHER').toUpperCase();
                     dbName = userRec.full_name || userRec.name || 'คุณครู';
                     userEmail = userRec.email || inputLower;
-                    teacherCode = userRec.teacher_id || userRec.user_id || input;
+                    teacherCode = userRec.teacher_id || userRec.user_id || userRec.id;
                     avatarUrl = userRec.avatar_url || '';
                 }
             } catch (e) {
                 if (e.message === "รหัสผ่านไม่ถูกต้อง") throw e;
+                console.warn('Direct login users query notice:', e);
             }
 
+            // ----------------------------------------------------
+            // Step 2: ค้นหาในตาราง students (นักเรียน / ผู้ปกครอง)
+            // ----------------------------------------------------
             if (!detectedRole) {
                 try {
                     let studentQuery = client.from('students').select('*');
+                    
+                    // สกัดรหัสนักเรียนจากหน้า @ กรณีที่พิมพ์มาเป็นอีเมล (เช่น 13174@buached.ac.th ➔ 13174)
+                    let extractedStudentId = input;
                     if (inputLower.includes('@')) {
-                        studentQuery = studentQuery.or(`email.eq.${inputLower},student_google_email.eq.${inputLower}`);
+                        extractedStudentId = inputLower.split('@')[0];
+                    }
+
+                    if (inputLower.includes('@')) {
+                        studentQuery = studentQuery.or(`email.eq.${inputLower},student_google_email.eq.${inputLower},student_id.eq.${extractedStudentId}`);
                     } else {
-                        studentQuery = studentQuery.or(`student_id.eq.${input},id.eq.${input}`);
+                        studentQuery = studentQuery.eq('student_id', input);
                     }
 
                     const { data: student } = await studentQuery.maybeSingle();
 
                     if (student) {
-                        if (student.parent_password && student.parent_password === pass) {
+                        const studentIdStr = String(student.student_id || '').trim();
+                        const parentPassStr = String(student.parent_password || '').trim();
+
+                        // 1. ตรวจสอบรหัสผ่านผู้ปกครอง (เช็ก parent_password)
+                        if (parentPassStr && parentPassStr === pass) {
                             detectedRole = 'PARENT';
-                        } else if (student.student_id && student.student_id === pass) {
+                        } 
+                        // 2. ตรวจสอบรหัสผ่านนักเรียน (เช็ก student_id หรือ 123456)
+                        else if (pass === studentIdStr || pass === '123456') {
                             detectedRole = 'STUDENT';
-                        } else if (pass === '123456' || pass === student.student_id) {
-                            detectedRole = 'STUDENT';
-                        } else {
+                        } 
+                        else {
                             throw new Error("รหัสผ่านไม่ถูกต้อง");
                         }
 
@@ -444,13 +465,17 @@ const AuthService = {
                         const firstName = (student.first_name || '').trim();
                         const lastName = (student.last_name || '').trim();
                         
-                        dbName = `${prefix}${firstName} ${lastName}`.trim() || 'นักเรียน';
-                        userEmail = student.email || inputLower;
-                        studentId = student.student_id || student.id;
+                        dbName = (detectedRole === 'PARENT') 
+                            ? `ผู้ปกครอง (${prefix}${firstName})`
+                            : `${prefix}${firstName} ${lastName}`.trim() || 'นักเรียน';
+
+                        userEmail = student.email || student.student_google_email || inputLower;
+                        studentId = studentIdStr;
                         avatarUrl = student.avatar_url || '';
                     }
                 } catch (e) {
                     if (e.message === "รหัสผ่านไม่ถูกต้อง") throw e;
+                    console.warn('Direct login students query notice:', e);
                 }
             }
 
@@ -458,6 +483,7 @@ const AuthService = {
                 throw new Error("ไม่พบข้อมูลผู้ใช้งาน หรือรหัสประจำตัวนี้ในระบบ");
             }
 
+            // บันทึก Session และส่งต่อไปยังหน้าประจำสิทธิ์
             const userProfile = {
                 id: studentId || teacherCode || input,
                 name: dbName,
@@ -482,7 +508,6 @@ const AuthService = {
             alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + err.message);
         }
     },
-
     // 🟢 6. ประมวลผลหลัง SSO
     handlePostLogin: async function(ssoUser) {
         if (this.checkAndCleanUrlError()) return;
