@@ -813,7 +813,7 @@
         await loadDashboardData();
     };
 
-    // 📌 ดึงข้อมูลครูที่ปรึกษาทั้งหมดของห้องเรียนนั้น (รองรับ 1, 2 หรือ 3 คน)
+// 📌 ดึงข้อมูลครูที่ปรึกษาทั้งหมดของห้องเรียนจากตาราง class_advisors (ตรงตามคอลัมน์ class_name, teacher_id, advisor_type)
     async function loadHomeroomAdvisors(classroom) {
         const avatarGroupEl = document.getElementById('advisors-avatar-group');
         const badgeNameEl = document.getElementById('advisor-badge-name');
@@ -831,39 +831,61 @@
         const cleanRoom = String(classroom).trim();
 
         try {
-            // 1. ค้นหาจากตาราง users (ค้นหาทั้งคอลัมน์ advisor_class, homeroom_class, classroom)
-            const { data: userAdvisors } = await client
-                .from('users')
+            // 1. ค้นหาจากตาราง class_advisors ด้วยคอลัมน์ class_name
+            const { data: advisorRows } = await client
+                .from('class_advisors')
                 .select('*')
-                .or(`advisor_class.eq.${cleanRoom},homeroom_class.eq.${cleanRoom},classroom.eq.${cleanRoom}`);
+                .eq('class_name', cleanRoom)
+                .order('id', { ascending: true });
 
-            if (userAdvisors && userAdvisors.length > 0) {
-                advisors = userAdvisors.map(u => ({
-                    name: u.full_name || u.name || 'คุณครูที่ปรึกษา',
-                    avatar: u.avatar_url || u.photo_url || defaultAvatar
-                }));
-            }
+            if (advisorRows && advisorRows.length > 0) {
+                // เรียงให้ advisor_type === 'main' ขึ้นเป็นคนแรก
+                advisorRows.sort((a, b) => (a.advisor_type === 'main' ? -1 : b.advisor_type === 'main' ? 1 : 0));
 
-            // 2. หากไม่พบใน users ให้ค้นหาสำรองในตาราง teachers
-            if (advisors.length === 0) {
-                const { data: teacherAdvisors } = await client
-                    .from('teachers')
-                    .select('*')
-                    .or(`advisor_class.eq.${cleanRoom},homeroom_class.eq.${cleanRoom},classroom.eq.${cleanRoom}`);
+                for (const row of advisorRows) {
+                    const tCode = String(row.teacher_id || '').trim();
+                    if (!tCode) continue;
 
-                if (teacherAdvisors && teacherAdvisors.length > 0) {
-                    advisors = teacherAdvisors.map(t => ({
-                        name: t.full_name || `${t.prefix || ''}${t.first_name || t.teacher_name || ''} ${t.last_name || ''}`.trim() || 'คุณครูที่ปรึกษา',
-                        avatar: t.avatar_url || t.photo_url || defaultAvatar
-                    }));
+                    let tName = '';
+                    let tAvatar = '';
+
+                    // ดึงชื่อและรูปโปรไฟล์ครูจากตาราง users
+                    const { data: uRec } = await client
+                        .from('users')
+                        .select('full_name, name, avatar_url')
+                        .eq('teacher_id', tCode)
+                        .maybeSingle();
+
+                    if (uRec) {
+                        tName = uRec.full_name || uRec.name || '';
+                        tAvatar = uRec.avatar_url || '';
+                    }
+
+                    // หากไม่พบใน users ให้ดึงสำรองจากตาราง teachers
+                    if (!tName || !tAvatar) {
+                        const { data: tRec } = await client
+                            .from('teachers')
+                            .select('*')
+                            .eq('teacher_id', tCode)
+                            .maybeSingle();
+
+                        if (tRec) {
+                            tName = tName || tRec.full_name || `${tRec.prefix || ''}${tRec.first_name || tRec.teacher_name || ''} ${tRec.last_name || ''}`.trim();
+                            tAvatar = tAvatar || tRec.avatar_url || tRec.photo_url || '';
+                        }
+                    }
+
+                    advisors.push({
+                        name: tName || tCode,
+                        avatar: tAvatar || defaultAvatar
+                    });
                 }
             }
         } catch (e) {
-            console.warn('[ParentPortal] Load advisors notice:', e);
+            console.warn('[ParentPortal] Load class_advisors notice:', e);
         }
 
         if (advisors.length > 0) {
-            // วาดรูปโปรไฟล์ครูที่ปรึกษาทุกคน (1-3 คน) ซ้อนเรียงกัน
             if (avatarGroupEl) {
                 avatarGroupEl.innerHTML = advisors.map((adv, idx) => `
                     <div title="${adv.name}" class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-indigo-400 bg-indigo-50 shadow-sm shrink-0" style="z-index: ${10 - idx};">
