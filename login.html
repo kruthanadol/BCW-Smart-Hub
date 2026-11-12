@@ -15,6 +15,51 @@
     <!-- เพิ่มในหน้า login.html ในส่วน <head> -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <script>
+        // ดักจับทันทีก่อนวาดหน้าจอ: หากกลับมาจาก LINE (?code=...) หรือมี Session เดิม ให้ซ่อนฟอร์มล็อกอิน
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const hasLineCode = params.has('code');
+            const hasSession = localStorage.getItem('bcw_user_session');
+    
+            if (hasLineCode || hasSession) {
+                document.documentElement.classList.add('bcw-fast-redirect');
+            }
+        })();
+    </script>
+    <style>
+        /* ซ่อนฟอร์มล็อกอินทันทีเมื่ออยู่ในโหมดกำลังเปลี่ยนหน้า */
+        html.bcw-fast-redirect body > *:not(#bcw-loading-overlay) {
+            display: none !important;
+        }
+        #bcw-loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #064e3b 0%, #0f766e 100%);
+            color: #ffffff;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            font-family: 'Prompt', sans-serif;
+        }
+        html.bcw-fast-redirect #bcw-loading-overlay {
+            display: flex !important;
+        }
+        .bcw-spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(255, 255, 255, 0.25);
+            border-top-color: #34d399;
+            border-radius: 50%;
+            animation: bcwSpin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes bcwSpin {
+            to { transform: rotate(360deg); }
+        }
+    </style>   
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif, system-ui; }
         html, body { 
@@ -75,7 +120,11 @@
     </style>
 </head>
 <body>
-
+    <div id="bcw-loading-overlay">
+        <div class="bcw-spinner"></div>
+        <div style="font-size: 18px; font-weight: 600;">กำลังยืนยันตัวตนเข้าสู่ระบบ...</div>
+        <div style="font-size: 13px; color: #a7f3d0; margin-top: 4px;">BCW Smart Hub</div>
+    </div>
     <div class="login-card">
         <div class="card-header">
             <div class="logo-wrapper">
