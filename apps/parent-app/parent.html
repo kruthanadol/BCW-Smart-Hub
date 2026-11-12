@@ -718,6 +718,7 @@
     });
 
     // 📌 ดึงรายชื่อบุตรหลานในปกครองทั้งหมด
+// 📌 ดึงรายชื่อบุตรหลานในปกครองทั้งหมด (แก้ Error 400 UUID)
     async function loadParentChildrenList(user) {
         const client = window.supabaseClient || window.db || window.supabase;
         const customChildText = document.getElementById('customChildText');
@@ -727,12 +728,12 @@
         if (!client) return;
 
         const lineId = user.lineUserId || localStorage.getItem('bcw_bound_line_id') || '';
-        const fallbackStudentId = user.studentId || user.student_id || user.id || '';
+        const fallbackStudentId = String(user.studentId || user.student_id || user.id || '').trim();
 
         let children = [];
 
         try {
-            // ค้นหาจาก parent_line_id ก่อน (กรณีผู้ปกครองผูก LINE กับลูก 1-3 คน)
+            // 1. ค้นหาจาก parent_line_id ก่อน (กรณีผูก LINE กับลูก 1-3 คน)
             if (lineId && lineId.startsWith('U')) {
                 const { data: byLine } = await client
                     .from('students')
@@ -743,12 +744,12 @@
                 if (byLine && byLine.length > 0) children = byLine;
             }
 
-            // หากยังไม่พบ ให้ค้นหาจากรหัสนักเรียนใน Session
+            // 2. หากยังไม่พบ ให้ค้นหาจาก student_id โดยตรง (ไม่เทียบกับคอลัมน์ id ที่เป็น UUID)
             if (children.length === 0 && fallbackStudentId) {
                 const { data: byId } = await client
                     .from('students')
                     .select('*')
-                    .or(`student_id.eq.${fallbackStudentId},id.eq.${fallbackStudentId}`);
+                    .eq('student_id', fallbackStudentId);
 
                 if (byId && byId.length > 0) children = byId;
             }
@@ -760,17 +761,16 @@
 
         if (children.length > 0) {
             const firstChild = children[0];
-            currentStudentId = String(firstChild.student_id || firstChild.id);
+            currentStudentId = String(firstChild.student_id);
             const firstFullName = `${firstChild.prefix || ''}${firstChild.first_name || ''} ${firstChild.last_name || ''}`.trim();
 
             if (document.getElementById('childSelector')) document.getElementById('childSelector').value = currentStudentId;
             if (customChildText) customChildText.innerText = `${firstFullName} (${currentStudentId})`;
             if (subHeaderName) subHeaderName.innerText = firstFullName;
 
-            // สร้างรายการใน Modal สำหรับสลับดูลูกแต่ละคน
             if (childModalList) {
                 childModalList.innerHTML = children.map(c => {
-                    const cId = String(c.student_id || c.id);
+                    const cId = String(c.student_id);
                     const cName = `${c.prefix || ''}${c.first_name || ''} ${c.last_name || ''}`.trim();
                     const cClass = c.classroom || c.class_name || '-';
                     const cAvatar = c.avatar_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
@@ -796,7 +796,7 @@
             }
         }
     }
-
+    
     // 📌 ฟังก์ชันเลือกบุตรหลาน (สลับดูข้อมูลแต่ละคน)
     window.selectChildOption = async (id, name) => {
         currentStudentId = String(id);
@@ -898,13 +898,14 @@
         if (!client || !currentStudentId) return;
 
         try {
-            // 1. ดึงข้อมูลนักเรียนจาก Cache หรือ Query ใหม่
-            let student = PARENT_CHILDREN_LIST.find(c => String(c.student_id || c.id) === String(currentStudentId));
+
+    // 1. ดึงข้อมูลนักเรียนจาก Cache หรือ Query ด้วย student_id โดยตรง
+            let student = PARENT_CHILDREN_LIST.find(c => String(c.student_id) === String(currentStudentId));
             if (!student) {
                 const { data } = await client
                     .from('students')
                     .select('*')
-                    .or(`student_id.eq.${currentStudentId},id.eq.${currentStudentId}`)
+                    .eq('student_id', String(currentStudentId))
                     .maybeSingle();
                 student = data;
             }
