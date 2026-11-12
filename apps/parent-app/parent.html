@@ -814,6 +814,7 @@
     };
 
 // 📌 ดึงข้อมูลครูที่ปรึกษาทั้งหมดของห้องเรียนจากตาราง class_advisors (ตรงตามคอลัมน์ class_name, teacher_id, advisor_type)
+// 📌 ดึงข้อมูลครูที่ปรึกษาทั้งหมดของห้องเรียนจากตาราง class_advisors (รองรับทุกชื่อคอลัมน์ใน users & teachers)
     async function loadHomeroomAdvisors(classroom) {
         const avatarGroupEl = document.getElementById('advisors-avatar-group');
         const badgeNameEl = document.getElementById('advisor-badge-name');
@@ -839,39 +840,51 @@
                 .order('id', { ascending: true });
 
             if (advisorRows && advisorRows.length > 0) {
-                // เรียงให้ advisor_type === 'main' ขึ้นเป็นคนแรก
                 advisorRows.sort((a, b) => (a.advisor_type === 'main' ? -1 : b.advisor_type === 'main' ? 1 : 0));
 
+                // ดึงข้อมูลครูจากตาราง users และ teachers มาเก็บไว้เทียบ (ป้องกันปัญหาชื่อคอลัมน์ไม่ตรง)
+                const [{ data: allUsers }, { data: allTeachers }] = await Promise.all([
+                    client.from('users').select('*'),
+                    client.from('teachers').select('*')
+                ]);
+
                 for (const row of advisorRows) {
-                    const tCode = String(row.teacher_id || '').trim();
+                    const tCode = String(row.teacher_id || '').trim().toUpperCase();
                     if (!tCode) continue;
 
                     let tName = '';
                     let tAvatar = '';
 
-                    // ดึงชื่อและรูปโปรไฟล์ครูจากตาราง users
-                    const { data: uRec } = await client
-                        .from('users')
-                        .select('full_name, name, avatar_url')
-                        .eq('teacher_id', tCode)
-                        .maybeSingle();
-
-                    if (uRec) {
-                        tName = uRec.full_name || uRec.name || '';
-                        tAvatar = uRec.avatar_url || '';
+                    // ค้นหาในตาราง users
+                    if (allUsers && allUsers.length > 0) {
+                        const uRec = allUsers.find(u => 
+                            String(u.teacher_id || '').trim().toUpperCase() === tCode ||
+                            String(u.user_id || '').trim().toUpperCase() === tCode ||
+                            String(u.teacher_code || '').trim().toUpperCase() === tCode
+                        );
+                        if (uRec) {
+                            tName = uRec.full_name || uRec.name || uRec.display_name || 
+                                    `${uRec.prefix || ''}${uRec.first_name || ''} ${uRec.last_name || ''}`.trim();
+                            tAvatar = uRec.avatar_url || uRec.photo_url || uRec.picture_url || uRec.image_url || '';
+                        }
                     }
 
-                    // หากไม่พบใน users ให้ดึงสำรองจากตาราง teachers
-                    if (!tName || !tAvatar) {
-                        const { data: tRec } = await client
-                            .from('teachers')
-                            .select('*')
-                            .eq('teacher_id', tCode)
-                            .maybeSingle();
-
+                    // ค้นหาในตาราง teachers (หากยังไม่พบหรือยังไม่มีรูป)
+                    if ((!tName || !tAvatar) && allTeachers && allTeachers.length > 0) {
+                        const tRec = allTeachers.find(t => 
+                            String(t.teacher_id || '').trim().toUpperCase() === tCode ||
+                            String(t.code || '').trim().toUpperCase() === tCode ||
+                            String(t.teacher_code || '').trim().toUpperCase() === tCode ||
+                            String(t.id || '').trim().toUpperCase() === tCode
+                        );
                         if (tRec) {
-                            tName = tName || tRec.full_name || `${tRec.prefix || ''}${tRec.first_name || tRec.teacher_name || ''} ${tRec.last_name || ''}`.trim();
-                            tAvatar = tAvatar || tRec.avatar_url || tRec.photo_url || '';
+                            if (!tName) {
+                                tName = tRec.full_name || tRec.name || 
+                                        `${tRec.prefix || ''}${tRec.first_name || tRec.teacher_name || ''} ${tRec.last_name || ''}`.trim();
+                            }
+                            if (!tAvatar) {
+                                tAvatar = tRec.avatar_url || tRec.photo_url || tRec.picture_url || tRec.image_url || '';
+                            }
                         }
                     }
 
