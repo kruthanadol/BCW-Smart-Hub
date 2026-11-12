@@ -153,8 +153,10 @@ const AuthService = {
             // 5. พบข้อมูลที่เคยผูกไว้แล้ว ➔ บันทึก Session และเข้าสู่ระบบทันที
             this.completeLoginSession(realLineUserId, dbName, detectedRole, studentId, teacherCode, userEmail);
 
-        } catch (err) {
+            } 
+            catch (err) {
             this.isProcessingLogin = false;
+            document.documentElement.classList.remove('bcw-fast-redirect');
             console.error('Line Callback Processing Error:', err);
             alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย LINE: ' + err.message);
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -163,6 +165,7 @@ const AuthService = {
 
     // 🟢 4.2 Pop-up UI
     promptLineBinding: function(lineUserId) {
+        document.documentElement.classList.remove('bcw-fast-redirect');
         const existingModal = document.getElementById('lineBindingModal');
         if (existingModal) existingModal.remove();
 
