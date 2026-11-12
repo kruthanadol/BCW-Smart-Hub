@@ -717,8 +717,7 @@
         }
     });
 
-    // 📌 ดึงรายชื่อบุตรหลานในปกครองทั้งหมด
-// 📌 ดึงรายชื่อบุตรหลานในปกครองทั้งหมด (แก้ Error 400 UUID)
+    // 📌 ดึงรายชื่อบุตรหลานในปกครองทั้งหมด (แก้ Error 400 UUID + รองรับเพิ่มบุตรหลานคนที่ 2, 3)
     async function loadParentChildrenList(user) {
         const client = window.supabaseClient || window.db || window.supabase;
         const customChildText = document.getElementById('customChildText');
@@ -761,21 +760,26 @@
 
         if (children.length > 0) {
             const firstChild = children[0];
-            currentStudentId = String(firstChild.student_id);
-            const firstFullName = `${firstChild.prefix || ''}${firstChild.first_name || ''} ${firstChild.last_name || ''}`.trim();
+            if (!currentStudentId || !children.some(c => String(c.student_id) === String(currentStudentId))) {
+                currentStudentId = String(firstChild.student_id);
+            }
+            const activeChild = children.find(c => String(c.student_id) === String(currentStudentId)) || firstChild;
+            const activeFullName = `${activeChild.prefix || ''}${activeChild.first_name || ''} ${activeChild.last_name || ''}`.trim();
 
             if (document.getElementById('childSelector')) document.getElementById('childSelector').value = currentStudentId;
-            if (customChildText) customChildText.innerText = `${firstFullName} (${currentStudentId})`;
-            if (subHeaderName) subHeaderName.innerText = firstFullName;
+            if (customChildText) customChildText.innerText = `${activeFullName} (${currentStudentId})`;
+            if (subHeaderName) subHeaderName.innerText = activeFullName;
 
+            // สร้างรายการใน Modal สำหรับสลับดูลูกแต่ละคน + ปุ่มเพิ่มบุตรหลานคนที่ 2, 3
             if (childModalList) {
-                childModalList.innerHTML = children.map(c => {
+                const itemsHtml = children.map(c => {
                     const cId = String(c.student_id);
                     const cName = `${c.prefix || ''}${c.first_name || ''} ${c.last_name || ''}`.trim();
                     const cClass = c.classroom || c.class_name || '-';
                     const cAvatar = c.avatar_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+                    const isSelected = cId === String(currentStudentId);
                     return `
-                        <button type="button" onclick="selectChildOption('${cId}', '${cName.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-xl hover:bg-indigo-50 font-bold text-slate-800 transition flex items-center justify-between border border-transparent hover:border-indigo-200">
+                        <button type="button" onclick="selectChildOption('${cId}', '${cName.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-xl ${isSelected ? 'bg-indigo-50 border-indigo-300' : 'hover:bg-indigo-50 border-transparent'} font-bold text-slate-800 transition flex items-center justify-between border">
                             <div class="flex items-center gap-2.5 min-w-0">
                                 <img src="${cAvatar}" class="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
                                 <div class="truncate">
@@ -783,10 +787,20 @@
                                     <div class="text-[10px] text-slate-500">รหัส: ${cId} &bull; ชั้น ${cClass}</div>
                                 </div>
                             </div>
-                            <i class="fa-solid fa-chevron-right text-[10px] text-indigo-400 shrink-0"></i>
+                            <i class="fa-solid ${isSelected ? 'fa-circle-check text-indigo-600' : 'fa-chevron-right text-indigo-400'} text-[11px] shrink-0"></i>
                         </button>
                     `;
                 }).join('');
+
+                const addChildBtnHtml = (lineId && lineId.startsWith('U')) ? `
+                    <div class="pt-2 mt-2 border-t border-slate-100">
+                        <button type="button" onclick="promptAddAnotherChild('${lineId}')" class="w-full p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center gap-1.5 transition border border-dashed border-indigo-300 cursor-pointer active:scale-95">
+                            <i class="fa-solid fa-user-plus"></i> เพิ่มนักเรียนในปกครองอีกคน
+                        </button>
+                    </div>
+                ` : '';
+
+                childModalList.innerHTML = itemsHtml + addChildBtnHtml;
             }
         } else {
             if (customChildText) customChildText.innerText = 'ไม่พบข้อมูลนักเรียนในปกครอง';
@@ -796,6 +810,45 @@
             }
         }
     }
+
+    // 📌 ฟังก์ชันเพิ่มนักเรียนคนที่ 2, 3 เข้าในปกครองเดียวกัน
+    window.promptAddAnotherChild = async (lineId) => {
+        const newStudentId = prompt('กรุณากรอกรหัสนักเรียน (5 หลัก) ของบุตรหลานที่ต้องการเพิ่ม:');
+        if (!newStudentId || !newStudentId.trim()) return;
+
+        const cleanId = newStudentId.trim();
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) return;
+
+        try {
+            const { data: targetStudent } = await client
+                .from('students')
+                .select('student_id, prefix, first_name, last_name')
+                .eq('student_id', cleanId)
+                .maybeSingle();
+
+            if (!targetStudent) {
+                alert('❌ ไม่พบรหัสนักเรียน ' + cleanId + ' ในระบบ');
+                return;
+            }
+
+            const { error } = await client
+                .from('students')
+                .update({ parent_line_id: lineId })
+                .eq('student_id', cleanId);
+
+            if (error) throw error;
+
+            const addedName = `${targetStudent.prefix || ''}${targetStudent.first_name || ''} ${targetStudent.last_name || ''}`.trim();
+            alert(`✅ เพิ่ม "${addedName}" เข้าในรายชื่อผู้ปกครองเรียบร้อยแล้ว!`);
+
+            currentStudentId = cleanId;
+            await loadParentChildrenList(CURRENT_PARENT_USER);
+            await selectChildOption(cleanId, addedName);
+        } catch (err) {
+            alert('เกิดข้อผิดพลาดในการเพิ่มนักเรียน: ' + err.message);
+        }
+    };
     
     // 📌 ฟังก์ชันเลือกบุตรหลาน (สลับดูข้อมูลแต่ละคน)
     window.selectChildOption = async (id, name) => {
@@ -809,12 +862,16 @@
         if (customChildText) customChildText.innerText = `${name} (${currentStudentId})`;
         if (subHeaderName) subHeaderName.innerText = name;
 
-        if (typeof toggleChildModal === 'function') toggleChildModal();
+        const modal = document.getElementById('childModal');
+        if (modal && !modal.classList.contains('hidden')) {
+            modal.classList.add('hidden');
+        }
+
+        await loadParentChildrenList(CURRENT_PARENT_USER);
         await loadDashboardData();
     };
 
-// 📌 ดึงข้อมูลครูที่ปรึกษาทั้งหมดของห้องเรียนจากตาราง class_advisors (ตรงตามคอลัมน์ class_name, teacher_id, advisor_type)
-// 📌 ดึงข้อมูลครูที่ปรึกษาทั้งหมดของห้องเรียนจากตาราง class_advisors (รองรับทุกชื่อคอลัมน์ใน users & teachers)
+    // 📌 ดึงข้อมูลครูที่ปรึกษาทั้งหมดของห้องเรียนจากตาราง class_advisors (รองรับทุกชื่อคอลัมน์ใน users & teachers)
     async function loadHomeroomAdvisors(classroom) {
         const avatarGroupEl = document.getElementById('advisors-avatar-group');
         const badgeNameEl = document.getElementById('advisor-badge-name');
@@ -842,7 +899,7 @@
             if (advisorRows && advisorRows.length > 0) {
                 advisorRows.sort((a, b) => (a.advisor_type === 'main' ? -1 : b.advisor_type === 'main' ? 1 : 0));
 
-                // ดึงข้อมูลครูจากตาราง users และ teachers มาเก็บไว้เทียบ (ป้องกันปัญหาชื่อคอลัมน์ไม่ตรง)
+                // ดึงข้อมูลครูจากตาราง users และ teachers มาเก็บไว้เทียบ
                 const [{ data: allUsers }, { data: allTeachers }] = await Promise.all([
                     client.from('users').select('*'),
                     client.from('teachers').select('*')
@@ -933,8 +990,7 @@
         if (!client || !currentStudentId) return;
 
         try {
-
-    // 1. ดึงข้อมูลนักเรียนจาก Cache หรือ Query ด้วย student_id โดยตรง
+            // 1. ดึงข้อมูลนักเรียนจาก Cache หรือ Query ด้วย student_id โดยตรง
             let student = PARENT_CHILDREN_LIST.find(c => String(c.student_id) === String(currentStudentId));
             if (!student) {
                 const { data } = await client
