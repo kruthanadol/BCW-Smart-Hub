@@ -68,31 +68,31 @@ const AuthService = {
         window.location.href = lineAuthUrl;
     },
 
-    // 🟢 4.1 จัดการ Callback จาก LINE Login (ใช้ identity ค้นหาใน DB ถ้าระบบเคยผูกไว้)
+// 🟢 4.1 จัดการ Callback จาก LINE Login (แลก Token ดึง LINE User ID ตัวจริง)
     handleLineCallback: async function(code) {
         if (this.isProcessingLogin) return;
         this.isProcessingLogin = true;
 
         try {
-            console.log('🔄 กำลังประมวลผล LINE Authorization Code:', code);
+            console.log('🔄 กำลังส่ง Code ไปแลก LINE User ID ตัวจริง...');
             const client = window.supabaseClient || window.db || window.supabase;
-            
-            const boundIdentity = localStorage.getItem('bcw_bound_identity') || localStorage.getItem('bcw_bound_line_id');
-            const savedRole = localStorage.getItem('bcw_bound_role');
-            const savedSessionStr = localStorage.getItem('bcw_user_session');
+            if (!client) throw new Error('ไม่พบการเชื่อมต่อ Supabase');
 
-            // 1. ถ้ามี Session สมบูรณ์อยู่ในเครื่องแล้ว ➔ เข้า Dashboard ทันที
-            if (savedSessionStr) {
-                try {
-                    const session = JSON.parse(savedSessionStr);
-                    if (session && session.role) {
-                        console.log('✅ พบ Session LINE ในเครื่อง นำเข้าสู่ระบบทันที:', session.role);
-                        this.isProcessingLogin = false;
-                        this.redirectToRolePage(session.role);
-                        return;
-                    }
-                } catch(e) {}
+            // 1. เรียก Edge Function เพื่อแลก code เป็น LINE User ID จริง (ขึ้นต้นด้วย U...)
+            const redirectUri = window.location.origin + window.location.pathname;
+            const { data: lineData, error: fnError } = await client.functions.invoke('line-token-exchange', {
+                body: { code: code, redirectUri: redirectUri }
+            });
+
+            if (fnError || !lineData || !lineData.lineUserId) {
+                throw new Error(fnError?.message || lineData?.error || 'ไม่สามารถยืนยันตัวตนกับ LINE API ได้');
             }
+
+            const realLineUserId = lineData.lineUserId;
+            console.log('✅ ได้รับ LINE User ID ตัวจริง:', realLineUserId);
+
+            // ล้าง ?code=... ออกจาก URL เพื่อไม่ให้โค้ดหมดอายุถูกเรียกซ้ำเมื่อรีเฟรชหน้า
+            window.history.replaceState({}, document.title, window.location.pathname);
 
             let detectedRole = null;
             let dbName = '';
@@ -100,63 +100,64 @@ const AuthService = {
             let teacherCode = '';
             let userEmail = '';
 
-            // 2. ถ้ามี boundIdentity ที่เคยบันทึกไว้ ให้ค้นหาข้อมูลล่าสุดจาก Supabase
-            if (boundIdentity && client) {
-                // เช็กตาราง students
-                try {
-                    const { data: student } = await client
+            // 2. ค้นหาในตาราง users (ครู / ผู้บริหาร / Admin) ด้วย LINE User ID จริง
+            const { data: userRec } = await client
+                .from('users')
+                .select('*')
+                .eq('line_user_id', realLineUserId)
+                .maybeSingle();
+
+            if (userRec) {
+                detectedRole = (userRec.role || 'TEACHER').toUpperCase();
+                dbName = userRec.full_name || userRec.name || 'คุณครู';
+                teacherCode = userRec.teacher_id || userRec.user_id || userRec.id;
+                userEmail = userRec.email || '';
+            }
+
+            // 3. หากไม่พบในครู ให้ค้นหาในตาราง students (นักเรียน / ผู้ปกครอง)
+            if (!detectedRole) {
+                const { data: studentRec } = await client
+                    .from('students')
+                    .select('*')
+                    .eq('student_line_id', realLineUserId)
+                    .maybeSingle();
+
+                if (studentRec) {
+                    detectedRole = 'STUDENT';
+                    studentId = studentRec.student_id || studentRec.id;
+                    dbName = `${studentRec.prefix || ''}${studentRec.first_name || ''} ${studentRec.last_name || ''}`.trim();
+                    userEmail = studentRec.email || `${studentId}@buached.ac.th`;
+                } else {
+                    const { data: parentRec } = await client
                         .from('students')
                         .select('*')
-                        .eq('student_id', boundIdentity)
+                        .eq('parent_line_id', realLineUserId)
                         .maybeSingle();
 
-                    if (student) {
-                        detectedRole = savedRole || 'STUDENT';
-                        studentId = student.student_id;
-                        const prefix = (student.prefix || '').trim();
-                        const firstName = (student.first_name || '').trim();
-                        const lastName = (student.last_name || '').trim();
-
-                        dbName = (detectedRole === 'PARENT') 
-                            ? `ผู้ปกครอง (${prefix}${firstName})`
-                            : `${prefix}${firstName} ${lastName}`.trim();
-                        userEmail = student.email || `${studentId}@buached.ac.th`;
+                    if (parentRec) {
+                        detectedRole = 'PARENT';
+                        studentId = parentRec.student_id || parentRec.id;
+                        dbName = `ผู้ปกครอง (${parentRec.prefix || ''}${parentRec.first_name || ''})`;
+                        userEmail = parentRec.email || `${studentId}@buached.ac.th`;
                     }
-                } catch(e) {}
-
-                // เช็กตาราง users (ครู/แอดมิน)
-                if (!detectedRole) {
-                    try {
-                        const { data: userRec } = await client
-                            .from('users')
-                            .select('*')
-                            .or(`teacher_id.eq.${boundIdentity},email.eq.${boundIdentity.toLowerCase()},user_id.eq.${boundIdentity}`)
-                            .maybeSingle();
-
-                        if (userRec) {
-                            detectedRole = (userRec.role || 'TEACHER').toUpperCase();
-                            dbName = userRec.full_name || userRec.name || 'คุณครู';
-                            teacherCode = userRec.teacher_id || userRec.user_id || userRec.id;
-                            userEmail = userRec.email || '';
-                        }
-                    } catch(e) {}
                 }
             }
 
-            // 3. ถ้ายังไม่เคยผูกเลย ➔ เปิด Pop-up ผูกครั้งแรก
+            // 4. หากยังไม่เคยผูกบัญชีเลย ➔ เปิด Pop-up ให้ผูกโดยส่ง realLineUserId เข้าไปบันทึก
             if (!detectedRole) {
                 this.isProcessingLogin = false;
-                this.promptLineBinding(code);
+                this.promptLineBinding(realLineUserId);
                 return;
             }
 
-            // 4. บันทึก Session และเข้าสู่ระบบ
-            this.completeLoginSession(boundIdentity, dbName, detectedRole, studentId, teacherCode, userEmail);
+            // 5. พบข้อมูลที่เคยผูกไว้แล้ว ➔ บันทึก Session และเข้าสู่ระบบทันที
+            this.completeLoginSession(realLineUserId, dbName, detectedRole, studentId, teacherCode, userEmail);
 
         } catch (err) {
             this.isProcessingLogin = false;
             console.error('Line Callback Processing Error:', err);
-            alert('เกิดข้อผิดพลาดในการยืนยันตัวตนผ่าน LINE: ' + err.message);
+            alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย LINE: ' + err.message);
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
     },
 
