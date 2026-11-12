@@ -717,7 +717,7 @@
         }
     });
 
-    // 📌 ดึงรายชื่อบุตรหลานในปกครองทั้งหมด (แก้ Error 400 UUID + รองรับเพิ่มบุตรหลานคนที่ 2, 3)
+// 📌 ดึงรายชื่อบุตรหลานในปกครองทั้งหมด (แสดงปุ่มเพิ่มนักเรียนเสมอ ไม่ว่าจะล็อกอินช่องทางไหน)
     async function loadParentChildrenList(user) {
         const client = window.supabaseClient || window.db || window.supabase;
         const customChildText = document.getElementById('customChildText');
@@ -726,14 +726,14 @@
 
         if (!client) return;
 
-        const lineId = user.lineUserId || localStorage.getItem('bcw_bound_line_id') || '';
+        let lineId = user.lineUserId || localStorage.getItem('bcw_bound_line_id') || '';
         const fallbackStudentId = String(user.studentId || user.student_id || user.id || '').trim();
 
         let children = [];
 
         try {
-            // 1. ค้นหาจาก parent_line_id ก่อน (กรณีผูก LINE กับลูก 1-3 คน)
-            if (lineId && lineId.startsWith('U')) {
+            // 1. ค้นหาจาก parent_line_id ก่อน (กรณีมีรหัสผูกผู้ปกครอง)
+            if (lineId) {
                 const { data: byLine } = await client
                     .from('students')
                     .select('*')
@@ -743,14 +743,27 @@
                 if (byLine && byLine.length > 0) children = byLine;
             }
 
-            // 2. หากยังไม่พบ ให้ค้นหาจาก student_id โดยตรง (ไม่เทียบกับคอลัมน์ id ที่เป็น UUID)
+            // 2. หากยังไม่พบ ให้ค้นหาจาก student_id ที่ล็อกอินเข้ามา
             if (children.length === 0 && fallbackStudentId) {
                 const { data: byId } = await client
                     .from('students')
                     .select('*')
                     .eq('student_id', fallbackStudentId);
 
-                if (byId && byId.length > 0) children = byId;
+                if (byId && byId.length > 0) {
+                    children = byId;
+                    // หากนักเรียนคนนี้มี parent_line_id อยู่ในฐานข้อมูลแล้ว ให้ดึงพี่น้องทั้งหมดที่ใช้ parent_line_id เดียวกันมาแสดงด้วย
+                    const dbParentLineId = byId[0].parent_line_id;
+                    if (dbParentLineId) {
+                        lineId = dbParentLineId;
+                        const { data: siblings } = await client
+                            .from('students')
+                            .select('*')
+                            .eq('parent_line_id', dbParentLineId)
+                            .order('student_id', { ascending: true });
+                        if (siblings && siblings.length > 0) children = siblings;
+                    }
+                }
             }
         } catch (e) {
             console.warn('[ParentPortal] Fetch children warning:', e);
@@ -770,7 +783,9 @@
             if (customChildText) customChildText.innerText = `${activeFullName} (${currentStudentId})`;
             if (subHeaderName) subHeaderName.innerText = activeFullName;
 
-            // สร้างรายการใน Modal สำหรับสลับดูลูกแต่ละคน + ปุ่มเพิ่มบุตรหลานคนที่ 2, 3
+            // สร้างรหัสกลุ่มผู้ปกครองอัตโนมัติ (กรณีล็อกอินด้วยรหัสนักเรียนและยังไม่เคยผูก LINE)
+            const groupLinkKey = lineId || firstChild.parent_line_id || `PARENT_${firstChild.student_id}`;
+
             if (childModalList) {
                 const itemsHtml = children.map(c => {
                     const cId = String(c.student_id);
@@ -792,13 +807,14 @@
                     `;
                 }).join('');
 
-                const addChildBtnHtml = (lineId && lineId.startsWith('U')) ? `
+                // แสดงปุ่มเพิ่มนักเรียนในปกครองเสมอ
+                const addChildBtnHtml = `
                     <div class="pt-2 mt-2 border-t border-slate-100">
-                        <button type="button" onclick="promptAddAnotherChild('${lineId}')" class="w-full p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center gap-1.5 transition border border-dashed border-indigo-300 cursor-pointer active:scale-95">
+                        <button type="button" onclick="promptAddAnotherChild('${groupLinkKey}', '${firstChild.student_id}')" class="w-full p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center gap-1.5 transition border border-dashed border-indigo-300 cursor-pointer active:scale-95">
                             <i class="fa-solid fa-user-plus"></i> เพิ่มนักเรียนในปกครองอีกคน
                         </button>
                     </div>
-                ` : '';
+                `;
 
                 childModalList.innerHTML = itemsHtml + addChildBtnHtml;
             }
@@ -812,7 +828,7 @@
     }
 
     // 📌 ฟังก์ชันเพิ่มนักเรียนคนที่ 2, 3 เข้าในปกครองเดียวกัน
-    window.promptAddAnotherChild = async (lineId) => {
+    window.promptAddAnotherChild = async (groupLinkKey, primaryStudentId) => {
         const newStudentId = prompt('กรุณากรอกรหัสนักเรียน (5 หลัก) ของบุตรหลานที่ต้องการเพิ่ม:');
         if (!newStudentId || !newStudentId.trim()) return;
 
@@ -832,12 +848,24 @@
                 return;
             }
 
+            // อัปเดตให้ทั้งนักเรียนคนหลักและนักเรียนที่เพิ่มใหม่ใช้ parent_line_id เดียวกัน
+            await client
+                .from('students')
+                .update({ parent_line_id: groupLinkKey })
+                .eq('student_id', String(primaryStudentId));
+
             const { error } = await client
                 .from('students')
-                .update({ parent_line_id: lineId })
+                .update({ parent_line_id: groupLinkKey })
                 .eq('student_id', cleanId);
 
             if (error) throw error;
+
+            // อัปเดต Session ปัจจุบันให้จำรหัสกลุ่มผู้ปกครองไว้ด้วย
+            if (CURRENT_PARENT_USER) {
+                CURRENT_PARENT_USER.lineUserId = groupLinkKey;
+                localStorage.setItem('bcw_user_session', JSON.stringify(CURRENT_PARENT_USER));
+            }
 
             const addedName = `${targetStudent.prefix || ''}${targetStudent.first_name || ''} ${targetStudent.last_name || ''}`.trim();
             alert(`✅ เพิ่ม "${addedName}" เข้าในรายชื่อผู้ปกครองเรียบร้อยแล้ว!`);
@@ -848,27 +876,6 @@
         } catch (err) {
             alert('เกิดข้อผิดพลาดในการเพิ่มนักเรียน: ' + err.message);
         }
-    };
-    
-    // 📌 ฟังก์ชันเลือกบุตรหลาน (สลับดูข้อมูลแต่ละคน)
-    window.selectChildOption = async (id, name) => {
-        currentStudentId = String(id);
-        
-        const childSelector = document.getElementById('childSelector');
-        const customChildText = document.getElementById('customChildText');
-        const subHeaderName = document.getElementById('subHeaderStudentName');
-
-        if (childSelector) childSelector.value = currentStudentId;
-        if (customChildText) customChildText.innerText = `${name} (${currentStudentId})`;
-        if (subHeaderName) subHeaderName.innerText = name;
-
-        const modal = document.getElementById('childModal');
-        if (modal && !modal.classList.contains('hidden')) {
-            modal.classList.add('hidden');
-        }
-
-        await loadParentChildrenList(CURRENT_PARENT_USER);
-        await loadDashboardData();
     };
 
     // 📌 ดึงข้อมูลครูที่ปรึกษาทั้งหมดของห้องเรียนจากตาราง class_advisors (รองรับทุกชื่อคอลัมน์ใน users & teachers)
