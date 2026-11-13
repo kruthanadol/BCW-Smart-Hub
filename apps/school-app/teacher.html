@@ -326,14 +326,13 @@
     let CURRENT_TEACHER_USER = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
-        // 🟢 1. อ่าน Session ของผู้ใช้งาน ( guard-admin-teacher.js คอยคัดกรองให้อัตโนมัติในเบื้องหลังแล้ว )
+        // 🟢 1. อ่าน Session ของผู้ใช้งาน
         const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
-        if (!currentUser) return; // ป้องกันไว้ในกรณีเร่งด่วน
+        if (!currentUser) return;
 
         CURRENT_TEACHER_USER = currentUser;
-        console.log('เข้าสู่ระบบครูสำเร็จ:', currentUser);
 
-        // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทยให้อ่านง่าย
+        // 🏷️ 2. แปลง Badge สิทธิ์เป็นภาษาไทย
         const roleMap = {
             'ADMIN': 'ผู้ดูแลระบบ',
             'EXECUTIVE': 'ผู้บริหาร',
@@ -349,49 +348,125 @@
         const avatarImg = document.getElementById('teacherAvatarImg') || document.getElementById('userAvatarImg');
         const avatarIcon = document.getElementById('teacherAvatarIcon') || document.getElementById('userAvatarIcon');
 
-        // 📝 4. ฉีดข้อมูลโปรไฟล์ (ชื่อ DB ภาษาไทย + Badge สิทธิ์)
         if (nameEl) nameEl.textContent = currentUser.name || 'ครูผู้สอน';
         if (badgeEl) badgeEl.textContent = displayRole;
 
-        // 🖼️ 5. แสดงรูปภาพสดจาก SSO ( Google / LINE ) พร้อมระบบ Fallback ตัวไอคอน
         if (avatarImg) {
             if (currentUser.avatar) {
                 avatarImg.src = currentUser.avatar;
                 avatarImg.classList.remove('hidden');
                 if (avatarIcon) avatarIcon.classList.add('hidden');
-
-                // กรณีลิงก์รูป SSO โหลดไม่ได้ ให้สลับกลับไปใช้ไอคอนสำรอง
                 avatarImg.onerror = () => {
                     avatarImg.classList.add('hidden');
                     if (avatarIcon) avatarIcon.classList.remove('hidden');
                 };
             } else {
-                // กรณีไม่มีรูปในระบบ ให้แสดงไอคอนสำรอง
                 avatarImg.classList.add('hidden');
                 if (avatarIcon) avatarIcon.classList.remove('hidden');
             }
         }
 
-        // 🔄 6. โหลดข้อมูลเข้า Header เพิ่มเติม
-        loadTeacherProfile(currentUser);
+        // 🎨 4. ปรับสไตล์ปุ่ม "หน้าหลัก" ให้เด่นมีมิติ
+        styleActiveNavButtons();
 
-        // 📚 7. ดึงตารางสอนจริงจากฐานข้อมูล Supabase ตามรหัสครูที่ล็อกอิน
-        const teacherId = currentUser.teacherId || currentUser.id || currentUser.teacher_id;
-        await loadRealSubjectSchedules(teacherId);
+        // 🔄 5. โหลดข้อมูลเข้า Header และดึงรหัสครูจริง (teacher_id) แทน UUID
+        const realTeacherId = await loadTeacherProfile(currentUser);
+
+        // 📚 6. ดึงตารางสอนจริงจากฐานข้อมูล Supabase ตามรหัสครูที่ล็อกอิน
+        await loadRealSubjectSchedules(realTeacherId);
+
+        // 🚪 7. ผูก Event ให้ปุ่ม Logout บน UI
+        document.querySelectorAll('.btn-logout, [onclick*="logout"], button:has(.fa-right-from-bracket)').forEach(btn => {
+            btn.removeAttribute('onclick');
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleLogout();
+            });
+        });
     });
 
-    function loadTeacherProfile(user) {
+    // 🎨 ฟังก์ชันปรับสไตล์ปุ่มเมนู "หน้าหลัก" ให้เด่นมีสไตล์
+    function styleActiveNavButtons() {
+        const navButtons = document.querySelectorAll('.teacher-nav-btn, button');
+        navButtons.forEach(btn => {
+            if (btn.textContent.includes('หน้าหลัก')) {
+                btn.className = 'teacher-nav-btn active px-4 py-2 rounded-xl font-extrabold text-xs sm:text-sm text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 shadow-md shadow-emerald-600/30 border border-emerald-400/50 flex items-center gap-2 transition-all duration-200 cursor-pointer';
+            }
+        });
+    }
+
+    // 🔄 ดึงข้อมูลชื่อ รูปโปรไฟล์ และรหัสครูจริง (teacher_id) แทน UUID
+    async function loadTeacherProfile(user) {
+        const client = window.supabaseClient || window.db || window.supabase;
         const nameEl = document.getElementById('headerTeacherName');
         const codeEl = document.getElementById('teacherCodeDisplay');
         const avatarImg = document.getElementById('headerTeacherAvatar');
 
-        if (nameEl) nameEl.innerText = user.name || 'ครูผู้สอน';
-        if (codeEl) codeEl.innerText = `รหัส: ${user.teacherId || user.id || '-'}`;
-        if (avatarImg) {
-            avatarImg.src = user.avatar && user.avatar !== '' 
-                ? user.avatar 
-                : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+        let teacherCode = user.teacher_id || user.teacherId || user.teacherCode || user.code || '';
+        let fullName = user.full_name || user.name || user.displayName || '';
+        let avatarUrl = user.avatar || user.avatar_url || user.pictureUrl || user.photoURL || '';
+
+        // หากยังไม่มี teacher_id หรือค่าที่ได้เป็น UUID (ยาวกว่า 15 ตัวอักษร) ให้ค้นหาจากตาราง users และ teachers
+        if (client && (!teacherCode || String(teacherCode).length > 15)) {
+            try {
+                // ค้นหาจากตาราง users
+                const { data: uRec } = await client
+                    .from('users')
+                    .select('*')
+                    .or(`id.eq.${user.id},email.eq.${user.email || 'none'}`)
+                    .maybeSingle();
+
+                if (uRec) {
+                    teacherCode = uRec.teacher_id || uRec.teacher_code || teacherCode;
+                    fullName = uRec.full_name || uRec.name || fullName;
+                    avatarUrl = uRec.avatar_url || uRec.photo_url || avatarUrl;
+                }
+
+                // ค้นหาเพิ่มเติมในตาราง teachers (ทั้งจาก user_id, email และชื่อ-นามสกุล)
+                if (!teacherCode || String(teacherCode).length > 15) {
+                    const { data: allTeachers } = await client.from('teachers').select('*');
+                    if (allTeachers && allTeachers.length > 0) {
+                        const cleanName = String(fullName).trim().toLowerCase();
+                        const tRec = allTeachers.find(t => {
+                            const tFull = `${t.prefix || ''}${t.first_name || ''} ${t.last_name || ''}`.trim().toLowerCase();
+                            const tFirstLast = `${t.first_name || ''} ${t.last_name || ''}`.trim().toLowerCase();
+                            return (user.id && String(t.user_id) === String(user.id)) ||
+                                   (user.email && t.email && String(t.email).toLowerCase() === String(user.email).toLowerCase()) ||
+                                   (cleanName && (tFull === cleanName || tFirstLast === cleanName || String(t.full_name || '').trim().toLowerCase() === cleanName));
+                        });
+
+                        if (tRec) {
+                            teacherCode = tRec.teacher_id || tRec.code || tRec.teacher_code || teacherCode;
+                            fullName = tRec.full_name || `${tRec.prefix || ''}${tRec.first_name || ''} ${tRec.last_name || ''}`.trim() || fullName;
+                            avatarUrl = tRec.avatar_url || tRec.photo_url || avatarUrl;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('[TeacherPortal] Fetch teacher code warning:', e);
+            }
         }
+
+        const cleanCode = (teacherCode && String(teacherCode).length <= 15) ? String(teacherCode).trim() : '';
+
+        // บันทึกรหัสครูจริงกลับเข้าตัวแปรและ Session เพื่อใช้งานต่อ
+        if (cleanCode && CURRENT_TEACHER_USER) {
+            CURRENT_TEACHER_USER.teacher_id = cleanCode;
+            CURRENT_TEACHER_USER.teacherId = cleanCode;
+        }
+
+        if (nameEl) nameEl.innerText = fullName || 'ครูผู้สอน';
+        if (codeEl) codeEl.innerText = `รหัส: ${cleanCode || 'ไม่ระบุรหัส'}`;
+        if (avatarImg) {
+            avatarImg.src = avatarUrl && avatarUrl !== '' 
+                ? avatarUrl 
+                : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            avatarImg.onerror = () => {
+                avatarImg.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            };
+        }
+
+        return cleanCode;
     }
 
     // 🚪 ฟังก์ชันออกจากระบบประจำหน้าครู
@@ -408,17 +483,6 @@
         }
     }
 
-    // ผูก Event ให้ปุ่ม Logout บน UI
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.btn-logout, [onclick*="logout"], button:has(.fa-right-from-bracket)').forEach(btn => {
-            btn.removeAttribute('onclick');
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                handleLogout();
-            });
-        });
-    });
-
     // ----------------------------------------------------
     // ZERO-MOCK: ดึงตารางสอนจริงจากตาราง `schedules` ใน DB 100%
     // ----------------------------------------------------
@@ -432,20 +496,21 @@
             if (!client) return;
 
             let schedules = null;
+            const targetTeacherId = teacherId || CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.teacherId || '';
 
-            // 🟢 กำหนดรหัสครูเป็น T011 หรือดึงจาก Object โปรไฟล์
-            const targetTeacherId = CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.teacherId || 'T011';
+            if (targetTeacherId) {
+                const { data, error } = await client
+                    .from('schedules')
+                    .select('*')
+                    .eq('teacher_id', targetTeacherId);
 
-            // ค้นหาด้วยรหัสครู T011 ในตาราง schedules
-            const { data, error } = await client
-                .from('schedules')
-                .select('*')
-                .eq('teacher_id', targetTeacherId);
+                if (!error && data && data.length > 0) {
+                    schedules = data;
+                }
+            }
 
-            if (!error && data && data.length > 0) {
-                schedules = data;
-            } else {
-                // กรณีหาไม่เจอ ให้ดึงตารางสอนขึ้นมาแสดงทั้งหมด
+            // กรณีหาไม่เจอด้วยรหัสครู ให้ดึงตารางสอนขึ้นมาแสดงทั้งหมดสำรองไว้
+            if (!schedules || schedules.length === 0) {
                 const resAll = await client.from('schedules').select('*').limit(100);
                 schedules = resAll.data || [];
             }
@@ -533,8 +598,12 @@
         if (target) {
             target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             if (btnElement) {
-                document.querySelectorAll('.teacher-nav-btn').forEach(btn => btn.classList.remove('active'));
-                btnElement.classList.add('active');
+                document.querySelectorAll('.teacher-nav-btn').forEach(btn => {
+                    btn.classList.remove('active', 'bg-gradient-to-r', 'from-emerald-600', 'via-teal-600', 'to-emerald-700', 'text-white', 'shadow-md');
+                    btn.classList.add('bg-slate-100', 'text-slate-700');
+                });
+                btnElement.classList.remove('bg-slate-100', 'text-slate-700');
+                btnElement.classList.add('active', 'bg-gradient-to-r', 'from-emerald-600', 'via-teal-600', 'to-emerald-700', 'text-white', 'shadow-md');
             }
         }
     };
