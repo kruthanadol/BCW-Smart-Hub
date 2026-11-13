@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCW AI Gate Scan - ระบบสแกนใบหน้าเข้า-ออกโรงเรียน</title>
+    <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- นำเข้า face-api.js สำหรับจดจำใบหน้าบนเบราว์เซอร์ -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #022c22; color: #ffffff; }
+        video { transform: scaleX(-1); }
+        canvas { transform: scaleX(-1); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-emerald-950/90 border-b border-emerald-800 px-4 py-3 flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+            <img src="../../assets/images/logo_bcw.png" class="w-10 h-10 bg-white p-1 rounded-xl" onerror="this.style.display='none'">
+            <div>
+                <h1 class="text-base sm:text-lg font-extrabold text-amber-400 leading-tight">BCW AI GATE SCAN</h1>
+                <p class="text-xs text-emerald-200">ระบบตรวจจับใบหน้าเข้าโรงเรียนอัตโนมัติ &bull; โรงเรียนบัวเชดวิทยา</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span id="systemStatusBadge" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/40 px-3 py-1.5 rounded-xl font-bold">
+                <i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังโหลดโมเดล AI...
+            </span>
+            <select id="classroomFilter" onchange="reloadFaceDatabase()" class="bg-emerald-900 border border-emerald-700 text-xs font-bold rounded-xl px-3 py-2 text-white outline-none">
+                <option value="ALL">ทุกห้องเรียน</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- Main Camera & Live Feed -->
+    <main class="max-w-7xl mx-auto w-full p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 my-auto">
+        
+        <!-- จอกล้องสแกน (7 คอลัมน์) -->
+        <div class="lg:col-span-7 bg-slate-950 rounded-3xl border-2 border-emerald-600/50 overflow-hidden relative shadow-2xl aspect-video flex items-center justify-center">
+            <video id="gateVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
+            <canvas id="overlayCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+            <canvas id="snapshotCanvas" class="hidden"></canvas>
+
+            <!-- กรอบเล็งใบหน้า -->
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div class="w-48 h-60 sm:w-60 sm:h-72 border-2 border-dashed border-amber-400/70 rounded-3xl"></div>
+            </div>
+
+            <!-- ป้ายแจ้งเตือนเมื่อสแกนสำเร็จ -->
+            <div id="scanSuccessPopup" class="hidden absolute bottom-4 left-4 right-4 bg-emerald-900/95 backdrop-blur-md border-2 border-amber-400 rounded-2xl p-3 flex items-center gap-3 shadow-2xl transition-all">
+                <img id="popupAvatar" src="" class="w-14 h-14 rounded-xl object-cover border-2 border-white shrink-0">
+                <div class="min-w-0 flex-1">
+                    <div class="text-xs text-amber-300 font-bold">✅ บันทึกเข้าโรงเรียนสำเร็จ</div>
+                    <div id="popupName" class="text-base sm:text-lg font-extrabold text-white truncate">-</div>
+                    <div id="popupMeta" class="text-xs text-emerald-200">-</div>
+                </div>
+                <div id="popupTime" class="text-lg font-black text-amber-400 font-mono shrink-0">00:00</div>
+            </div>
+        </div>
+
+        <!-- รายการสแกนล่าสุด Real-time (5 คอลัมน์) -->
+        <div class="lg:col-span-5 bg-emerald-950/80 rounded-3xl border border-emerald-800 p-4 flex flex-col justify-between max-h-[520px]">
+            <div>
+                <div class="flex justify-between items-center pb-3 border-b border-emerald-800/80">
+                    <h2 class="text-sm font-extrabold text-amber-300 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i> ประวัติสแกนล่าสุดวันนี้
+                    </h2>
+                    <span id="todayScanCounter" class="text-xs bg-emerald-800 text-emerald-100 px-2.5 py-1 rounded-lg font-bold">0 คน</span>
+                </div>
+                <div id="recentScanList" class="mt-3 space-y-2 overflow-y-auto max-h-[390px] pr-1">
+                    <p class="text-xs text-emerald-400/70 text-center py-8">รอการตรวจจับใบหน้านักเรียน...</p>
+                </div>
+            </div>
+            <div class="pt-2 border-t border-emerald-800/80 text-[11px] text-emerald-300/80 flex justify-between">
+                <span>เกณฑ์มาสาย: หลัง 08:00 น.</span>
+                <span>หน่วงเวลาสแกนซ้ำ: 5 นาที</span>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../core/supabase-client.js?v=400"></script>
+
+    <script>
+        const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
+        const LATE_CUTOFF_HOUR = 8;
+        const LATE_CUTOFF_MINUTE = 0;
+        const COOLDOWN_MS = 5 * 60 * 1000; // ป้องกันสแกนซ้ำภายใน 5 นาที
+
+        let labeledFaceDescriptors = [];
+        let faceMatcher = null;
+        let studentsMap = new Map();
+        let lastScanTimestamps = new Map();
+        let scanCountToday = 0;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initCamera();
+            await loadModelsAndStudents();
+        });
+
+        async function initCamera() {
+            const video = document.getElementById('gateVideo');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 }, audio: false });
+                video.srcObject = stream;
+            } catch (err) {
+                setStatus('❌ ไม่พบกล้องหรือไม่ได้รับอนุญาตเปิดกล้อง', 'rose');
+            }
+        }
+
+        function setStatus(text, color = 'amber') {
+            const badge = document.getElementById('systemStatusBadge');
+            if (!badge) return;
+            const colorMap = {
+                amber: 'bg-amber-500/20 text-amber-300 border-amber-400/40',
+                emerald: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40',
+                rose: 'bg-rose-500/20 text-rose-300 border-rose-400/40'
+            };
+            badge.className = `text-xs border px-3 py-1.5 rounded-xl font-bold ${colorMap[color]}`;
+            badge.innerHTML = text;
+        }
+
+        async function loadModelsAndStudents() {
+            try {
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                const client = window.supabaseClient || window.db || window.supabase;
+                const { data: students } = await client.from('students').select('*');
+                if (!students || students.length === 0) {
+                    setStatus('⚠️ ไม่พบข้อมูลนักเรียนในฐานข้อมูล', 'rose');
+                    return;
+                }
+
+                // สร้างตัวเลือกห้องเรียน
+                const rooms = [...new Set(students.map(s => s.classroom).filter(Boolean))].sort();
+                const roomSelect = document.getElementById('classroomFilter');
+                rooms.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r;
+                    opt.textContent = `ห้อง ${r}`;
+                    roomSelect.appendChild(opt);
+                });
+
+                students.forEach(s => {
+                    const id = String(s.student_id || s.id).trim();
+                    studentsMap.set(id, s);
+                });
+
+                await reloadFaceDatabase();
+                startDetectionLoop();
+            } catch (err) {
+                console.error(err);
+                setStatus('❌ โหลดระบบ AI ล้มเหลว', 'rose');
+            }
+        }
+
+        async function reloadFaceDatabase() {
+            const selectedRoom = document.getElementById('classroomFilter')?.value || 'ALL';
+            setStatus('<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังประมวลผลใบหน้านักเรียน...', 'amber');
+
+            const descriptors = [];
+            for (const [id, s] of studentsMap.entries()) {
+                if (selectedRoom !== 'ALL' && s.classroom !== selectedRoom) continue;
+                const imgUrl = s.avatar_url || `${SUPABASE_URL}/storage/v1/object/public/avatars/${id}.webp`;
+                try {
+                    const img = await faceapi.fetchImage(imgUrl);
+                    const det = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                    if (det) {
+                        descriptors.push(new faceapi.LabeledFaceDescriptors(id, [det.descriptor]));
+                    }
+                } catch (e) { /* ข้ามรูปที่โหลดไม่ได้ */ }
+            }
+
+            labeledFaceDescriptors = descriptors;
+            faceMatcher = descriptors.length > 0 ? new faceapi.FaceMatcher(descriptors, 0.55) : null;
+            setStatus(`🟢 พร้อมสแกน (${descriptors.length} ใบหน้า)`, 'emerald');
+        }
+
+        function startDetectionLoop() {
+            const video = document.getElementById('gateVideo');
+            const canvas = document.getElementById('overlayCanvas');
+
+            setInterval(async () => {
+                if (!faceMatcher || video.paused || video.ended) return;
+
+                const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                faceapi.matchDimensions(canvas, displaySize);
+
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceLandmarks()
+                    .withFaceDescriptors();
+
+                const resized = faceapi.resizeResults(detections, displaySize);
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (const d of resized) {
+                    const match = faceMatcher.findBestMatch(d.descriptor);
+                    const box = d.detection.box;
+
+                    if (match.label !== 'unknown') {
+                        const student = studentsMap.get(match.label);
+                        const fullName = student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : match.label;
+
+                        ctx.strokeStyle = '#34d399';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+                        await recordStudentGateScan(match.label, student, fullName);
+                    } else {
+                        ctx.strokeStyle = '#fbbf24';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    }
+                }
+            }, 800);
+        }
+
+        async function recordStudentGateScan(studentId, student, fullName) {
+            const now = Date.now();
+            const lastTime = lastScanTimestamps.get(studentId) || 0;
+            if (now - lastTime < COOLDOWN_MS) return; // ป้องกันบันทึกซ้ำ
+
+            lastScanTimestamps.set(studentId, now);
+
+            const nowDate = new Date();
+            const isLate = (nowDate.getHours() > LATE_CUTOFF_HOUR) || (nowDate.getHours() === LATE_CUTOFF_HOUR && nowDate.getMinutes() > LATE_CUTOFF_MINUTE);
+            const status = isLate ? 'late' : 'present';
+            const timeStr = nowDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+            // ถ่ายภาพหลักฐานจากกล้อง
+            const video = document.getElementById('gateVideo');
+            const snapCanvas = document.getElementById('snapshotCanvas');
+            snapCanvas.width = 320;
+            snapCanvas.height = 240;
+            snapCanvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
+            const snapshotDataUrl = snapCanvas.toDataURL('image/jpeg', 0.7);
+
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (client) {
+                await client.from('attendance_logs').insert([{
+                    student_id: studentId,
+                    status: status,
+                    method: 'ai_gate',
+                    period_no: 0,
+                    recorded_at: nowDate.toISOString(),
+                    subject_name: `สแกนเข้าโรงเรียน (${isLate ? 'มาสาย' : 'ปกติ'})`
+                }]);
+            }
+
+            // แสดง Popup และอัปเดตรายการล่าสุด
+            scanCountToday++;
+            document.getElementById('todayScanCounter').innerText = `${scanCountToday} คน`;
+
+            const popup = document.getElementById('scanSuccessPopup');
+            document.getElementById('popupAvatar').src = snapshotDataUrl;
+            document.getElementById('popupName').innerText = fullName;
+            document.getElementById('popupMeta').innerText = `ห้อง ${student?.classroom || '-'} • ${isLate ? '🟡 มาสาย' : '🟢 เข้าเรียนปกติ'}`;
+            document.getElementById('popupTime').innerText = `${timeStr} น.`;
+            popup.classList.remove('hidden');
+            setTimeout(() => popup.classList.add('hidden'), 4000);
+
+            const listEl = document.getElementById('recentScanList');
+            if (scanCountToday === 1) listEl.innerHTML = '';
+            listEl.insertAdjacentHTML('afterbegin', `
+                <div class="bg-emerald-900/60 border border-emerald-700/60 rounded-2xl p-2.5 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <img src="${snapshotDataUrl}" class="w-10 h-10 rounded-xl object-cover border border-emerald-400 shrink-0">
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold text-white truncate">${fullName}</div>
+                            <div class="text-[10px] text-emerald-300">ห้อง ${student?.classroom || '-'} &bull; ${isLate ? 'มาสาย' : 'ปกติ'}</div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono font-extrabold text-amber-300 shrink-0">${timeStr}</span>
+                </div>
+            `);
+        }
+    </script>
+</body>
+</html>
