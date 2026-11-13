@@ -320,6 +320,10 @@
             <div class="p-2.5 sm:p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center gap-1.5">
                 <h3 class="font-extrabold text-slate-800 text-xs sm:text-sm truncate" id="tableHeaderTitle">รายชื่อนักเรียน</h3>
                 <div class="flex items-center gap-1 shrink-0">
+                    <!-- ปุ่มเปิดกล้องสแกน AI Gate / QR Code -->
+                    <a href="ai-gate.html" class="text-[10px] sm:text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg border border-emerald-500 font-bold shadow-xs flex items-center gap-1 transition active:scale-95">
+                        <i class="fa-solid fa-camera"></i> สแกนกล้อง
+                    </a>
                     <button type="button" onclick="applyBatchLeave()" class="text-[10px] sm:text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-200 font-bold cursor-pointer">⚡ ลายกห้อง</button>
                     <button type="button" onclick="openManualLeaveModal()" class="text-[10px] sm:text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 px-2 py-1 rounded-lg border border-amber-200 font-bold cursor-pointer">➕ ลาผ่านครู</button>
                 </div>
@@ -1023,12 +1027,18 @@
                     (l.method === 'ai_gate' || l.method === 'gate_scan' || l.period_no === 0) && 
                     (l.status === 'present' || l.status === 'late')
                 );
-                let gateScanTimeStr = '';
-                if (gateScanLog && gateScanLog.recorded_at) {
-                    const tDate = new Date(gateScanLog.recorded_at);
-                    if (!isNaN(tDate.getTime())) {
-                        gateScanTimeStr = tDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                    // 1. แสดงสถานะการสแกนกล้อง AI หน้าประตูโรงเรียน + เตือนเสี่ยงหนีเรียนอัตโนมัติ
+                    if (gateScanTimeStr) {
+                    specialTagHtml += `<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-200" title="สแกนผ่านกล้อง AI หน้าประตูโรงเรียนแล้ว">📸 เข้า รร. ${gateScanTimeStr} น.</span> `;
+                    
+                    // หากสแกนเข้าโรงเรียนแล้ว แต่ในคาบนี้ยังไม่เข้าเรียน (หรือคาบก่อนหน้าขาด) ให้ขึ้นป้ายเตือนเสี่ยงหนีเรียน
+                    if (missedPrevPeriod) {
+                        specialTagHtml += `<span class="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse">⚠️ เสี่ยงหนีเรียน</span> `;
+                        defaultStatus = 'truant';
                     }
+                } else if (checkIsRealtimeSchoolHours(targetDateStr).isRealtime) {
+                    // แสดงป้ายจางๆ เฉพาะเวลาเรียนปกติ หากยังไม่มีข้อมูลสแกนเข้าประตูโรงเรียน
+                    specialTagHtml += `<span class="bg-slate-100 text-slate-500 text-[9px] font-medium px-1 py-0.5 rounded">⚪ ยังไม่สแกนเข้า รร.</span> `;
                 }
 
                 // ตรวจสอบใบลาจากผู้ปกครอง (เช็กทั้งของวันที่เลือกและใบลาล่าสุด)
