@@ -1027,19 +1027,6 @@
                     (l.method === 'ai_gate' || l.method === 'gate_scan' || l.period_no === 0) && 
                     (l.status === 'present' || l.status === 'late')
                 );
-                    // 1. แสดงสถานะการสแกนกล้อง AI หน้าประตูโรงเรียน + เตือนเสี่ยงหนีเรียนอัตโนมัติ
-                    if (gateScanTimeStr) {
-                    specialTagHtml += `<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-200" title="สแกนผ่านกล้อง AI หน้าประตูโรงเรียนแล้ว">📸 เข้า รร. ${gateScanTimeStr} น.</span> `;
-                    
-                    // หากสแกนเข้าโรงเรียนแล้ว แต่ในคาบนี้ยังไม่เข้าเรียน (หรือคาบก่อนหน้าขาด) ให้ขึ้นป้ายเตือนเสี่ยงหนีเรียน
-                    if (missedPrevPeriod) {
-                        specialTagHtml += `<span class="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse">⚠️ เสี่ยงหนีเรียน</span> `;
-                        defaultStatus = 'truant';
-                    }
-                } else if (checkIsRealtimeSchoolHours(targetDateStr).isRealtime) {
-                    // แสดงป้ายจางๆ เฉพาะเวลาเรียนปกติ หากยังไม่มีข้อมูลสแกนเข้าประตูโรงเรียน
-                    specialTagHtml += `<span class="bg-slate-100 text-slate-500 text-[9px] font-medium px-1 py-0.5 rounded">⚪ ยังไม่สแกนเข้า รร.</span> `;
-                }
 
                 // ตรวจสอบใบลาจากผู้ปกครอง (เช็กทั้งของวันที่เลือกและใบลาล่าสุด)
                 const leaveInfo = dateLogs.find(l => l.status === 'leave') || 
@@ -1058,6 +1045,21 @@
                 let specialTagHtml = '';
                 let autoNoteText = '';
                 let defaultStatus = 'present';
+                
+                    // 1. แสดงสถานะการสแกนกล้อง AI หน้าประตูโรงเรียน + เตือนเสี่ยงหนีเรียนอัตโนมัติ
+                    if (gateScanTimeStr) {
+                    specialTagHtml += `<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-200" title="สแกนผ่านกล้อง AI หน้าประตูโรงเรียนแล้ว">📸 เข้า รร. ${gateScanTimeStr} น.</span> `;
+                    
+                    // หากสแกนเข้าโรงเรียนแล้ว แต่ในคาบนี้ยังไม่เข้าเรียน (หรือคาบก่อนหน้าขาด) ให้ขึ้นป้ายเตือนเสี่ยงหนีเรียน
+                    if (missedPrevPeriod) {
+                        specialTagHtml += `<span class="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse">⚠️ เสี่ยงหนีเรียน</span> `;
+                        defaultStatus = 'truant';
+                    }
+                        
+                } else if (checkIsRealtimeSchoolHours(targetDateStr).isRealtime) {
+                    // แสดงป้ายจางๆ เฉพาะเวลาเรียนปกติ หากยังไม่มีข้อมูลสแกนเข้าประตูโรงเรียน
+                    specialTagHtml += `<span class="bg-slate-100 text-slate-500 text-[9px] font-medium px-1 py-0.5 rounded">⚪ ยังไม่สแกนเข้า รร.</span> `;
+                }
 
                 if (gateScanTimeStr) {
                     specialTagHtml += `<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1 py-0.5 rounded border border-emerald-200">📸 ${gateScanTimeStr}</span> `;
