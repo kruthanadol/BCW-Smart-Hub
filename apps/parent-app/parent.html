@@ -717,7 +717,7 @@
         }
     });
 
-// 📌 ดึงรายชื่อบุตรหลานในปกครองทั้งหมด (แสดงปุ่มเพิ่มนักเรียนเสมอ ไม่ว่าจะล็อกอินช่องทางไหน)
+    // 📌 ดึงรายชื่อบุตรหลานในปกครองทั้งหมด (แสดงปุ่มเพิ่มนักเรียนเสมอ ไม่ว่าจะล็อกอินช่องทางไหน)
     async function loadParentChildrenList(user) {
         const client = window.supabaseClient || window.db || window.supabase;
         const customChildText = document.getElementById('customChildText');
@@ -794,15 +794,15 @@
                     const cAvatar = c.avatar_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
                     const isSelected = cId === String(currentStudentId);
                     return `
-                        <button type="button" onclick="selectChildOption('${cId}', '${cName.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-xl ${isSelected ? 'bg-indigo-50 border-indigo-300' : 'hover:bg-indigo-50 border-transparent'} font-bold text-slate-800 transition flex items-center justify-between border">
-                            <div class="flex items-center gap-2.5 min-w-0">
+                        <button type="button" data-student-id="${cId}" data-student-name="${cName.replace(/"/g, '&quot;')}" class="child-option-btn w-full text-left p-2.5 rounded-xl ${isSelected ? 'bg-indigo-50 border-indigo-300' : 'hover:bg-indigo-50 border-transparent'} font-bold text-slate-800 transition flex items-center justify-between border cursor-pointer">
+                            <div class="flex items-center gap-2.5 min-w-0 pointer-events-none">
                                 <img src="${cAvatar}" class="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
                                 <div class="truncate">
                                     <div class="text-xs font-extrabold text-slate-900 truncate">${cName}</div>
                                     <div class="text-[10px] text-slate-500">รหัส: ${cId} &bull; ชั้น ${cClass}</div>
                                 </div>
                             </div>
-                            <i class="fa-solid ${isSelected ? 'fa-circle-check text-indigo-600' : 'fa-chevron-right text-indigo-400'} text-[11px] shrink-0"></i>
+                            <i class="fa-solid ${isSelected ? 'fa-circle-check text-indigo-600' : 'fa-chevron-right text-indigo-400'} text-[11px] shrink-0 pointer-events-none"></i>
                         </button>
                     `;
                 }).join('');
@@ -810,8 +810,8 @@
                 // แสดงปุ่มเพิ่มนักเรียนในปกครองเสมอ
                 const addChildBtnHtml = `
                     <div class="pt-2 mt-2 border-t border-slate-100">
-                        <button type="button" onclick="promptAddAnotherChild('${groupLinkKey}', '${firstChild.student_id}')" class="w-full p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center gap-1.5 transition border border-dashed border-indigo-300 cursor-pointer active:scale-95">
-                            <i class="fa-solid fa-user-plus"></i> เพิ่มนักเรียนในปกครองอีกคน
+                        <button type="button" id="btnAddAnotherChild" data-group-key="${groupLinkKey}" data-primary-id="${firstChild.student_id}" class="w-full p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center gap-1.5 transition border border-dashed border-indigo-300 cursor-pointer active:scale-95">
+                            <i class="fa-solid fa-user-plus pointer-events-none"></i> เพิ่มนักเรียนในปกครองอีกคน
                         </button>
                     </div>
                 `;
@@ -826,6 +826,27 @@
             }
         }
     }
+
+    // 📌 ฟังก์ชันเลือกบุตรหลาน (สลับดูข้อมูลแต่ละคน)
+    window.selectChildOption = async (id, name) => {
+        currentStudentId = String(id);
+        
+        const childSelector = document.getElementById('childSelector');
+        const customChildText = document.getElementById('customChildText');
+        const subHeaderName = document.getElementById('subHeaderStudentName');
+
+        if (childSelector) childSelector.value = currentStudentId;
+        if (customChildText) customChildText.innerText = `${name} (${currentStudentId})`;
+        if (subHeaderName) subHeaderName.innerText = name;
+
+        const modal = document.getElementById('childModal');
+        if (modal && !modal.classList.contains('hidden')) {
+            modal.classList.add('hidden');
+        }
+
+        await loadParentChildrenList(CURRENT_PARENT_USER);
+        await loadDashboardData();
+    };
 
     // 📌 ฟังก์ชันเพิ่มนักเรียนคนที่ 2, 3 เข้าในปกครองเดียวกัน
     window.promptAddAnotherChild = async (groupLinkKey, primaryStudentId) => {
@@ -1100,6 +1121,28 @@
 
     function setupEventListeners() {
         document.getElementById('dayFilter')?.addEventListener('change', loadDashboardData);
+
+        // ดักจับการคลิกสลับนักเรียนและปุ่มเพิ่มนักเรียนใน Modal (Event Delegation)
+        document.getElementById('childModalList')?.addEventListener('click', async (e) => {
+            const childBtn = e.target.closest('.child-option-btn');
+            if (childBtn) {
+                const sId = childBtn.getAttribute('data-student-id');
+                const sName = childBtn.getAttribute('data-student-name');
+                if (sId && typeof window.selectChildOption === 'function') {
+                    await window.selectChildOption(sId, sName);
+                }
+                return;
+            }
+
+            const addBtn = e.target.closest('#btnAddAnotherChild');
+            if (addBtn) {
+                const gKey = addBtn.getAttribute('data-group-key');
+                const pId = addBtn.getAttribute('data-primary-id');
+                if (typeof window.promptAddAnotherChild === 'function') {
+                    await window.promptAddAnotherChild(gKey, pId);
+                }
+            }
+        });
 
         const leaveModal = document.getElementById('leaveModal');
         const openModalBtns = [document.getElementById('btnOpenLeaveQuick'), document.getElementById('btnOpenLeaveModal')];
