@@ -6,7 +6,1340 @@
     <title>BCW Smart HUB - Teacher Portal</title>
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family<!DOCTYPE html>
+<html lang="th" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>BCW Smart HUB - Teacher Portal</title>
+    <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../../core/bcw-page-transition.js?v=5"></script>
+    
+    <style>
+        body { font-family: 'Kanit', sans-serif; font-weight: 400; background-color: #f1f5f9; color: #1e293b; overflow-x: hidden; }
+        main section, main > div { scroll-margin-top: 64px; }
+
+        /* ปุ่มเลือกสถานะเช็กชื่อมาตรฐานมือถือ (Segmented Pill Buttons) */
+        .att-pill-group input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .att-pill-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 32px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 500;
+            border: 1px solid #cbd5e1;
+            background-color: #f8fafc;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .att-pill-btn:active { transform: scale(0.93); }
+
+        /* สีเมื่อถูกเลือก (Active States) */
+        .att-pill-group input[value="present"]:checked + .att-pill-btn {
+            background-color: #059669; border-color: #047857; color: #ffffff; font-weight: 600;
+            box-shadow: 0 2px 5px rgba(5, 150, 105, 0.28);
+        }
+        .att-pill-group input[value="late"]:checked + .att-pill-btn {
+            background-color: #d97706; border-color: #b45309; color: #ffffff; font-weight: 600;
+            box-shadow: 0 2px 5px rgba(217, 119, 6, 0.28);
+        }
+        .att-pill-group input[value="leave"]:checked + .att-pill-btn {
+            background-color: #0284c7; border-color: #0369a1; color: #ffffff; font-weight: 600;
+            box-shadow: 0 2px 5px rgba(2, 132, 199, 0.28);
+        }
+        .att-pill-group input[value="absent"]:checked + .att-pill-btn {
+            background-color: #e11d48; border-color: #be123c; color: #ffffff; font-weight: 600;
+            box-shadow: 0 2px 5px rgba(225, 29, 72, 0.28);
+        }
+        .att-pill-group input[value="truant"]:checked + .att-pill-btn {
+            background-color: #7c3aed; border-color: #6d28d9; color: #ffffff; font-weight: 600;
+            box-shadow: 0 2px 5px rgba(124, 58, 237, 0.28);
+        }
+
+        @media (max-width: 767px) {
+            html, body { max-width: 100vw; overflow-x: hidden; }
+            body { padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important; -webkit-tap-highlight-color: transparent; }
+
+            .teacher-bottom-nav {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                min-height: 66px;
+                padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+                background: rgba(255, 255, 255, 0.98);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+                border-top: 1px solid #cbd5e1;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                z-index: 999;
+                box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.08);
+                gap: 6px;
+            }
+
+            .teacher-nav-btn {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #475569;
+                font-size: 11px;
+                font-weight: 500;
+                background: transparent;
+                border: 1.5px solid transparent;
+                padding: 5px 4px;
+                border-radius: 12px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                flex: 1;
+                min-width: 0;
+                min-height: 48px;
+            }
+
+            .teacher-nav-btn i { font-size: 16px; margin-bottom: 2px; }
+
+            .teacher-nav-btn.active {
+                color: #047857 !important;
+                background: #ecfdf5 !important;
+                border-color: #10b981 !important;
+                font-weight: 600;
+            }
+
+            .teacher-nav-btn.action-check-btn {
+                color: #ffffff !important;
+                background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+                border: 1.5px solid #fbbf24 !important;
+                box-shadow: 0 3px 8px rgba(5, 150, 105, 0.28);
+                font-weight: 600;
+            }
+            .teacher-nav-btn.action-check-btn i {
+                color: #fef08a !important;
+                font-size: 16px;
+            }
+            .teacher-nav-btn.action-check-btn:active {
+                transform: scale(0.95);
+            }
+
+            #mobileStatsDrawer {
+                position: fixed;
+                bottom: calc(66px + env(safe-area-inset-bottom));
+                left: 0;
+                right: 0;
+                z-index: 998;
+                background: rgba(255, 255, 255, 0.99);
+                border-top: 2px solid #10b981;
+                box-shadow: 0 -10px 25px rgba(15, 23, 42, 0.15);
+                transform: translateY(115%);
+                opacity: 0;
+                pointer-events: none;
+                transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+            }
+            #mobileStatsDrawer.open {
+                transform: translateY(0);
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .teacher-bottom-nav,
+            #mobileFloatingStats,
+            #mobileStatsDrawer {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-normal">
+
+    <!-- 1. HEADER -->
+    <header class="bg-emerald-950 text-white shadow-sm sticky top-0 z-50 border-b border-emerald-800">
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex justify-between items-center gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="bg-white p-1 rounded-xl shadow-sm shrink-0">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 sm:w-9 sm:h-9 object-contain" onerror="this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png'">
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-sm sm:text-base font-bold text-amber-400 leading-tight truncate">BCW SMART HUB</h1>
+                    <p class="text-[11px] font-normal text-emerald-100 opacity-90 leading-tight">Teacher Portal &bull; โรงเรียนบัวเชดวิทยา</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="../../landing.html" title="หน้าหลัก" class="md:hidden w-9 h-9 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-amber-300 border border-amber-400/50 flex items-center justify-center transition active:scale-95">
+                    <i class="fa-solid fa-house text-sm"></i>
+                </a>
+                <button type="button" onclick="handleLogout()" title="ออกจากระบบ" class="btn-logout w-9 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center transition shadow-xs cursor-pointer">
+                    <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. แถบโปรไฟล์ครูผู้สอน -->
+    <div class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 border-b border-emerald-700/80 text-white px-3 sm:px-4 py-2 shadow-xs">
+        <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="relative shrink-0">
+                    <img id="headerTeacherAvatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" 
+                         alt="Teacher Avatar"
+                         class="w-9 h-9 rounded-xl object-cover border-2 border-amber-400 bg-emerald-800"
+                         onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
+                    <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border border-emerald-950 rounded-full"></span>
+                </div>
+                <div class="min-w-0">
+                    <div class="hidden md:block text-[11px] text-emerald-300 font-normal leading-tight">บุคลากรครู &bull; BCW Smart Hub</div>
+                    <div class="md:hidden text-[11px] text-emerald-300 font-normal leading-tight">
+                        บุคลากรครู &bull; <span id="mobileTeacherCodeInline" class="text-amber-300 font-mono">รหัส: -</span>
+                    </div>
+                    <div class="text-sm font-normal text-white truncate">
+                        ครูผู้สอน: <span id="headerTeacherName" class="text-amber-300 font-medium">กำลังเชื่อมต่อระบบ...</span>
+                    </div>
+                </div>
+            </div>
+
+            <span id="teacherCodeDisplay" class="hidden md:inline-block text-xs bg-emerald-950/90 text-amber-300 px-3 py-1.5 rounded-lg border border-amber-400/40 font-mono font-normal shrink-0">รหัส: -</span>
+
+            <a href="reports.html" class="md:hidden text-xs bg-amber-400 hover:bg-amber-300 text-emerald-950 font-medium px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 shrink-0 active:scale-95 transition">
+                <i class="fa-solid fa-chart-pie text-emerald-900"></i> รายงาน
+            </a>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto w-full px-2.5 sm:px-4 pt-2 pb-4 sm:py-3 space-y-2.5 flex-1">
+        
+        <!-- 💻 Desktop Only: แถบเมนูนำทางหลัก -->
+        <div class="hidden md:flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs gap-2">
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="../../landing.html" class="text-xs bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-medium px-3.5 py-2 rounded-xl border border-emerald-400/60 shadow-xs flex items-center gap-1.5 transition active:scale-95">
+                    <i class="fa-solid fa-house text-amber-300"></i> หน้าหลัก
+                </a>
+                <a href="reports.html" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium px-3.5 py-2 rounded-xl border border-amber-300 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-chart-pie text-amber-600"></i> รายงาน
+                </a>
+            </div>
+
+            <button type="button" onclick="toggleStatsDrawer()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-medium px-3.5 py-2 rounded-xl border border-emerald-200 flex items-center gap-1.5 transition shrink-0 cursor-pointer">
+                <i class="fa-solid fa-chart-column text-emerald-600"></i>
+                <span id="btnStatsText">ซ่อนสถิติเข้าเรียนรายวิชา</span>
+                <i id="statsChevron" class="fa-solid fa-chevron-up text-[10px] transition-transform"></i>
+            </button>
+        </div>
+
+        <!-- 💻 Desktop Only: การ์ดสถิติการเข้าเรียนรายวิชา -->
+        <section id="section-traffic" class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-200 p-3 space-y-2 transition-all duration-300">
+            <div class="grid grid-cols-5 gap-2.5">
+                <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center gap-2.5 text-left">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-user-check"></i></div>
+                    <div>
+                        <span class="text-xs text-emerald-800 font-normal block leading-tight">🟢 มาเรียน</span>
+                        <span id="summary-present-count" class="text-sm font-semibold text-emerald-950 block mt-0.5">0 คน (0%)</span>
+                    </div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center gap-2.5 text-left">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-clock"></i></div>
+                    <div>
+                        <span class="text-xs text-amber-800 font-normal block leading-tight">🟡 มาสาย</span>
+                        <span id="summary-late-count" class="text-sm font-semibold text-amber-950 block mt-0.5">0 คน</span>
+                    </div>
+                </div>
+                <div class="bg-sky-50 border border-sky-200 p-2.5 rounded-xl flex items-center gap-2.5 text-left">
+                    <div class="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-envelope-open-text"></i></div>
+                    <div>
+                        <span class="text-xs text-sky-800 font-normal block leading-tight">🔵 ลา</span>
+                        <span id="summary-leave-count" class="text-sm font-semibold text-sky-950 block mt-0.5">0 คน</span>
+                    </div>
+                </div>
+                <div class="bg-rose-50 border border-rose-200 p-2.5 rounded-xl flex items-center gap-2.5 text-left">
+                    <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-user-xmark"></i></div>
+                    <div>
+                        <span class="text-xs text-rose-800 font-normal block leading-tight">🔴 ขาดเรียน</span>
+                        <span id="summary-absent-count" class="text-sm font-semibold text-rose-950 block mt-0.5">0 คน</span>
+                    </div>
+                </div>
+                <div class="bg-purple-50 border border-purple-200 p-2.5 rounded-xl flex items-center gap-2.5 text-left">
+                    <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-person-running"></i></div>
+                    <div>
+                        <span class="text-xs text-purple-800 font-normal block leading-tight">🟣 หนีเรียน</span>
+                        <span id="summary-truant-count" class="text-sm font-semibold text-purple-950 block mt-0.5">0 คน</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="desktopEventAlertsRow" class="hidden flex items-center gap-2 pt-2 border-t border-slate-100">
+                <span id="desktopNurseBadge" class="hidden text-xs font-normal bg-rose-100 text-rose-800 border border-rose-200 px-3 py-1 rounded-lg">
+                    🏥 นอนห้องพยาบาล: <strong id="desktop-nurse-count" class="font-semibold">0</strong> คน
+                </span>
+                <span id="desktopOutBadge" class="hidden text-xs font-normal bg-sky-100 text-sky-800 border border-sky-200 px-3 py-1 rounded-lg">
+                    🚪 ออกนอกบริเวณโรงเรียน: <strong id="desktop-out-count" class="font-semibold">0</strong> คน
+                </span>
+            </div>
+        </section>
+
+        <!-- 4. SMART TIMETABLE & DATE SELECTOR -->
+        <section id="section-selector" class="bg-white p-2.5 sm:p-3 rounded-2xl shadow-xs border border-slate-200 space-y-2">
+            <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2">
+                <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto">
+                    <button type="button" onclick="toggleSubjectModal()" id="customSubjectBtn" class="bg-slate-50 border border-slate-300 font-medium text-slate-800 text-sm rounded-xl py-2 px-3.5 flex items-center justify-between gap-2 w-full md:w-auto hover:bg-slate-100 transition cursor-pointer">
+                        <span id="customSubjectText" class="truncate">กำลังโหลดวิชาสอน...</span>
+                        <i class="fa-solid fa-chevron-down text-slate-500 text-xs shrink-0"></i>
+                    </button>
+                    <input type="hidden" id="subjectSelect" value="" onchange="renderStudents()">
+
+                    <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5">
+                        <div class="flex items-center gap-2 shrink-0">
+                            <i class="fa-regular fa-calendar text-emerald-700 text-sm"></i>
+                            <input type="date" id="attendanceDateInput" onchange="onAttendanceDateChange()" class="bg-transparent text-xs sm:text-sm font-normal text-slate-800 outline-none cursor-pointer">
+                        </div>
+                        <span id="mobileDateModeTag" class="text-[11px] font-medium px-2.5 py-0.5 rounded-lg truncate"></span>
+                    </div>
+                </div>
+
+                <!-- 💻 Desktop Only: ปุ่มมาครบทุกคน & บันทึกเช็กชื่อ -->
+                <div class="hidden md:flex gap-2 justify-end">
+                    <button type="button" onclick="markAll('present')" class="bg-emerald-600 hover:bg-emerald-700 text-white border border-amber-300 px-4 py-2 rounded-xl text-xs font-medium shadow-xs transition cursor-pointer">✓ มาครบทุกคน</button>
+                    <button type="button" id="btnDesktopSubmit" onclick="submitAttendance()" class="bg-emerald-700 hover:bg-emerald-800 text-white border border-amber-300 px-4 py-2 rounded-xl text-xs font-medium shadow-xs transition cursor-pointer">
+                        💾 บันทึกเช็กชื่อ
+                    </button>
+                </div>
+            </div>
+
+            <div id="attendanceModeBanner" class="hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2"></div>
+        </section>
+
+        <!-- 5. STUDENT ATTENDANCE TABLE -->
+        <section id="section-attendance" class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+            <div class="p-2.5 sm:p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
+                <div class="flex items-center justify-between gap-2">
+                    <h3 class="font-medium text-slate-800 text-sm truncate" id="tableHeaderTitle">รายชื่อนักเรียน</h3>
+                    <a href="ai-gate.html" class="sm:hidden text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl border border-emerald-500 font-medium shadow-xs flex items-center gap-1.5 shrink-0 active:scale-95 transition">
+                        <i class="fa-solid fa-camera"></i> สแกนกล้อง
+                    </a>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 shrink-0">
+                    <a href="ai-gate.html" class="hidden sm:inline-flex text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl border border-emerald-500 font-medium shadow-xs items-center gap-1.5 transition active:scale-95">
+                        <i class="fa-solid fa-camera"></i> สแกนกล้อง
+                    </a>
+                    <button type="button" onclick="applyBatchLeave()" class="flex-1 sm:flex-initial text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-800 px-3 py-1.5 rounded-xl border border-indigo-200 font-medium cursor-pointer text-center">⚡ ลายกห้อง</button>
+                    <button type="button" onclick="openManualLeaveModal()" class="flex-1 sm:flex-initial text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl border border-amber-200 font-medium cursor-pointer text-center">➕ ลาผ่านครู</button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse text-sm font-normal">
+                    <thead>
+                        <tr class="bg-slate-100 border-b border-slate-200 font-medium text-slate-700 text-xs">
+                            <th class="p-2 sm:p-3 text-center w-8 sm:w-12 font-medium">ที่</th>
+                            <th class="p-2 sm:p-3 sm:w-80 font-medium">ชื่อ-นามสกุล / สถานะนักเรียน</th>
+                            <th class="p-3 text-center hidden sm:table-cell min-w-[270px] font-medium">สถานะการเข้าเรียน</th>
+                            <th class="p-2 text-center sm:hidden w-[166px] font-medium text-slate-600">เลือกสถานะ</th>
+                            <th class="p-3 hidden sm:table-cell min-w-[210px] font-medium">หมายเหตุพฤติกรรม / การลา</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentList" class="divide-y divide-slate-200 font-normal">
+                        <!-- Dynamic Student Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 6. HOMEWORK ASSIGNMENT SECTION -->
+        <section id="section-homework" class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 space-y-2.5 shadow-xs">
+            <h4 class="text-sm font-medium text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-book-bookmark text-indigo-600"></i> สั่งการบ้าน / มอบหมายงานประจำคาบ</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                <div class="sm:col-span-7">
+                    <input type="text" id="homeworkTitleInput" placeholder="ระบุหัวข้อการบ้าน..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-normal outline-none focus:bg-white focus:border-indigo-500">
+                </div>
+                <div class="sm:col-span-3">
+                    <input type="date" id="homeworkDueDateInput" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-normal text-slate-700 outline-none focus:bg-white focus:border-indigo-500">
+                </div>
+                <div class="sm:col-span-2">
+                    <button type="button" onclick="saveHomework(event)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2.5 rounded-xl shadow-xs transition cursor-pointer">สั่งการบ้าน</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-500 text-xs font-normal py-3">
+        โรงเรียนบัวเชดวิทยา (BCW) &bull; Teacher Portal System
+    </footer>
+
+    <!-- 📱 Mobile Only: ป๊อบอับสถิติลอยตัวอัตโนมัติ -->
+    <div id="mobileFloatingStats" class="fixed bottom-[74px] left-2.5 right-2.5 z-[997] pointer-events-none transition-all duration-300 translate-y-8 opacity-0">
+        <div class="bg-slate-900/95 backdrop-blur-md text-white px-3.5 py-2.5 rounded-2xl shadow-xl border border-emerald-500/40 pointer-events-auto space-y-1">
+            <div class="flex items-center justify-between text-xs font-normal">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-emerald-400">มา <strong id="float-present" class="font-semibold">0</strong></span>
+                    <span class="text-slate-600">|</span>
+                    <span class="text-amber-300">สาย <strong id="float-late" class="font-semibold">0</strong></span>
+                    <span class="text-slate-600">|</span>
+                    <span class="text-sky-300">ลา <strong id="float-leave" class="font-semibold">0</strong></span>
+                    <span class="text-slate-600">|</span>
+                    <span class="text-rose-400">ขาด <strong id="float-absent" class="font-semibold">0</strong></span>
+                    <span class="text-slate-600">|</span>
+                    <span class="text-purple-300">หนี <strong id="float-truant" class="font-semibold">0</strong></span>
+                </div>
+                <button type="button" onclick="hideMobileFloatingStats()" class="text-slate-400 hover:text-white pl-2 p-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="floatEventRow" class="hidden flex items-center gap-2 pt-1 border-t border-slate-700/80 text-[11px] font-normal">
+                <span id="floatNurseTag" class="hidden text-rose-300">🏥 ห้องพยาบาล <strong id="float-nurse" class="font-semibold">0</strong></span>
+                <span id="floatOutTag" class="hidden text-sky-300">🚪 ออกนอก รร. <strong id="float-out" class="font-semibold">0</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ลิ้นชักแสดงสถิติแบบสไลด์ขึ้น-ลง -->
+    <div id="mobileStatsDrawer" class="px-3">
+        <div class="py-3 space-y-2.5">
+            <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto mb-1"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-column text-emerald-600"></i> สรุปสถิติการเช็กชื่อคาบนี้
+                </span>
+                <button type="button" onclick="toggleMobileStatsDrawer()" class="text-xs text-slate-700 hover:text-slate-900 px-3 py-1 rounded-lg bg-slate-100 border border-slate-300 font-normal flex items-center gap-1 active:scale-95 transition">
+                    <i class="fa-solid fa-chevron-down text-[10px]"></i> สไลด์เก็บ
+                </button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-center">
+                    <span class="text-xs font-normal text-emerald-800 block">🟢 มาเรียน</span>
+                    <span id="drawer-present-count" class="text-sm font-semibold text-emerald-950">0 คน (0%)</span>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl text-center">
+                    <span class="text-xs font-normal text-amber-800 block">🟡 มาสาย</span>
+                    <span id="drawer-late-count" class="text-sm font-semibold text-amber-950">0 คน</span>
+                </div>
+                <div class="bg-sky-50 border border-sky-200 p-2 rounded-xl text-center">
+                    <span class="text-xs font-normal text-sky-800 block">🔵 ลา</span>
+                    <span id="drawer-leave-count" class="text-sm font-semibold text-sky-950">0 คน</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-rose-50 border border-rose-200 p-2 rounded-xl flex items-center justify-between px-3">
+                    <span class="text-xs font-normal text-rose-800">🔴 ขาดเรียน</span>
+                    <span id="drawer-absent-count" class="text-sm font-semibold text-rose-950">0 คน</span>
+                </div>
+                <div class="bg-purple-50 border border-purple-200 p-2 rounded-xl flex items-center justify-between px-3">
+                    <span class="text-xs font-normal text-purple-800">🟣 หนีเรียน</span>
+                    <span id="drawer-truant-count" class="text-sm font-semibold text-purple-950">0 คน</span>
+                </div>
+            </div>
+
+            <div id="drawerEventAlertsRow" class="hidden grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                <div id="drawerNurseCard" class="hidden bg-rose-100/80 border border-rose-300 p-2 rounded-xl flex items-center justify-between px-2.5">
+                    <span class="text-xs font-normal text-rose-900">🏥 นอนห้องพยาบาล</span>
+                    <span id="drawer-nurse-count" class="text-xs font-semibold text-rose-950">0 คน</span>
+                </div>
+                <div id="drawerOutCard" class="hidden bg-sky-100/80 border border-sky-300 p-2 rounded-xl flex items-center justify-between px-2.5">
+                    <span class="text-xs font-normal text-sky-900">🚪 ออกนอกบริเวณ</span>
+                    <span id="drawer-out-count" class="text-xs font-semibold text-sky-950">0 คน</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- เมนูล่างมือถือ -->
+    <nav class="teacher-bottom-nav">
+        <button type="button" class="teacher-nav-btn active" onclick="scrollToTeacherSection('section-attendance', this)">
+            <i class="fa-solid fa-clipboard-user"></i>
+            <span>เช็กชื่อ</span>
+        </button>
+        <button type="button" id="btnMobileNavStats" class="teacher-nav-btn" onclick="toggleMobileStatsDrawer(this)">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>สถิติ</span>
+        </button>
+        <button type="button" class="teacher-nav-btn" onclick="scrollToTeacherSection('section-homework', this)">
+            <i class="fa-solid fa-book"></i>
+            <span>การบ้าน</span>
+        </button>
+        <button type="button" id="btnMobileMarkAll" class="teacher-nav-btn action-check-btn" onclick="markAll('present')">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>มาครบ</span>
+        </button>
+        <button type="button" id="btnMobileSubmit" class="teacher-nav-btn action-check-btn" onclick="submitAttendance()">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>บันทึก</span>
+        </button>
+    </nav>
+
+    <!-- 7. CUSTOM SUBJECT SELECTOR MODAL -->
+    <div id="subjectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden">
+            <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-medium text-slate-800 text-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-book text-emerald-600"></i> เลือกวิชาและห้องเรียนที่สอน
+                </h3>
+                <button type="button" onclick="toggleSubjectModal()" class="text-slate-400 hover:text-slate-600 p-1 text-base cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="subjectModalList" class="p-2.5 space-y-1 text-sm max-h-80 overflow-y-auto font-normal">
+                <p class="text-slate-400 text-center py-4">กำลังดึงรายการตารางสอน...</p>
+            </div>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../core/supabase-client.js?v=400"></script>
+<script src="../../core/auth-service.js?v=400"></script>
+<script src="../../core/auth-manager.js?v=400"></script>
+<script src="../../core/guard-admin-teacher.js?v=400"></script>
+
+<script>
+    let CURRENT_TEACHER_USER = null;
+    let CURRENT_STUDENTS_CACHE = [];
+    let CURRENT_NURSE_COUNT = 0;
+    let CURRENT_OUT_COUNT = 0;
+    let IS_CHECKING_ACTIVE = false;
+    let DB_STATUS_SAMPLE = ''; // เก็บตัวอย่างค่า status จากฐานข้อมูลเพื่อแปลง Enum ให้ตรงอัตโนมัติ
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const dateInput = document.getElementById('attendanceDateInput');
+        if (dateInput) dateInput.value = getLocalTodayStr();
+        updateAttendanceModeBanner();
+        initStatsDrawerSwipe();
+
+        const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+        if (!currentUser) return;
+
+        CURRENT_TEACHER_USER = currentUser;
+        const realTeacherId = await loadTeacherProfile(currentUser);
+        await loadRealSubjectSchedules(realTeacherId);
+
+        document.querySelectorAll('.btn-logout, [onclick*="logout"], button:has(.fa-right-from-bracket)').forEach(btn => {
+            btn.removeAttribute('onclick');
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleLogout();
+            });
+        });
+
+        window.addEventListener('scroll', () => {
+            if (IS_CHECKING_ACTIVE && window.innerWidth < 768) {
+                const drawer = document.getElementById('mobileStatsDrawer');
+                if (!drawer || !drawer.classList.contains('open')) {
+                    showMobileFloatingStats();
+                }
+            }
+        }, { passive: true });
+    });
+
+    function initStatsDrawerSwipe() {
+        const drawer = document.getElementById('mobileStatsDrawer');
+        if (!drawer) return;
+        let startY = 0;
+        drawer.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        drawer.addEventListener('touchend', (e) => {
+            const diffY = e.changedTouches[0].clientY - startY;
+            if (diffY > 40 && drawer.classList.contains('open')) {
+                toggleMobileStatsDrawer();
+            }
+        }, { passive: true });
+    }
+
+    function getLocalTodayStr() {
+        const now = new Date();
+        const offsetMs = now.getTimezoneOffset() * 60000;
+        return new Date(now.getTime() - offsetMs).toISOString().split('T')[0];
+    }
+
+    function checkIsRealtimeSchoolHours(selectedDateStr) {
+        const now = new Date();
+        const todayStr = getLocalTodayStr();
+        const targetDate = selectedDateStr || todayStr;
+        if (targetDate !== todayStr) return { isRealtime: false, reason: `เช็กชื่อย้อนหลัง (${targetDate})` };
+        const dayOfWeek = now.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) return { isRealtime: false, reason: 'วันหยุดเสาร์-อาทิตย์' };
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        if (currentMinutes < (7 * 60 + 30) || currentMinutes > (16 * 60 + 30)) return { isRealtime: false, reason: 'นอกเวลาเรียน' };
+        return { isRealtime: true, reason: 'เวลาเรียนปกติ' };
+    }
+
+    function updateAttendanceModeBanner() {
+        const banner = document.getElementById('attendanceModeBanner');
+        const mobileTag = document.getElementById('mobileDateModeTag');
+        const dateVal = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
+        const status = checkIsRealtimeSchoolHours(dateVal);
+
+        if (mobileTag) {
+            if (status.isRealtime) {
+                mobileTag.className = 'text-[11px] font-medium px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 truncate';
+                mobileTag.innerText = 'เช็กสด/แจ้งผู้ปกครอง';
+            } else {
+                mobileTag.className = 'text-[11px] font-medium px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800 truncate';
+                mobileTag.innerText = 'เช็กย้อนหลัง/ไม่แจ้งผู้ปกครอง';
+            }
+        }
+
+        if (banner) {
+            if (status.isRealtime) {
+                banner.className = 'hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200';
+                banner.innerHTML = `<i class="fa-solid fa-tower-broadcast text-emerald-600"></i> <span>โหมดเช็กชื่อสดในเวลาเรียน: ระบบจะอัปเดตสถิติและแจ้งเตือนสถานะ Real-time ทันที</span>`;
+            } else {
+                banner.className = 'hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2 bg-amber-50 text-amber-800 border border-amber-200';
+                banner.innerHTML = `<i class="fa-solid fa-clock-rotate-left text-amber-600"></i> <span>โหมดบันทึกย้อนหลัง / นอกเวลาเรียน (${status.reason}): บันทึกสถิติเข้าฐานข้อมูลตามปกติ (งดส่งแจ้งเตือนด่วนหาผู้ปกครองในเวลานี้)</span>`;
+            }
+        }
+    }
+
+    async function onAttendanceDateChange() {
+        updateAttendanceModeBanner();
+        await renderStudents();
+    }
+
+    async function loadTeacherProfile(user) {
+        const client = window.supabaseClient || window.db || window.supabase;
+        const nameEl = document.getElementById('headerTeacherName');
+        const codeEl = document.getElementById('teacherCodeDisplay');
+        const mobileCodeEl = document.getElementById('mobileTeacherCodeInline');
+        const avatarImg = document.getElementById('headerTeacherAvatar');
+
+        let teacherCode = user.teacher_id || user.teacherId || user.teacherCode || user.code || '';
+        let fullName = user.full_name || user.name || user.displayName || '';
+        let avatarUrl = user.avatar || user.avatar_url || user.pictureUrl || user.photoURL || '';
+
+        if (client && (!teacherCode || String(teacherCode).length > 15)) {
+            try {
+                const { data: uRec } = await client.from('users').select('*').or(`id.eq.${user.id},email.eq.${user.email || 'none'}`).maybeSingle();
+                if (uRec) {
+                    teacherCode = uRec.teacher_id || uRec.teacher_code || teacherCode;
+                    fullName = uRec.full_name || uRec.name || fullName;
+                    avatarUrl = uRec.avatar_url || uRec.photo_url || avatarUrl;
+                }
+                if (!teacherCode || String(teacherCode).length > 15) {
+                    const { data: allTeachers } = await client.from('teachers').select('*');
+                    if (allTeachers && allTeachers.length > 0) {
+                        const cleanName = String(fullName).trim().toLowerCase();
+                        const tRec = allTeachers.find(t => {
+                            const tFull = `${t.prefix || ''}${t.first_name || ''} ${t.last_name || ''}`.trim().toLowerCase();
+                            const tFirstLast = `${t.first_name || ''} ${t.last_name || ''}`.trim().toLowerCase();
+                            return (user.id && String(t.user_id) === String(user.id)) ||
+                                   (user.email && t.email && String(t.email).toLowerCase() === String(user.email).toLowerCase()) ||
+                                   (cleanName && (tFull === cleanName || tFirstLast === cleanName || String(t.full_name || '').trim().toLowerCase() === cleanName));
+                        });
+                        if (tRec) {
+                            teacherCode = tRec.teacher_id || tRec.code || tRec.teacher_code || teacherCode;
+                            fullName = tRec.full_name || `${tRec.prefix || ''}${tRec.first_name || ''} ${tRec.last_name || ''}`.trim() || fullName;
+                            avatarUrl = tRec.avatar_url || tRec.photo_url || avatarUrl;
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
+        const cleanCode = (teacherCode && String(teacherCode).length <= 15) ? String(teacherCode).trim() : '';
+        if (cleanCode && CURRENT_TEACHER_USER) {
+            CURRENT_TEACHER_USER.teacher_id = cleanCode;
+            CURRENT_TEACHER_USER.teacherId = cleanCode;
+        }
+
+        const codeText = `รหัส: ${cleanCode || 'ไม่ระบุ'}`;
+        if (nameEl) nameEl.innerText = fullName || 'ครูผู้สอน';
+        if (codeEl) codeEl.innerText = codeText;
+        if (mobileCodeEl) mobileCodeEl.innerText = codeText;
+
+        if (avatarImg) {
+            avatarImg.src = avatarUrl && avatarUrl !== '' ? avatarUrl : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            avatarImg.onerror = () => { avatarImg.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png'; };
+        }
+        return cleanCode;
+    }
+
+    async function handleLogout() {
+        if (!confirm('คุณต้องการออกจากระบบและปิดหน้าต่างนี้ใช่หรือไม่?')) return;
+
+        if (window.showBCWCurtain) {
+            window.showBCWCurtain('กำลังออกจากระบบ...');
+        }
+
+        try {
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (client && client.auth && typeof client.auth.signOut === 'function') {
+                await client.auth.signOut();
+            }
+        } catch (e) {}
+
+        localStorage.clear();
+        sessionStorage.clear();
+        sessionStorage.setItem('bcw_just_logged_out', '1');
+
+        if (window.liff && typeof liff.isInClient === 'function' && liff.isInClient()) {
+            liff.closeWindow();
+            return;
+        }
+
+        const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
+        window.location.replace(prefix + '/login.html?logout=1');
+    }
+
+    async function loadRealSubjectSchedules(teacherId) {
+        const modalList = document.getElementById('subjectModalList');
+        const customText = document.getElementById('customSubjectText');
+        const subjectInput = document.getElementById('subjectSelect');
+
+        try {
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (!client) return;
+
+            let schedules = null;
+            const targetTeacherId = teacherId || CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.teacherId || '';
+            if (targetTeacherId) {
+                const { data, error } = await client.from('schedules').select('*').eq('teacher_id', targetTeacherId);
+                if (!error && data && data.length > 0) schedules = data;
+            }
+            if (!schedules || schedules.length === 0) {
+                const resAll = await client.from('schedules').select('*').limit(100);
+                schedules = resAll.data || [];
+            }
+
+            if (!schedules || schedules.length === 0) {
+                if (customText) customText.innerText = "-- ไม่พบตารางสอนในระบบ --";
+                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนในฐานข้อมูล</p>`;
+                renderStudents();
+                return;
+            }
+
+            const uniqueSubjects = [];
+            const map = new Map();
+            for (const s of schedules) {
+                const key = `${s.course_code || s.subject_code || ''}|${s.classroom || s.class_name || ''}`;
+                if (!map.has(key)) {
+                    map.set(key, true);
+                    uniqueSubjects.push(s);
+                }
+            }
+
+            if (modalList) {
+                modalList.innerHTML = uniqueSubjects.map(s => {
+                    const cCode = s.course_code || s.subject_code || 'วิชา';
+                    const cRoom = s.classroom || s.class_name || 'ไม่ระบุ';
+                    const cName = s.course_name || s.subject_name || cCode;
+                    const periodNo = s.period_no || s.period || '';
+                    const val = `${cCode}|${cRoom}|${cName}|${periodNo}`;
+                    const label = `${cName} (${cCode}) - ห้อง ${cRoom}`;
+                    return `
+                        <button type="button" onclick="selectSubjectOption('${val}', '${label.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 font-normal transition border border-transparent hover:border-emerald-200 flex items-center justify-between cursor-pointer">
+                            <span>${label}</span>
+                            <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            const first = uniqueSubjects[0];
+            const firstCode = first.course_code || first.subject_code || 'วิชา';
+            const firstRoom = first.classroom || first.class_name || 'ไม่ระบุ';
+            const firstName = first.course_name || first.subject_name || firstCode;
+            const firstPeriod = first.period_no || first.period || '';
+            const defaultVal = `${firstCode}|${firstRoom}|${firstName}|${firstPeriod}`;
+            const defaultLabel = `${firstName} (${firstCode}) - ห้อง ${firstRoom}`;
+
+            if (subjectInput) subjectInput.value = defaultVal;
+            if (customText) customText.innerText = defaultLabel;
+
+            await renderStudents();
+        } catch (err) {
+            if (customText) customText.innerText = "-- เลือกวิชาและห้องเรียน --";
+        }
+    }
+    
+    window.toggleStatsDrawer = function() {
+        const trafficSec = document.getElementById('section-traffic');
+        const btnText = document.getElementById('btnStatsText');
+        const chevron = document.getElementById('statsChevron');
+        if (trafficSec) {
+            trafficSec.classList.toggle('hidden');
+            const isHidden = trafficSec.classList.contains('hidden');
+            if (btnText) btnText.innerText = isHidden ? 'ดูสถิติเข้าเรียนรายวิชา' : 'ซ่อนสถิติเข้าเรียนรายวิชา';
+            if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+    };
+
+    window.toggleMobileStatsDrawer = function(btnElement) {
+        const drawer = document.getElementById('mobileStatsDrawer');
+        const navBtn = btnElement || document.getElementById('btnMobileNavStats');
+        if (!drawer) return;
+
+        const isOpening = !drawer.classList.contains('open');
+        drawer.classList.toggle('open');
+
+        if (isOpening) {
+            hideMobileFloatingStats();
+            if (navBtn) {
+                document.querySelectorAll('.teacher-nav-btn:not(.action-check-btn)').forEach(btn => btn.classList.remove('active'));
+                navBtn.classList.add('active');
+            }
+        } else {
+            if (navBtn) navBtn.classList.remove('active');
+            if (IS_CHECKING_ACTIVE) showMobileFloatingStats();
+        }
+    };
+
+    function showMobileFloatingStats() {
+        const floater = document.getElementById('mobileFloatingStats');
+        if (floater) {
+            floater.classList.remove('translate-y-8', 'opacity-0');
+            floater.classList.add('translate-y-0', 'opacity-100');
+        }
+    }
+
+    window.hideMobileFloatingStats = function() {
+        const floater = document.getElementById('mobileFloatingStats');
+        if (floater) {
+            floater.classList.remove('translate-y-0', 'opacity-100');
+            floater.classList.add('translate-y-8', 'opacity-0');
+        }
+    };
+
+    window.scrollToTeacherSection = function(sectionId, btnElement) {
+        const drawer = document.getElementById('mobileStatsDrawer');
+        if (drawer && drawer.classList.contains('open')) drawer.classList.remove('open');
+
+        const target = document.getElementById(sectionId);
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (btnElement) {
+                document.querySelectorAll('.teacher-nav-btn:not(.action-check-btn)').forEach(btn => btn.classList.remove('active'));
+                btnElement.classList.add('active');
+            }
+        }
+    };
+
+    window.toggleSubjectModal = function() {
+        const modal = document.getElementById('subjectModal');
+        if (modal) modal.classList.toggle('hidden');
+    };
+
+    window.selectSubjectOption = function(val, labelText) {
+        document.getElementById('subjectSelect').value = val;
+        document.getElementById('customSubjectText').innerText = labelText;
+        window.toggleSubjectModal();
+        renderStudents();
+    };
+
+    // แปลงค่า status จากฐานข้อมูลให้เป็นรหัสมาตรฐานภายในหน้าเว็บ ('present', 'late', 'leave', 'absent', 'truant')
+    function normalizeDbStatus(raw) {
+        const s = String(raw || '').trim().toLowerCase();
+        if (s === 'present' || s === 'มา' || s === 'มาเรียน') return 'present';
+        if (s === 'late' || s === 'สาย' || s === 'มาสาย') return 'late';
+        if (s === 'leave' || s === 'ลา' || s === 'ลากิจ' || s === 'ลาป่วย') return 'leave';
+        if (s === 'absent' || s === 'ขาด' || s === 'ขาดเรียน') return 'absent';
+        if (s === 'truant' || s === 'หนี' || s === 'หนีเรียน') return 'truant';
+        return '';
+    }
+
+    window.updateLiveSubjectStats = function() {
+        const total = CURRENT_STUDENTS_CACHE.length;
+        let present = 0, late = 0, leave = 0, absent = 0, truant = 0;
+
+        CURRENT_STUDENTS_CACHE.forEach(s => {
+            const studentId = String(s.student_id || s.id).trim();
+            const checkedRadio = document.querySelector(`input[name="att_${studentId}"]:checked`);
+            const val = checkedRadio ? checkedRadio.value : 'present';
+            if (val === 'present') present++;
+            else if (val === 'late') late++;
+            else if (val === 'leave') leave++;
+            else if (val === 'absent') absent++;
+            else if (val === 'truant') truant++;
+        });
+
+        const presentPct = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+
+        if (document.getElementById('summary-present-count')) document.getElementById('summary-present-count').innerText = `${present} คน (${presentPct}%)`;
+        if (document.getElementById('summary-late-count')) document.getElementById('summary-late-count').innerText = `${late} คน`;
+        if (document.getElementById('summary-leave-count')) document.getElementById('summary-leave-count').innerText = `${leave} คน`;
+        if (document.getElementById('summary-absent-count')) document.getElementById('summary-absent-count').innerText = `${absent} คน`;
+        if (document.getElementById('summary-truant-count')) document.getElementById('summary-truant-count').innerText = `${truant} คน`;
+
+        if (document.getElementById('drawer-present-count')) document.getElementById('drawer-present-count').innerText = `${present} คน (${presentPct}%)`;
+        if (document.getElementById('drawer-late-count')) document.getElementById('drawer-late-count').innerText = `${late} คน`;
+        if (document.getElementById('drawer-leave-count')) document.getElementById('drawer-leave-count').innerText = `${leave} คน`;
+        if (document.getElementById('drawer-absent-count')) document.getElementById('drawer-absent-count').innerText = `${absent} คน`;
+        if (document.getElementById('drawer-truant-count')) document.getElementById('drawer-truant-count').innerText = `${truant} คน`;
+
+        if (document.getElementById('float-present')) document.getElementById('float-present').innerText = present;
+        if (document.getElementById('float-late')) document.getElementById('float-late').innerText = late;
+        if (document.getElementById('float-leave')) document.getElementById('float-leave').innerText = leave;
+        if (document.getElementById('float-absent')) document.getElementById('float-absent').innerText = absent;
+        if (document.getElementById('float-truant')) document.getElementById('float-truant').innerText = truant;
+
+        const hasEvents = CURRENT_NURSE_COUNT > 0 || CURRENT_OUT_COUNT > 0;
+        const deskRow = document.getElementById('desktopEventAlertsRow');
+        const deskNurse = document.getElementById('desktopNurseBadge');
+        const deskOut = document.getElementById('desktopOutBadge');
+        if (deskRow) deskRow.classList.toggle('hidden', !hasEvents);
+        if (deskNurse) {
+            deskNurse.classList.toggle('hidden', CURRENT_NURSE_COUNT === 0);
+            document.getElementById('desktop-nurse-count').innerText = CURRENT_NURSE_COUNT;
+        }
+        if (deskOut) {
+            deskOut.classList.toggle('hidden', CURRENT_OUT_COUNT === 0);
+            document.getElementById('desktop-out-count').innerText = CURRENT_OUT_COUNT;
+        }
+
+        const drawerRow = document.getElementById('drawerEventAlertsRow');
+        const drawerNurse = document.getElementById('drawerNurseCard');
+        const drawerOut = document.getElementById('drawerOutCard');
+        if (drawerRow) drawerRow.classList.toggle('hidden', !hasEvents);
+        if (drawerNurse) {
+            drawerNurse.classList.toggle('hidden', CURRENT_NURSE_COUNT === 0);
+            document.getElementById('drawer-nurse-count').innerText = `${CURRENT_NURSE_COUNT} คน`;
+        }
+        if (drawerOut) {
+            drawerOut.classList.toggle('hidden', CURRENT_OUT_COUNT === 0);
+            document.getElementById('drawer-out-count').innerText = `${CURRENT_OUT_COUNT} คน`;
+        }
+
+        const floatRow = document.getElementById('floatEventRow');
+        const floatNurse = document.getElementById('floatNurseTag');
+        const floatOut = document.getElementById('floatOutTag');
+        if (floatRow) floatRow.classList.toggle('hidden', !hasEvents);
+        if (floatNurse) {
+            floatNurse.classList.toggle('hidden', CURRENT_NURSE_COUNT === 0);
+            document.getElementById('float-nurse').innerText = CURRENT_NURSE_COUNT;
+        }
+        if (floatOut) {
+            floatOut.classList.toggle('hidden', CURRENT_OUT_COUNT === 0);
+            document.getElementById('float-out').innerText = CURRENT_OUT_COUNT;
+        }
+    };
+
+    // เปิด/ปิดช่องกรอกหมายเหตุบนมือถือแบบประหยัดพื้นที่
+    window.toggleMobileNoteBox = function(studentId, forceShow = null) {
+        const box = document.getElementById(`note_box_mobile_${studentId}`);
+        if (!box) return;
+        if (forceShow === true) {
+            box.classList.remove('hidden');
+        } else if (forceShow === false) {
+            const inp = document.getElementById(`note_mobile_${studentId}`);
+            if (!inp || !inp.value.trim()) box.classList.add('hidden');
+        } else {
+            box.classList.toggle('hidden');
+            if (!box.classList.contains('hidden')) {
+                document.getElementById(`note_mobile_${studentId}`)?.focus();
+            }
+        }
+    };
+
+    window.syncRadioSelection = function(studentId, statusValue) {
+        document.querySelectorAll(`input[name="att_${studentId}"]`).forEach(radio => {
+            radio.checked = (radio.value === statusValue);
+        });
+
+        // แสดงช่องหมายเหตุอัตโนมัติหากไม่ใช่ "มา" และซ่อนเมื่อกลับเป็น "มา" (ถ้าไม่มีข้อความค้าง)
+        if (statusValue !== 'present') {
+            window.toggleMobileNoteBox(studentId, true);
+        } else {
+            window.toggleMobileNoteBox(studentId, false);
+        }
+
+        window.updateLiveSubjectStats();
+        IS_CHECKING_ACTIVE = true;
+        if (window.innerWidth < 768) {
+            const drawer = document.getElementById('mobileStatsDrawer');
+            if (!drawer || !drawer.classList.contains('open')) showMobileFloatingStats();
+        }
+    };
+
+    async function renderStudents() {
+        const tbody = document.getElementById('studentList');
+        if (!tbody) return;
+
+        const selectEl = document.getElementById('subjectSelect');
+        const selectedVal = selectEl?.value;
+        const targetDateStr = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
+        
+        if (!selectedVal) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-sm text-slate-400 font-normal">กรุณาเลือกวิชาและห้องเรียนเพื่อเริ่มเช็กชื่อ</td></tr>';
+            return;
+        }
+
+        const [courseCode, className] = selectedVal.split('|');
+        const headerTitle = document.getElementById('tableHeaderTitle');
+        if (headerTitle) headerTitle.innerText = `ห้อง ${className} (${targetDateStr})`;
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-sm text-slate-400 font-normal">กำลังดึงข้อมูลนักเรียน Real-time จากฐานข้อมูล...</td></tr>';
+
+        try {
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (!client) throw new Error("ไม่พบการเชื่อมต่อ Supabase");
+
+            const [resStudents, resNurse, resAffairs, resLogs] = await Promise.all([
+                client.from('students').select('*').eq('classroom', className).order('student_no', { ascending: true }),
+                client.from('clinic_records').select('*'),
+                client.from('gate_pass_logs').select('*'),
+                client.from('attendance_logs').select('*').order('recorded_at', { ascending: false }).limit(500)
+            ]);
+
+            const students = resStudents.data || [];
+            const allLogs = resLogs.data || [];
+            if (allLogs.length > 0 && allLogs[0].status) {
+                DB_STATUS_SAMPLE = String(allLogs[0].status).trim();
+            }
+
+            CURRENT_STUDENTS_CACHE = students;
+            CURRENT_NURSE_COUNT = 0;
+            CURRENT_OUT_COUNT = 0;
+            IS_CHECKING_ACTIVE = false;
+            hideMobileFloatingStats();
+
+            if (students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-sm text-slate-400 font-normal">ไม่พบข้อมูลนักเรียนในห้อง ${className}</td></tr>`;
+                window.updateLiveSubjectStats();
+                return;
+            }
+
+            const SUPABASE_URL = 'https://wfpopolzgxbglgmzjafg.supabase.co';
+            const isRealtimeHours = checkIsRealtimeSchoolHours(targetDateStr).isRealtime;
+
+            tbody.innerHTML = students.map((s, idx) => {
+                const studentId = String(s.student_id || s.id).trim();
+                const studentNo = s.student_no || (idx + 1);
+                const fullName = `${(s.prefix || '').trim()}${(s.first_name || '').trim()} ${(s.last_name || '').trim()}`.trim() || 'นักเรียน';
+
+                const nurseInfo = (resNurse.data || []).find(n => String(n.student_id).trim() === studentId);
+                const affairInfo = (resAffairs.data || []).find(a => String(a.student_id).trim() === studentId);
+
+                if (nurseInfo) CURRENT_NURSE_COUNT++;
+                if (affairInfo) CURRENT_OUT_COUNT++;
+
+                const studentLogs = allLogs.filter(l => String(l.student_id).trim() === studentId);
+                const dateLogs = studentLogs.filter(l => String(l.recorded_at || '').startsWith(targetDateStr));
+
+                const gateScanLog = dateLogs.find(l => {
+                    const st = normalizeDbStatus(l.status);
+                    return (l.method === 'ai_gate' || l.method === 'gate_scan' || l.period_no === 0) && (st === 'present' || st === 'late');
+                });
+                let gateScanTimeStr = '';
+                if (gateScanLog && gateScanLog.recorded_at) {
+                    const tDate = new Date(gateScanLog.recorded_at);
+                    if (!isNaN(tDate.getTime())) {
+                        gateScanTimeStr = tDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                    }
+                }
+
+                const leaveInfo = dateLogs.find(l => normalizeDbStatus(l.status) === 'leave') || 
+                                  studentLogs.find(l => normalizeDbStatus(l.status) === 'leave' && l.method === 'parent_leave_request');
+
+                const subjectLogsOnDate = dateLogs.filter(l => l.period_no && l.period_no > 0);
+                const lastLogToday = subjectLogsOnDate.length > 0 ? subjectLogsOnDate[0] : null;
+                const lastSt = lastLogToday ? normalizeDbStatus(lastLogToday.status) : '';
+                const missedPrevPeriod = lastLogToday && (lastSt === 'absent' || lastSt === 'truant');
+
+                const absentLogs = studentLogs.filter(l => {
+                    const st = normalizeDbStatus(l.status);
+                    return st === 'absent' || st === 'truant';
+                });
+                const leaveLogs = studentLogs.filter(l => normalizeDbStatus(l.status) === 'leave');
+                const uniqueAbsentDays = new Set(absentLogs.map(l => String(l.recorded_at || '').split('T')[0])).size;
+
+                let specialTagHtml = '';
+                let autoNoteText = '';
+                let defaultStatus = 'present';
+
+                if (gateScanTimeStr) {
+                    specialTagHtml += `<span class="bg-emerald-50 text-emerald-700 text-[11px] font-normal px-1.5 py-0.5 rounded border border-emerald-200">📸 เข้า ${gateScanTimeStr}</span> `;
+                    if (missedPrevPeriod) {
+                        specialTagHtml += `<span class="bg-purple-600 text-white text-[11px] font-normal px-1.5 py-0.5 rounded">⚠️ เสี่ยงหนีเรียน</span> `;
+                        defaultStatus = 'truant';
+                    }
+                } else if (isRealtimeHours) {
+                    specialTagHtml += `<span class="bg-slate-100 text-slate-600 text-[11px] font-normal px-1.5 py-0.5 rounded">⚪ ยังไม่สแกนเข้า รร.</span> `;
+                }
+
+                if (missedPrevPeriod) {
+                    specialTagHtml += `<span class="bg-orange-600 text-white text-[11px] font-normal px-1.5 py-0.5 rounded">🔔 คาบที่แล้วขาด</span> `;
+                }
+
+                if (absentLogs.length > 0 || leaveLogs.length > 0) {
+                    const badgeColor = absentLogs.length >= 3 
+                        ? 'bg-rose-600 text-white' 
+                        : absentLogs.length > 0 
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                            : 'bg-slate-100 text-slate-700 border border-slate-200';
+                    specialTagHtml += `<span class="${badgeColor} text-[11px] font-normal px-1.5 py-0.5 rounded">ขาด ${absentLogs.length}คาบ (${uniqueAbsentDays}วัน) &bull; ลา ${leaveLogs.length}</span> `;
+                }
+
+                if (nurseInfo) {
+                    specialTagHtml += `<span class="bg-rose-100 text-rose-800 text-[11px] font-normal px-1.5 py-0.5 rounded border border-rose-200">🏥 ห้องพยาบาล</span> `;
+                    autoNoteText = `พักห้องพยาบาล: ${nurseInfo.symptom || 'ป่วย'}`;
+                    defaultStatus = 'leave';
+                }
+                if (affairInfo) {
+                    specialTagHtml += `<span class="bg-sky-100 text-sky-800 text-[11px] font-normal px-1.5 py-0.5 rounded border border-sky-200">🚪 ออกนอก</span> `;
+                    autoNoteText = autoNoteText || `ขอออกนอก: ${affairInfo.reason || 'ธุระ'}`;
+                    defaultStatus = 'leave';
+                }
+                if (leaveInfo) {
+                    specialTagHtml += `<span class="bg-amber-100 text-amber-800 text-[11px] font-normal px-1.5 py-0.5 rounded border border-amber-200">✉️ ผู้ปกครองแจ้งลา</span>`;
+                    autoNoteText = autoNoteText || leaveInfo.subject_name || `ผู้ปกครองแจ้งลา: ${leaveInfo.reason || 'ลากิจ/ป่วย'}`;
+                    defaultStatus = 'leave';
+                }
+
+                const avatarUrl = s.avatar_url || `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.webp`;
+                const showNoteInitially = defaultStatus !== 'present' || Boolean(autoNoteText);
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition ${missedPrevPeriod ? 'bg-orange-50/40' : ''}">
+                        <td class="p-2 sm:p-3 text-center font-normal text-slate-600 text-xs sm:text-sm align-middle">${studentNo}</td>
+                        <td class="p-2 sm:p-3 align-middle">
+                            <div class="flex items-center gap-2 sm:gap-2.5">
+                                <img src="${avatarUrl}" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-medium text-slate-800 text-[14.5px] sm:text-sm leading-snug break-words">${fullName}</div>
+                                    <div class="flex items-center gap-1 mt-0.5 flex-wrap">
+                                        ${specialTagHtml || `<span class="text-[11px] text-slate-500 font-normal">ID: ${studentId}</span>`}
+                                        <button type="button" onclick="window.toggleMobileNoteBox('${studentId}')" title="เพิ่มหมายเหตุ" class="sm:hidden text-[11px] text-slate-500 hover:text-emerald-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 ml-0.5">
+                                            <i class="fa-solid fa-pen text-[9px]"></i> โน้ต
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <!-- Desktop Status Buttons -->
+                        <td class="p-3 text-center hidden sm:table-cell align-middle">
+                            <div class="att-pill-group grid grid-cols-5 gap-1.5 max-w-[280px] mx-auto">
+                                <label>
+                                    <input type="radio" name="att_${studentId}" value="present" ${defaultStatus==='present'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'present')">
+                                    <span class="att-pill-btn">มา</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="att_${studentId}" value="late" ${defaultStatus==='late'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'late')">
+                                    <span class="att-pill-btn">สาย</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="att_${studentId}" value="leave" ${defaultStatus==='leave'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'leave')">
+                                    <span class="att-pill-btn">ลา</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="att_${studentId}" value="absent" ${defaultStatus==='absent'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'absent')">
+                                    <span class="att-pill-btn">ขาด</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="att_${studentId}" value="truant" ${defaultStatus==='truant'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'truant')">
+                                    <span class="att-pill-btn">หนี</span>
+                                </label>
+                            </div>
+                        </td>
+                        <!-- Mobile Status Buttons (Large 32px Touch Targets) -->
+                        <td class="p-2 sm:hidden align-middle">
+                            <div class="flex flex-col gap-1.5">
+                                <div class="att-pill-group grid grid-cols-5 gap-1 text-center items-center">
+                                    <label>
+                                        <input type="radio" name="att_${studentId}" value="present" ${defaultStatus==='present'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'present')">
+                                        <span class="att-pill-btn">มา</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="att_${studentId}" value="late" ${defaultStatus==='late'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'late')">
+                                        <span class="att-pill-btn">สาย</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="att_${studentId}" value="leave" ${defaultStatus==='leave'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'leave')">
+                                        <span class="att-pill-btn">ลา</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="att_${studentId}" value="absent" ${defaultStatus==='absent'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'absent')">
+                                        <span class="att-pill-btn">ขาด</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="att_${studentId}" value="truant" ${defaultStatus==='truant'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'truant')">
+                                        <span class="att-pill-btn">หนี</span>
+                                    </label>
+                                </div>
+                                <div id="note_box_mobile_${studentId}" class="${showNoteInitially ? '' : 'hidden'}">
+                                    <input type="text" id="note_mobile_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุหมายเหตุ..." class="w-full px-2 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-normal text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-emerald-500">
+                                </div>
+                            </div>
+                        </td>
+                        <!-- Desktop Note Input -->
+                        <td class="p-3 hidden sm:table-cell align-middle">
+                            <input type="text" id="note_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุเหตุผล/หมายเหตุ..." class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-normal text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-emerald-500">
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            window.updateLiveSubjectStats();
+        } catch (err) {
+            console.error('Data Fetch Error:', err);
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-sm text-rose-600 font-normal">เกิดข้อผิดพลาดในการดึงข้อมูลจากฐานข้อมูล</td></tr>';
+        }
+    }
+
+    window.renderStudents = renderStudents;
+
+    window.syncNote = function(studentId, val) {
+        const mInput = document.getElementById(`note_mobile_${studentId}`);
+        const dInput = document.getElementById(`note_${studentId}`);
+        if (mInput) mInput.value = val;
+        if (dInput) dInput.value = val;
+        if (val && val.trim()) window.toggleMobileNoteBox(studentId, true);
+    };
+
+    window.applyBatchLeave = function() {
+        const reason = prompt('กรอกเหตุผลการลายกห้อง:');
+        if (!reason) return;
+        document.querySelectorAll('input[type="radio"][value="leave"]').forEach(r => r.checked = true);
+        document.querySelectorAll('input[id^="note_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
+        document.querySelectorAll('input[id^="note_mobile_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
+        document.querySelectorAll('[id^="note_box_mobile_"]').forEach(box => box.classList.remove('hidden'));
+        IS_CHECKING_ACTIVE = true;
+        window.updateLiveSubjectStats();
+        alert('ปรับสถานะให้ทั้งห้องเรียบร้อยแล้ว');
+    };
+
+    window.openManualLeaveModal = function() {
+        const studentId = prompt('กรอกรหัสนักเรียน:');
+        if (!studentId) return;
+        const cleanId = studentId.trim();
+        const reason = prompt('กรอกเหตุผลการลา:');
+        if (!reason) return;
+        const mInput = document.getElementById(`note_mobile_${cleanId}`);
+        const dInput = document.getElementById(`note_${cleanId}`);
+        if (mInput) mInput.value = `รับแจ้งใบลา: ${reason}`;
+        if (dInput) dInput.value = `รับแจ้งใบลา: ${reason}`;
+        window.syncRadioSelection(cleanId, 'leave');
+        alert('บันทึกใบลาเรียบร้อยแล้ว');
+    };
+
+    window.markAll = function(status) {
+        document.querySelectorAll(`input[type="radio"][value="${status}"]`).forEach(r => r.checked = true);
+        if (status === 'present') {
+            CURRENT_STUDENTS_CACHE.forEach(s => {
+                const sid = String(s.student_id || s.id).trim();
+                window.toggleMobileNoteBox(sid, false);
+            });
+        }
+        IS_CHECKING_ACTIVE = true;
+        window.updateLiveSubjectStats();
+        if (window.innerWidth < 768) showMobileFloatingStats();
+    };
+
+    // แปลงสถานะตาม Format ของ attendance_status_enum ใน Supabase
+    function formatStatusForEnum(status, mode) {
+        if (mode === 'UPPER') {
+            const map = { present: 'PRESENT', late: 'LATE', leave: 'LEAVE', absent: 'ABSENT', truant: 'TRUANT' };
+            return map[status] || status.toUpperCase();
+        }
+        if (mode === 'THAI') {
+            const map = { present: 'มา', late: 'สาย', leave: 'ลา', absent: 'ขาด', truant: 'หนี' };
+            return map[status] || status;
+        }
+        return status.toLowerCase();
+    }
+
+    window.submitAttendance = async function() {
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) return alert('❌ ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
+        if (!CURRENT_STUDENTS_CACHE || CURRENT_STUDENTS_CACHE.length === 0) return alert('ไม่พบรายชื่อนักเรียนในห้องนี้');
+
+        const btnMobile = document.getElementById('btnMobileSubmit');
+        const btnDesktop = document.getElementById('btnDesktopSubmit');
+        const origMobileHtml = btnMobile ? btnMobile.innerHTML : '';
+        const origDesktopHtml = btnDesktop ? btnDesktop.innerHTML : '';
+
+        if (btnMobile) {
+            btnMobile.disabled = true;
+            btnMobile.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>กำลังบันทึก</span>';
+        }
+        if (btnDesktop) {
+            btnDesktop.disabled = true;
+            btnDesktop.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังบันทึก...';
+        }
+
+        const selectVal = document.getElementById('subjectSelect')?.value || '';
+        const [courseCode, className, courseName, periodStr] = selectVal.split('|');
+        const targetDateStr = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
+        const modeStatus = checkIsRealtimeSchoolHours(targetDateStr);
+
+        const recordedTimestamp = (targetDateStr === getLocalTodayStr())
+            ? new Date().toISOString()
+            : `${targetDateStr}T12:00:00+07:00`;
+
+        // เลือกลำดับรูปแบบ Enum ที่คาดว่าจะตรงกับฐานข้อมูลที่สุดก่อน (พิจารณาจาก sample ใน DB)
+        const isSampleThai = ['มา', 'สาย', 'ลา', 'ขาด', 'หนี'].includes(DB_STATUS_SAMPLE);
+        const modesToTry = isSampleThai ? ['THAI', 'UPPER', 'LOWER'] : ['UPPER', 'THAI', 'LOWER'];
+
+        const buildPayload = (enumMode) => CURRENT_STUDENTS_CACHE.map(s => {
+            const studentId = String(s.student_id || s.id).trim();
+            const checkedRadio = document.querySelector(`input[name="att_${studentId}"]:checked`);
+            const rawStatus = checkedRadio ? checkedRadio.value : 'present';
+            const noteVal = document.getElementById(`note_${studentId}`)?.value || document.getElementById(`note_mobile_${studentId}`)?.value || '';
+
+            return {
+                student_id: studentId,
+                status: formatStatusForEnum(rawStatus, enumMode),
+                method: modeStatus.isRealtime ? 'teacher_realtime' : 'teacher_backdated',
+                period_no: Number(periodStr) || 1,
+                recorded_at: recordedTimestamp,
+                subject_name: `${courseName || courseCode || 'รายวิชา'} (${courseCode || '-'}) - ${className || '-'}${noteVal ? ' | หมายเหตุ: ' + noteVal : ''}`
+            };
+        });
+
+        try {
+            let lastError = null;
+            let savedSuccess = false;
+
+            for (const mode of modesToTry) {
+                const payload = buildPayload(mode);
+                const { error } = await client.from('attendance_logs').insert(payload);
+                if (!error) {
+                    savedSuccess = true;
+                    break;
+                }
+                lastError = error;
+                // หากไม่ใช่ Error เรื่อง Enum ให้หยุดลองซ้ำทันที
+                if (!String(error.message || '').includes('attendance_status_enum')) {
+                    break;
+                }
+            }
+
+            if (!savedSuccess && lastError) throw lastError;
+
+            window.updateLiveSubjectStats();
+            IS_CHECKING_ACTIVE = false;
+            hideMobileFloatingStats();
+            alert(`✅ บันทึกข้อมูลการเช็กชื่อห้อง ${className} (${CURRENT_STUDENTS_CACHE.length} คน) เรียบร้อยแล้ว!`);
+        } catch (err) {
+            alert('เกิดข้อผิดพลาดในการบันทึกเช็กชื่อ: ' + (err.message || err));
+        } finally {
+            if (btnMobile) {
+                btnMobile.disabled = false;
+                btnMobile.innerHTML = origMobileHtml;
+            }
+            if (btnDesktop) {
+                btnDesktop.disabled = false;
+                btnDesktop.innerHTML = origDesktopHtml;
+            }
+        }
+    };
+
+    window.saveHomework = async function(e) {
+        if (e) e.preventDefault();
+        const title = document.getElementById('homeworkTitleInput')?.value?.trim();
+        const dueDate = document.getElementById('homeworkDueDateInput')?.value;
+        if (!title) return alert('กรุณาระบุหัวข้อการบ้าน');
+        alert(`✅ สั่งการบ้าน "${title}" ${dueDate ? `(กำหนดส่ง ${dueDate})` : ''} เรียบร้อยแล้ว`);
+        document.getElementById('homeworkTitleInput').value = '';
+    };
+</script>
+</body>
+</html>=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="../../core/bcw-page-transition.js?v=5"></script>
     
