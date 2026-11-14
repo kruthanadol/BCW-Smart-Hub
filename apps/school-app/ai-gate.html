@@ -19,6 +19,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
+            -webkit-text-size-adjust: 100%;
         }
         @keyframes aiScanBeam {
             0% { top: 8%; opacity: 0.25; }
@@ -45,7 +46,7 @@
 </head>
 <body class="relative w-full h-[100dvh] overflow-hidden select-none">
 
-    <!-- FULLSCREEN CAMERA VIDEO LAYER (เต็มจอพอดีไม่ล้น) -->
+    <!-- FULLSCREEN CAMERA VIDEO LAYER -->
     <video id="gateVideo" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-0 hidden"></video>
 
     <!-- พื้นหลังเมื่อยังไม่เปิดกล้อง -->
@@ -74,16 +75,19 @@
                 <span class="bg-amber-400/15 border border-amber-400/50 text-amber-300 text-xs font-semibold px-2.5 py-1.5 rounded-xl">
                     <span id="scannedCountText">0</span> คน
                 </span>
-                <select id="classroomFilter" onchange="onClassroomFilterChange()" class="bg-emerald-950/90 border border-emerald-500/60 text-white text-xs font-medium rounded-xl px-2.5 py-1.5 outline-none max-w-[105px]">
-                    <option value="ALL">ทุกห้อง</option>
-                </select>
+
+                <!-- ปุ่มเลือกห้องเรียนแบบ Custom (แทน select เดิมที่เด้งตัวใหญ่เต็มจอ) -->
+                <button type="button" onclick="toggleRoomPickerModal()" class="bg-emerald-900/95 hover:bg-emerald-800 border border-emerald-500/60 text-white text-xs font-medium rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 active:scale-95 transition cursor-pointer">
+                    <span id="selectedRoomLabel">ทุกห้อง</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-amber-300"></i>
+                </button>
+                <input type="hidden" id="classroomFilter" value="ALL">
             </div>
         </header>
 
         <!-- 2. CENTER AI RETICLE FRAME -->
         <main class="flex-1 flex flex-col items-center justify-center min-h-0 my-2 relative">
             <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex flex-col items-center justify-center text-center p-4">
-                <!-- มุมกรอบเล็ง AI 4 มุม -->
                 <span class="ai-corner top-0 left-0 border-t-4 border-l-4 rounded-tl-2xl"></span>
                 <span class="ai-corner top-0 right-0 border-t-4 border-r-4 rounded-tr-2xl"></span>
                 <span class="ai-corner bottom-0 left-0 border-b-4 border-l-4 rounded-bl-2xl"></span>
@@ -91,7 +95,6 @@
 
                 <div id="laserBar" class="ai-scan-beam hidden"></div>
 
-                <!-- ข้อความแนะนำเมื่อกล้องยังไม่เปิด -->
                 <div id="cameraPlaceholderContent" class="flex flex-col items-center gap-2.5 bg-slate-950/75 backdrop-blur-sm p-4 rounded-2xl border border-emerald-500/30">
                     <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-emerald-950 flex items-center justify-center text-xl shadow-lg">
                         <i class="fa-solid fa-expand"></i>
@@ -112,9 +115,8 @@
             </div>
         </main>
 
-        <!-- 3. BOTTOM FLOATING CONTROLS (ไม่ล้นหน้าจอ) -->
+        <!-- 3. BOTTOM FLOATING CONTROLS -->
         <footer class="space-y-2 shrink-0">
-            <!-- ช่องยิงบาร์โค้ด / พิมพ์รหัสสำรอง -->
             <div class="bg-slate-950/80 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-2 flex gap-1.5 shadow-lg">
                 <input type="text" id="manualScanInput" placeholder="สแกน หรือพิมพ์รหัสนักเรียน..." onkeydown="if(event.key==='Enter') handleManualScan()" class="flex-1 min-w-0 bg-emerald-950/80 border border-emerald-700/80 rounded-xl px-3 py-2 text-xs sm:text-sm text-white placeholder-emerald-300/60 outline-none focus:border-amber-400">
                 <button type="button" onclick="handleManualScan()" class="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-xl shrink-0 active:scale-95 transition cursor-pointer">
@@ -122,7 +124,6 @@
                 </button>
             </div>
 
-            <!-- ปุ่มเปิด/ปิดกล้อง + สลับกล้องหน้า/หลัง -->
             <div class="flex items-center gap-2">
                 <button type="button" id="btnToggleCamera" onclick="toggleGateCamera()" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-sm sm:text-base py-3 rounded-2xl shadow-xl flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer">
                     <i class="fa-solid fa-camera text-base"></i>
@@ -134,6 +135,26 @@
                 </button>
             </div>
         </footer>
+    </div>
+
+    <!-- CUSTOM ROOM PICKER MODAL (ขนาดตัวอักษรพอดีตา ไม่ใหญ่เต็มจอ) -->
+    <div id="roomPickerModal" onclick="if(event.target===this) toggleRoomPickerModal()" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 hidden">
+        <div class="bg-white text-slate-800 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-4 py-3 bg-emerald-950 text-white flex items-center justify-between">
+                <span class="text-sm font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-door-open text-amber-400"></i> เลือกห้องเรียนที่ต้องการสแกน
+                </span>
+                <button type="button" onclick="toggleRoomPickerModal()" class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="roomPickerGrid" class="p-3 grid grid-cols-3 gap-2 max-h-[55dvh] overflow-y-auto text-sm">
+                <button type="button" onclick="selectGateClassroom('ALL')" data-room="ALL" class="room-chip-btn col-span-3 py-2.5 px-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold text-xs sm:text-sm text-center cursor-pointer transition">
+                    🌐 สแกนทุกห้องเรียน
+                </button>
+            </div>
+        </div>
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -158,29 +179,49 @@
         }
     });
 
+    function toggleRoomPickerModal() {
+        const modal = document.getElementById('roomPickerModal');
+        if (modal) modal.classList.toggle('hidden');
+    }
+
+    function selectGateClassroom(roomVal) {
+        const input = document.getElementById('classroomFilter');
+        const label = document.getElementById('selectedRoomLabel');
+        const sub = document.getElementById('cameraStatusSub');
+
+        if (input) input.value = roomVal;
+        if (label) label.innerText = roomVal === 'ALL' ? 'ทุกห้อง' : roomVal;
+        if (sub) sub.innerText = roomVal === 'ALL' ? 'AI พร้อมสแกนทุกห้องเรียน' : `AI กรองเฉพาะห้อง ${roomVal}`;
+
+        document.querySelectorAll('.room-chip-btn').forEach(btn => {
+            const isSelected = btn.getAttribute('data-room') === roomVal;
+            btn.className = isSelected
+                ? `room-chip-btn ${btn.getAttribute('data-room') === 'ALL' ? 'col-span-3' : ''} py-2.5 px-2 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold text-xs sm:text-sm text-center cursor-pointer transition`
+                : `room-chip-btn ${btn.getAttribute('data-room') === 'ALL' ? 'col-span-3' : ''} py-2.5 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs sm:text-sm text-center cursor-pointer transition`;
+        });
+
+        toggleRoomPickerModal();
+    }
+
     async function loadStudentsAndClassrooms() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client) return;
         try {
             const { data } = await client.from('students').select('*').order('classroom', { ascending: true });
             ALL_STUDENTS = data || [];
-            const rooms = [...new Set(ALL_STUDENTS.map(s => s.classroom).filter(Boolean))];
-            const select = document.getElementById('classroomFilter');
-            if (select) {
-                rooms.forEach(r => {
-                    const opt = document.createElement('option');
-                    opt.value = r;
-                    opt.textContent = `ห้อง ${r}`;
-                    select.appendChild(opt);
-                });
+            const rooms = [...new Set(ALL_STUDENTS.map(s => s.classroom).filter(Boolean))].sort((a, b) =>
+                String(a).localeCompare(String(b), 'th', { numeric: true })
+            );
+            const grid = document.getElementById('roomPickerGrid');
+            if (grid && rooms.length > 0) {
+                const roomButtons = rooms.map(r => `
+                    <button type="button" onclick="selectGateClassroom('${r.replace(/'/g, "\\'")}')" data-room="${r}" class="room-chip-btn py-2.5 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs sm:text-sm text-center cursor-pointer transition">
+                        ${r}
+                    </button>
+                `).join('');
+                grid.insertAdjacentHTML('beforeend', roomButtons);
             }
         } catch (e) {}
-    }
-
-    function onClassroomFilterChange() {
-        const room = document.getElementById('classroomFilter')?.value;
-        const sub = document.getElementById('cameraStatusSub');
-        if (sub) sub.innerText = room === 'ALL' ? 'AI พร้อมสแกนทุกห้องเรียน' : `AI กรองเฉพาะห้อง ${room}`;
     }
 
     async function startGateCamera(isSilentAuto = false) {
