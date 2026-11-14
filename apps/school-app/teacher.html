@@ -619,19 +619,41 @@
         return cleanCode;
     }
 
-    function handleLogout() {
-        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-            if (window.AuthManager && typeof AuthManager.logout === 'function') {
-                AuthManager.logout();
-            } else {
-                localStorage.clear();
-                sessionStorage.clear();
-                const prefix = window.AuthManager ? AuthManager.getRepoPrefix() : '';
-                window.location.replace(prefix + '/login.html');
-            }
-        }
+async function handleLogout() {
+    if (!confirm('คุณต้องการออกจากระบบและปิดหน้าต่างนี้ใช่หรือไม่?')) return;
+
+    if (window.showBCWCurtain) {
+        window.showBCWCurtain('กำลังออกจากระบบ...');
     }
 
+    try {
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (client && client.auth && typeof client.auth.signOut === 'function') {
+            await client.auth.signOut();
+        }
+    } catch (e) {}
+
+    // ล้างข้อมูลการเข้าสู่ระบบทั้งหมด
+    localStorage.clear();
+    sessionStorage.clear();
+    sessionStorage.setItem('bcw_just_logged_out', '1');
+
+    // 1. กรณีเปิดผ่าน LINE LIFF ให้สั่งปิดหน้าต่างแอป LINE ทันที
+    if (window.liff && typeof liff.isInClient === 'function' && liff.isInClient()) {
+        liff.closeWindow();
+        return;
+    }
+
+    // 2. สั่งปิดหน้าต่างแอป (PWA / WebView / Pop-up)
+    window.close();
+
+    // 3. กรณีเปิดบนเบราว์เซอร์ปกติที่ไม่ยอมให้สั่ง window.close() ให้เด้งไปหน้า login แบบล้างค่าฟอร์มเกลี้ยง
+    const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
+    setTimeout(() => {
+        window.location.replace(prefix + '/login.html?logout=1');
+    }, 250);
+}
+    
     async function loadRealSubjectSchedules(teacherId) {
         const modalList = document.getElementById('subjectModalList');
         const customText = document.getElementById('customSubjectText');
