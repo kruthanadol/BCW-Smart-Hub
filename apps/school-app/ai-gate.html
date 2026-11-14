@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BCW AI Gate Scan - สแกนใบหน้า & QR Code</title>
+    <title>BCW AI Gate Scan - กล้องสแกนอัจฉริยะ</title>
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- โหลด face-api.js สำหรับสแกนใบหน้า -->
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         html, body {
@@ -26,8 +25,8 @@
 </head>
 <body class="flex flex-col justify-between p-2.5 sm:p-4 gap-2 select-none">
 
-    <!-- 1. HEADER กระชับ ไม่เบียดล้นขอบมือถือ -->
-    <header class="max-w-3xl w-full mx-auto bg-emerald-950/90 border border-emerald-800 rounded-2xl px-3 py-2 flex items-center justify-between gap-2 shrink-0 shadow-md">
+    <!-- HEADER -->
+    <header class="max-w-3xl w-full mx-auto bg-emerald-950/95 border border-emerald-800 rounded-2xl px-3 py-2 flex items-center justify-between gap-2 shrink-0 shadow-md">
         <div class="flex items-center gap-2 min-w-0">
             <a href="teacher.html" title="กลับหน้าเช็กชื่อ" class="w-8 h-8 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-amber-300 flex items-center justify-center shrink-0 active:scale-95 transition">
                 <i class="fa-solid fa-arrow-left text-xs"></i>
@@ -35,7 +34,7 @@
             <div class="min-w-0">
                 <h1 class="text-xs sm:text-sm font-extrabold text-amber-400 leading-tight truncate">BCW AI GATE SCAN</h1>
                 <span id="systemStatusBadge" class="text-[10px] text-amber-300 font-semibold block truncate">
-                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังเตรียมระบบ AI...
+                    พร้อมเปิดกล้องสแกน
                 </span>
             </div>
         </div>
@@ -45,30 +44,30 @@
         </select>
     </header>
 
-    <!-- 2. กรอบกล้องสแกน (ยืดหยุ่นเต็มพื้นที่หน้าจอมือถือที่เหลือ) -->
+    <!-- CAMERA VIEWPORT -->
     <main class="max-w-3xl w-full mx-auto flex-1 min-h-0 flex flex-col gap-2">
         <div class="relative flex-1 min-h-0 bg-slate-950 rounded-3xl border-2 border-emerald-500/80 overflow-hidden shadow-2xl flex items-center justify-center">
-            <video id="gateVideo" autoplay muted playsinline class="w-full h-full object-cover mirror-video"></video>
+            <video id="gateVideo" autoplay muted playsinline webkit-playsinline class="w-full h-full object-cover mirror-video"></video>
             <canvas id="overlayCanvas" class="absolute inset-0 w-full h-full pointer-events-none mirror-video"></canvas>
             <canvas id="snapshotCanvas" class="hidden"></canvas>
 
-            <!-- ป้ายแนะนำก่อนเปิดกล้อง -->
-            <div id="cameraPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 text-center p-4">
+            <!-- ป้ายแจ้งสถานะกล้อง -->
+            <div id="cameraPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/85 text-center p-4 z-10">
                 <i class="fa-solid fa-camera text-3xl text-emerald-400 mb-2"></i>
-                <p class="text-xs font-bold text-emerald-100">กดปุ่ม "เปิดกล้องสแกน" ด้านล่างเพื่อเริ่มตรวจจับใบหน้า</p>
+                <p id="cameraPlaceholderText" class="text-xs font-bold text-emerald-100">กดปุ่ม "เปิดกล้องสแกน" ด้านล่างเพื่ออนุญาตใช้งานกล้อง</p>
             </div>
 
             <!-- กรอบเล็งใบหน้า -->
-            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
                 <div class="w-44 h-56 sm:w-60 sm:h-72 border-2 border-dashed border-amber-400/75 rounded-3xl"></div>
             </div>
 
-            <!-- ตัวนับจำนวนที่สแกนแล้วมุมขวาบน -->
-            <div class="absolute top-3 right-3 bg-emerald-950/85 backdrop-blur-xs border border-emerald-600/60 px-2.5 py-1 rounded-xl text-[11px] font-extrabold text-amber-300">
+            <!-- ตัวนับจำนวน -->
+            <div class="absolute top-3 right-3 bg-emerald-950/85 backdrop-blur-xs border border-emerald-600/60 px-2.5 py-1 rounded-xl text-[11px] font-extrabold text-amber-300 z-10">
                 สแกนแล้ว <span id="todayScanCounter">0</span> คน
             </div>
 
-            <!-- ป๊อบอับแจ้งผลเมื่อสแกนสำเร็จ -->
+            <!-- ป๊อบอับแจ้งผล -->
             <div id="scanSuccessPopup" class="hidden absolute bottom-3 left-3 right-3 bg-emerald-900/95 backdrop-blur-md border-2 border-amber-400 rounded-2xl p-2.5 flex items-center gap-2.5 shadow-2xl z-20">
                 <img id="popupAvatar" src="" class="w-12 h-12 rounded-xl object-cover border border-white shrink-0">
                 <div class="min-w-0 flex-1">
@@ -80,8 +79,9 @@
             </div>
         </div>
 
-        <!-- 3. แผงปุ่มควบคุมกล้องด้านล่าง -->
+        <!-- CONTROLS -->
         <div class="flex gap-2 shrink-0">
+            <select id="cameraDeviceSelect" onchange="startCameraWithId(this.value)" class="hidden bg-emerald-900 border border-emerald-700 text-[11px] font-bold rounded-2xl px-2.5 text-white outline-none max-w-[130px]"></select>
             <button type="button" id="btnStartCamera" onclick="startCamera()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs sm:text-sm font-extrabold py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition">
                 <i class="fa-solid fa-camera"></i> <span id="btnStartText">เปิดกล้องสแกน</span>
             </button>
@@ -100,7 +100,7 @@
         const COOLDOWN_MS = 5 * 60 * 1000;
 
         let currentStream = null;
-        let facingMode = 'user'; // เริ่มต้นด้วยกล้องหน้าสำหรับสแกนใบหน้า
+        let facingMode = 'user';
         let faceMatcher = null;
         let studentsMap = new Map();
         let lastScanTimestamps = new Map();
@@ -112,33 +112,82 @@
             await loadModelsAndStudents();
         });
 
-        async function startCamera() {
-            const video = document.getElementById('gateVideo');
-            const placeholder = document.getElementById('cameraPlaceholder');
-            const btnText = document.getElementById('btnStartText');
-
+        function stopCamera() {
             if (currentStream) {
-                currentStream.getTracks().forEach(t => t.stop());
+                currentStream.getTracks().forEach(track => track.stop());
                 currentStream = null;
             }
+        }
 
+        async function populateCameraDevices() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
-                    audio: false
-                });
-                currentStream = stream;
-                video.srcObject = stream;
-                video.classList.toggle('mirror-video', facingMode === 'user');
-                document.getElementById('overlayCanvas')?.classList.toggle('mirror-video', facingMode === 'user');
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cams = devices.filter(d => d.kind === 'videoinput');
+                const select = document.getElementById('cameraDeviceSelect');
+                if (cams.length > 1 && select) {
+                    select.innerHTML = cams.map((c, idx) => `<option value="${c.deviceId}">${c.label || `กล้อง ${idx + 1}`}</option>`).join('');
+                    select.classList.remove('hidden');
+                }
+            } catch (e) {}
+        }
 
-                if (placeholder) placeholder.classList.add('hidden');
-                if (btnText) btnText.innerText = 'กล้องกำลังทำงาน';
-            } catch (err) {
-                if (placeholder) placeholder.classList.remove('hidden');
-                if (btnText) btnText.innerText = 'กดเพื่ออนุญาตเปิดกล้อง';
-                console.warn('Camera permission needed:', err);
+        async function startCamera(specificDeviceId = null) {
+            const video = document.getElementById('gateVideo');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const placeholderText = document.getElementById('cameraPlaceholderText');
+            const btnText = document.getElementById('btnStartText');
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                if (placeholderText) placeholderText.innerText = '❌ เบราว์เซอร์นี้ไม่รองรับการเปิดกล้อง หรือไม่ได้เปิดผ่าน HTTPS';
+                return;
             }
+
+            stopCamera();
+            if (btnText) btnText.innerText = 'กำลังเชื่อมต่อกล้อง...';
+
+            // ลองเปิดกล้องด้วยเงื่อนไขที่ยืดหยุ่นที่สุด (ใช้ได้ทั้งมือถือและคอมพิวเตอร์)
+            const constraintsList = specificDeviceId
+                ? [{ video: { deviceId: { exact: specificDeviceId } }, audio: false }]
+                : [
+                    { video: { facingMode: facingMode }, audio: false },
+                    { video: true, audio: false }
+                  ];
+
+            let connected = false;
+            let lastError = null;
+
+            for (const constraints of constraintsList) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    currentStream = stream;
+                    video.srcObject = stream;
+                    await video.play();
+                    connected = true;
+                    break;
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+
+            if (connected) {
+                const isFront = (facingMode === 'user' && !specificDeviceId);
+                video.classList.toggle('mirror-video', isFront);
+                document.getElementById('overlayCanvas')?.classList.toggle('mirror-video', isFront);
+                if (placeholder) placeholder.classList.add('hidden');
+                if (btnText) btnText.innerText = 'กล้องทำงานปกติ';
+                await populateCameraDevices();
+            } else {
+                if (placeholder) placeholder.classList.remove('hidden');
+                if (placeholderText) {
+                    placeholderText.innerText = `⛔ ไม่สามารถเปิดกล้องได้ (${lastError?.name || 'Permission Denied'})\nกรุณากดอนุญาตสิทธิ์กล้องที่แถบ URL ด้านบน แล้วกดปุ่มเปิดกล้องอีกครั้ง`;
+                }
+                if (btnText) btnText.innerText = 'ลองเปิดกล้องอีกครั้ง';
+            }
+        }
+
+        function startCameraWithId(deviceId) {
+            if (deviceId) startCamera(deviceId);
         }
 
         function switchCamera() {
@@ -149,18 +198,13 @@
         function setStatus(htmlText, color = 'amber') {
             const badge = document.getElementById('systemStatusBadge');
             if (!badge) return;
-            const colors = {
-                amber: 'text-amber-300',
-                emerald: 'text-emerald-300',
-                rose: 'text-rose-400'
-            };
+            const colors = { amber: 'text-amber-300', emerald: 'text-emerald-300', rose: 'text-rose-400' };
             badge.className = `text-[10px] font-semibold block truncate ${colors[color] || 'text-amber-300'}`;
             badge.innerHTML = htmlText;
         }
 
         async function loadModelsAndStudents() {
             try {
-                // รอให้ faceapi โหลดเสร็จ
                 let waitCount = 0;
                 while (typeof faceapi === 'undefined' && waitCount < 30) {
                     await new Promise(r => setTimeout(r, 200));
@@ -168,7 +212,7 @@
                 }
                 if (typeof faceapi === 'undefined') throw new Error('โหลดไลบรารี AI ไม่สำเร็จ');
 
-                setStatus('<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังโหลดโมเดลใบหน้า...');
+                setStatus('<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังโหลดโมเดล AI...');
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
@@ -199,7 +243,6 @@
                 await reloadFaceDatabase();
                 startDetectionLoop();
             } catch (err) {
-                console.error(err);
                 setStatus('❌ โหลดโมเดล AI ไม่สำเร็จ', 'rose');
             }
         }
@@ -215,9 +258,7 @@
                 try {
                     const img = await faceapi.fetchImage(imgUrl);
                     const det = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                    if (det) {
-                        descriptors.push(new faceapi.LabeledFaceDescriptors(id, [det.descriptor]));
-                    }
+                    if (det) descriptors.push(new faceapi.LabeledFaceDescriptors(id, [det.descriptor]));
                 } catch (e) {}
             }
 
@@ -251,11 +292,9 @@
                     if (match.label !== 'unknown') {
                         const student = studentsMap.get(match.label);
                         const fullName = student ? `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() : match.label;
-
                         ctx.strokeStyle = '#34d399';
                         ctx.lineWidth = 3;
                         ctx.strokeRect(box.x, box.y, box.width, box.height);
-
                         await recordStudentGateScan(match.label, student, fullName);
                     } else {
                         ctx.strokeStyle = '#fbbf24';
@@ -272,7 +311,6 @@
             if (now - lastTime < COOLDOWN_MS) return;
 
             lastScanTimestamps.set(studentId, now);
-
             const nowDate = new Date();
             const isLate = (nowDate.getHours() > 8) || (nowDate.getHours() === 8 && nowDate.getMinutes() > 0);
             const status = isLate ? 'late' : 'present';
