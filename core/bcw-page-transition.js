@@ -1,6 +1,6 @@
 /**
- * BCW Smart Hub - Global Anti-Flicker & Smooth Transition Curtain
- * ป้องกันการเห็นหน้า Login ระหว่างรอตรวจสอบสิทธิ์หรือเปลี่ยนหน้าเมื่ออินเทอร์เน็ตช้า
+ * BCW Smart Hub - Global Anti-Flicker & Luxury Green-Gold Ring Transition Curtain
+ * ป้องกันการเห็นหน้า Login ระหว่างรอตรวจสอบสิทธิ์ พร้อมวงแหวนสีเขียว-ทองหมุนรอบโลโก้
  */
 (function () {
     const REPO_PREFIX = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
@@ -13,7 +13,6 @@
     const hasOAuthCallback = params.has('code') || params.has('state') || window.location.hash.includes('access_token');
     const isRedirectingFlag = sessionStorage.getItem('bcw_transitioning') === '1';
 
-    // ตรวจหา Session ใน localStorage / sessionStorage (รองรับทั้ง AuthManager และ Supabase)
     let hasStoredSession = Boolean(localStorage.getItem('bcw_user') || sessionStorage.getItem('bcw_user'));
     if (!hasStoredSession) {
         for (let i = 0; i < localStorage.length; i++) {
@@ -25,10 +24,9 @@
         }
     }
 
-    // ถ้าอยู่หน้า login แล้วมี Session หรือกำลัง Redirect ให้กางม่านบังตั้งแต่ก่อนวาดหน้าจอ
     const shouldShowImmediately = isRedirectingFlag || (isLoginPage && (hasOAuthCallback || hasStoredSession));
 
-    // 2. ฉีด CSS ฉากกั้นเข้าไปใน <head> ทันที (ทำงานก่อน <body> เรนเดอร์ 100%)
+    // 2. ฉีด CSS ฉากกั้นและวงแหวนหมุนคู่สีเขียว-ทองเข้าไปใน <head> ทันที
     const style = document.createElement('style');
     style.id = 'bcw-curtain-style';
     style.textContent = `
@@ -36,7 +34,7 @@
             position: fixed;
             inset: 0;
             z-index: 2147483647;
-            background: radial-gradient(circle at top, #065f46 0%, #022c22 65%, #011c16 100%);
+            background: radial-gradient(circle at center, #065f46 0%, #022c22 62%, #011812 100%);
             display: ${shouldShowImmediately ? 'flex' : 'none'};
             flex-direction: column;
             align-items: center;
@@ -52,62 +50,121 @@
             opacity: 0;
             pointer-events: none;
         }
-        .bcw-curtain-logo-box {
-            width: 88px;
-            height: 88px;
-            border-radius: 24px;
-            background: #ffffff;
-            padding: 10px;
-            border: 2.5px solid #fbbf24;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 24px rgba(251, 191, 36, 0.25);
+
+        /* คอนเทนเนอร์วงแหวนหมุนรอบโลโก้ */
+        .bcw-luxury-orbit {
+            position: relative;
+            width: 124px;
+            height: 124px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 16px;
-            animation: bcwPulse 1.8s infinite ease-in-out;
+            margin-bottom: 18px;
+        }
+
+        /* แสงออร่าสีทอง-เขียวด้านหลัง */
+        .bcw-orbit-glow {
+            position: absolute;
+            inset: 4px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.32) 0%, rgba(16, 185, 129, 0.15) 55%, transparent 75%);
+            filter: blur(8px);
+            animation: bcwGlowPulse 2.2s infinite ease-in-out;
+        }
+
+        /* วงแหวนชั้นนอก (สีทอง-เขียวมรกต หมุนตามเข็มนาฬิกา) */
+        .bcw-ring-outer {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3.5px solid transparent;
+            border-top-color: #fbbf24;
+            border-right-color: #10b981;
+            border-bottom-color: rgba(251, 191, 36, 0.25);
+            box-shadow: 0 0 18px rgba(251, 191, 36, 0.35);
+            animation: bcwSpinCW 1.6s linear infinite;
+        }
+
+        /* วงแหวนชั้นใน (สีเขียวสด-ทองอ่อน หมุนทวนเข็มนาฬิกา) */
+        .bcw-ring-inner {
+            position: absolute;
+            inset: 9px;
+            border-radius: 50%;
+            border: 2.5px solid transparent;
+            border-top-color: #34d399;
+            border-left-color: #fde68a;
+            border-bottom-color: rgba(52, 211, 153, 0.2);
+            animation: bcwSpinCCW 1.15s linear infinite;
+        }
+
+        /* กล่องโลโก้วงกลมตรงกลาง */
+        .bcw-curtain-logo-box {
+            position: relative;
+            z-index: 2;
+            width: 82px;
+            height: 82px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            padding: 10px;
+            border: 2px solid #f59e0b;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .bcw-curtain-logo-box img {
             width: 100%;
             height: 100%;
             object-fit: contain;
         }
+
         .bcw-curtain-title {
-            font-size: 20px;
+            font-size: 21px;
             font-weight: 800;
-            color: #fbbf24;
-            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.8px;
             margin: 0;
         }
         .bcw-curtain-sub {
             font-size: 12px;
             color: #a7f3d0;
-            margin-top: 4px;
+            margin-top: 3px;
+            font-weight: 500;
         }
         .bcw-curtain-pill {
-            margin-top: 20px;
-            background: rgba(2, 44, 34, 0.75);
-            border: 1px solid rgba(52, 211, 153, 0.35);
-            padding: 8px 18px;
+            margin-top: 18px;
+            background: rgba(2, 44, 34, 0.82);
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            padding: 8px 20px;
             border-radius: 9999px;
             font-size: 12px;
             font-weight: 600;
-            color: #ecfdf5;
+            color: #fef3c7;
             display: inline-flex;
             align-items: center;
             gap: 8px;
         }
-        .bcw-spinner {
-            width: 14px;
-            height: 14px;
-            border: 2px solid #fbbf24;
-            border-top-color: transparent;
+        .bcw-dot-pulse {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            animation: bcwSpin 0.8s linear infinite;
+            background-color: #34d399;
+            box-shadow: 0 0 8px #34d399;
+            animation: bcwDotBlink 1.2s infinite ease-in-out;
         }
-        @keyframes bcwSpin { to { transform: rotate(360deg); } }
-        @keyframes bcwPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.04); }
+
+        @keyframes bcwSpinCW { to { transform: rotate(360deg); } }
+        @keyframes bcwSpinCCW { to { transform: rotate(-360deg); } }
+        @keyframes bcwGlowPulse {
+            0%, 100% { transform: scale(0.96); opacity: 0.75; }
+            50% { transform: scale(1.06); opacity: 1; }
+        }
+        @keyframes bcwDotBlink {
+            0%, 100% { opacity: 0.4; transform: scale(0.85); }
+            50% { opacity: 1; transform: scale(1.15); }
         }
     `;
     document.head.appendChild(style);
@@ -118,13 +175,18 @@
             el = document.createElement('div');
             el.id = 'bcw-global-curtain';
             el.innerHTML = `
-                <div class="bcw-curtain-logo-box">
-                    <img src="${LOGO_URL}" alt="BCW Logo" onerror="this.src='${FALLBACK_LOGO}'">
+                <div class="bcw-luxury-orbit">
+                    <div class="bcw-orbit-glow"></div>
+                    <div class="bcw-ring-outer"></div>
+                    <div class="bcw-ring-inner"></div>
+                    <div class="bcw-curtain-logo-box">
+                        <img src="${LOGO_URL}" alt="BCW Logo" onerror="this.src='${FALLBACK_LOGO}'">
+                    </div>
                 </div>
                 <h2 class="bcw-curtain-title">BCW SMART HUB</h2>
                 <p class="bcw-curtain-sub">โรงเรียนบัวเชดวิทยา &bull; ระบบสารสนเทศอัจฉริยะ</p>
                 <div class="bcw-curtain-pill">
-                    <span class="bcw-spinner"></span>
+                    <span class="bcw-dot-pulse"></span>
                     <span id="bcw-curtain-msg">กำลังเชื่อมต่อเข้าสู่ระบบ กรุณารอสักครู่...</span>
                 </div>
             `;
@@ -133,7 +195,6 @@
         return el;
     }
 
-    // ฟังก์ชันเปิดฉากกั้น (เรียกใช้ได้จากทุกหน้า)
     window.showBCWCurtain = function (message = 'กำลังเข้าสู่ระบบ กรุณารอสักครู่...') {
         sessionStorage.setItem('bcw_transitioning', '1');
         const el = ensureCurtainElement();
@@ -145,7 +206,6 @@
         requestAnimationFrame(() => { el.style.opacity = '1'; });
     };
 
-    // ฟังก์ชันเปิดม่านออกเมื่อหน้าปลายทางพร้อมแล้ว
     window.hideBCWCurtain = function () {
         sessionStorage.removeItem('bcw_transitioning');
         const el = document.getElementById('bcw-global-curtain');
@@ -154,24 +214,20 @@
         setTimeout(() => { el.style.display = 'none'; }, 360);
     };
 
-    // สร้าง Element ทันทีที่ DOM พร้อม
     if (document.body) {
         ensureCurtainElement();
     } else {
         document.addEventListener('DOMContentLoaded', ensureCurtainElement);
     }
 
-    // หากอยู่หน้าปลายทาง (เช่น landing.html, teacher.html) ให้เปิดม่านออกอย่างนุ่มนวลเมื่อโหลดเสร็จ
     window.addEventListener('load', () => {
         if (!isLoginPage) {
-            setTimeout(window.hideBCWCurtain, 250);
+            setTimeout(window.hideBCWCurtain, 280);
         } else if (shouldShowImmediately) {
-            // สำรองกรณีเน็ตหลุดหรือ Session หมดอายุจริง หลัง 5 วินาทีให้เปิดฟอร์มล็อกอิน
             setTimeout(window.hideBCWCurtain, 5000);
         }
     });
 
-    // ดักจับการกดปุ่มล็อกอิน / ส่งฟอร์มอีเมล-รหัสผ่าน ให้กางฉากกั้นทันที
     document.addEventListener('submit', () => {
         window.showBCWCurtain('กำลังยืนยันตัวตนเข้าสู่ระบบ...');
     }, true);
