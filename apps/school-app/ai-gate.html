@@ -46,18 +46,18 @@
 </head>
 <body class="relative w-full h-[100dvh] overflow-hidden select-none">
 
-    <!-- FULLSCREEN CAMERA VIDEO LAYER -->
-    <video id="gateVideo" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-0 hidden"></video>
+    <!-- FULLSCREEN CAMERA VIDEO LAYER (ไม่ใส่ hidden เพื่อให้เบราว์เซอร์มือถือพร้อมเล่นภาพทันที) -->
+    <video id="gateVideo" autoplay playsinline muted webkit-playsinline class="absolute inset-0 w-full h-full object-cover z-0 opacity-0 transition-opacity duration-300"></video>
 
     <!-- พื้นหลังเมื่อยังไม่เปิดกล้อง -->
-    <div id="cameraIdleBg" class="absolute inset-0 bg-gradient-to-b from-emerald-950 via-slate-950 to-emerald-950 z-0"></div>
+    <div id="cameraIdleBg" class="absolute inset-0 bg-gradient-to-b from-emerald-950 via-slate-950 to-emerald-950 z-0 pointer-events-none"></div>
 
     <!-- SAFE-AREA OVERLAY CONTAINER -->
     <div class="relative z-10 w-full h-full flex flex-col justify-between p-3 sm:p-4 max-w-xl mx-auto"
          style="padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(12px, env(safe-area-inset-bottom));">
 
         <!-- 1. TOP FLOATING HEADER -->
-        <header class="bg-emerald-950/85 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-2.5 flex items-center justify-between gap-2 shadow-xl shrink-0">
+        <header class="bg-emerald-950/90 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-2.5 flex items-center justify-between gap-2 shadow-xl shrink-0">
             <div class="flex items-center gap-2.5 min-w-0">
                 <a href="teacher.html" class="w-9 h-9 rounded-xl bg-emerald-800/90 hover:bg-emerald-700 border border-emerald-500/50 text-amber-300 flex items-center justify-center shrink-0 active:scale-95 transition">
                     <i class="fa-solid fa-arrow-left text-sm"></i>
@@ -76,7 +76,7 @@
                     <span id="scannedCountText">0</span> คน
                 </span>
 
-                <!-- ปุ่มเลือกห้องเรียนแบบ Custom (แทน select เดิมที่เด้งตัวใหญ่เต็มจอ) -->
+                <!-- ปุ่มเลือกห้องเรียนแบบ Custom (แทน select เดิมที่ใหญ่เต็มจอ) -->
                 <button type="button" onclick="toggleRoomPickerModal()" class="bg-emerald-900/95 hover:bg-emerald-800 border border-emerald-500/60 text-white text-xs font-medium rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 active:scale-95 transition cursor-pointer">
                     <span id="selectedRoomLabel">ทุกห้อง</span>
                     <i class="fa-solid fa-chevron-down text-[10px] text-amber-300"></i>
@@ -95,12 +95,13 @@
 
                 <div id="laserBar" class="ai-scan-beam hidden"></div>
 
-                <div id="cameraPlaceholderContent" class="flex flex-col items-center gap-2.5 bg-slate-950/75 backdrop-blur-sm p-4 rounded-2xl border border-emerald-500/30">
+                <!-- ข้อความแนะนำเมื่อกล้องยังไม่เปิด -->
+                <div id="cameraPlaceholderContent" class="flex flex-col items-center gap-2.5 bg-slate-950/80 backdrop-blur-sm p-4 rounded-2xl border border-emerald-500/30">
                     <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-emerald-950 flex items-center justify-center text-xl shadow-lg">
-                        <i class="fa-solid fa-expand"></i>
+                        <i class="fa-solid fa-camera"></i>
                     </div>
                     <p id="cameraGuideText" class="text-xs sm:text-sm font-normal text-white leading-relaxed">
-                        กำลังเตรียมกล้อง AI หรือกดปุ่มด้านล่างเพื่ออนุญาตกล้อง
+                        กดปุ่ม "เปิดกล้อง AI" ด้านล่างเพื่อเริ่มสแกน
                     </p>
                 </div>
             </div>
@@ -117,8 +118,8 @@
 
         <!-- 3. BOTTOM FLOATING CONTROLS -->
         <footer class="space-y-2 shrink-0">
-            <div class="bg-slate-950/80 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-2 flex gap-1.5 shadow-lg">
-                <input type="text" id="manualScanInput" placeholder="สแกน หรือพิมพ์รหัสนักเรียน..." onkeydown="if(event.key==='Enter') handleManualScan()" class="flex-1 min-w-0 bg-emerald-950/80 border border-emerald-700/80 rounded-xl px-3 py-2 text-xs sm:text-sm text-white placeholder-emerald-300/60 outline-none focus:border-amber-400">
+            <div class="bg-slate-950/85 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-2 flex gap-1.5 shadow-lg">
+                <input type="text" id="manualScanInput" placeholder="สแกน หรือพิมพ์รหัสนักเรียน..." onkeydown="if(event.key==='Enter') handleManualScan()" class="flex-1 min-w-0 bg-emerald-950/80 border border-emerald-700/80 rounded-xl px-3 py-2 text-sm text-white placeholder-emerald-300/60 outline-none focus:border-amber-400">
                 <button type="button" onclick="handleManualScan()" class="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-xl shrink-0 active:scale-95 transition cursor-pointer">
                     เช็กชื่อ
                 </button>
@@ -137,7 +138,7 @@
         </footer>
     </div>
 
-    <!-- CUSTOM ROOM PICKER MODAL (ขนาดตัวอักษรพอดีตา ไม่ใหญ่เต็มจอ) -->
+    <!-- CUSTOM ROOM PICKER MODAL (ขนาดตัวอักษรมาตรฐาน ไม่ใหญ่เต็มจอ) -->
     <div id="roomPickerModal" onclick="if(event.target===this) toggleRoomPickerModal()" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 hidden">
         <div class="bg-white text-slate-800 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
             <div class="px-4 py-3 bg-emerald-950 text-white flex items-center justify-between">
@@ -149,8 +150,8 @@
                 </button>
             </div>
 
-            <div id="roomPickerGrid" class="p-3 grid grid-cols-3 gap-2 max-h-[55dvh] overflow-y-auto text-sm">
-                <button type="button" onclick="selectGateClassroom('ALL')" data-room="ALL" class="room-chip-btn col-span-3 py-2.5 px-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold text-xs sm:text-sm text-center cursor-pointer transition">
+            <div id="roomPickerGrid" class="p-3 grid grid-cols-3 gap-2 max-h-[50dvh] overflow-y-auto">
+                <button type="button" onclick="selectGateClassroom('ALL')" data-room="ALL" class="room-chip-btn col-span-3 py-2 px-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold text-xs text-center cursor-pointer transition">
                     🌐 สแกนทุกห้องเรียน
                 </button>
             </div>
@@ -194,10 +195,11 @@
         if (sub) sub.innerText = roomVal === 'ALL' ? 'AI พร้อมสแกนทุกห้องเรียน' : `AI กรองเฉพาะห้อง ${roomVal}`;
 
         document.querySelectorAll('.room-chip-btn').forEach(btn => {
+            const isAll = btn.getAttribute('data-room') === 'ALL';
             const isSelected = btn.getAttribute('data-room') === roomVal;
             btn.className = isSelected
-                ? `room-chip-btn ${btn.getAttribute('data-room') === 'ALL' ? 'col-span-3' : ''} py-2.5 px-2 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold text-xs sm:text-sm text-center cursor-pointer transition`
-                : `room-chip-btn ${btn.getAttribute('data-room') === 'ALL' ? 'col-span-3' : ''} py-2.5 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs sm:text-sm text-center cursor-pointer transition`;
+                ? `room-chip-btn ${isAll ? 'col-span-3' : ''} py-2 px-2 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold text-xs text-center cursor-pointer transition`
+                : `room-chip-btn ${isAll ? 'col-span-3' : ''} py-2 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs text-center cursor-pointer transition`;
         });
 
         toggleRoomPickerModal();
@@ -215,13 +217,51 @@
             const grid = document.getElementById('roomPickerGrid');
             if (grid && rooms.length > 0) {
                 const roomButtons = rooms.map(r => `
-                    <button type="button" onclick="selectGateClassroom('${r.replace(/'/g, "\\'")}')" data-room="${r}" class="room-chip-btn py-2.5 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs sm:text-sm text-center cursor-pointer transition">
+                    <button type="button" onclick="selectGateClassroom('${String(r).replace(/'/g, "\\'")}')" data-room="${r}" class="room-chip-btn py-2 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs text-center cursor-pointer transition">
                         ${r}
                     </button>
                 `).join('');
                 grid.insertAdjacentHTML('beforeend', roomButtons);
             }
         } catch (e) {}
+    }
+
+    async function acquireCameraStream(preferredFacing) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('เบราว์เซอร์ไม่รองรับ getUserMedia (กรุณาเปิดผ่าน HTTPS บน Chrome หรือ Safari)');
+        }
+
+        // ขั้นที่ 1: ลองเปิดตามกล้องที่เลือก (environment / user)
+        try {
+            return await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: preferredFacing } },
+                audio: false
+            });
+        } catch (e1) {}
+
+        // ขั้นที่ 2: ลองเปิดกล้องทั่วไปโดยไม่ระบุ facingMode
+        try {
+            return await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false
+            });
+        } catch (e2) {
+            // ขั้นที่ 3: ค้นหา deviceId ของกล้องในเครื่องโดยตรงแล้วบังคับเปิด
+            if (navigator.mediaDevices.enumerateDevices) {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoInputs = devices.filter(d => d.kind === 'videoinput');
+                if (videoInputs.length > 0) {
+                    const targetDevice = preferredFacing === 'environment'
+                        ? (videoInputs[videoInputs.length - 1] || videoInputs[0])
+                        : videoInputs[0];
+                    return await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: { exact: targetDevice.deviceId } },
+                        audio: false
+                    });
+                }
+            }
+            throw e2;
+        }
     }
 
     async function startGateCamera(isSilentAuto = false) {
@@ -234,34 +274,22 @@
         const btnToggle = document.getElementById('btnToggleCamera');
         const statusSub = document.getElementById('cameraStatusSub');
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            if (guideText) guideText.innerText = 'เบราว์เซอร์ไม่รองรับการเปิดกล้อง กรุณาเปิดผ่าน Chrome หรือ Safari';
-            return;
-        }
-
         stopGateCamera();
 
         try {
-            if (guideText) guideText.innerText = 'กำลังเปิดกล้อง AI...';
+            if (guideText) guideText.innerText = 'กำลังเชื่อมต่อกล้อง AI...';
 
-            try {
-                GATE_STREAM = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: FACING_MODE },
-                    audio: false
-                });
-            } catch (firstErr) {
-                GATE_STREAM = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: false
-                });
-            }
+            GATE_STREAM = await acquireCameraStream(FACING_MODE);
 
             video.srcObject = GATE_STREAM;
             video.setAttribute('playsinline', 'true');
+            video.setAttribute('webkit-playsinline', 'true');
             video.muted = true;
+            video.classList.remove('opacity-0');
+            video.classList.add('opacity-100');
+
             await video.play();
 
-            video.classList.remove('hidden');
             if (idleBg) idleBg.classList.add('hidden');
             if (placeholder) placeholder.classList.add('hidden');
             if (laser) laser.classList.remove('hidden');
@@ -274,13 +302,18 @@
 
             startBarcodeLoop(video);
         } catch (err) {
-            const msg = (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
-                ? 'ถูกบล็อกสิทธิ์กล้อง กรุณากดรูปแม่กุญแจบนแถบ URL แล้วเลือก "อนุญาตกล้อง"'
-                : 'กดปุ่ม "เปิดกล้อง AI" ด้านล่างเพื่อเริ่มสแกน';
-            if (guideText) guideText.innerText = msg;
-            if (!isSilentAuto && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-                alert(msg);
+            console.error('AI Gate Camera Error:', err);
+            let msg = '';
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                msg = 'ถูกบล็อกสิทธิ์กล้อง: กรุณากดรูปแม่กุญแจบนแถบ URL แล้วเลือก "อนุญาตกล้อง" (หากเปิดใน LINE ให้กดจุด 3 จุดแล้วเลือกเปิดใน Chrome/Safari)';
+            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                msg = 'กล้องถูกใช้งานโดยแอปอื่นอยู่ กรุณาปิดแอปอื่นแล้วกดเปิดกล้องใหม่';
+            } else {
+                msg = `ไม่สามารถเปิดกล้องได้ (${err.name || 'Error'}: ${err.message || 'กรุณาอนุญาตสิทธิ์กล้อง'})`;
             }
+
+            if (guideText) guideText.innerText = msg;
+            if (!isSilentAuto) alert(msg);
         }
     }
 
@@ -299,8 +332,10 @@
         const statusSub = document.getElementById('cameraStatusSub');
 
         if (video) {
+            video.pause();
             video.srcObject = null;
-            video.classList.add('hidden');
+            video.classList.remove('opacity-100');
+            video.classList.add('opacity-0');
         }
         if (idleBg) idleBg.classList.remove('hidden');
         if (placeholder) placeholder.classList.remove('hidden');
