@@ -4,35 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>BCW Smart HUB - Teacher Portal</title>
-    <!-- Favicon -->
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; overflow-x: hidden; }
-        .touch-btn { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+        main section, main > div { scroll-margin-top: 60px; }
 
-        /* 🔒 ล็อคระยะเว้นขอบกัน Header บังเนื้อหา */
-        main section, main > div {
-            scroll-margin-top: 65px;
-        }
-
-        /* 📱 สไตล์เฉพาะหน้าจอมือถือ (Mobile Only) */
         @media (max-width: 767px) {
-            html, body {
-                max-width: 100vw;
-                overflow-x: hidden;
-            }
-
-            body {
-                padding-bottom: 78px !important;
-                -webkit-tap-highlight-color: transparent;
-            }
+            html, body { max-width: 100vw; overflow-x: hidden; }
+            body { padding-bottom: 76px !important; -webkit-tap-highlight-color: transparent; }
 
             .teacher-bottom-nav {
                 position: fixed;
@@ -40,16 +23,17 @@
                 left: 0;
                 right: 0;
                 height: 64px;
-                background: rgba(255, 255, 255, 0.97);
+                background: rgba(255, 255, 255, 0.98);
                 backdrop-filter: blur(14px);
                 -webkit-backdrop-filter: blur(14px);
                 border-top: 1px solid #e2e8f0;
                 display: flex;
                 align-items: center;
-                justify-content: space-around;
+                justify-content: space-between;
                 z-index: 999;
                 box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
-                padding: 0 4px;
+                padding: 0 8px;
+                gap: 4px;
             }
 
             .teacher-nav-btn {
@@ -62,75 +46,57 @@
                 font-weight: 700;
                 background: transparent;
                 border: 1.5px solid transparent;
-                padding: 4px 8px;
+                padding: 4px 6px;
                 border-radius: 14px;
                 cursor: pointer;
                 transition: all 0.2s ease-in-out;
-                min-width: 54px;
+                flex: 1;
+                min-width: 0;
             }
 
-            .teacher-nav-btn i {
-                font-size: 15px;
-                margin-bottom: 1px;
-            }
+            .teacher-nav-btn i { font-size: 15px; margin-bottom: 1px; }
 
             .teacher-nav-btn.active {
                 color: #047857 !important;
                 background: #ecfdf5 !important;
                 border: 1.5px solid #f59e0b !important;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 10px -2px rgba(4, 120, 87, 0.2);
             }
 
-            .teacher-nav-btn.active i {
-                color: #047857;
+            /* ข้อ 4: ปุ่ม "มาครบ" และ "บันทึก" มีพื้นหลังเด่นชัดกลุ่มเดียวกัน (ฟังก์ชันเช็กชื่อ) */
+            .teacher-nav-btn.action-check-btn {
+                color: #ffffff !important;
+                background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+                border: 1.5px solid #fcd34d !important;
+                box-shadow: 0 3px 8px rgba(5, 150, 105, 0.3);
+                padding: 4px 6px;
             }
-
-            /* ✨ สไตล์ปุ่ม "มาครบ" กรอบหรูมีสไตล์ */
-            .teacher-nav-btn.luxury-markall-btn {
-                background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
-                border: 1.5px solid #f59e0b;
-                color: #065f46;
-                box-shadow: 0 3px 10px -2px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-                padding: 4px 10px;
+            .teacher-nav-btn.action-check-btn i {
+                color: #fef08a !important;
+                font-size: 15px;
             }
-
-            .teacher-nav-btn.luxury-markall-btn:active {
+            .teacher-nav-btn.action-check-btn:active {
                 transform: scale(0.94);
             }
 
-            .teacher-nav-btn.highlight-btn i {
-                width: 32px;
-                height: 32px;
-                background: linear-gradient(135deg, #059669 0%, #047857 100%);
-                color: #ffffff !important;
-                border: 1px solid #fcd34d;
-                border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 14px;
-                box-shadow: 0 3px 8px rgba(5, 150, 105, 0.3);
-            }
-
-            /* 🎞️ ลิ้นชักสถิติสไลด์เก็บแบบสมูท */
+            /* ข้อ 2: ลิ้นชักสถิติสไลด์เปิด-ปิดได้จริง */
             #mobileStatsDrawer {
-                max-height: 0;
+                position: fixed;
+                bottom: 64px;
+                left: 0;
+                right: 0;
+                z-index: 998;
+                background: rgba(255, 255, 255, 0.99);
+                border-top: 2px solid #10b981;
+                box-shadow: 0 -10px 25px rgba(15, 23, 42, 0.15);
+                transform: translateY(110%);
                 opacity: 0;
-                visibility: hidden;
-                overflow: hidden;
-                transform: translateY(20px);
-                transition: max-height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-                            opacity 0.3s ease,
-                            transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-                            visibility 0.4s;
+                pointer-events: none;
+                transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
             }
-
             #mobileStatsDrawer.open {
-                max-height: 340px;
-                opacity: 1;
-                visibility: visible;
                 transform: translateY(0);
+                opacity: 1;
+                pointer-events: auto;
             }
         }
 
@@ -143,52 +109,48 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between">
+<body class="min-h-screen flex flex-col">
 
     <!-- 1. HEADER -->
     <header class="bg-emerald-950 text-white shadow-md sticky top-0 z-50 border-b border-emerald-800">
-        <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex justify-between items-center gap-2">
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 flex justify-between items-center gap-2">
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                 <div class="bg-white p-1 rounded-xl shadow-md shrink-0">
-                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 sm:w-10 sm:h-10 object-contain" onerror="this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png'">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 sm:w-9 sm:h-9 object-contain" onerror="this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png'">
                 </div>
                 <div class="min-w-0">
-                    <h1 class="text-base sm:text-lg font-extrabold text-amber-400 leading-tight truncate">BCW SMART HUB</h1>
-                    <p class="text-xs sm:text-sm font-medium text-emerald-100 opacity-90 leading-tight">Teacher Portal</p>
-                    <p class="text-xs sm:text-sm font-semibold text-amber-200 mt-0.5 leading-tight truncate">โรงเรียนบัวเชดวิทยา</p>
+                    <h1 class="text-sm sm:text-base font-extrabold text-amber-400 leading-tight truncate">BCW SMART HUB</h1>
+                    <p class="text-[11px] font-medium text-emerald-100 opacity-90 leading-tight">Teacher Portal &bull; โรงเรียนบัวเชดวิทยา</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
-                <!-- 📱 ปุ่มหน้าหลัก (เฉพาะ Icon ข้างปุ่มออกจากระบบ แสดงเฉพาะบนมือถือ) -->
-                <a href="../../landing.html" title="หน้าหลัก" class="md:hidden w-9 h-9 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-amber-300 border border-amber-400/50 flex items-center justify-center transition shadow-sm active:scale-95">
-                    <i class="fa-solid fa-house text-sm"></i>
+                <a href="../../landing.html" title="หน้าหลัก" class="md:hidden w-8 h-8 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-amber-300 border border-amber-400/50 flex items-center justify-center transition shadow-sm active:scale-95">
+                    <i class="fa-solid fa-house text-xs"></i>
                 </a>
-
-                <button onclick="handleLogout()" title="ออกจากระบบ" class="btn-logout w-9 h-9 rounded-xl bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center transition shadow-sm cursor-pointer">
-                    <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                <button onclick="handleLogout()" title="ออกจากระบบ" class="btn-logout w-8 h-8 rounded-xl bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center transition shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-right-from-bracket text-xs"></i>
                 </button>
             </div>
         </div>
     </header>
 
     <!-- 2. แถบโปรไฟล์ครูผู้สอน -->
-    <div class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 border-b border-emerald-700/80 text-white px-3 sm:px-4 py-2 shadow-sm">
+    <div class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 border-b border-emerald-700/80 text-white px-3 sm:px-4 py-1.5 shadow-sm">
         <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
-            <div class="flex items-center gap-2.5 min-w-0">
+            <div class="flex items-center gap-2 min-w-0">
                 <div class="relative shrink-0">
                     <img id="headerTeacherAvatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" 
                          alt="Teacher Avatar"
-                         class="w-9 h-9 rounded-xl object-cover border-2 border-amber-400 shadow-sm bg-emerald-800"
+                         class="w-8 h-8 rounded-xl object-cover border-2 border-amber-400 shadow-sm bg-emerald-800"
                          onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
-                    <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-emerald-950 rounded-full"></span>
+                    <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-400 border border-emerald-950 rounded-full"></span>
                 </div>
                 <div class="min-w-0">
                     <div class="hidden md:block text-[10px] text-emerald-300 font-medium leading-none mb-0.5">บุคลากรครู &bull; BCW Smart Hub</div>
                     <div class="md:hidden text-[10px] text-emerald-300 font-bold leading-none mb-0.5">
                         บุคลากรครู &bull; <span id="mobileTeacherCodeInline" class="text-amber-300 font-mono">รหัส: -</span>
                     </div>
-
                     <div class="text-xs sm:text-sm font-extrabold text-white truncate">
                         ครูผู้สอน: <span id="headerTeacherName" class="text-amber-300">กำลังเชื่อมต่อระบบ...</span>
                     </div>
@@ -197,18 +159,19 @@
 
             <span id="teacherCodeDisplay" class="hidden md:inline-block text-xs bg-emerald-950/90 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-400/40 font-mono font-bold shrink-0">รหัส: -</span>
 
-            <a href="reports.html" class="md:hidden text-xs bg-amber-400 hover:bg-amber-300 text-emerald-950 font-extrabold px-2.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 shrink-0 active:scale-95 transition">
+            <a href="reports.html" class="md:hidden text-[11px] bg-amber-400 hover:bg-amber-300 text-emerald-950 font-extrabold px-2.5 py-1 rounded-xl shadow-xs flex items-center gap-1 shrink-0 active:scale-95 transition">
                 <i class="fa-solid fa-chart-pie text-emerald-900"></i> รายงาน
             </a>
         </div>
     </div>
 
-    <main class="max-w-7xl mx-auto w-full px-2.5 sm:px-4 py-2.5 sm:py-5 space-y-3">
+    <!-- ข้อ 1: ลบ my-auto และลด pt เหลือ 1.5 เพื่อดึงกล่องวิชาเรียนให้ชิดแถบชื่อครูทันที -->
+    <main class="max-w-7xl mx-auto w-full px-2.5 sm:px-4 pt-1.5 pb-3 sm:py-3 space-y-2 flex-1">
         
         <!-- 💻 Desktop Only: แถบเมนูนำทางหลัก -->
         <div class="hidden md:flex items-center justify-between bg-white p-2 rounded-xl border border-slate-200 shadow-xs gap-2">
             <div class="flex items-center gap-2 shrink-0">
-                <a href="../../landing.html" class="text-xs bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold px-3.5 py-2 rounded-xl border border-emerald-400/60 shadow-sm shadow-emerald-600/25 flex items-center gap-1.5 transition active:scale-95">
+                <a href="../../landing.html" class="text-xs bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold px-3.5 py-2 rounded-xl border border-emerald-400/60 shadow-sm flex items-center gap-1.5 transition active:scale-95">
                     <i class="fa-solid fa-house text-amber-300"></i> หน้าหลัก
                 </a>
                 <a href="reports.html" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold px-3 py-2 rounded-xl border border-amber-300 flex items-center gap-1.5 transition">
@@ -218,56 +181,52 @@
 
             <button type="button" onclick="toggleStatsDrawer()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold px-3 py-2 rounded-xl border border-emerald-200 flex items-center gap-1.5 transition shrink-0 cursor-pointer">
                 <i class="fa-solid fa-chart-column text-emerald-600"></i>
-                <span id="btnStatsText">ดูสถิติเข้าเรียนรายวิชา</span>
-                <i id="statsChevron" class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
+                <span id="btnStatsText">ซ่อนสถิติเข้าเรียนรายวิชา</span>
+                <i id="statsChevron" class="fa-solid fa-chevron-up text-[10px] transition-transform"></i>
             </button>
         </div>
 
         <!-- 💻 Desktop Only: การ์ดสถิติการเข้าเรียนรายวิชา -->
-        <section id="section-traffic" class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-200 p-3 space-y-2.5 transition-all duration-300">
+        <section id="section-traffic" class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-200 p-2.5 space-y-2 transition-all duration-300">
             <div class="grid grid-cols-5 gap-2">
-                <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center gap-2 text-left">
-                    <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-user-check"></i></div>
+                <div class="bg-emerald-50 border border-emerald-200 p-2 rounded-xl flex items-center gap-2 text-left">
+                    <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-user-check"></i></div>
                     <div>
                         <span class="text-[11px] text-emerald-800 font-extrabold block leading-tight">🟢 มาเรียน</span>
-                        <span id="summary-present-count" class="text-sm font-black text-emerald-950 block mt-0.5">0 คน (0%)</span>
+                        <span id="summary-present-count" class="text-xs font-black text-emerald-950 block mt-0.5">0 คน (0%)</span>
                     </div>
                 </div>
-                
-                <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center gap-2 text-left">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-clock"></i></div>
+                <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl flex items-center gap-2 text-left">
+                    <div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-clock"></i></div>
                     <div>
                         <span class="text-[11px] text-amber-800 font-extrabold block leading-tight">🟡 มาสาย</span>
-                        <span id="summary-late-count" class="text-sm font-black text-amber-950 block mt-0.5">0 คน</span>
+                        <span id="summary-late-count" class="text-xs font-black text-amber-950 block mt-0.5">0 คน</span>
                     </div>
                 </div>
-
-                <div class="bg-sky-50 border border-sky-200 p-2.5 rounded-xl flex items-center gap-2 text-left">
-                    <div class="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-envelope-open-text"></i></div>
+                <div class="bg-sky-50 border border-sky-200 p-2 rounded-xl flex items-center gap-2 text-left">
+                    <div class="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-envelope-open-text"></i></div>
                     <div>
                         <span class="text-[11px] text-sky-800 font-extrabold block leading-tight">🔵 ลา</span>
-                        <span id="summary-leave-count" class="text-sm font-black text-sky-950 block mt-0.5">0 คน</span>
+                        <span id="summary-leave-count" class="text-xs font-black text-sky-950 block mt-0.5">0 คน</span>
                     </div>
                 </div>
-
-                <div class="bg-rose-50 border border-rose-200 p-2.5 rounded-xl flex items-center gap-2 text-left">
-                    <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-user-xmark"></i></div>
+                <div class="bg-rose-50 border border-rose-200 p-2 rounded-xl flex items-center gap-2 text-left">
+                    <div class="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-user-xmark"></i></div>
                     <div>
                         <span class="text-[11px] text-rose-800 font-extrabold block leading-tight">🔴 ขาดเรียน</span>
-                        <span id="summary-absent-count" class="text-sm font-black text-rose-950 block mt-0.5">0 คน</span>
+                        <span id="summary-absent-count" class="text-xs font-black text-rose-950 block mt-0.5">0 คน</span>
                     </div>
                 </div>
-
-                <div class="bg-purple-50 border border-purple-200 p-2.5 rounded-xl flex items-center gap-2 text-left">
-                    <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-person-running"></i></div>
+                <div class="bg-purple-50 border border-purple-200 p-2 rounded-xl flex items-center gap-2 text-left">
+                    <div class="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0"><i class="fa-solid fa-person-running"></i></div>
                     <div>
                         <span class="text-[11px] text-purple-800 font-extrabold block leading-tight">🟣 หนีเรียน</span>
-                        <span id="summary-truant-count" class="text-sm font-black text-purple-950 block mt-0.5">0 คน</span>
+                        <span id="summary-truant-count" class="text-xs font-black text-purple-950 block mt-0.5">0 คน</span>
                     </div>
                 </div>
             </div>
 
-            <div id="desktopEventAlertsRow" class="hidden flex items-center gap-2 pt-2 border-t border-slate-100">
+            <div id="desktopEventAlertsRow" class="hidden flex items-center gap-2 pt-1.5 border-t border-slate-100">
                 <span id="desktopNurseBadge" class="hidden text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 px-2.5 py-1 rounded-lg">
                     🏥 นอนห้องพยาบาล: <strong id="desktop-nurse-count">0</strong> คน
                 </span>
@@ -277,17 +236,17 @@
             </div>
         </section>
 
-        <!-- 4. SMART TIMETABLE & DATE SELECTOR -->
-        <section id="section-selector" class="bg-white p-2.5 sm:p-4 rounded-2xl shadow-xs border border-slate-200 space-y-2">
-            <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2">
-                <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto">
-                    <button type="button" onclick="toggleSubjectModal()" id="customSubjectBtn" class="bg-slate-50 border border-slate-300 font-bold text-slate-800 text-xs sm:text-sm rounded-xl py-2 px-3 flex items-center justify-between gap-2 w-full md:w-auto hover:bg-slate-100 transition cursor-pointer">
+        <!-- 4. SMART TIMETABLE & DATE SELECTOR (ชิดแถบชื่อครูด้านบน) -->
+        <section id="section-selector" class="bg-white p-2 sm:p-3 rounded-2xl shadow-xs border border-slate-200 space-y-1.5">
+            <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-1.5">
+                <div class="flex flex-col md:flex-row items-stretch md:items-center gap-1.5 w-full md:w-auto">
+                    <button type="button" onclick="toggleSubjectModal()" id="customSubjectBtn" class="bg-slate-50 border border-slate-300 font-bold text-slate-800 text-xs sm:text-sm rounded-xl py-1.5 px-3 flex items-center justify-between gap-2 w-full md:w-auto hover:bg-slate-100 transition cursor-pointer">
                         <span id="customSubjectText" class="truncate">กำลังโหลดวิชาสอน...</span>
                         <i class="fa-solid fa-chevron-down text-slate-400 text-xs shrink-0"></i>
                     </button>
                     <input type="hidden" id="subjectSelect" value="" onchange="renderStudents()">
 
-                    <div class="flex items-center justify-between gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5">
+                    <div class="flex items-center justify-between gap-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1">
                         <div class="flex items-center gap-1.5 shrink-0">
                             <i class="fa-regular fa-calendar text-emerald-700 text-xs"></i>
                             <input type="date" id="attendanceDateInput" onchange="onAttendanceDateChange()" class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer">
@@ -298,14 +257,14 @@
 
                 <!-- 💻 Desktop Only: ปุ่มมาครบทุกคน & บันทึกเช็กชื่อ -->
                 <div class="hidden md:flex gap-2 justify-end">
-                    <button type="button" onclick="markAll('present')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer">✓ มาครบทุกคน</button>
-                    <button type="button" onclick="submitAttendance()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer">
+                    <button type="button" onclick="markAll('present')" class="bg-emerald-600 hover:bg-emerald-700 text-white border border-amber-300 px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-xs transition cursor-pointer">✓ มาครบทุกคน</button>
+                    <button type="button" onclick="submitAttendance()" class="bg-emerald-700 hover:bg-emerald-800 text-white border border-amber-300 px-4 py-2 rounded-xl text-xs font-extrabold shadow-xs transition cursor-pointer">
                         💾 บันทึกเช็กชื่อ
                     </button>
                 </div>
             </div>
 
-            <div id="attendanceModeBanner" class="hidden md:flex text-[11px] font-semibold px-3 py-1.5 rounded-xl items-center gap-2"></div>
+            <div id="attendanceModeBanner" class="hidden md:flex text-[11px] font-semibold px-3 py-1 rounded-xl items-center gap-2"></div>
         </section>
 
         <!-- 5. STUDENT ATTENDANCE TABLE -->
@@ -313,14 +272,12 @@
             <div class="p-2.5 sm:p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
                 <div class="flex items-center justify-between gap-2">
                     <h3 class="font-extrabold text-slate-800 text-xs sm:text-sm truncate" id="tableHeaderTitle">รายชื่อนักเรียน</h3>
-                    <!-- ปุ่มสแกนกล้องบนมือถือ (อยู่ขวาสุดของบรรทัดชื่อห้อง ไม่เบียดตัวหนังสือ) -->
                     <a href="ai-gate.html" class="sm:hidden text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg border border-emerald-500 font-bold shadow-xs flex items-center gap-1 shrink-0 active:scale-95 transition">
                         <i class="fa-solid fa-camera"></i> สแกนกล้อง
                     </a>
                 </div>
 
                 <div class="flex items-center justify-end gap-1.5 shrink-0">
-                    <!-- ปุ่มสแกนกล้องบนจอคอมพิวเตอร์ -->
                     <a href="ai-gate.html" class="hidden sm:inline-flex text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg border border-emerald-500 font-bold shadow-xs items-center gap-1 transition active:scale-95">
                         <i class="fa-solid fa-camera"></i> สแกนกล้อง
                     </a>
@@ -335,9 +292,7 @@
                         <tr class="bg-slate-100 border-b border-slate-200 font-extrabold text-slate-700">
                             <th class="p-1.5 sm:p-2.5 text-center w-7 sm:w-12">ที่</th>
                             <th class="p-1.5 sm:p-2.5 sm:w-80">ชื่อ-นามสกุล / สถานะนักเรียน</th>
-                            
                             <th class="p-3 text-center hidden sm:table-cell min-w-[260px]">สถานะการเข้าเรียน</th>
-                            
                             <th class="p-1.5 text-center sm:hidden w-[135px]">
                                 <div class="grid grid-cols-5 gap-0.5 text-[9px] font-black text-center">
                                     <span class="bg-emerald-100 text-emerald-900 py-0.5 rounded">มา</span>
@@ -347,7 +302,6 @@
                                     <span class="bg-purple-100 text-purple-900 py-0.5 rounded">หนี</span>
                                 </div>
                             </th>
-
                             <th class="p-3 hidden sm:table-cell min-w-[200px]">หมายเหตุพฤติกรรม / การลา</th>
                         </tr>
                     </thead>
@@ -376,7 +330,7 @@
 
     </main>
 
-    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-3 mt-3">
+    <footer class="bg-white border-t border-slate-200 text-center text-slate-400 text-xs py-2.5">
         โรงเรียนบัวเชดวิทยา (BCW) &bull; Teacher Portal System
     </footer>
 
@@ -404,14 +358,16 @@
         </div>
     </div>
 
-    <!-- 📱 Mobile Only: ลิ้นชักแสดงสถิติแบบสไลด์เก็บอย่างสมูท -->
-    <div id="mobileStatsDrawer" class="fixed bottom-[64px] left-0 right-0 z-[998] bg-white/98 backdrop-blur-md border-t border-slate-200 shadow-2xl px-3">
+    <!-- ข้อ 2: ลิ้นชักแสดงสถิติแบบสไลด์ขึ้น-ลงได้จริง (รองรับทั้งกดปุ่มและปัดนิ้วลง) -->
+    <div id="mobileStatsDrawer" class="px-3">
         <div class="py-3 space-y-2.5">
+            <!-- แถบจับสำหรับลากสไลด์ลง -->
+            <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto mb-1"></div>
             <div class="flex items-center justify-between">
                 <span class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-column text-emerald-600"></i> สรุปสถิติการเช็กชื่อคาบนี้
                 </span>
-                <button type="button" onclick="toggleMobileStatsDrawer()" class="text-[11px] text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 font-bold flex items-center gap-1 active:scale-95 transition">
+                <button type="button" onclick="toggleMobileStatsDrawer()" class="text-[11px] text-slate-700 hover:text-slate-900 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-300 font-bold flex items-center gap-1 active:scale-95 transition">
                     <i class="fa-solid fa-chevron-down text-[10px]"></i> สไลด์เก็บ
                 </button>
             </div>
@@ -454,19 +410,11 @@
         </div>
     </div>
 
-    <!-- 📱 แถบ Bottom Navigation Bar ฝั่งครู -->
+    <!-- ข้อ 3 และ ข้อ 4: เรียงปุ่ม [เช็กชื่อ] [สถิติ] [การบ้าน] ทางซ้าย และย้าย [มาครบ] [บันทึก] พื้นหลังสีเขียวชิดขวาสุด -->
     <nav class="teacher-bottom-nav">
         <button type="button" class="teacher-nav-btn active" onclick="scrollToTeacherSection('section-attendance', this)">
             <i class="fa-solid fa-clipboard-user"></i>
             <span>เช็กชื่อ</span>
-        </button>
-        <button type="button" id="btnMobileMarkAll" class="teacher-nav-btn luxury-markall-btn" onclick="markAll('present')">
-            <i class="fa-solid fa-circle-check text-emerald-600"></i>
-            <span class="font-extrabold">มาครบ</span>
-        </button>
-        <button type="button" class="teacher-nav-btn highlight-btn" onclick="submitAttendance()">
-            <i class="fa-solid fa-floppy-disk"></i>
-            <span>บันทึก</span>
         </button>
         <button type="button" id="btnMobileNavStats" class="teacher-nav-btn" onclick="toggleMobileStatsDrawer(this)">
             <i class="fa-solid fa-chart-pie"></i>
@@ -475,6 +423,14 @@
         <button type="button" class="teacher-nav-btn" onclick="scrollToTeacherSection('section-homework', this)">
             <i class="fa-solid fa-book"></i>
             <span>การบ้าน</span>
+        </button>
+        <button type="button" id="btnMobileMarkAll" class="teacher-nav-btn action-check-btn" onclick="markAll('present')">
+            <i class="fa-solid fa-circle-check"></i>
+            <span class="font-extrabold">มาครบ</span>
+        </button>
+        <button type="button" class="teacher-nav-btn action-check-btn" onclick="submitAttendance()">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span class="font-extrabold">บันทึก</span>
         </button>
     </nav>
 
@@ -493,16 +449,12 @@
         </div>
     </div>
 
-<!-- 1. นำเข้า Supabase SDK CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- 2. นำเข้า Core Engine Scripts -->
 <script src="../../core/supabase-client.js?v=400"></script>
 <script src="../../core/auth-service.js?v=400"></script>
 <script src="../../core/auth-manager.js?v=400"></script>
 <script src="../../core/guard-admin-teacher.js?v=400"></script>
 
-<!-- Complete Pure Zero-Mock Script Logic -->
 <script>
     let CURRENT_TEACHER_USER = null;
     let CURRENT_STUDENTS_CACHE = [];
@@ -512,16 +464,16 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         const dateInput = document.getElementById('attendanceDateInput');
-        if (dateInput) {
-            dateInput.value = getLocalTodayStr();
-        }
+        if (dateInput) dateInput.value = getLocalTodayStr();
         updateAttendanceModeBanner();
+
+        // เปิดใช้งานการปัดนิ้วลง (Swipe Down) เพื่อปิดลิ้นชักสถิติบนมือถือ
+        initStatsDrawerSwipe();
 
         const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
         if (!currentUser) return;
 
         CURRENT_TEACHER_USER = currentUser;
-
         const realTeacherId = await loadTeacherProfile(currentUser);
         await loadRealSubjectSchedules(realTeacherId);
 
@@ -543,6 +495,21 @@
         }, { passive: true });
     });
 
+    function initStatsDrawerSwipe() {
+        const drawer = document.getElementById('mobileStatsDrawer');
+        if (!drawer) return;
+        let startY = 0;
+        drawer.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        drawer.addEventListener('touchend', (e) => {
+            const diffY = e.changedTouches[0].clientY - startY;
+            if (diffY > 40 && drawer.classList.contains('open')) {
+                toggleMobileStatsDrawer();
+            }
+        }, { passive: true });
+    }
+
     function getLocalTodayStr() {
         const now = new Date();
         const offsetMs = now.getTimezoneOffset() * 60000;
@@ -553,24 +520,11 @@
         const now = new Date();
         const todayStr = getLocalTodayStr();
         const targetDate = selectedDateStr || todayStr;
-
-        if (targetDate !== todayStr) {
-            return { isRealtime: false, reason: `เช็กชื่อย้อนหลัง (${targetDate})` };
-        }
-
+        if (targetDate !== todayStr) return { isRealtime: false, reason: `เช็กชื่อย้อนหลัง (${targetDate})` };
         const dayOfWeek = now.getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            return { isRealtime: false, reason: 'วันหยุดเสาร์-อาทิตย์' };
-        }
-
+        if (dayOfWeek === 0 || dayOfWeek === 6) return { isRealtime: false, reason: 'วันหยุดเสาร์-อาทิตย์' };
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        const startMinutes = 7 * 60 + 30;
-        const endMinutes = 16 * 60 + 30;
-
-        if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
-            return { isRealtime: false, reason: 'นอกเวลาเรียน' };
-        }
-
+        if (currentMinutes < (7 * 60 + 30) || currentMinutes > (16 * 60 + 30)) return { isRealtime: false, reason: 'นอกเวลาเรียน' };
         return { isRealtime: true, reason: 'เวลาเรียนปกติ' };
     }
 
@@ -578,7 +532,6 @@
         const banner = document.getElementById('attendanceModeBanner');
         const mobileTag = document.getElementById('mobileDateModeTag');
         const dateVal = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
-
         const status = checkIsRealtimeSchoolHours(dateVal);
 
         if (mobileTag) {
@@ -593,10 +546,10 @@
 
         if (banner) {
             if (status.isRealtime) {
-                banner.className = 'hidden md:flex text-[11px] font-semibold px-3 py-1.5 rounded-xl items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200';
+                banner.className = 'hidden md:flex text-[11px] font-semibold px-3 py-1 rounded-xl items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200';
                 banner.innerHTML = `<i class="fa-solid fa-tower-broadcast text-emerald-600"></i> <span>โหมดเช็กชื่อสดในเวลาเรียน: ระบบจะอัปเดตสถิติและแจ้งเตือนสถานะ Real-time ทันที</span>`;
             } else {
-                banner.className = 'hidden md:flex text-[11px] font-semibold px-3 py-1.5 rounded-xl items-center gap-2 bg-amber-50 text-amber-800 border border-amber-200';
+                banner.className = 'hidden md:flex text-[11px] font-semibold px-3 py-1 rounded-xl items-center gap-2 bg-amber-50 text-amber-800 border border-amber-200';
                 banner.innerHTML = `<i class="fa-solid fa-clock-rotate-left text-amber-600"></i> <span>โหมดบันทึกย้อนหลัง / นอกเวลาเรียน (${status.reason}): บันทึกสถิติเข้าฐานข้อมูลตามปกติ (งดส่งแจ้งเตือนด่วนหาผู้ปกครองในเวลานี้)</span>`;
             }
         }
@@ -620,18 +573,12 @@
 
         if (client && (!teacherCode || String(teacherCode).length > 15)) {
             try {
-                const { data: uRec } = await client
-                    .from('users')
-                    .select('*')
-                    .or(`id.eq.${user.id},email.eq.${user.email || 'none'}`)
-                    .maybeSingle();
-
+                const { data: uRec } = await client.from('users').select('*').or(`id.eq.${user.id},email.eq.${user.email || 'none'}`).maybeSingle();
                 if (uRec) {
                     teacherCode = uRec.teacher_id || uRec.teacher_code || teacherCode;
                     fullName = uRec.full_name || uRec.name || fullName;
                     avatarUrl = uRec.avatar_url || uRec.photo_url || avatarUrl;
                 }
-
                 if (!teacherCode || String(teacherCode).length > 15) {
                     const { data: allTeachers } = await client.from('teachers').select('*');
                     if (allTeachers && allTeachers.length > 0) {
@@ -643,7 +590,6 @@
                                    (user.email && t.email && String(t.email).toLowerCase() === String(user.email).toLowerCase()) ||
                                    (cleanName && (tFull === cleanName || tFirstLast === cleanName || String(t.full_name || '').trim().toLowerCase() === cleanName));
                         });
-
                         if (tRec) {
                             teacherCode = tRec.teacher_id || tRec.code || tRec.teacher_code || teacherCode;
                             fullName = tRec.full_name || `${tRec.prefix || ''}${tRec.first_name || ''} ${tRec.last_name || ''}`.trim() || fullName;
@@ -651,13 +597,10 @@
                         }
                     }
                 }
-            } catch (e) {
-                console.warn('[TeacherPortal] Fetch teacher code warning:', e);
-            }
+            } catch (e) {}
         }
 
         const cleanCode = (teacherCode && String(teacherCode).length <= 15) ? String(teacherCode).trim() : '';
-
         if (cleanCode && CURRENT_TEACHER_USER) {
             CURRENT_TEACHER_USER.teacher_id = cleanCode;
             CURRENT_TEACHER_USER.teacherId = cleanCode;
@@ -669,14 +612,9 @@
         if (mobileCodeEl) mobileCodeEl.innerText = codeText;
 
         if (avatarImg) {
-            avatarImg.src = avatarUrl && avatarUrl !== '' 
-                ? avatarUrl 
-                : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-            avatarImg.onerror = () => {
-                avatarImg.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-            };
+            avatarImg.src = avatarUrl && avatarUrl !== '' ? avatarUrl : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            avatarImg.onerror = () => { avatarImg.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png'; };
         }
-
         return cleanCode;
     }
 
@@ -704,18 +642,10 @@
 
             let schedules = null;
             const targetTeacherId = teacherId || CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.teacherId || '';
-
             if (targetTeacherId) {
-                const { data, error } = await client
-                    .from('schedules')
-                    .select('*')
-                    .eq('teacher_id', targetTeacherId);
-
-                if (!error && data && data.length > 0) {
-                    schedules = data;
-                }
+                const { data, error } = await client.from('schedules').select('*').eq('teacher_id', targetTeacherId);
+                if (!error && data && data.length > 0) schedules = data;
             }
-
             if (!schedules || schedules.length === 0) {
                 const resAll = await client.from('schedules').select('*').limit(100);
                 schedules = resAll.data || [];
@@ -723,14 +653,13 @@
 
             if (!schedules || schedules.length === 0) {
                 if (customText) customText.innerText = "-- ไม่พบตารางสอนในระบบ --";
-                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนในฐานข้อมูล<br>กรุณานำเข้าตารางเรียนที่แผง Admin</p>`;
+                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนในฐานข้อมูล</p>`;
                 renderStudents();
                 return;
             }
 
             const uniqueSubjects = [];
             const map = new Map();
-
             for (const s of schedules) {
                 const key = `${s.course_code || s.subject_code || ''}|${s.classroom || s.class_name || ''}`;
                 if (!map.has(key)) {
@@ -745,7 +674,6 @@
                     const cRoom = s.classroom || s.class_name || 'ไม่ระบุ';
                     const cName = s.course_name || s.subject_name || cCode;
                     const periodNo = s.period_no || s.period || '';
-                    
                     const val = `${cCode}|${cRoom}|${cName}|${periodNo}`;
                     const label = `${cName} (${cCode}) - ห้อง ${cRoom}`;
                     return `
@@ -762,7 +690,6 @@
             const firstRoom = first.classroom || first.class_name || 'ไม่ระบุ';
             const firstName = first.course_name || first.subject_name || firstCode;
             const firstPeriod = first.period_no || first.period || '';
-
             const defaultVal = `${firstCode}|${firstRoom}|${firstName}|${firstPeriod}`;
             const defaultLabel = `${firstName} (${firstCode}) - ห้อง ${firstRoom}`;
 
@@ -770,9 +697,7 @@
             if (customText) customText.innerText = defaultLabel;
 
             await renderStudents();
-
         } catch (err) {
-            console.warn('Load schedules error:', err);
             if (customText) customText.innerText = "-- เลือกวิชาและห้องเรียน --";
         }
     }
@@ -781,12 +706,11 @@
         const trafficSec = document.getElementById('section-traffic');
         const btnText = document.getElementById('btnStatsText');
         const chevron = document.getElementById('statsChevron');
-        
         if (trafficSec) {
             trafficSec.classList.toggle('hidden');
             const isHidden = trafficSec.classList.contains('hidden');
             if (btnText) btnText.innerText = isHidden ? 'ดูสถิติเข้าเรียนรายวิชา' : 'ซ่อนสถิติเข้าเรียนรายวิชา';
-            if (chevron) chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
         }
     };
 
@@ -801,7 +725,7 @@
         if (isOpening) {
             hideMobileFloatingStats();
             if (navBtn) {
-                document.querySelectorAll('.teacher-nav-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.teacher-nav-btn:not(.action-check-btn)').forEach(btn => btn.classList.remove('active'));
                 navBtn.classList.add('active');
             }
         } else {
@@ -827,11 +751,14 @@
     };
 
     window.scrollToTeacherSection = function(sectionId, btnElement) {
+        const drawer = document.getElementById('mobileStatsDrawer');
+        if (drawer && drawer.classList.contains('open')) drawer.classList.remove('open');
+
         const target = document.getElementById(sectionId);
         if (target) {
             target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             if (btnElement) {
-                document.querySelectorAll('.teacher-nav-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.teacher-nav-btn:not(.action-check-btn)').forEach(btn => btn.classList.remove('active'));
                 btnElement.classList.add('active');
             }
         }
@@ -851,17 +778,12 @@
 
     window.updateLiveSubjectStats = function() {
         const total = CURRENT_STUDENTS_CACHE.length;
-        let present = 0;
-        let late = 0;
-        let leave = 0;
-        let absent = 0;
-        let truant = 0;
+        let present = 0, late = 0, leave = 0, absent = 0, truant = 0;
 
         CURRENT_STUDENTS_CACHE.forEach(s => {
             const studentId = String(s.student_id || s.id).trim();
             const checkedRadio = document.querySelector(`input[name="att_${studentId}"]:checked`);
             const val = checkedRadio ? checkedRadio.value : 'present';
-
             if (val === 'present') present++;
             else if (val === 'late') late++;
             else if (val === 'leave') leave++;
@@ -890,7 +812,6 @@
         if (document.getElementById('float-truant')) document.getElementById('float-truant').innerText = truant;
 
         const hasEvents = CURRENT_NURSE_COUNT > 0 || CURRENT_OUT_COUNT > 0;
-
         const deskRow = document.getElementById('desktopEventAlertsRow');
         const deskNurse = document.getElementById('desktopNurseBadge');
         const deskOut = document.getElementById('desktopOutBadge');
@@ -936,19 +857,13 @@
             radio.checked = (radio.value === statusValue);
         });
         window.updateLiveSubjectStats();
-
         IS_CHECKING_ACTIVE = true;
         if (window.innerWidth < 768) {
             const drawer = document.getElementById('mobileStatsDrawer');
-            if (!drawer || !drawer.classList.contains('open')) {
-                showMobileFloatingStats();
-            }
+            if (!drawer || !drawer.classList.contains('open')) showMobileFloatingStats();
         }
     };
 
-    // ----------------------------------------------------
-    // ดึงนักเรียนจริงจาก DB (จัดลำดับตัวแปรถูกต้อง 100%)
-    // ----------------------------------------------------
     async function renderStudents() {
         const tbody = document.getElementById('studentList');
         if (!tbody) return;
@@ -963,7 +878,6 @@
         }
 
         const [courseCode, className] = selectedVal.split('|');
-
         const headerTitle = document.getElementById('tableHeaderTitle');
         if (headerTitle) headerTitle.innerText = `ห้อง ${className} (${targetDateStr})`;
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-xs text-slate-400">กำลังดึงข้อมูลนักเรียน Real-time จากฐานข้อมูล...</td></tr>';
@@ -1010,7 +924,6 @@
                 const studentLogs = allLogs.filter(l => String(l.student_id).trim() === studentId);
                 const dateLogs = studentLogs.filter(l => String(l.recorded_at || '').startsWith(targetDateStr));
 
-                // ประกาศตัวแปร gateScanTimeStr ก่อนนำไปใช้งานทุกครั้ง
                 const gateScanLog = dateLogs.find(l => 
                     (l.method === 'ai_gate' || l.method === 'gate_scan' || l.period_no === 0) && 
                     (l.status === 'present' || l.status === 'late')
@@ -1038,9 +951,8 @@
                 let autoNoteText = '';
                 let defaultStatus = 'present';
 
-                // 1. ป้ายกล้อง AI Gate & เตือนเสี่ยงหนีเรียน
                 if (gateScanTimeStr) {
-                    specialTagHtml += `<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-200" title="สแกนผ่านกล้อง AI หน้าประตูโรงเรียนแล้ว">📸 เข้า รร. ${gateScanTimeStr} น.</span> `;
+                    specialTagHtml += `<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-200">📸 เข้า รร. ${gateScanTimeStr} น.</span> `;
                     if (missedPrevPeriod) {
                         specialTagHtml += `<span class="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse">⚠️ เสี่ยงหนีเรียน</span> `;
                         defaultStatus = 'truant';
@@ -1049,12 +961,10 @@
                     specialTagHtml += `<span class="bg-slate-100 text-slate-500 text-[9px] font-medium px-1 py-0.5 rounded">⚪ ยังไม่สแกนเข้า รร.</span> `;
                 }
 
-                // 2. ป้ายคาบที่แล้วขาดเรียน
                 if (missedPrevPeriod) {
                     specialTagHtml += `<span class="bg-orange-600 text-white text-[9px] font-bold px-1 py-0.5 rounded">🔔 คาบที่แล้วขาด</span> `;
                 }
 
-                // 3. ป้ายสถิติขาด/ลาสะสม
                 if (absentLogs.length > 0 || leaveLogs.length > 0) {
                     const badgeColor = absentLogs.length >= 3 
                         ? 'bg-rose-600 text-white' 
@@ -1064,7 +974,6 @@
                     specialTagHtml += `<span class="${badgeColor} text-[9px] font-bold px-1 py-0.5 rounded">⚠️ ขาด ${absentLogs.length}คาบ (${uniqueAbsentDays}วัน) &bull; ลา ${leaveLogs.length}</span> `;
                 }
 
-                // 4. ป้ายห้องพยาบาล / ออกนอก / ผู้ปกครองแจ้งลา
                 if (nurseInfo) {
                     specialTagHtml += `<span class="bg-rose-100 text-rose-800 text-[9px] font-bold px-1 py-0.5 rounded border border-rose-200">🏥 ห้องพยาบาล</span> `;
                     autoNoteText = `พักห้องพยาบาล: ${nurseInfo.symptom || 'ป่วย'}`;
@@ -1095,8 +1004,6 @@
                                 </div>
                             </div>
                         </td>
-
-                        <!-- Desktop Radio Buttons -->
                         <td class="p-3 text-center hidden sm:table-cell">
                             <div class="flex items-center justify-center gap-1 font-bold text-xs sm:text-sm">
                                 <label class="cursor-pointer bg-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-lg hover:bg-emerald-200">
@@ -1111,13 +1018,11 @@
                                 <label class="cursor-pointer bg-rose-100 text-rose-800 px-2.5 py-1.5 rounded-lg hover:bg-rose-200">
                                     <input type="radio" name="att_${studentId}" value="absent" onchange="window.syncRadioSelection('${studentId}', 'absent')" class="accent-rose-600"> ขาด
                                 </label>
-                                <label class="cursor-pointer bg-purple-100 text-purple-800 px-2.5 py-1.5 rounded-lg hover:bg-purple-200" title="${gateScanTimeStr ? 'สแกนเข้าโรงเรียนแล้วตอน ' + gateScanTimeStr : 'เสี่ยงหนีเรียน'}">
+                                <label class="cursor-pointer bg-purple-100 text-purple-800 px-2.5 py-1.5 rounded-lg hover:bg-purple-200">
                                     <input type="radio" name="att_${studentId}" value="truant" ${defaultStatus==='truant'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'truant')" class="accent-purple-600"> หนี
                                 </label>
                             </div>
                         </td>
-
-                        <!-- Mobile Radio Buttons -->
                         <td class="p-1.5 sm:hidden">
                             <div class="flex flex-col gap-1">
                                 <div class="grid grid-cols-5 gap-0.5 text-center items-center">
@@ -1140,8 +1045,6 @@
                                 <input type="text" id="note_mobile_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="หมายเหตุ..." class="w-full px-1.5 py-0.5 bg-slate-50 border border-slate-300 rounded text-[11px] font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
                             </div>
                         </td>
-
-                        <!-- Desktop Note Input -->
                         <td class="p-3 hidden sm:table-cell">
                             <input type="text" id="note_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุเหตุผล/หมายเหตุ..." class="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal focus:bg-white focus:outline-none focus:border-emerald-500">
                         </td>
@@ -1150,7 +1053,6 @@
             }).join('');
 
             window.updateLiveSubjectStats();
-
         } catch (err) {
             console.error('Data Fetch Error:', err);
             tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-xs text-rose-500">เกิดข้อผิดพลาดในการดึงข้อมูลจากฐานข้อมูล</td></tr>';
@@ -1200,15 +1102,8 @@
 
     window.submitAttendance = async function() {
         const client = window.supabaseClient || window.db || window.supabase;
-        if (!client) {
-            alert('❌ ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
-            return;
-        }
-
-        if (!CURRENT_STUDENTS_CACHE || CURRENT_STUDENTS_CACHE.length === 0) {
-            alert('ไม่พบรายชื่อนักเรียนในห้องนี้');
-            return;
-        }
+        if (!client) return alert('❌ ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
+        if (!CURRENT_STUDENTS_CACHE || CURRENT_STUDENTS_CACHE.length === 0) return alert('ไม่พบรายชื่อนักเรียนในห้องนี้');
 
         const selectVal = document.getElementById('subjectSelect')?.value || '';
         const [courseCode, className, courseName, periodStr] = selectVal.split('|');
@@ -1238,19 +1133,11 @@
         try {
             const { error } = await client.from('attendance_logs').insert(recordsToInsert);
             if (error) throw error;
-
             window.updateLiveSubjectStats();
-
             IS_CHECKING_ACTIVE = false;
             hideMobileFloatingStats();
-
-            if (modeStatus.isRealtime) {
-                alert(`✅ บันทึกข้อมูลการเช็กชื่อห้อง ${className} (${recordsToInsert.length} คน) เรียบร้อยแล้ว!`);
-            } else {
-                alert(`✅ บันทึกข้อมูลการเช็กชื่อย้อนหลังห้อง ${className} (${recordsToInsert.length} คน) เรียบร้อยแล้ว!\n(${modeStatus.reason} - งดส่งแจ้งเตือนด่วน)`);
-            }
+            alert(`✅ บันทึกข้อมูลการเช็กชื่อห้อง ${className} (${recordsToInsert.length} คน) เรียบร้อยแล้ว!`);
         } catch (err) {
-            console.error('Submit Attendance Error:', err);
             alert('เกิดข้อผิดพลาดในการบันทึกเช็กชื่อ: ' + err.message);
         }
     };
@@ -1259,10 +1146,7 @@
         if (e) e.preventDefault();
         const title = document.getElementById('homeworkTitleInput')?.value?.trim();
         const dueDate = document.getElementById('homeworkDueDateInput')?.value;
-        if (!title) {
-            alert('กรุณาระบุหัวข้อการบ้าน');
-            return;
-        }
+        if (!title) return alert('กรุณาระบุหัวข้อการบ้าน');
         alert(`✅ สั่งการบ้าน "${title}" ${dueDate ? `(กำหนดส่ง ${dueDate})` : ''} เรียบร้อยแล้ว`);
         document.getElementById('homeworkTitleInput').value = '';
     };
