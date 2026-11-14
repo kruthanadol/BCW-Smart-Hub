@@ -303,5 +303,68 @@
         }
     }
 </script>
+<!-- ... (โค้ดและ <script> เดิมทั้งหมดของไฟล์ login.html อยู่ด้านบนนี้) ... -->
+
+    <!-- 👇 วางส่วนที่ 3 (ฉากกั้น Preloader) ตรงนี้ ก่อนปิดแท็ก </body> 👇 -->
+    <div id="bcwAuthCurtain" class="fixed inset-0 z-[99999] bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 flex flex-col items-center justify-center p-6 text-white transition-opacity duration-500">
+        <div class="relative mb-5">
+            <div class="absolute -inset-3 rounded-full bg-amber-400/20 blur-xl animate-pulse"></div>
+            <div class="relative w-24 h-24 rounded-3xl bg-white p-2.5 shadow-2xl border-2 border-amber-400 flex items-center justify-center">
+                <img src="assets/images/logo_bcw.png" alt="BCW Logo" class="w-full h-full object-contain" onerror="this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png'">
+            </div>
+        </div>
+        <h2 class="text-xl font-extrabold text-amber-400 tracking-wide">BCW SMART HUB</h2>
+        <p class="text-xs text-emerald-200 mt-1">โรงเรียนบัวเชดวิทยา &bull; ระบบสารสนเทศอัจฉริยะ</p>
+
+        <div class="mt-6 flex items-center gap-2.5 bg-emerald-950/70 border border-emerald-700/70 px-4 py-2 rounded-full">
+            <i class="fa-solid fa-circle-notch fa-spin text-amber-400 text-sm"></i>
+            <span id="bcwCurtainStatus" class="text-xs font-bold text-emerald-100">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const curtain = document.getElementById('bcwAuthCurtain');
+            const statusText = document.getElementById('bcwCurtainStatus');
+
+            function showAuthCurtain(msg) {
+                if (!curtain) return;
+                if (msg && statusText) statusText.innerText = msg;
+                curtain.style.display = 'flex';
+                requestAnimationFrame(() => curtain.classList.remove('opacity-0', 'pointer-events-none'));
+            }
+
+            function hideAuthCurtain() {
+                if (!curtain) return;
+                curtain.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => { curtain.style.display = 'none'; }, 500);
+            }
+
+            window.showBcwAuthCurtain = showAuthCurtain;
+
+            // 1. หากกำลังกลับมาจาก LINE Login (?code=...) หรือมี Session ค้างอยู่ ให้เปิดฉากกั้นค้างไว้จนกว่าจะเปลี่ยนหน้าสำเร็จ
+            const params = new URLSearchParams(window.location.search);
+            const hasLineCallback = params.has('code') || params.has('state');
+            const hasExistingSession = localStorage.getItem('bcw_user') || sessionStorage.getItem('bcw_user');
+
+            if (hasLineCallback || hasExistingSession) {
+                showAuthCurtain('กำลังเข้าสู่ระบบอัตโนมัติ กรุณารอสักครู่...');
+                setTimeout(hideAuthCurtain, 3500);
+            } else {
+                window.addEventListener('load', () => setTimeout(hideAuthCurtain, 350));
+            }
+
+            // 2. ทันทีที่ผู้ใช้กดปุ่ม Submit หรือปุ่มล็อกอินใดๆ ให้ยกฉากกั้นขึ้นมาบังฟอร์มทันที
+            document.addEventListener('submit', () => showAuthCurtain('กำลังยืนยันตัวตนเข้าสู่ระบบ...'), true);
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('button, a');
+                if (!btn) return;
+                const txt = (btn.innerText || '').toLowerCase();
+                if (txt.includes('เข้าสู่ระบบ') || txt.includes('login') || txt.includes('line')) {
+                    showAuthCurtain('กำลังเชื่อมต่อบัญชีเข้าสู่ระบบ...');
+                }
+            }, true);
+        })();
+    </script>
 </body>
 </html>
