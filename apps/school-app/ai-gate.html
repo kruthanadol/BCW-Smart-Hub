@@ -2,103 +2,139 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-    <title>BCW AI Gate Scan - ระบบสแกนเข้าเรียน</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>BCW AI Gate Scan - กล้อง AI สแกนเข้าเรียน</title>
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="../../core/bcw-page-transition.js?v=5"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #022c22; color: #ffffff; }
-        @keyframes scanLine {
-            0% { top: 12%; opacity: 0.2; }
-            50% { top: 82%; opacity: 1; }
-            100% { top: 12%; opacity: 0.2; }
+        html, body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #020617;
+            color: #ffffff;
+            width: 100%;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
-        .scanner-laser {
+        @keyframes aiScanBeam {
+            0% { top: 8%; opacity: 0.25; }
+            50% { top: 88%; opacity: 1; }
+            100% { top: 8%; opacity: 0.25; }
+        }
+        .ai-scan-beam {
             position: absolute;
-            left: 10%;
-            right: 10%;
+            left: 6%;
+            right: 6%;
             height: 3px;
-            background: linear-gradient(90deg, transparent, #fbbf24, #34d399, #fbbf24, transparent);
-            box-shadow: 0 0 12px #fbbf24;
-            animation: scanLine 2.4s infinite ease-in-out;
+            background: linear-gradient(90deg, transparent, #10b981, #fbbf24, #10b981, transparent);
+            box-shadow: 0 0 14px #34d399;
+            animation: aiScanBeam 2.2s infinite ease-in-out;
+        }
+        .ai-corner {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-color: #fbbf24;
+            border-style: solid;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-3 sm:p-4 max-w-xl mx-auto">
+<body class="relative w-full h-[100dvh] overflow-hidden select-none">
 
-    <!-- 1. TOP HEADER BAR (หัวข้อใหญ่เด่นชัดขึ้น) -->
-    <header class="bg-emerald-900/80 border border-emerald-700/80 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-lg">
-        <div class="flex items-center gap-3 min-w-0">
-            <a href="teacher.html" class="w-10 h-10 rounded-xl bg-emerald-800 hover:bg-emerald-700 border border-emerald-600 text-amber-300 flex items-center justify-center shrink-0 active:scale-95 transition">
-                <i class="fa-solid fa-arrow-left text-base"></i>
-            </a>
-            <div class="min-w-0">
-                <h1 class="text-lg sm:text-xl font-bold text-amber-400 tracking-wide leading-tight truncate">BCW AI GATE SCAN</h1>
-                <p id="cameraStatusSub" class="text-xs sm:text-sm text-emerald-100 font-normal truncate">พร้อมเปิดกล้องสแกนเช็กชื่อ</p>
-            </div>
-        </div>
+    <!-- FULLSCREEN CAMERA VIDEO LAYER (เต็มจอพอดีไม่ล้น) -->
+    <video id="gateVideo" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-0 hidden"></video>
 
-        <select id="classroomFilter" onchange="onClassroomFilterChange()" class="bg-emerald-950 border border-emerald-600 text-white text-xs sm:text-sm font-medium rounded-xl px-3 py-2 outline-none shrink-0">
-            <option value="ALL">ทุกห้องเรียน</option>
-        </select>
-    </header>
+    <!-- พื้นหลังเมื่อยังไม่เปิดกล้อง -->
+    <div id="cameraIdleBg" class="absolute inset-0 bg-gradient-to-b from-emerald-950 via-slate-950 to-emerald-950 z-0"></div>
 
-    <!-- 2. CAMERA VIEWPORT -->
-    <main class="flex-1 my-3 flex flex-col gap-3">
-        <div class="relative flex-1 min-h-[360px] bg-slate-950 rounded-3xl border-2 border-emerald-500/70 overflow-hidden flex items-center justify-center shadow-2xl">
-            <video id="gateVideo" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+    <!-- SAFE-AREA OVERLAY CONTAINER -->
+    <div class="relative z-10 w-full h-full flex flex-col justify-between p-3 sm:p-4 max-w-xl mx-auto"
+         style="padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(12px, env(safe-area-inset-bottom));">
 
-            <!-- ป้ายนับจำนวนสแกน -->
-            <div class="absolute top-3 right-3 z-20 bg-emerald-950/90 border border-amber-400/60 text-amber-300 text-xs sm:text-sm font-semibold px-3.5 py-1.5 rounded-full shadow-md">
-                สแกนแล้ว <span id="scannedCountText">0</span> คน
-            </div>
-
-            <!-- กรอบเล็งสแกน -->
-            <div id="scanFrameOverlay" class="relative z-10 w-64 h-72 sm:w-72 sm:h-80 border-2 border-dashed border-amber-400/90 rounded-3xl flex flex-col items-center justify-center p-4 text-center pointer-events-none">
-                <div id="laserBar" class="scanner-laser hidden"></div>
-                <div id="cameraPlaceholderContent" class="flex flex-col items-center gap-3">
-                    <div class="w-14 h-14 rounded-2xl bg-emerald-500 text-emerald-950 flex items-center justify-center text-2xl shadow-lg">
-                        <i class="fa-solid fa-camera"></i>
+        <!-- 1. TOP FLOATING HEADER -->
+        <header class="bg-emerald-950/85 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-2.5 flex items-center justify-between gap-2 shadow-xl shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <a href="teacher.html" class="w-9 h-9 rounded-xl bg-emerald-800/90 hover:bg-emerald-700 border border-emerald-500/50 text-amber-300 flex items-center justify-center shrink-0 active:scale-95 transition">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </a>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                        <h1 class="text-base sm:text-lg font-extrabold text-amber-400 tracking-wide leading-tight truncate">BCW AI GATE SCAN</h1>
                     </div>
-                    <p id="cameraGuideText" class="text-sm font-medium text-white leading-relaxed">
-                        กดปุ่ม "เปิดกล้องสแกน" ด้านล่างเพื่ออนุญาตใช้งานกล้อง
+                    <p id="cameraStatusSub" class="text-[11px] text-emerald-100/90 font-normal truncate">โหมดกล้อง AI ตรวจจับอัตโนมัติ</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+                <span class="bg-amber-400/15 border border-amber-400/50 text-amber-300 text-xs font-semibold px-2.5 py-1.5 rounded-xl">
+                    <span id="scannedCountText">0</span> คน
+                </span>
+                <select id="classroomFilter" onchange="onClassroomFilterChange()" class="bg-emerald-950/90 border border-emerald-500/60 text-white text-xs font-medium rounded-xl px-2.5 py-1.5 outline-none max-w-[105px]">
+                    <option value="ALL">ทุกห้อง</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- 2. CENTER AI RETICLE FRAME -->
+        <main class="flex-1 flex flex-col items-center justify-center min-h-0 my-2 relative">
+            <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex flex-col items-center justify-center text-center p-4">
+                <!-- มุมกรอบเล็ง AI 4 มุม -->
+                <span class="ai-corner top-0 left-0 border-t-4 border-l-4 rounded-tl-2xl"></span>
+                <span class="ai-corner top-0 right-0 border-t-4 border-r-4 rounded-tr-2xl"></span>
+                <span class="ai-corner bottom-0 left-0 border-b-4 border-l-4 rounded-bl-2xl"></span>
+                <span class="ai-corner bottom-0 right-0 border-b-4 border-r-4 rounded-br-2xl"></span>
+
+                <div id="laserBar" class="ai-scan-beam hidden"></div>
+
+                <!-- ข้อความแนะนำเมื่อกล้องยังไม่เปิด -->
+                <div id="cameraPlaceholderContent" class="flex flex-col items-center gap-2.5 bg-slate-950/75 backdrop-blur-sm p-4 rounded-2xl border border-emerald-500/30">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-emerald-950 flex items-center justify-center text-xl shadow-lg">
+                        <i class="fa-solid fa-expand"></i>
+                    </div>
+                    <p id="cameraGuideText" class="text-xs sm:text-sm font-normal text-white leading-relaxed">
+                        กำลังเตรียมกล้อง AI หรือกดปุ่มด้านล่างเพื่ออนุญาตกล้อง
                     </p>
                 </div>
             </div>
 
-            <!-- การ์ดแจ้งผลเมื่อสแกนสำเร็จ -->
-            <div id="scanResultToast" class="hidden absolute bottom-3 left-3 right-3 z-30 bg-emerald-900/95 border-2 border-amber-400 rounded-2xl p-3 shadow-xl flex items-center justify-between gap-2">
+            <!-- การ์ดแจ้งผลลอยตัวเมื่อสแกนติด -->
+            <div id="scanResultToast" class="hidden absolute bottom-1 left-0 right-0 z-30 bg-emerald-950/95 backdrop-blur-md border-2 border-amber-400 rounded-2xl p-2.5 shadow-2xl flex items-center justify-between gap-2">
                 <div class="min-w-0">
-                    <div class="text-xs text-amber-300 font-medium">✅ บันทึกเข้าเรียนสำเร็จ</div>
-                    <div id="toastStudentName" class="text-base font-bold text-white truncate">-</div>
+                    <div class="text-[11px] text-amber-300 font-medium">✅ AI บันทึกเข้าเรียนสำเร็จ</div>
+                    <div id="toastStudentName" class="text-sm font-bold text-white truncate">-</div>
                 </div>
-                <span id="toastStudentTime" class="text-xs bg-emerald-950 text-emerald-300 px-2.5 py-1 rounded-lg font-mono shrink-0">00:00</span>
+                <span id="toastStudentTime" class="text-xs bg-emerald-900 text-emerald-200 px-2.5 py-1 rounded-lg font-mono shrink-0">00:00</span>
             </div>
-        </div>
+        </main>
 
-        <!-- ช่องสแกน/พิมพ์รหัสนักเรียนสำรอง (ใช้ได้แม้ไม่เปิดกล้อง) -->
-        <div class="bg-emerald-900/70 border border-emerald-700 rounded-2xl p-2.5 flex gap-2">
-            <input type="text" id="manualScanInput" placeholder="พิมพ์รหัสนักเรียน หรือยิงบาร์โค้ด..." onkeydown="if(event.key==='Enter') handleManualScan()" class="flex-1 bg-emerald-950 border border-emerald-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-emerald-400/70 outline-none focus:border-amber-400">
-            <button type="button" onclick="handleManualScan()" class="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-semibold text-sm px-4 py-2.5 rounded-xl shrink-0 active:scale-95 transition cursor-pointer">
-                เช็กชื่อ
-            </button>
-        </div>
-    </main>
+        <!-- 3. BOTTOM FLOATING CONTROLS (ไม่ล้นหน้าจอ) -->
+        <footer class="space-y-2 shrink-0">
+            <!-- ช่องยิงบาร์โค้ด / พิมพ์รหัสสำรอง -->
+            <div class="bg-slate-950/80 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-2 flex gap-1.5 shadow-lg">
+                <input type="text" id="manualScanInput" placeholder="สแกน หรือพิมพ์รหัสนักเรียน..." onkeydown="if(event.key==='Enter') handleManualScan()" class="flex-1 min-w-0 bg-emerald-950/80 border border-emerald-700/80 rounded-xl px-3 py-2 text-xs sm:text-sm text-white placeholder-emerald-300/60 outline-none focus:border-amber-400">
+                <button type="button" onclick="handleManualScan()" class="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-xl shrink-0 active:scale-95 transition cursor-pointer">
+                    เช็กชื่อ
+                </button>
+            </div>
 
-    <!-- 3. BOTTOM ACTION CONTROLS -->
-    <footer class="flex items-center gap-2.5 pb-1">
-        <button type="button" id="btnToggleCamera" onclick="toggleGateCamera()" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-base py-3.5 rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer">
-            <i class="fa-solid fa-camera text-lg"></i>
-            <span id="btnCameraLabel">เปิดกล้องสแกน</span>
-        </button>
+            <!-- ปุ่มเปิด/ปิดกล้อง + สลับกล้องหน้า/หลัง -->
+            <div class="flex items-center gap-2">
+                <button type="button" id="btnToggleCamera" onclick="toggleGateCamera()" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-sm sm:text-base py-3 rounded-2xl shadow-xl flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer">
+                    <i class="fa-solid fa-camera text-base"></i>
+                    <span id="btnCameraLabel">เปิดกล้อง AI</span>
+                </button>
 
-        <button type="button" onclick="switchGateCamera()" title="สลับกล้องหน้า/หลัง" class="w-14 h-14 bg-emerald-900 hover:bg-emerald-800 border border-emerald-600 text-amber-300 rounded-2xl flex items-center justify-center text-lg shadow-lg active:scale-95 transition cursor-pointer shrink-0">
-            <i class="fa-solid fa-camera-rotate"></i>
-        </button>
-    </footer>
+                <button type="button" onclick="switchGateCamera()" title="สลับกล้องหน้า/หลัง" class="w-12 h-12 bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/50 text-amber-300 rounded-2xl flex items-center justify-center text-base shadow-xl active:scale-95 transition cursor-pointer shrink-0">
+                    <i class="fa-solid fa-camera-rotate"></i>
+                </button>
+            </div>
+        </footer>
+    </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../core/supabase-client.js?v=400"></script>
@@ -116,7 +152,6 @@
     document.addEventListener('DOMContentLoaded', async () => {
         try {
             await loadStudentsAndClassrooms();
-            // พยายามเปิดกล้องอัตโนมัติเมื่อเข้าหน้า (ถ้าเบราว์เซอร์อนุญาต)
             await startGateCamera(true);
         } finally {
             if (window.hideBCWCurtain) window.hideBCWCurtain();
@@ -145,11 +180,12 @@
     function onClassroomFilterChange() {
         const room = document.getElementById('classroomFilter')?.value;
         const sub = document.getElementById('cameraStatusSub');
-        if (sub) sub.innerText = room === 'ALL' ? 'สแกนได้ทุกห้องเรียน' : `กรองเฉพาะห้อง ${room}`;
+        if (sub) sub.innerText = room === 'ALL' ? 'AI พร้อมสแกนทุกห้องเรียน' : `AI กรองเฉพาะห้อง ${room}`;
     }
 
     async function startGateCamera(isSilentAuto = false) {
         const video = document.getElementById('gateVideo');
+        const idleBg = document.getElementById('cameraIdleBg');
         const placeholder = document.getElementById('cameraPlaceholderContent');
         const guideText = document.getElementById('cameraGuideText');
         const laser = document.getElementById('laserBar');
@@ -158,19 +194,18 @@
         const statusSub = document.getElementById('cameraStatusSub');
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            if (guideText) guideText.innerText = 'เบราว์เซอร์นี้ไม่รองรับการเปิดกล้อง กรุณาเปิดผ่าน Chrome หรือ Safari';
+            if (guideText) guideText.innerText = 'เบราว์เซอร์ไม่รองรับการเปิดกล้อง กรุณาเปิดผ่าน Chrome หรือ Safari';
             return;
         }
 
         stopGateCamera();
 
         try {
-            if (guideText) guideText.innerText = 'กำลังเชื่อมต่อกล้องมือถือ...';
+            if (guideText) guideText.innerText = 'กำลังเปิดกล้อง AI...';
 
-            // ลองเปิดตามกล้องที่เลือกก่อน หากไม่สำเร็จให้ fallback เป็นกล้องใดก็ได้
             try {
                 GATE_STREAM = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: FACING_MODE, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    video: { facingMode: FACING_MODE },
                     audio: false
                 });
             } catch (firstErr) {
@@ -186,23 +221,25 @@
             await video.play();
 
             video.classList.remove('hidden');
+            if (idleBg) idleBg.classList.add('hidden');
             if (placeholder) placeholder.classList.add('hidden');
             if (laser) laser.classList.remove('hidden');
-            if (btnLabel) btnLabel.innerText = 'ปิดกล้องสแกน';
+            if (btnLabel) btnLabel.innerText = 'ปิดกล้อง AI';
             if (btnToggle) {
                 btnToggle.classList.remove('bg-emerald-500', 'text-emerald-950');
                 btnToggle.classList.add('bg-rose-600', 'text-white');
             }
-            if (statusSub) statusSub.innerText = 'กำลังสแกน • เล็ง QR Code บัตรนักเรียน';
+            if (statusSub) statusSub.innerText = 'AI กำลังตรวจจับ • เล็งใบหน้าหรือ QR บัตร';
 
             startBarcodeLoop(video);
         } catch (err) {
-            console.error('Camera Error:', err);
             const msg = (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
-                ? 'ถูกปฏิเสธสิทธิ์กล้อง กรุณากดรูปแม่กุญแจบนแถบ URL แล้วเลือก "อนุญาตกล้อง"'
-                : 'ไม่สามารถเปิดกล้องได้ (' + (err.message || err.name) + ')';
+                ? 'ถูกบล็อกสิทธิ์กล้อง กรุณากดรูปแม่กุญแจบนแถบ URL แล้วเลือก "อนุญาตกล้อง"'
+                : 'กดปุ่ม "เปิดกล้อง AI" ด้านล่างเพื่อเริ่มสแกน';
             if (guideText) guideText.innerText = msg;
-            if (!isSilentAuto) alert(msg);
+            if (!isSilentAuto && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+                alert(msg);
+            }
         }
     }
 
@@ -213,6 +250,7 @@
             GATE_STREAM = null;
         }
         const video = document.getElementById('gateVideo');
+        const idleBg = document.getElementById('cameraIdleBg');
         const placeholder = document.getElementById('cameraPlaceholderContent');
         const laser = document.getElementById('laserBar');
         const btnLabel = document.getElementById('btnCameraLabel');
@@ -223,14 +261,15 @@
             video.srcObject = null;
             video.classList.add('hidden');
         }
+        if (idleBg) idleBg.classList.remove('hidden');
         if (placeholder) placeholder.classList.remove('hidden');
         if (laser) laser.classList.add('hidden');
-        if (btnLabel) btnLabel.innerText = 'เปิดกล้องสแกน';
+        if (btnLabel) btnLabel.innerText = 'เปิดกล้อง AI';
         if (btnToggle) {
             btnToggle.classList.remove('bg-rose-600', 'text-white');
             btnToggle.classList.add('bg-emerald-500', 'text-emerald-950');
         }
-        if (statusSub) statusSub.innerText = 'พร้อมเปิดกล้องสแกน';
+        if (statusSub) statusSub.innerText = 'โหมดกล้อง AI พร้อมใช้งาน';
     }
 
     async function toggleGateCamera() {
@@ -299,7 +338,7 @@
                 method: 'ai_gate',
                 period_no: 0,
                 recorded_at: new Date().toISOString(),
-                subject_name: `สแกนเข้าประตูโรงเรียน (${student.classroom || '-'})`
+                subject_name: `สแกนกล้อง AI (${student.classroom || '-'})`
             }]);
         }
 
