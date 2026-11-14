@@ -14,12 +14,8 @@
         body { font-family: 'Kanit', sans-serif; font-weight: 400; background-color: #f1f5f9; color: #1e293b; overflow-x: hidden; }
         main section, main > div { scroll-margin-top: 64px; }
 
-        .att-pill-group input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-        .att-pill-btn {
+        /* ปุ่มเช็กชื่อ One-Tap แสดงสีชัดเจนทันที */
+        .att-tap-btn {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -27,39 +23,62 @@
             border-radius: 9px;
             font-size: 12px;
             font-weight: 500;
-            border: 1px solid #cbd5e1;
-            background-color: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            background-color: #ffffff;
             color: #475569;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all 0.12s ease;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-        .att-pill-btn:active { transform: scale(0.94); }
+        .att-tap-btn:active { transform: scale(0.93); }
 
-        .att-pill-group input[value="present"]:checked + .att-pill-btn {
-            background-color: #059669; border-color: #047857; color: #ffffff; font-weight: 600;
-            box-shadow: 0 2px 5px rgba(5, 150, 105, 0.25);
+        .att-tap-btn.active-present {
+            background-color: #059669 !important;
+            border-color: #047857 !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
         }
-        .att-pill-group input[value="late"]:checked + .att-pill-btn {
-            background-color: #d97706; border-color: #b45309; color: #ffffff; font-weight: 600;
-            box-shadow: 0 2px 5px rgba(217, 119, 6, 0.25);
+        .att-tap-btn.active-late {
+            background-color: #d97706 !important;
+            border-color: #b45309 !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
         }
-        .att-pill-group input[value="leave"]:checked + .att-pill-btn {
-            background-color: #0284c7; border-color: #0369a1; color: #ffffff; font-weight: 600;
-            box-shadow: 0 2px 5px rgba(2, 132, 199, 0.25);
+        .att-tap-btn.active-leave {
+            background-color: #0284c7 !important;
+            border-color: #0369a1 !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
         }
-        .att-pill-group input[value="absent"]:checked + .att-pill-btn {
-            background-color: #e11d48; border-color: #be123c; color: #ffffff; font-weight: 600;
-            box-shadow: 0 2px 5px rgba(225, 29, 72, 0.25);
+        .att-tap-btn.active-absent {
+            background-color: #e11d48 !important;
+            border-color: #be123c !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(225, 29, 72, 0.3);
         }
-        .att-pill-group input[value="truant"]:checked + .att-pill-btn {
-            background-color: #7c3aed; border-color: #6d28d9; color: #ffffff; font-weight: 600;
-            box-shadow: 0 2px 5px rgba(124, 58, 237, 0.25);
+        .att-tap-btn.active-truant {
+            background-color: #7c3aed !important;
+            border-color: #6d28d9 !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
         }
+
+        /* สีพื้นหลังการ์ดตามสถานะเพื่อให้กวาดสายตาเห็นคนไม่มาทันที */
+        .card-state-present { background-color: #ffffff; }
+        .card-state-late { background-color: #fffbeb; }
+        .card-state-leave { background-color: #f0f9ff; }
+        .card-state-absent { background-color: #fff1f2; }
+        .card-state-truant { background-color: #f5f3ff; }
 
         @media (max-width: 767px) {
             html, body { max-width: 100vw; overflow-x: hidden; }
-            body { padding-bottom: calc(82px + env(safe-area-inset-bottom)) !important; -webkit-tap-highlight-color: transparent; }
+            body { padding-bottom: calc(82px + env(safe-area-inset-bottom)) !important; }
 
             .teacher-bottom-nav {
                 position: fixed;
@@ -300,7 +319,7 @@
 
                 <!-- Desktop Submit Buttons -->
                 <div class="hidden md:flex gap-2 justify-end">
-                    <button type="button" onclick="markAll('present')" class="bg-emerald-600 hover:bg-emerald-700 text-white border border-amber-300 px-4 py-2 rounded-xl text-xs font-medium shadow-xs transition cursor-pointer">✓ มาครบทุกคน</button>
+                    <button type="button" onclick="markAll('present')" class="bg-emerald-600 hover:bg-emerald-700 text-white border border-amber-300 px-4 py-2 rounded-xl text-xs font-medium shadow-xs transition cursor-pointer">✓ เช็กมาทั้งหมด</button>
                     <button type="button" id="btnDesktopSubmit" onclick="submitAttendance()" class="bg-emerald-700 hover:bg-emerald-800 text-white border border-amber-300 px-4 py-2 rounded-xl text-xs font-medium shadow-xs transition cursor-pointer">
                         💾 บันทึกเช็กชื่อ
                     </button>
@@ -315,33 +334,33 @@
             <div class="p-2.5 sm:p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
                 <div class="flex items-center justify-between gap-2">
                     <h3 class="font-medium text-slate-800 text-sm truncate" id="tableHeaderTitle">รายชื่อนักเรียน</h3>
-                    <button type="button" onclick="openMobileCameraScanner()" class="sm:hidden text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl border border-emerald-500 font-medium shadow-xs flex items-center gap-1.5 shrink-0 active:scale-95 transition cursor-pointer">
-                        <i class="fa-solid fa-camera"></i> สแกนกล้อง
+                    <button type="button" onclick="markAll('present')" class="sm:hidden text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-medium shadow-xs flex items-center gap-1 shrink-0 active:scale-95 transition cursor-pointer">
+                        <i class="fa-solid fa-check-double"></i> เช็กมาทั้งหมด
                     </button>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 shrink-0">
-                    <button type="button" onclick="openMobileCameraScanner()" class="hidden sm:inline-flex text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl border border-emerald-500 font-medium shadow-xs items-center gap-1.5 transition active:scale-95 cursor-pointer">
-                        <i class="fa-solid fa-camera"></i> สแกนกล้อง
+                <div class="flex items-center justify-end gap-1.5 shrink-0">
+                    <button type="button" onclick="openMobileCameraScanner()" class="flex-1 sm:flex-initial text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-xl border border-emerald-200 font-medium flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-camera text-emerald-600"></i> สแกนกล้อง
                     </button>
-                    <button type="button" onclick="applyBatchLeave()" class="flex-1 sm:flex-initial text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-800 px-3 py-1.5 rounded-xl border border-indigo-200 font-medium cursor-pointer text-center">⚡ ลายกห้อง</button>
-                    <button type="button" onclick="openManualLeaveModal()" class="flex-1 sm:flex-initial text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl border border-amber-200 font-medium cursor-pointer text-center">➕ ลาผ่านครู</button>
+                    <button type="button" onclick="applyBatchLeave()" class="flex-1 sm:flex-initial text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-800 px-2.5 py-1.5 rounded-xl border border-indigo-200 font-medium cursor-pointer text-center">⚡ ลายกห้อง</button>
+                    <button type="button" onclick="openManualLeaveModal()" class="flex-1 sm:flex-initial text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-2.5 py-1.5 rounded-xl border border-amber-200 font-medium cursor-pointer text-center">➕ ลาผ่านครู</button>
                 </div>
             </div>
 
-            <!-- Mobile View: Full-Width Card List (ไม่ตัดคำกลางชื่อ) -->
+            <!-- Mobile View: One-Tap Full-Width Card List -->
             <div id="mobileStudentList" class="sm:hidden divide-y divide-slate-200 bg-white">
                 <!-- Dynamic Mobile Student Cards -->
             </div>
 
-            <!-- Desktop View: Table -->
+            <!-- Desktop View: One-Tap Table -->
             <div class="hidden sm:block overflow-x-auto w-full">
                 <table class="w-full text-left border-collapse text-sm font-normal">
                     <thead>
                         <tr class="bg-slate-100 border-b border-slate-200 font-medium text-slate-700 text-xs">
                             <th class="p-3 text-center w-12 font-medium">ที่</th>
                             <th class="p-3 w-80 font-medium">ชื่อ-นามสกุล / สถานะนักเรียน</th>
-                            <th class="p-3 text-center min-w-[270px] font-medium">สถานะการเข้าเรียน</th>
+                            <th class="p-3 text-center min-w-[290px] font-medium">แตะเลือกสถานะ (One-Tap)</th>
                             <th class="p-3 min-w-[210px] font-medium">หมายเหตุพฤติกรรม / การลา</th>
                         </tr>
                     </thead>
@@ -352,7 +371,7 @@
             </div>
         </section>
 
-        <!-- 6. HOMEWORK ASSIGNMENT SECTION (เชื่อมต่อ Supabase จริง) -->
+        <!-- 6. HOMEWORK ASSIGNMENT SECTION -->
         <section id="section-homework" class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 space-y-3 shadow-xs">
             <div class="flex items-center justify-between">
                 <h4 class="text-sm font-medium text-slate-800 flex items-center gap-1.5">
@@ -377,7 +396,6 @@
                 </div>
             </div>
 
-            <!-- รายการการบ้านที่สั่งแล้วในวิชานี้ -->
             <div class="pt-2 border-t border-slate-100">
                 <div class="text-xs font-medium text-slate-600 mb-2 flex items-center gap-1.5">
                     <i class="fa-solid fa-list-check text-indigo-500"></i> รายการการบ้านที่สั่งไปแล้ว
@@ -508,7 +526,7 @@
         </div>
     </div>
 
-    <!-- 8. MOBILE CAMERA SCANNER MODAL (เชื่อมต่อกล้องมือถือจริง) -->
+    <!-- 8. MOBILE CAMERA SCANNER MODAL -->
     <div id="cameraScannerModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xs z-[1000] flex flex-col items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
             <div class="p-3 bg-emerald-950 text-white flex justify-between items-center">
@@ -524,13 +542,11 @@
             <div class="p-3 space-y-3">
                 <div class="relative w-full aspect-[4/3] bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center">
                     <video id="teacherCameraVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                    <!-- กรอบเล็งสแกน -->
                     <div class="absolute inset-6 border-2 border-amber-400/80 rounded-2xl pointer-events-none flex items-end justify-center pb-2">
                         <span id="cameraScanHint" class="bg-slate-950/80 text-amber-300 text-[11px] px-3 py-1 rounded-full">เล็งกล้องไปที่บัตรนักเรียน / QR Code</span>
                     </div>
                 </div>
 
-                <!-- ช่องสแกน / กรอกรหัสนักเรียนด่วน -->
                 <div class="flex gap-2">
                     <input type="text" id="cameraQuickStudentId" placeholder="สแกน หรือพิมพ์รหัสนักเรียน..." class="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm outline-none focus:border-emerald-600">
                     <button type="button" onclick="confirmCameraCheckIn()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-4 py-2 rounded-xl cursor-pointer shrink-0">
@@ -559,6 +575,7 @@
 <script>
     let CURRENT_TEACHER_USER = null;
     let CURRENT_STUDENTS_CACHE = [];
+    let ATTENDANCE_STATE = {}; // เก็บสถานะจริงของนักเรียนแต่ละคน { studentId: 'present' | 'late' | 'leave' | 'absent' | 'truant' }
     let CURRENT_NURSE_COUNT = 0;
     let CURRENT_OUT_COUNT = 0;
     let IS_CHECKING_ACTIVE = false;
@@ -937,8 +954,7 @@
 
         CURRENT_STUDENTS_CACHE.forEach(s => {
             const studentId = String(s.student_id || s.id).trim();
-            const checkedRadio = document.querySelector(`input[name="att_${studentId}"]:checked`);
-            const val = checkedRadio ? checkedRadio.value : 'present';
+            const val = ATTENDANCE_STATE[studentId] || 'present';
             if (val === 'present') present++;
             else if (val === 'late') late++;
             else if (val === 'leave') leave++;
@@ -1023,11 +1039,28 @@
         }
     };
 
-    window.syncRadioSelection = function(studentId, statusValue) {
-        document.querySelectorAll(`input[name="att_${studentId}"]`).forEach(radio => {
-            radio.checked = (radio.value === statusValue);
+    // One-Tap Status Selection (เปลี่ยนสีปุ่มและการ์ดทันที 100%)
+    window.setStudentStatus = function(studentId, statusValue) {
+        ATTENDANCE_STATE[studentId] = statusValue;
+
+        const statuses = ['present', 'late', 'leave', 'absent', 'truant'];
+        statuses.forEach(st => {
+            document.querySelectorAll(`[data-btn="${studentId}_${st}"]`).forEach(btn => {
+                btn.classList.remove('active-present', 'active-late', 'active-leave', 'active-absent', 'active-truant');
+                if (st === statusValue) {
+                    btn.classList.add(`active-${statusValue}`);
+                }
+            });
         });
 
+        // เปลี่ยนสีพื้นหลังการ์ดนักเรียนตามสถานะ
+        const card = document.getElementById(`student_card_${studentId}`);
+        if (card) {
+            card.classList.remove('card-state-present', 'card-state-late', 'card-state-leave', 'card-state-absent', 'card-state-truant');
+            card.classList.add(`card-state-${statusValue}`);
+        }
+
+        // เปิดช่องใส่หมายเหตุอัตโนมัติเมื่อเลือกสถานะที่ไม่ใช่ "มา"
         if (statusValue !== 'present') {
             window.toggleMobileNoteBox(studentId, true);
         } else {
@@ -1084,6 +1117,7 @@
             }
 
             CURRENT_STUDENTS_CACHE = students;
+            ATTENDANCE_STATE = {};
             CURRENT_NURSE_COUNT = 0;
             CURRENT_OUT_COUNT = 0;
             IS_CHECKING_ACTIVE = false;
@@ -1186,60 +1220,47 @@
                     defaultStatus = 'leave';
                 }
 
+                ATTENDANCE_STATE[studentId] = defaultStatus;
+
                 const avatarUrl = s.avatar_url || `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.webp`;
                 const showNoteInitially = defaultStatus !== 'present' || Boolean(autoNoteText);
 
-                // 1. Mobile Full-Width Card (ชื่อแสดงเต็มแนวยาว ไม่ตัดคำกลางชื่อ)
+                const renderTapButtons = () => `
+                    <button type="button" data-btn="${studentId}_present" onclick="window.setStudentStatus('${studentId}', 'present')" class="att-tap-btn ${defaultStatus === 'present' ? 'active-present' : ''}">มา</button>
+                    <button type="button" data-btn="${studentId}_late" onclick="window.setStudentStatus('${studentId}', 'late')" class="att-tap-btn ${defaultStatus === 'late' ? 'active-late' : ''}">สาย</button>
+                    <button type="button" data-btn="${studentId}_leave" onclick="window.setStudentStatus('${studentId}', 'leave')" class="att-tap-btn ${defaultStatus === 'leave' ? 'active-leave' : ''}">ลา</button>
+                    <button type="button" data-btn="${studentId}_absent" onclick="window.setStudentStatus('${studentId}', 'absent')" class="att-tap-btn ${defaultStatus === 'absent' ? 'active-absent' : ''}">ขาด</button>
+                    <button type="button" data-btn="${studentId}_truant" onclick="window.setStudentStatus('${studentId}', 'truant')" class="att-tap-btn ${defaultStatus === 'truant' ? 'active-truant' : ''}">หนี</button>
+                `;
+
+                // 1. Mobile One-Tap Card (ชื่อยาวเต็มบรรทัดไม่มีอะไรบัง + ปุ่ม 5 สีแตะปุ๊บติดสีปั๊บ)
                 mobileCards.push(`
-                    <div id="student_card_${studentId}" class="p-3 transition ${missedPrevPeriod ? 'bg-orange-50/40' : 'bg-white'}">
-                        <!-- แถวบน: เลขที่ + รูป + ชื่อ-นามสกุลเต็มความกว้างหน้าจอ -->
+                    <div id="student_card_${studentId}" class="p-3 transition-colors duration-150 card-state-${defaultStatus}">
                         <div class="flex items-center gap-2.5">
                             <span class="w-6 text-center text-xs font-medium text-slate-500 shrink-0">${studentNo}</span>
                             <img src="${avatarUrl}" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
                             <div class="min-w-0 flex-1">
-                                <div class="font-medium text-slate-800 text-[15px] leading-snug whitespace-nowrap overflow-x-auto">${fullName}</div>
+                                <div class="font-medium text-slate-800 text-[15px] leading-snug">${fullName}</div>
                                 <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                     <span class="text-[11px] text-slate-500 font-normal">ID: ${studentId}</span>
                                     ${specialTagHtml}
                                 </div>
                             </div>
-                            <button type="button" onclick="window.toggleMobileNoteBox('${studentId}')" title="เพิ่มหมายเหตุ" class="text-[11px] text-slate-600 hover:text-emerald-700 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 shrink-0 active:scale-95">
-                                <i class="fa-solid fa-pen text-[10px]"></i> โน้ต
-                            </button>
                         </div>
 
-                        <!-- แถวล่าง: ปุ่มเลือกสถานะ 5 ปุ่มเต็มความกว้าง กดง่ายด้วยมือเดียว -->
-                        <div class="att-pill-group grid grid-cols-5 gap-1.5 mt-2.5 pl-8">
-                            <label>
-                                <input type="radio" name="att_${studentId}" value="present" ${defaultStatus==='present'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'present')">
-                                <span class="att-pill-btn">มา</span>
-                            </label>
-                            <label>
-                                <input type="radio" name="att_${studentId}" value="late" ${defaultStatus==='late'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'late')">
-                                <span class="att-pill-btn">สาย</span>
-                            </label>
-                            <label>
-                                <input type="radio" name="att_${studentId}" value="leave" ${defaultStatus==='leave'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'leave')">
-                                <span class="att-pill-btn">ลา</span>
-                            </label>
-                            <label>
-                                <input type="radio" name="att_${studentId}" value="absent" ${defaultStatus==='absent'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'absent')">
-                                <span class="att-pill-btn">ขาด</span>
-                            </label>
-                            <label>
-                                <input type="radio" name="att_${studentId}" value="truant" ${defaultStatus==='truant'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'truant')">
-                                <span class="att-pill-btn">หนี</span>
-                            </label>
+                        <!-- แถบปุ่ม One-Tap 5 สถานะ แตะปุ๊บเปลี่ยนสีทันที -->
+                        <div class="grid grid-cols-5 gap-1.5 mt-2.5 pl-8">
+                            ${renderTapButtons()}
                         </div>
 
-                        <!-- ช่องกรอกหมายเหตุ (กางอัตโนมัติเมื่อไม่มาหรือกดปุ่มโน้ต) -->
+                        <!-- ช่องหมายเหตุ (โผล่อัตโนมัติเมื่อเลือก สาย/ลา/ขาด/หนี) -->
                         <div id="note_box_mobile_${studentId}" class="${showNoteInitially ? '' : 'hidden'} mt-2 pl-8">
-                            <input type="text" id="note_mobile_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุเหตุผล / หมายเหตุ..." class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-normal text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="note_mobile_${studentId}" value="${autoNoteText}" onchange="window.syncNote('${studentId}', this.value)" placeholder="ระบุเหตุผลเพิ่มเติม (ถ้ามี)..." class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-normal text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500">
                         </div>
                     </div>
                 `);
 
-                // 2. Desktop Table Row
+                // 2. Desktop One-Tap Row
                 desktopRows.push(`
                     <tr class="hover:bg-slate-50/80 transition ${missedPrevPeriod ? 'bg-orange-50/40' : ''}">
                         <td class="p-3 text-center font-normal text-slate-600 text-sm align-middle">${studentNo}</td>
@@ -1247,7 +1268,7 @@
                             <div class="flex items-center gap-2.5">
                                 <img src="${avatarUrl}" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
                                 <div class="min-w-0 flex-1">
-                                    <div class="font-medium text-slate-800 text-sm leading-snug whitespace-nowrap">${fullName}</div>
+                                    <div class="font-medium text-slate-800 text-sm leading-snug">${fullName}</div>
                                     <div class="flex items-center gap-1 mt-0.5 flex-wrap">
                                         ${specialTagHtml || `<span class="text-[11px] text-slate-500 font-normal">ID: ${studentId}</span>`}
                                     </div>
@@ -1255,27 +1276,8 @@
                             </div>
                         </td>
                         <td class="p-3 text-center align-middle">
-                            <div class="att-pill-group grid grid-cols-5 gap-1.5 max-w-[280px] mx-auto">
-                                <label>
-                                    <input type="radio" name="att_${studentId}" value="present" ${defaultStatus==='present'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'present')">
-                                    <span class="att-pill-btn">มา</span>
-                                </label>
-                                <label>
-                                    <input type="radio" name="att_${studentId}" value="late" ${defaultStatus==='late'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'late')">
-                                    <span class="att-pill-btn">สาย</span>
-                                </label>
-                                <label>
-                                    <input type="radio" name="att_${studentId}" value="leave" ${defaultStatus==='leave'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'leave')">
-                                    <span class="att-pill-btn">ลา</span>
-                                </label>
-                                <label>
-                                    <input type="radio" name="att_${studentId}" value="absent" ${defaultStatus==='absent'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'absent')">
-                                    <span class="att-pill-btn">ขาด</span>
-                                </label>
-                                <label>
-                                    <input type="radio" name="att_${studentId}" value="truant" ${defaultStatus==='truant'?'checked':''} onchange="window.syncRadioSelection('${studentId}', 'truant')">
-                                    <span class="att-pill-btn">หนี</span>
-                                </label>
+                            <div class="grid grid-cols-5 gap-1.5 max-w-[290px] mx-auto">
+                                ${renderTapButtons()}
                             </div>
                         </td>
                         <td class="p-3 align-middle">
@@ -1299,7 +1301,7 @@
     window.renderStudents = renderStudents;
 
     // =========================================================================
-    // 📸 MOBILE CAMERA SCANNER (เชื่อมต่อกล้องมือถือจริงในคาบเรียน)
+    // 📸 MOBILE CAMERA SCANNER
     // =========================================================================
     window.openMobileCameraScanner = async function() {
         const modal = document.getElementById('cameraScannerModal');
@@ -1321,7 +1323,6 @@
             video.srcObject = CAMERA_STREAM;
             if (hint) hint.innerText = 'กล้องพร้อมใช้งาน • เล็งที่ QR/บาร์โค้ด หรือกรอกรหัส';
 
-            // รองรับ BarcodeDetector API ในตัวเบราว์เซอร์ Android/Chrome รุ่นใหม่
             if ('BarcodeDetector' in window) {
                 const detector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13'] });
                 clearInterval(BARCODE_SCAN_TIMER);
@@ -1364,7 +1365,6 @@
         const rawInput = document.getElementById('cameraQuickStudentId')?.value.trim();
         if (!rawInput) return alert('กรุณาสแกนหรือระบุรหัสนักเรียน');
 
-        // ค้นหานักเรียนในห้องปัจจุบันจากรหัสนักเรียนหรือเลขที่
         const found = CURRENT_STUDENTS_CACHE.find(s =>
             String(s.student_id || s.id).trim() === rawInput ||
             String(s.student_no || '').trim() === rawInput
@@ -1377,14 +1377,13 @@
 
         const sid = String(found.student_id || found.id).trim();
         const fullName = `${(found.prefix || '').trim()}${(found.first_name || '').trim()} ${(found.last_name || '').trim()}`.trim();
-        window.syncRadioSelection(sid, 'present');
+        window.setStudentStatus(sid, 'present');
         window.syncNote(sid, 'สแกนกล้องหน้าชั้นเรียน');
 
         const hint = document.getElementById('cameraScanHint');
         if (hint) hint.innerText = `✅ เช็กชื่อแล้ว: ${fullName}`;
         document.getElementById('cameraQuickStudentId').value = '';
 
-        // เลื่อนไปยังการ์ดนักเรียนคนนั้น
         const card = document.getElementById(`student_card_${sid}`);
         if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
@@ -1400,12 +1399,11 @@
     window.applyBatchLeave = function() {
         const reason = prompt('กรอกเหตุผลการลายกห้อง:');
         if (!reason) return;
-        document.querySelectorAll('input[type="radio"][value="leave"]').forEach(r => r.checked = true);
-        document.querySelectorAll('input[id^="note_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
-        document.querySelectorAll('input[id^="note_mobile_"]').forEach(i => i.value = `กิจกรรมยกห้อง: ${reason}`);
-        document.querySelectorAll('[id^="note_box_mobile_"]').forEach(box => box.classList.remove('hidden'));
-        IS_CHECKING_ACTIVE = true;
-        window.updateLiveSubjectStats();
+        CURRENT_STUDENTS_CACHE.forEach(s => {
+            const sid = String(s.student_id || s.id).trim();
+            window.setStudentStatus(sid, 'leave');
+            window.syncNote(sid, `กิจกรรมยกห้อง: ${reason}`);
+        });
         alert('ปรับสถานะให้ทั้งห้องเรียบร้อยแล้ว');
     };
 
@@ -1415,22 +1413,16 @@
         const cleanId = studentId.trim();
         const reason = prompt('กรอกเหตุผลการลา:');
         if (!reason) return;
-        const mInput = document.getElementById(`note_mobile_${cleanId}`);
-        const dInput = document.getElementById(`note_${cleanId}`);
-        if (mInput) mInput.value = `รับแจ้งใบลา: ${reason}`;
-        if (dInput) dInput.value = `รับแจ้งใบลา: ${reason}`;
-        window.syncRadioSelection(cleanId, 'leave');
+        window.syncNote(cleanId, `รับแจ้งใบลา: ${reason}`);
+        window.setStudentStatus(cleanId, 'leave');
         alert('บันทึกใบลาเรียบร้อยแล้ว');
     };
 
     window.markAll = function(status) {
-        document.querySelectorAll(`input[type="radio"][value="${status}"]`).forEach(r => r.checked = true);
-        if (status === 'present') {
-            CURRENT_STUDENTS_CACHE.forEach(s => {
-                const sid = String(s.student_id || s.id).trim();
-                window.toggleMobileNoteBox(sid, false);
-            });
-        }
+        CURRENT_STUDENTS_CACHE.forEach(s => {
+            const sid = String(s.student_id || s.id).trim();
+            window.setStudentStatus(sid, status);
+        });
         IS_CHECKING_ACTIVE = true;
         window.updateLiveSubjectStats();
         if (window.innerWidth < 768) showMobileFloatingStats();
@@ -1481,8 +1473,7 @@
 
         const buildPayload = (enumMode) => CURRENT_STUDENTS_CACHE.map(s => {
             const studentId = String(s.student_id || s.id).trim();
-            const checkedRadio = document.querySelector(`input[name="att_${studentId}"]:checked`);
-            const rawStatus = checkedRadio ? checkedRadio.value : 'present';
+            const rawStatus = ATTENDANCE_STATE[studentId] || 'present';
             const noteVal = document.getElementById(`note_${studentId}`)?.value || document.getElementById(`note_mobile_${studentId}`)?.value || '';
 
             return {
@@ -1533,7 +1524,7 @@
     };
 
     // =========================================================================
-    // 📚 HOMEWORK ASSIGNMENT (เชื่อมต่อปุ่มส่งการบ้านลง Supabase จริง)
+    // 📚 HOMEWORK ASSIGNMENT
     // =========================================================================
     async function loadHomeworkHistory() {
         const listEl = document.getElementById('homeworkHistoryList');
@@ -1616,7 +1607,6 @@
 
             let { error } = await client.from('homeworks').insert([record]);
             if (error) {
-                // สำรองกรณีชื่อตารางในฐานข้อมูลใช้ชื่อ assignments
                 const resAlt = await client.from('assignments').insert([record]);
                 if (resAlt.error) throw error;
             }
