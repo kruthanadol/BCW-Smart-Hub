@@ -2,7 +2,7 @@
 <html lang="th" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ศูนย์รวมระบบงาน - โรงเรียนบัวเชดวิทยา (BCW Smart Hub)</title>
     
     <!-- Favicon -->
@@ -10,16 +10,18 @@
     <link rel="shortcut icon" type="image/png" href="assets/images/logo_bcw.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* 📱 เฉพาะมือถือให้จำกัดความสูงเพื่อ App UI */
+        /* 📱 เฉพาะมือถือให้จำกัดความสูงพอดี 1 หน้าจอ App UI */
         @media (max-width: 1023px) {
             html, body {
                 height: 100vh !important;
+                height: 100dvh !important;
                 width: 100vw !important;
                 overflow: hidden !important;
+                overscroll-behavior: none !important;
                 touch-action: manipulation;
             }
         }
@@ -32,23 +34,71 @@
             }
         }
 
-        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; color: #0f172a; }
-        .stat-card-clean { background: #ffffff; border: 1.5px solid #cbd5e1; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04); padding: 6px 10px !important; border-radius: 16px; transition: all 0.2s ease; }
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        .stat-card-clean {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            padding: 10px 12px;
+            border-radius: 16px;
+            transition: all 0.2s ease;
+        }
         
         @media (min-width: 1024px) {
             .desktop-card-grid { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 1.25rem !important; }
             .desktop-app-card { background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03); transition: all 0.25s ease; z-index: 10; }
             .desktop-app-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08); border-color: #cbd5e1; }
         }
-        .mobile-app-card { background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 18px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03); transition: all 0.2s ease; position: relative; z-index: 20; }
-        .mobile-app-card:active { transform: scale(0.95); }
-        .mobile-app-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+
+        /* การ์ดแอปบนมือถือมาตรฐาน App Grid */
+        .mobile-app-card {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 10px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 6px;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            position: relative;
+            z-index: 20;
+        }
+        .mobile-app-card:active {
+            transform: scale(0.95);
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+        }
+        .mobile-app-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .mobile-app-label {
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #1e293b;
+            line-height: 1.25;
+            letter-spacing: 0.1px;
+        }
         
         /* 📱 Backdrop & Sliding Drawer Settings */
         .bottom-sheet-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9990; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .bottom-sheet-backdrop.active { opacity: 1; pointer-events: auto !important; }
         
-        .bottom-sheet-card { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto; background: #ffffff; border-top-left-radius: 26px; border-top-right-radius: 26px; border: 1.5px solid #e2e8f0; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25); z-index: 9995; transform: translateY(120%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); max-height: 70vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 75px; }
+        .bottom-sheet-card { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto; background: #ffffff; border-top-left-radius: 26px; border-top-right-radius: 26px; border: 1.5px solid #e2e8f0; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25); z-index: 9995; transform: translateY(120%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); max-height: 74vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 78px; }
         
         /* 💻 ปรับการแสดงผล Drawer บนคอมพิวเตอร์ให้เป็น Popup กลางหน้าจอ */
         @media (min-width: 1024px) {
@@ -72,55 +122,122 @@
         .bottom-sheet-backdrop.active .bottom-sheet-card { transform: translateY(0); }
         .drawer-scroll-content { overflow-y: auto !important; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
         
-        /* 👑 Floating Bottom Navigation Bar (ระบบสไลด์ซ่อนเก็บสมูทเมื่อ Scroll) */
+        /* 👑 Floating Bottom Navigation Bar */
         .native-bottom-nav { 
             position: fixed; 
-            bottom: 12px; 
-            left: 10px; 
-            right: 10px; 
-            max-width: 500px; 
+            bottom: max(10px, env(safe-area-inset-bottom)); 
+            left: 12px; 
+            right: 12px; 
+            max-width: 520px; 
             margin: 0 auto; 
-            height: 58px; 
+            height: 60px; 
             background: rgba(255, 255, 255, 0.98); 
             backdrop-filter: blur(20px); 
             -webkit-backdrop-filter: blur(20px); 
-            border: 2px solid #f59e0b; 
-            border-radius: 26px; 
+            border: 1.5px solid #f59e0b; 
+            border-radius: 24px; 
             display: flex; 
             align-items: center; 
             justify-content: space-around; 
             padding: 0 6px; 
             z-index: 10000; 
-            box-shadow: 0 10px 30px rgba(217, 119, 6, 0.25), 0 4px 12px rgba(15, 23, 42, 0.08); 
+            box-shadow: 0 10px 28px rgba(217, 119, 6, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08); 
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease; 
             pointer-events: auto !important; 
             will-change: transform, opacity;
         }
         
-        /* 🚀 คลาสสำหรับซ่อนกล่องเมนูลอยเมื่อเลื่อนหน้าจอลง */
         .native-bottom-nav.nav-hidden {
             transform: translateY(140%) scale(0.92);
             opacity: 0;
             pointer-events: none !important;
         }
 
-        .nav-item-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-size: 10px; font-weight: 700; background: transparent; border: none; cursor: pointer; transition: all 0.2s ease; width: 24%; flex-shrink: 0; }
-        .nav-item-btn .nav-icon-box { width: 40px; height: 26px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all 0.2s ease; margin-bottom: 2px; }
-        .nav-item-btn.active { color: #d97706 !important; font-weight: 900; }
-        .nav-item-btn.active .nav-icon-box { background: #fef3c7 !important; color: #b45309 !important; box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25) !important; border: 1.5px solid #fcd34d !important; transform: translateY(-2px); }
+        .nav-item-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 24%;
+            flex-shrink: 0;
+        }
+        .nav-item-btn .nav-icon-box {
+            width: 42px;
+            height: 26px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            margin-bottom: 2px;
+        }
+        .nav-item-btn.active {
+            color: #b45309 !important;
+            font-weight: 600;
+        }
+        .nav-item-btn.active .nav-icon-box {
+            background: #fef3c7 !important;
+            color: #b45309 !important;
+            box-shadow: 0 2px 6px rgba(217, 119, 6, 0.22) !important;
+            border: 1px solid #fcd34d !important;
+        }
         
-        /* 👑 ADMIN Side Drawer */
-        .admin-side-trigger { position: fixed; right: 0; top: 320px; background: linear-gradient(135deg, #064e3b 0%, #022c22 100%); color: #fbbf24; border: 2px solid #f59e0b; border-right: none; border-top-left-radius: 14px; border-bottom-left-radius: 14px; padding: 8px 5px; z-index: 10005 !important; box-shadow: -4px 4px 15px rgba(6, 78, 59, 0.3); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: all 0.2s ease; pointer-events: auto !important; }
+        /* 👑 ADMIN Side Drawer (ขยับลงมาไม่ให้บังข้อความ AI Insights) */
+        .admin-side-trigger {
+            position: fixed;
+            right: 0;
+            bottom: 92px;
+            background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+            color: #fbbf24;
+            border: 1.5px solid #f59e0b;
+            border-right: none;
+            border-top-left-radius: 14px;
+            border-bottom-left-radius: 14px;
+            padding: 8px 6px;
+            z-index: 9980 !important;
+            box-shadow: -4px 4px 15px rgba(6, 78, 59, 0.3);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            transition: all 0.2s ease;
+            pointer-events: auto !important;
+        }
+        @media (min-width: 1024px) {
+            .admin-side-trigger {
+                bottom: auto;
+                top: 280px;
+            }
+        }
+
         .admin-side-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 330px; max-width: 85vw; background: rgba(6, 78, 59, 0.98) !important; backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%); border-left: 2px solid #f59e0b; box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3); z-index: 10010; transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; color: #ffffff; }
         .bottom-sheet-backdrop.active .admin-side-drawer { transform: translateX(0) !important; }
         .swipe-handle-area { width: 100%; padding: 10px 0; display: flex; justify-content: center; cursor: grab; shrink-0; background: #f8fafc; border-bottom: 1px solid #f1f5f9; }
         .swipe-handle { width: 44px; height: 5px; background-color: #cbd5e1; border-radius: 99px; }
-        .report-menu-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; transition: all 0.2s ease; }
-        .ai-soft-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04); border: 1px solid #e2e8f0 !important; }
+        .report-menu-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; transition: all 0.2s ease; }
+        .ai-soft-card { background: #ffffff; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04); border: 1.5px solid #e2e8f0 !important; }
+
+        /* ปรับขนาดให้พอดีบนจอมือถือที่มีความสูงน้อย */
+        @media (max-width: 1023px) and (max-height: 700px) {
+            .mobile-app-card { padding: 6px 4px; gap: 4px; border-radius: 16px; }
+            .mobile-app-icon { width: 38px; height: 38px; font-size: 17px; border-radius: 12px; }
+            .mobile-app-label { font-size: 11.5px; }
+            .stat-card-clean { padding: 7px 10px; }
+        }
     </style>
     <script src="core/bcw-page-transition.js?v=1"></script>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-2 md:p-6 pb-20 md:pb-6 relative select-none">
+<body class="min-h-screen flex flex-col justify-between px-3 md:p-6 pb-20 md:pb-6 relative select-none"
+      style="padding-top: max(10px, env(safe-area-inset-top));">
 
     <!-- 🏫 PAGE LOADER -->
     <div id="pageLoader" class="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[99999] flex flex-col items-center justify-center transition-all duration-500">
@@ -133,290 +250,328 @@
             </div>
         </div>
         <div class="text-center space-y-1 z-10">
-            <h4 class="text-amber-400 font-black text-sm tracking-widest uppercase">BCW SMART HUB</h4>
-            <p class="text-emerald-200 text-xs font-semibold tracking-wide animate-pulse">กำลังโหลดข้อมูลระบบ...</p>
+            <h4 class="text-amber-400 font-bold text-sm tracking-widest uppercase">BCW SMART HUB</h4>
+            <p class="text-emerald-200 text-xs font-medium tracking-wide animate-pulse">กำลังโหลดข้อมูลระบบ...</p>
         </div>
     </div>
 
     <!-- 👑 ปุ่ม ADMIN Side Trigger -->
     <button id="btnAdminSideTrigger" type="button" onclick="toggleAdminDrawer(event)" class="admin-side-trigger" title="แผงควบคุมผู้ดูแลระบบ">
-        <i class="fa-solid fa-chevron-left text-[10px] animate-pulse"></i>
+        <i class="fa-solid fa-chevron-left text-[10px]"></i>
         <i class="fa-solid fa-user-shield text-xs"></i>
-        <span class="text-[8px] font-black tracking-widest uppercase mt-0.5" style="writing-mode: vertical-rl;">ADMIN</span>
+        <span class="text-[9px] font-bold tracking-widest uppercase mt-0.5" style="writing-mode: vertical-rl;">ADMIN</span>
     </button>
 
-    <!-- Header หลัก -->
-    <header class="max-w-7xl mx-auto w-full bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-950 text-white shadow-md rounded-2xl p-3 md:p-5 shrink-0 border-b-2 border-emerald-500">
-        <div class="flex justify-between items-center gap-2">
-            <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-emerald-300/50 flex items-center justify-center">
-                    <img src="assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
+    <!-- 1. TOP APP HEADER + USER BAR -->
+    <div class="max-w-7xl mx-auto w-full shrink-0 space-y-2">
+        <header class="w-full bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-950 text-white shadow-md rounded-2xl p-3 md:p-5 border-b-2 border-amber-400">
+            <div class="flex justify-between items-center gap-2.5">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <div class="bg-white p-1.5 rounded-xl shadow-sm shrink-0 border border-amber-300/60 flex items-center justify-center">
+                        <img src="assets/images/logo_bcw.png" alt="BCW Logo" class="w-10 h-10 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h1 class="text-lg md:text-2xl font-extrabold text-amber-400 tracking-wide leading-tight uppercase truncate">BCW SMART HUB</h1>
+                        <div class="text-sm md:text-base font-medium text-white leading-snug truncate">โรงเรียนบัวเชดวิทยา</div>
+                        <div class="text-[11px] md:text-xs font-semibold text-emerald-300 tracking-wider uppercase truncate">BUACHEDWITTAYA SCHOOL</div>
+                    </div>
                 </div>
-                <div class="min-w-0 flex-1">
-                    <h1 class="text-base md:text-2xl font-black text-amber-400 tracking-wider leading-none uppercase truncate">BCW SMART HUB</h1>
-                    <div class="text-xs md:text-base font-extrabold text-white leading-tight truncate mt-0.5">โรงเรียนบัวเชดวิทยา</div>
-                    <div class="text-xs md:text-sm font-bold text-emerald-300 tracking-wide uppercase truncate mt-0.5">BUACHEDWITTAYA SCHOOL</div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" onclick="handleLogout()" title="ออกจากระบบ" class="w-9 h-9 md:w-auto md:px-3.5 md:py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl font-semibold transition shadow-md flex items-center justify-center gap-1.5 border border-rose-400/50 cursor-pointer text-xs">
+                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                        <span class="hidden md:inline">ออกจากระบบ</span>
+                    </button>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick="handleLogout()" title="ออกจากระบบ" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-md flex items-center gap-1.5 border border-rose-500 cursor-pointer text-xs">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <span class="hidden md:inline">ออกจากระบบ</span>
-                </button>
+            <div id="dynamicSubHeader" class="bg-emerald-950/90 border-t border-emerald-800/70 mt-2.5 pt-2 px-1 flex justify-between items-center text-xs">
+                <span id="thaiDateStr" class="font-medium text-emerald-100 truncate">กำลังโหลด...</span>
+                <div class="flex items-center gap-1.5 text-amber-200 font-semibold shrink-0">
+                    <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
+                    <span id="liveClock" class="bg-emerald-900/90 px-2 py-0.5 rounded-md border border-emerald-700/80 font-mono text-white text-xs">00:00:00</span>
+                </div>
             </div>
-        </div>
+        </header>
 
-        <div id="dynamicSubHeader" class="bg-emerald-950/90 border-t border-emerald-800/60 mt-2 px-2.5 py-1 rounded-lg flex justify-between items-center text-xs">
-            <span id="thaiDateStr" class="font-bold text-emerald-100 truncate">กำลังโหลด...</span>
-            <div class="flex items-center gap-1.5 text-amber-200 font-bold shrink-0">
-                <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
-                <span id="liveClock" class="bg-emerald-900 px-2 py-0.5 rounded border border-emerald-700 font-mono text-white text-xs">00:00:00</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- กล่องโปรไฟล์ผู้ใช้ -->
-    <div class="max-w-7xl mx-auto w-full mt-2">
-        <div class="bg-emerald-950/80 backdrop-blur-md border-2 border-amber-400/90 shadow-md rounded-xl p-2 px-3 flex items-center justify-between">
+        <!-- กล่องโปรไฟล์ผู้ใช้ -->
+        <div class="w-full bg-emerald-950/95 border border-amber-400/80 shadow-sm rounded-2xl py-2 px-3 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 border border-amber-400 flex items-center justify-center font-black text-sm shrink-0 overflow-hidden shadow-inner">
+                <div class="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 border border-amber-400 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
                     <img id="userAvatarImg" src="" alt="Profile Photo" class="w-full h-full object-cover hidden" referrerpolicy="no-referrer">
                     <i id="userAvatarIcon" class="fa-solid fa-user-check"></i>
                 </div>
                 <div class="min-w-0 text-left">
-                    <div class="flex items-center gap-2">
-                        <span id="userDisplayName" class="text-xs md:text-sm font-black text-amber-300 truncate">กำลังเชื่อมต่อ...</span>
-                        <span id="userRoleBadge" class="bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider">TEACHER</span>
+                    <div class="flex items-center gap-1.5">
+                        <span id="userDisplayName" class="text-sm font-semibold text-amber-300 truncate">กำลังเชื่อมต่อ...</span>
+                        <span id="userRoleBadge" class="bg-amber-400 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 tracking-wide">TEACHER</span>
                     </div>
-                    <span class="inline-flex items-center gap-1 text-[10px] text-emerald-200 font-bold mt-0.5">
+                    <span class="inline-flex items-center gap-1.5 text-[11px] text-emerald-200 font-normal">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> สถานะระบบ: พร้อมใช้งาน
                     </span>
                 </div>
             </div>
-            <button type="button" onclick="switchRoleToAdmin()" class="shrink-0 text-amber-400 hover:text-amber-300 text-xs font-bold bg-emerald-900/90 px-2 py-1 rounded-lg border border-amber-400/40 cursor-pointer transition">
-                <i class="fa-solid fa-shield-halved"></i> BCW ID
+            <button type="button" onclick="switchRoleToAdmin()" class="shrink-0 text-amber-300 hover:text-amber-200 text-xs font-semibold bg-emerald-900 hover:bg-emerald-800 px-2.5 py-1.5 rounded-xl border border-amber-400/40 cursor-pointer transition flex items-center gap-1">
+                <i class="fa-solid fa-id-card-clip"></i> <span>BCW ID</span>
             </button>
         </div>
     </div>
 
-    <!-- Main Content Area & App Grid -->
-    <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-around my-1.5 space-y-2">
-        <!-- กล่องสถิติ 4 กล่อง -->
-        <div id="section-summary-stats" class="grid grid-cols-2 md:grid-cols-4 gap-2 shrink-0">
-            <div class="stat-card-clean flex items-center justify-between">
-                <div class="flex items-center gap-1.5">
-                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center text-sm font-bold shrink-0">👨‍🎓</div>
-                    <span class="text-[11px] font-bold text-slate-700 leading-tight">นักเรียนทั้งหมด</span>
+    <!-- 2. MAIN CONTENT AREA: KPI STATS + AI INSIGHTS + APP GRID -->
+    <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-between my-2 min-h-0">
+        
+        <!-- โซนบน: สถิติ 4 กล่อง + AI Summary -->
+        <div class="space-y-2 shrink-0">
+            <div id="section-summary-stats" class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <!-- กล่อง 1: นักเรียนทั้งหมด -->
+                <div class="stat-card-clean flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center text-base shrink-0">
+                            <i class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <span class="text-xs font-medium text-slate-600 leading-tight">นักเรียน<br class="sm:hidden">ทั้งหมด</span>
+                    </div>
+                    <div id="statTotalStudentsLanding" class="text-base md:text-lg font-bold text-slate-900 text-right leading-tight shrink-0">
+                        <span id="total_students_count">0</span>
+                        <span class="text-[11px] font-normal text-slate-500 block">คน</span>
+                    </div>
                 </div>
-                <div id="statTotalStudentsLanding" class="text-xs font-black text-slate-900 leading-none"><span id="total_students_count">0</span> <span class="text-[9px] font-normal text-slate-500">คน</span></div>
+
+                <!-- กล่อง 2: มาเรียนวันนี้ -->
+                <div class="stat-card-clean flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-9 h-9 rounded-xl bg-teal-100 text-teal-700 border border-teal-200 flex items-center justify-center text-base shrink-0">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <span class="text-xs font-medium text-slate-600 leading-tight">มาเรียน<br class="sm:hidden">วันนี้</span>
+                    </div>
+                    <div class="text-right leading-tight shrink-0">
+                        <span id="statPresentCountLanding" class="text-base md:text-lg font-bold text-emerald-700">0</span>
+                        <span id="statPresentPercentLanding" class="text-[11px] font-medium text-emerald-700 block">(0.0%)</span>
+                    </div>
+                </div>
+
+                <!-- กล่อง 3: พักพยาบาล -->
+                <div class="stat-card-clean flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 border border-amber-200 flex items-center justify-center text-base shrink-0">
+                            <i class="fa-solid fa-kit-medical"></i>
+                        </div>
+                        <span class="text-xs font-medium text-slate-600 leading-tight">พัก<br class="sm:hidden">พยาบาล</span>
+                    </div>
+                    <div id="statClinicLanding" class="text-base md:text-lg font-bold text-amber-700 text-right leading-tight shrink-0">
+                        0 <span class="text-[11px] font-normal text-slate-500">คน</span>
+                    </div>
+                </div>
+
+                <!-- กล่อง 4: สถานะวันนี้ (อ่านง่ายไม่เบียด) -->
+                <div class="stat-card-clean flex items-center justify-between gap-1.5">
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 border border-rose-200 flex items-center justify-center text-sm shrink-0">
+                            <i class="fa-solid fa-chart-simple"></i>
+                        </div>
+                        <span class="text-xs font-medium text-slate-600 leading-tight">สถานะ<br>วันนี้</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1 text-[11px] font-medium leading-none">
+                        <span class="text-rose-700 bg-rose-50 border border-rose-100 px-1.5 py-1 rounded-md text-center">ขาด <strong id="statAbsentLanding" class="font-bold">0</strong></span>
+                        <span class="text-amber-700 bg-amber-50 border border-amber-100 px-1.5 py-1 rounded-md text-center">สาย <strong id="statLateLanding" class="font-bold">0</strong></span>
+                        <span class="text-sky-700 bg-sky-50 border border-sky-100 px-1.5 py-1 rounded-md text-center">ลา <strong id="statLeaveLanding" class="font-bold">0</strong></span>
+                        <span class="text-purple-700 bg-purple-50 border border-purple-100 px-1.5 py-1 rounded-md text-center">หนี <strong id="statTruantLanding" class="font-bold">0</strong></span>
+                    </div>
+                </div>
             </div>
 
-            <div class="stat-card-clean flex items-center justify-between">
-                <div class="flex items-center gap-1.5 min-w-0">
-                    <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-800 border border-teal-300 flex items-center justify-center text-sm shrink-0 font-bold">✅</div>
-                    <span class="text-[11px] font-bold text-slate-700 truncate leading-tight">มาเรียนวันนี้</span>
+            <!-- 🤖 AI Summary Banner -->
+            <div id="aiSummaryBanner" class="ai-soft-card rounded-2xl p-2.5 px-3">
+                <div class="flex items-center gap-2 mb-0.5">
+                    <span class="bg-emerald-100 text-emerald-800 font-semibold text-[11px] px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                        <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> AI Real-Time Insights
+                    </span>
+                    <span class="text-xs text-slate-500 font-medium">สรุปภาพรวมโรงเรียน</span>
                 </div>
-                <div class="text-right leading-none">
-                    <span id="statPresentCountLanding" class="text-xs font-black text-emerald-700">0</span>
-                    <span id="statPresentPercentLanding" class="text-[9px] font-bold text-emerald-800 block">(0.0%)</span>
-                </div>
-            </div>
-
-            <div class="stat-card-clean flex items-center justify-between">
-                <div class="flex items-center gap-1.5">
-                    <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 flex items-center justify-center text-sm font-bold shrink-0">🏥</div>
-                    <span class="text-[11px] font-bold text-slate-700 leading-tight">พักพยาบาล</span>
-                </div>
-                <div id="statClinicLanding" class="text-xs font-black text-amber-700 leading-none">0 <span class="text-[9px] font-normal text-slate-500">คน</span></div>
-            </div>
-
-            <div class="stat-card-clean flex items-center justify-between">
-                <div class="flex items-center gap-1">
-                    <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-800 border border-rose-300 flex items-center justify-center text-xs shrink-0 font-bold">📊</div>
-                    <span class="text-[10px] font-bold text-slate-700 leading-tight">สถานะวันนี้</span>
-                </div>
-                <div class="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[9px] font-black leading-none">
-                    <span class="text-rose-600 bg-rose-50 px-1 rounded">ขาด <strong id="statAbsentLanding">0</strong></span>
-                    <span class="text-amber-600 bg-amber-50 px-1 rounded">สาย <strong id="statLateLanding">0</strong></span>
-                    <span class="text-sky-600 bg-sky-50 px-1 rounded">ลา <strong id="statLeaveLanding">0</strong></span>
-                    <span class="text-purple-600 bg-purple-50 px-1 rounded">หนี <strong id="statTruantLanding">0</strong></span>
-                </div>
+                <p id="aiSummaryText" class="text-xs text-slate-700 font-normal leading-relaxed">
+                    กำลังดึงข้อมูลสถิติล่าสุดจาก Supabase...
+                </p>
             </div>
         </div>
 
-        <!-- 🤖 AI Summary Banner -->
-        <div id="aiSummaryBanner" class="ai-soft-card rounded-xl p-2.5 my-0.5">
-            <div class="flex items-center gap-1.5 mb-0.5">
-                <span class="bg-emerald-100 text-emerald-800 font-black text-[9px] px-2 py-0.5 rounded-full">🤖 AI Real-Time Insights</span>
-                <span class="text-[10px] text-slate-500 font-bold">สรุปภาพรวมโรงเรียน</span>
-            </div>
-            <p id="aiSummaryText" class="text-[11px] text-slate-700 font-medium leading-snug">
-                กำลังดึงข้อมูลสถิติล่าสุดจาก Supabase...
-            </p>
-        </div>
-
-        <!-- 📱 GRID ฝั่งมือถือ (8 ไอคอน) -->
-        <div id="mobileAppGrid" class="mobile-app-grid md:hidden grid grid-cols-4 gap-1.5 flex-1 content-center md:mt-0 -mt-[20px] relative z-20">
-            <a href="apps/school-app/executive.html" class="mobile-app-card cursor-pointer border-emerald-300 bg-emerald-50/30">
-                <div class="mobile-app-icon bg-emerald-100 text-emerald-800 border border-emerald-300">🏛️</div>
-                <span class="text-[10px] font-black text-slate-800 leading-tight">ผู้บริหาร</span>
+        <!-- 📱 GRID ฝั่งมือถือ (8 ไอคอนมาตรฐาน App Grid จัดกลางพื้นที่พอดี) -->
+        <div id="mobileAppGrid" class="mobile-app-grid md:hidden grid grid-cols-4 gap-2 my-auto py-1 relative z-20">
+            <a href="apps/school-app/executive.html" class="mobile-app-card border-emerald-200">
+                <div class="mobile-app-icon bg-emerald-100 text-emerald-700 border border-emerald-200">
+                    <i class="fa-solid fa-landmark"></i>
+                </div>
+                <span class="mobile-app-label">ผู้บริหาร</span>
             </a>
-            <a href="apps/school-app/teacher.html" class="mobile-app-card cursor-pointer">
-                <div class="mobile-app-icon bg-teal-100 text-teal-800 border border-teal-300">👨‍🏫</div>
-                <span class="text-[10px] font-black text-slate-800 leading-tight">ครูผู้สอน</span>
+            <a href="apps/school-app/teacher.html" class="mobile-app-card border-teal-200">
+                <div class="mobile-app-icon bg-teal-100 text-teal-700 border border-teal-200">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+                <span class="mobile-app-label">ครูผู้สอน</span>
             </a>
-            <a href="apps/school-app/academic.html" class="mobile-app-card cursor-pointer">
-                <div class="mobile-app-icon bg-sky-100 text-sky-800 border border-sky-300">📚</div>
-                <span class="text-[10px] font-black text-slate-800 leading-tight">วิชาการ</span>
+            <a href="apps/school-app/academic.html" class="mobile-app-card border-sky-200">
+                <div class="mobile-app-icon bg-sky-100 text-sky-700 border border-sky-200">
+                    <i class="fa-solid fa-book-open"></i>
+                </div>
+                <span class="mobile-app-label">วิชาการ</span>
             </a>
-            <a href="apps/school-app/student-affairs.html" class="mobile-app-card cursor-pointer">
-                <div class="mobile-app-icon bg-indigo-100 text-indigo-800 border border-indigo-300">🛡️</div>
-                <span class="text-[10px] font-black text-slate-800 leading-tight">กิจการ</span>
+            <a href="apps/school-app/student-affairs.html" class="mobile-app-card border-indigo-200">
+                <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <span class="mobile-app-label">กิจการ</span>
             </a>
-            <a href="apps/school-app/clinic.html" class="mobile-app-card cursor-pointer">
-                <div class="mobile-app-icon bg-amber-100 text-amber-800 border border-amber-300">🏥</div>
-                <span class="text-[10px] font-black text-slate-800 leading-tight">พยาบาล</span>
+            <a href="apps/school-app/clinic.html" class="mobile-app-card border-amber-200">
+                <div class="mobile-app-icon bg-amber-100 text-amber-700 border border-amber-200">
+                    <i class="fa-solid fa-house-medical"></i>
+                </div>
+                <span class="mobile-app-label">พยาบาล</span>
             </a>
-            <a href="apps/student-app/student.html" class="mobile-app-card cursor-pointer border-blue-300 bg-blue-50/50">
-                <div class="mobile-app-icon bg-blue-100 text-blue-700 border border-blue-300">🎒</div>
-                <span class="text-[10px] font-black text-blue-900 leading-tight">นักเรียน</span>
+            <a href="apps/student-app/student.html" class="mobile-app-card border-blue-200">
+                <div class="mobile-app-icon bg-blue-100 text-blue-700 border border-blue-200">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </div>
+                <span class="mobile-app-label text-blue-950">นักเรียน</span>
             </a>
-            <a href="apps/parent-app/parent.html" class="mobile-app-card cursor-pointer border-purple-300 bg-purple-50/50">
-                <div class="mobile-app-icon bg-purple-100 text-purple-700 border border-purple-300">👨‍👩‍👧‍👦</div>
-                <span class="text-[10px] font-black text-purple-900 leading-tight">ผู้ปกครอง</span>
+            <a href="apps/parent-app/parent.html" class="mobile-app-card border-purple-200">
+                <div class="mobile-app-icon bg-purple-100 text-purple-700 border border-purple-200">
+                    <i class="fa-solid fa-people-roof"></i>
+                </div>
+                <span class="mobile-app-label text-purple-950">ผู้ปกครอง</span>
             </a>
-            <a href="apps/school-app/scanner.html" class="mobile-app-card cursor-pointer">
-                <div class="mobile-app-icon bg-slate-900 text-amber-400 border border-slate-700">📸</div>
-                <span class="text-[10px] font-black text-slate-800 leading-tight">สแกนเนอร์</span>
+            <a href="apps/school-app/scanner.html" class="mobile-app-card border-slate-300">
+                <div class="mobile-app-icon bg-slate-900 text-amber-400 border border-slate-700">
+                    <i class="fa-solid fa-qrcode"></i>
+                </div>
+                <span class="mobile-app-label">สแกนเนอร์</span>
             </a>
         </div>
 
         <!-- 💻 GRID ฝั่งคอมพิวเตอร์ -->
         <div id="desktopAppGrid" class="hidden md:grid desktop-card-grid my-4 relative z-20">
             <div class="desktop-app-card border-emerald-300">
-                <span class="absolute top-4 right-4 bg-emerald-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">EXECUTIVE</span>
+                <span class="absolute top-4 right-4 bg-emerald-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider">EXECUTIVE</span>
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center text-2xl font-bold mb-3">🏛️</div>
-                    <h3 class="text-base font-black text-slate-900">ผู้บริหารโรงเรียน</h3>
-                    <h4 class="text-xs font-bold text-slate-800 mt-0.5">Executive Command</h4>
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center text-xl mb-3"><i class="fa-solid fa-landmark"></i></div>
+                    <h3 class="text-base font-bold text-slate-900">ผู้บริหารโรงเรียน</h3>
+                    <h4 class="text-xs font-semibold text-slate-700 mt-0.5">Executive Command</h4>
                     <p class="text-xs text-slate-500 mt-2 leading-relaxed">ศูนย์สั่งการพรีวิวสถิติ Real-time สรุปสารสนเทศเชิงลึกเพื่อการตัดสินใจ</p>
                 </div>
                 <div class="pt-4 border-t border-slate-100 flex justify-between items-center mt-3">
-                    <span class="text-xs font-bold text-slate-400">สำหรับผู้บริหาร</span>
-                    <a href="apps/school-app/executive.html" class="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-black text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <span class="text-xs font-medium text-slate-400">สำหรับผู้บริหาร</span>
+                    <a href="apps/school-app/executive.html" class="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
                         <span>ดู Dashboard</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
             </div>
 
             <div class="desktop-app-card border-slate-400">
-                <span class="absolute top-4 right-4 bg-slate-900 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">SUPER ADMIN</span>
+                <span class="absolute top-4 right-4 bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider">SUPER ADMIN</span>
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-800 border border-slate-300 flex items-center justify-center text-2xl font-bold mb-3">⚙️</div>
-                    <h3 class="text-base font-black text-slate-900">ผู้ดูแลระบบสารสนเทศ</h3>
-                    <h4 class="text-xs font-bold text-slate-800 mt-0.5">Admin Control</h4>
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-800 border border-slate-300 flex items-center justify-center text-xl mb-3"><i class="fa-solid fa-gear"></i></div>
+                    <h3 class="text-base font-bold text-slate-900">ผู้ดูแลระบบสารสนเทศ</h3>
+                    <h4 class="text-xs font-semibold text-slate-700 mt-0.5">Admin Control</h4>
                     <p class="text-xs text-slate-500 mt-2 leading-relaxed">ระบบจัดการสิทธิ์ผู้ใช้งาน (RBAC) นำเข้าข้อมูล CSV/Excel และการตั้งค่า</p>
                 </div>
                 <div class="pt-4 border-t border-slate-100 flex justify-between items-center mt-3">
-                    <span class="text-xs font-bold text-slate-400">สำหรับแอดมิน</span>
-                    <a href="apps/school-app/admin-import.html" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <span class="text-xs font-medium text-slate-400">สำหรับแอดมิน</span>
+                    <a href="apps/school-app/admin-import.html" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
                         <span>เข้าสู่ระบบ <i class="fa-solid fa-lock text-[10px]"></i></span>
                     </a>
                 </div>
             </div>
 
             <div class="desktop-app-card border-teal-300">
-                <span class="absolute top-4 right-4 bg-teal-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">TEACHER</span>
+                <span class="absolute top-4 right-4 bg-teal-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider">TEACHER</span>
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 border border-teal-300 flex items-center justify-center text-2xl font-bold mb-3">👨‍🏫</div>
-                    <h3 class="text-base font-black text-slate-900">ครูผู้สอนประจำวิชา</h3>
-                    <h4 class="text-xs font-bold text-slate-800 mt-0.5">Teacher Portal</h4>
+                    <div class="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 border border-teal-300 flex items-center justify-center text-xl mb-3"><i class="fa-solid fa-chalkboard-user"></i></div>
+                    <h3 class="text-base font-bold text-slate-900">ครูผู้สอนประจำวิชา</h3>
+                    <h4 class="text-xs font-semibold text-slate-700 mt-0.5">Teacher Portal</h4>
                     <p class="text-xs text-slate-500 mt-2 leading-relaxed">เช็คชื่อเข้าเรียนประจำคาบ สั่งการบ้าน บันทึกคะแนน และติดตามการเรียน</p>
                 </div>
                 <div class="pt-4 border-t border-slate-100 flex justify-between items-center mt-3">
-                    <span class="text-xs font-bold text-slate-400">สำหรับครูผู้สอน</span>
-                    <a href="apps/school-app/teacher.html" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-black text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <span class="text-xs font-medium text-slate-400">สำหรับครูผู้สอน</span>
+                    <a href="apps/school-app/teacher.html" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
                         <span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
             </div>
 
             <div class="desktop-app-card border-sky-300">
-                <span class="absolute top-4 right-4 bg-sky-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">ACADEMIC</span>
+                <span class="absolute top-4 right-4 bg-sky-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider">ACADEMIC</span>
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 border border-sky-300 flex items-center justify-center text-2xl font-bold mb-3">📚</div>
-                    <h3 class="text-base font-black text-slate-900">ฝ่ายวิชาการ</h3>
-                    <h4 class="text-xs font-bold text-slate-800 mt-0.5">Academic Center</h4>
+                    <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 border border-sky-300 flex items-center justify-center text-xl mb-3"><i class="fa-solid fa-book-open"></i></div>
+                    <h3 class="text-base font-bold text-slate-900">ฝ่ายวิชาการ</h3>
+                    <h4 class="text-xs font-semibold text-slate-700 mt-0.5">Academic Center</h4>
                     <p class="text-xs text-slate-500 mt-2 leading-relaxed">ตรวจสอบและคำนวณนักเรียนเสี่ยงหมดสิทธิ์สอบ (ติด มส.) และงานทะเบียน</p>
                 </div>
                 <div class="pt-4 border-t border-slate-100 flex justify-between items-center mt-3">
-                    <span class="text-xs font-bold text-slate-400">ฝ่ายวิชาการ</span>
-                    <a href="apps/school-app/academic.html" class="px-4 py-2 bg-sky-700 hover:bg-sky-800 text-white font-black text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <span class="text-xs font-medium text-slate-400">ฝ่ายวิชาการ</span>
+                    <a href="apps/school-app/academic.html" class="px-4 py-2 bg-sky-700 hover:bg-sky-800 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
                         <span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
             </div>
 
             <div class="desktop-app-card border-indigo-300">
-                <span class="absolute top-4 right-4 bg-indigo-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">DISCIPLINE</span>
+                <span class="absolute top-4 right-4 bg-indigo-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider">DISCIPLINE</span>
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-800 border border-indigo-300 flex items-center justify-center text-2xl font-bold mb-3">🛡️</div>
-                    <h3 class="text-base font-black text-slate-900">ฝ่ายกิจการนักเรียน</h3>
-                    <h4 class="text-xs font-bold text-slate-800 mt-0.5">Discipline & Safety</h4>
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-800 border border-indigo-300 flex items-center justify-center text-xl mb-3"><i class="fa-solid fa-shield-halved"></i></div>
+                    <h3 class="text-base font-bold text-slate-900">ฝ่ายกิจการนักเรียน</h3>
+                    <h4 class="text-xs font-semibold text-slate-700 mt-0.5">Discipline & Safety</h4>
                     <p class="text-xs text-slate-500 mt-2 leading-relaxed">คะแนนความประพฤติ อนุมัติใบผ่านประตู (Gatepass) และบันทึกกิจกรรมจิตอาสา</p>
                 </div>
                 <div class="pt-4 border-t border-slate-100 flex justify-between items-center mt-3">
-                    <span class="text-xs font-bold text-slate-400">ฝ่ายกิจการ</span>
-                    <a href="apps/school-app/student-affairs.html" class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-black text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <span class="text-xs font-medium text-slate-400">ฝ่ายกิจการ</span>
+                    <a href="apps/school-app/student-affairs.html" class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
                         <span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
             </div>
 
             <div class="desktop-app-card border-amber-300">
-                <span class="absolute top-4 right-4 bg-amber-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">CLINIC</span>
+                <span class="absolute top-4 right-4 bg-amber-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider">CLINIC</span>
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 border border-amber-300 flex items-center justify-center text-2xl font-bold mb-3">🏥</div>
-                    <h3 class="text-base font-black text-slate-900">ห้องพยาบาล & สุขภาพ</h3>
-                    <h4 class="text-xs font-bold text-slate-800 mt-0.5">School Clinic Hub</h4>
+                    <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 border border-amber-300 flex items-center justify-center text-xl mb-3"><i class="fa-solid fa-house-medical"></i></div>
+                    <h3 class="text-base font-bold text-slate-900">ห้องพยาบาล & สุขภาพ</h3>
+                    <h4 class="text-xs font-semibold text-slate-700 mt-0.5">School Clinic Hub</h4>
                     <p class="text-xs text-slate-500 mt-2 leading-relaxed">บันทึกการนอนห้องพยาบาล จ่ายยา และติดตามอาการป่วยนักเรียนรายบุคคล</p>
                 </div>
                 <div class="pt-4 border-t border-slate-100 flex justify-between items-center mt-3">
-                    <span class="text-xs font-bold text-slate-400">ห้องพยาบาล</span>
-                    <a href="apps/school-app/clinic.html" class="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-black text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <span class="text-xs font-medium text-slate-400">ห้องพยาบาล</span>
+                    <a href="apps/school-app/clinic.html" class="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
                         <span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
             </div>
 
             <div class="desktop-app-card border-rose-300">
-                <span class="absolute top-4 right-4 bg-rose-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">SCANNER HUB</span>
+                <span class="absolute top-4 right-4 bg-rose-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider">SCANNER HUB</span>
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-800 border border-rose-300 flex items-center justify-center text-2xl font-bold mb-3">📸</div>
-                    <h3 class="text-base font-black text-slate-900">จุดสแกนบัตรนักเรียน</h3>
-                    <h4 class="text-xs font-bold text-slate-800 mt-0.5">Scanner Portal</h4>
+                    <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-800 border border-rose-300 flex items-center justify-center text-xl mb-3"><i class="fa-solid fa-qrcode"></i></div>
+                    <h3 class="text-base font-bold text-slate-900">จุดสแกนบัตรนักเรียน</h3>
+                    <h4 class="text-xs font-semibold text-slate-700 mt-0.5">Scanner Portal</h4>
                     <p class="text-xs text-slate-500 mt-2 leading-relaxed">สแกนบาร์โค้ด/QR Code บัตรนักเรียน บันทึกเวลาเข้าโรงเรียน Real-time</p>
                 </div>
                 <div class="pt-4 border-t border-slate-100 flex justify-between items-center mt-3">
-                    <span class="text-xs font-bold text-slate-400">จุดสแกนบัตร</span>
-                    <a href="apps/school-app/scanner.html" class="px-4 py-2 bg-rose-700 hover:bg-rose-800 text-white font-black text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <span class="text-xs font-medium text-slate-400">จุดสแกนบัตร</span>
+                    <a href="apps/school-app/scanner.html" class="px-4 py-2 bg-rose-700 hover:bg-rose-800 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
                         <span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
             </div>
 
             <div class="desktop-app-card border-purple-300">
-                <span class="absolute top-4 right-4 bg-purple-800 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider">PORTAL ROUTER</span>
+                <span class="absolute top-4 right-4 bg-purple-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider">PORTAL ROUTER</span>
                 <div>
-                    <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 border border-purple-300 flex items-center justify-center text-2xl font-bold mb-3">👨‍👩‍👧‍👦</div>
-                    <h3 class="text-base font-black text-slate-900">ผู้ปกครอง & นักเรียน</h3>
-                    <h4 class="text-xs font-bold text-slate-800 mt-0.5">Parent & Student</h4>
+                    <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 border border-purple-300 flex items-center justify-center text-xl mb-3"><i class="fa-solid fa-people-roof"></i></div>
+                    <h3 class="text-base font-bold text-slate-900">ผู้ปกครอง & นักเรียน</h3>
+                    <h4 class="text-xs font-semibold text-slate-700 mt-0.5">Parent & Student</h4>
                     <p class="text-xs text-slate-500 mt-2 leading-relaxed">เข้าใช้งานมุมมองผู้ปกครอง (ไฟจราจร/ใบลา) หรือนักเรียน (ตารางเรียน)</p>
                 </div>
                 <div class="pt-4 border-t border-slate-100 flex justify-between items-center mt-3">
-                    <span class="text-xs font-bold text-slate-400">ผู้ปกครอง/นักเรียน</span>
-                    <a href="apps/student-app/student.html" class="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white font-black text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    <span class="text-xs font-medium text-slate-400">ผู้ปกครอง/นักเรียน</span>
+                    <a href="apps/student-app/student.html" class="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
                         <span>เลือกแอป</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
@@ -432,22 +587,22 @@
                     <img src="assets/images/logo_bcw.png" alt="Logo" class="w-6 h-6 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
                 </div>
                 <div>
-                    <div class="font-black text-amber-400 text-sm tracking-wide">BCW SMART HUB SYSTEM</div>
-                    <div class="text-[10px] text-emerald-200 font-bold">โรงเรียนบัวเชดวิทยา อำเภอบัวเชด จังหวัดสุรินทร์</div>
+                    <div class="font-bold text-amber-400 text-sm tracking-wide">BCW SMART HUB SYSTEM</div>
+                    <div class="text-[11px] text-emerald-200 font-medium">โรงเรียนบัวเชดวิทยา อำเภอบัวเชด จังหวัดสุรินทร์</div>
                 </div>
             </div>
-            <div class="flex items-center gap-2 bg-emerald-900/60 px-3 py-1.5 rounded-xl border border-emerald-700/60 text-[11px] font-semibold text-emerald-100">
+            <div class="flex items-center gap-2 bg-emerald-900/60 px-3 py-1.5 rounded-xl border border-emerald-700/60 text-xs font-medium text-emerald-100">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span>สถานะระบบ: เชื่อมต่อ Supabase Cloud เรียบร้อย</span>
             </div>
-            <div class="text-center md:text-right text-[11px]">
-                <div class="font-bold text-slate-300">© 2026 BUACHEDWITTAYA SCHOOL</div>
-                <div class="text-[10px] font-mono text-amber-300/80">ALL RIGHTS RESERVED • v2.5.0</div>
+            <div class="text-center md:text-right text-xs">
+                <div class="font-semibold text-slate-300">© 2026 BUACHEDWITTAYA SCHOOL</div>
+                <div class="text-[11px] font-mono text-amber-300/80">ALL RIGHTS RESERVED • v2.5.0</div>
             </div>
         </div>
     </footer>
 
-    <!-- FLOATING BOTTOM NAVIGATION BAR (ระบบสไลด์ซ่อนเก็บ Auto-Hide on Scroll) -->
+    <!-- 3. FLOATING BOTTOM NAVIGATION BAR -->
     <nav id="nativeBottomNav" class="native-bottom-nav">
         <button id="navHome" type="button" class="nav-item-btn active" onclick="switchNavTab('home')">
             <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
@@ -472,48 +627,50 @@
         <div id="adminSideDrawer" class="admin-side-drawer" onclick="event.stopPropagation()">
             <div class="p-4 border-b border-emerald-500/40 flex justify-between items-center bg-emerald-950/40">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 bg-amber-400 text-slate-950 rounded-xl flex items-center justify-center font-black text-base shadow-sm">👑</div>
+                    <div class="w-9 h-9 bg-amber-400 text-slate-950 rounded-xl flex items-center justify-center font-bold text-base shadow-sm">
+                        <i class="fa-solid fa-crown"></i>
+                    </div>
                     <div>
-                        <h3 class="text-sm font-black text-amber-400 leading-none">ADMIN CONTROL</h3>
-                        <p class="text-[10px] text-emerald-200 font-bold mt-0.5">ระบบจัดการนำเข้าข้อมูลหลังบ้าน</p>
+                        <h3 class="text-sm font-bold text-amber-400 leading-none">ADMIN CONTROL</h3>
+                        <p class="text-[11px] text-emerald-200 font-medium mt-0.5">ระบบจัดการนำเข้าข้อมูลหลังบ้าน</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeAdminDrawer()" class="w-7 h-7 rounded-full bg-emerald-900/80 text-emerald-200 font-black text-xs border border-emerald-500 flex items-center justify-center cursor-pointer">✕</button>
+                <button type="button" onclick="closeAdminDrawer()" class="w-8 h-8 rounded-full bg-emerald-900/80 text-emerald-200 font-bold text-xs border border-emerald-500 flex items-center justify-center cursor-pointer">✕</button>
             </div>
 
             <div class="p-4 space-y-3 overflow-y-auto flex-1 text-xs">
                 <div class="bg-emerald-950/50 border border-emerald-400/40 rounded-2xl p-3.5 space-y-3 shadow-md">
-                    <span class="text-[11px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                    <span class="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-2">
                         <i class="fa-solid fa-file-csv text-sm"></i> ศูนย์นำเข้าข้อมูล (DATA IMPORT)
                     </span>
-                    <p class="text-[11px] text-emerald-100 leading-relaxed">
+                    <p class="text-xs text-emerald-100 font-normal leading-relaxed">
                         ระบบจัดการอัปโหลดตารางข้อมูลหลักของโรงเรียนผ่านไฟล์ CSV/Excel (UTF-8) และคลังรูปภาพโปรไฟล์
                     </p>
                     
                     <div class="space-y-2 pt-1">
-                        <a href="apps/school-app/admin-import.html" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-2.5 px-3 rounded-xl text-xs flex items-center justify-between shadow-md transition cursor-pointer">
+                        <a href="apps/school-app/admin-import.html" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-semibold py-2.5 px-3 rounded-xl text-xs flex items-center justify-between shadow-md transition cursor-pointer">
                             <span class="flex items-center gap-2"><i class="fa-solid fa-graduation-cap"></i> 1. นำเข้าข้อมูลนักเรียน (students)</span>
                             <i class="fa-solid fa-arrow-right text-[10px]"></i>
                         </a>
-                        <a href="apps/school-app/admin-import.html" class="w-full bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-between border border-emerald-500/50 transition cursor-pointer">
+                        <a href="apps/school-app/admin-import.html" class="w-full bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-medium py-2.5 px-3 rounded-xl text-xs flex items-center justify-between border border-emerald-500/50 transition cursor-pointer">
                             <span class="flex items-center gap-2"><i class="fa-solid fa-chalkboard-user"></i> 2. นำเข้าข้อมูลครูผู้สอน (teachers)</span>
                             <i class="fa-solid fa-arrow-right text-[10px]"></i>
                         </a>
-                        <a href="apps/school-app/admin-import.html" class="w-full bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-between border border-emerald-500/50 transition cursor-pointer">
+                        <a href="apps/school-app/admin-import.html" class="w-full bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-medium py-2.5 px-3 rounded-xl text-xs flex items-center justify-between border border-emerald-500/50 transition cursor-pointer">
                             <span class="flex items-center gap-2"><i class="fa-solid fa-book-bookmark"></i> 3. นำเข้ารายวิชาและตารางเรียน</span>
                             <i class="fa-solid fa-arrow-right text-[10px]"></i>
                         </a>
                     </div>
                 </div>
 
-                <a href="apps/school-app/admin-import.html" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
+                <a href="apps/school-app/admin-import.html" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
                     <i class="fa-solid fa-sliders"></i>
                     <span>เปิดหน้า admin-import.html เต็มรูปแบบ</span>
                 </a>
             </div>
 
             <div class="p-3 border-t border-emerald-500/40 bg-emerald-950/80 text-center">
-                <span class="text-[10px] text-emerald-300 font-bold">BUACHEDWITTAYA ADMIN SYSTEM</span>
+                <span class="text-[11px] text-emerald-300 font-medium">BUACHEDWITTAYA ADMIN SYSTEM</span>
             </div>
         </div>
     </div>
@@ -524,27 +681,27 @@
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
             <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 bg-sky-100 text-sky-800 rounded-xl flex items-center justify-center text-lg shrink-0">🎓</div>
+                    <div class="w-9 h-9 bg-sky-100 text-sky-800 rounded-xl flex items-center justify-center text-base shrink-0"><i class="fa-solid fa-graduation-cap"></i></div>
                     <div>
-                        <h3 class="text-xs font-black text-slate-900 leading-tight">ศูนย์รวมรายงานฝ่ายวิชาการ (12 รายการ)</h3>
-                        <p class="text-[10px] text-sky-700 font-bold">เลื่อนเพื่อดูรายการทั้งหมด หรือกดปุ่ม ✕ หรือปัดลงเพื่อปิดกล่อง</p>
+                        <h3 class="text-sm font-bold text-slate-900 leading-tight">ศูนย์รวมรายงานฝ่ายวิชาการ (12 รายการ)</h3>
+                        <p class="text-[11px] text-sky-700 font-medium">เลื่อนเพื่อดูรายการทั้งหมด หรือปัดลงเพื่อปิดกล่อง</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeDrawer('academicDrawerBackdrop')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 font-black text-xs flex items-center justify-center cursor-pointer">✕</button>
+                <button type="button" onclick="closeDrawer('academicDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
             <div class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs">
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📚</span><div><div class="font-black text-slate-800 text-xs">1. รายงานสรุปอัตราการส่งงานประจำวิชา</div><div class="text-[9px] text-slate-500">สรุปการติดตามภาระงานรายกลุ่มสาระ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">⚠️</span><div><div class="font-black text-slate-800 text-xs">2. รายงานรายชื่อนักเรียนเสี่ยงติด มส.</div><div class="text-[9px] text-slate-500">ขาดเรียนเกินสิทธิ์กำหนดแยกรายชั้น</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📝</span><div><div class="font-black text-slate-800 text-xs">3. รายงานผลประเมินการอ่าน คิดวิเคราะห์</div><div class="text-[9px] text-slate-500">สรุปผลประเมินคุณลักษณะอันพึงประสงค์</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📊</span><div><div class="font-black text-slate-800 text-xs">4. รายงานสรุปผลสัมฤทธิ์ทางการเรียน (ปพ.5)</div><div class="text-[9px] text-slate-500">สรุปเกรดเฉลี่ยแยกตามระดับชั้น ม.1 - ม.6</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📄</span><div><div class="font-black text-slate-800 text-xs">5. รายงานสรุปการลงทะเบียนแก้ 0, ร, มส.</div><div class="text-[9px] text-slate-500">ติดตามผลการอนุมัติแก้ผลการเรียนประจำภาคเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎓</span><div><div class="font-black text-slate-800 text-xs">6. รายงานสรุปยอดนักเรียนจบการศึกษา (ปพ.3)</div><div class="text-[9px] text-slate-500">บัญชีรายชื่อผู้สำเร็จการศึกษาชั้น ม.3 และ ม.6</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📈</span><div><div class="font-black text-slate-800 text-xs">7. รายงานเปรียบเทียบผลการทดสอบ O-NET/A-Level</div><div class="text-[9px] text-slate-500">เปรียบเทียบพัฒนาการทางการเรียนระดับชาติ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📖</span><div><div class="font-black text-slate-800 text-xs">8. รายงานการใช้แผนการจัดการเรียนรู้ของครู</div><div class="text-[9px] text-slate-500">การส่งและอนุมัติแผนการสอนรายกลุ่มสาระ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏫</span><div><div class="font-black text-slate-800 text-xs">9. รายงานสถิติการนิเทศการสอนภายใน</div><div class="text-[9px] text-slate-500">การสังเกตการสอนและการประเมินครูผู้สอน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏆</span><div><div class="font-black text-slate-800 text-xs">10. รายงานผลการแข่งขันทักษะวิชาการศิลปหัตถกรรม</div><div class="text-[9px] text-slate-500">สรุปเหรียญรางวัลและผลงานนักเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">💡</span><div><div class="font-black text-slate-800 text-xs">11. รายงานสรุปวิจัยในชั้นเรียนของครูผู้สอน</div><div class="text-[9px] text-slate-500">ผลงานพัฒนานวัตกรรมการเรียนรู้ประจำปี</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📋</span><div><div class="font-black text-slate-800 text-xs">12. รายงานทะเบียนหนังสือรับรองสภาพนักเรียน</div><div class="text-[9px] text-slate-500">สรุปการออกเอกสารทะเบียนทางการศึกษา</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📚</span><div><div class="font-semibold text-slate-800 text-xs">1. รายงานสรุปอัตราการส่งงานประจำวิชา</div><div class="text-[11px] text-slate-500">สรุปการติดตามภาระงานรายกลุ่มสาระ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">⚠️</span><div><div class="font-semibold text-slate-800 text-xs">2. รายงานรายชื่อนักเรียนเสี่ยงติด มส.</div><div class="text-[11px] text-slate-500">ขาดเรียนเกินสิทธิ์กำหนดแยกรายชั้น</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📝</span><div><div class="font-semibold text-slate-800 text-xs">3. รายงานผลประเมินการอ่าน คิดวิเคราะห์</div><div class="text-[11px] text-slate-500">สรุปผลประเมินคุณลักษณะอันพึงประสงค์</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📊</span><div><div class="font-semibold text-slate-800 text-xs">4. รายงานสรุปผลสัมฤทธิ์ทางการเรียน (ปพ.5)</div><div class="text-[11px] text-slate-500">สรุปเกรดเฉลี่ยแยกตามระดับชั้น ม.1 - ม.6</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📄</span><div><div class="font-semibold text-slate-800 text-xs">5. รายงานสรุปการลงทะเบียนแก้ 0, ร, มส.</div><div class="text-[11px] text-slate-500">ติดตามผลการอนุมัติแก้ผลการเรียนประจำภาคเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎓</span><div><div class="font-semibold text-slate-800 text-xs">6. รายงานสรุปยอดนักเรียนจบการศึกษา (ปพ.3)</div><div class="text-[11px] text-slate-500">บัญชีรายชื่อผู้สำเร็จการศึกษาชั้น ม.3 และ ม.6</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📈</span><div><div class="font-semibold text-slate-800 text-xs">7. รายงานเปรียบเทียบผลการทดสอบ O-NET/A-Level</div><div class="text-[11px] text-slate-500">เปรียบเทียบพัฒนาการทางการเรียนระดับชาติ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📖</span><div><div class="font-semibold text-slate-800 text-xs">8. รายงานการใช้แผนการจัดการเรียนรู้ของครู</div><div class="text-[11px] text-slate-500">การส่งและอนุมัติแผนการสอนรายกลุ่มสาระ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏫</span><div><div class="font-semibold text-slate-800 text-xs">9. รายงานสถิติการนิเทศการสอนภายใน</div><div class="text-[11px] text-slate-500">การสังเกตการสอนและการประเมินครูผู้สอน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏆</span><div><div class="font-semibold text-slate-800 text-xs">10. รายงานผลการแข่งขันทักษะวิชาการศิลปหัตถกรรม</div><div class="text-[11px] text-slate-500">สรุปเหรียญรางวัลและผลงานนักเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">💡</span><div><div class="font-semibold text-slate-800 text-xs">11. รายงานสรุปวิจัยในชั้นเรียนของครูผู้สอน</div><div class="text-[11px] text-slate-500">ผลงานพัฒนานวัตกรรมการเรียนรู้ประจำปี</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📋</span><div><div class="font-semibold text-slate-800 text-xs">12. รายงานทะเบียนหนังสือรับรองสภาพนักเรียน</div><div class="text-[11px] text-slate-500">สรุปการออกเอกสารทะเบียนทางการศึกษา</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
             </div>
         </div>
     </div>
@@ -555,27 +712,27 @@
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
             <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center text-lg shrink-0">📁</div>
+                    <div class="w-9 h-9 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center text-base shrink-0"><i class="fa-solid fa-shield-halved"></i></div>
                     <div>
-                        <h3 class="text-xs font-black text-slate-900 leading-tight">ศูนย์รวมรายงานกิจการนักเรียน (12 รายการ)</h3>
-                        <p class="text-[10px] text-amber-700 font-bold">เลื่อนเพื่อดูรายการทั้งหมด หรือกดปุ่ม ✕ หรือปัดลงเพื่อปิดกล่อง</p>
+                        <h3 class="text-sm font-bold text-slate-900 leading-tight">ศูนย์รวมรายงานกิจการนักเรียน (12 รายการ)</h3>
+                        <p class="text-[11px] text-amber-700 font-medium">เลื่อนเพื่อดูรายการทั้งหมด หรือปัดลงเพื่อปิดกล่อง</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeDrawer('disciplineDrawerBackdrop')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 font-black text-xs flex items-center justify-center cursor-pointer">✕</button>
+                <button type="button" onclick="closeDrawer('disciplineDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
             <div class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs">
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📋</span><div><div class="font-black text-slate-800 text-xs">1. รายงานสรุปคะแนนพฤติกรรมรายห้อง</div><div class="text-[9px] text-slate-500">สรุปคะแนนคงเหลือเฉลี่ยแยกตามห้องเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🚨</span><div><div class="font-black text-slate-800 text-xs">2. รายงานรายชื่อนักเรียนกลุ่มเสี่ยง (&lt; 80 คะแนน)</div><div class="text-[9px] text-slate-500">รายชื่อเด็กติดเงื่อนไขวิกฤตทำกิจกรรมซ่อมแซม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎖️</span><div><div class="font-black text-slate-800 text-xs">3. รายงานประวัติการทำความดีและจิตอาสา</div><div class="text-[9px] text-slate-500">สรุปการเพิ่มคะแนนความประพฤติเชิดชูเกียรติ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏫</span><div><div class="font-black text-slate-800 text-xs">4. รายงานการเข้าแถวเคารพธงชาติประจำสัปดาห์</div><div class="text-[9px] text-slate-500">สถิติการมาสายและการขาดกิจกรรมหน้าเสาธง</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🚪</span><div><div class="font-black text-slate-800 text-xs">5. รายงานการออกนอกสถานศึกษา (Gatepass)</div><div class="text-[9px] text-slate-500">สรุปการขออนุญาตออกนอกโรงเรียนระหว่างวัน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📱</span><div><div class="font-black text-slate-800 text-xs">6. รายงานสถิติการฝากและยึดโทรศัพท์มือถือ</div><div class="text-[9px] text-slate-500">การปฏิบัติตามมาตรการการใช้อุปกรณ์สื่อสาร</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">👔</span><div><div class="font-black text-slate-800 text-xs">7. รายงานการตรวจสุ่มระเบียบการแต่งกาย/ทรงผม</div><div class="text-[9px] text-slate-500">ผลการบันทึกการตรวจความเรียบร้อยประจำเดือน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📞</span><div><div class="font-black text-slate-800 text-xs">8. รายงานการเชิญผู้ปกครองพบรายบุคคล</div><div class="text-[9px] text-slate-500">บันทึกข้อตกลงแก้ไขพฤติกรรมร่วมกับผู้ปกครอง</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🤝</span><div><div class="font-black text-slate-800 text-xs">9. รายงานการเยี่ยมบ้านนักเรียน (ระบบดูแลช่วยเหลือ)</div><div class="text-[9px] text-slate-500">สรุปข้อมูลสภาพความเป็นอยู่และการคัดกรอง 5 กลุ่ม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">💰</span><div><div class="font-black text-slate-800 text-xs">10. รายงานสรุปการจัดสรรทุนการศึกษานักเรียนยากจน</div><div class="text-[9px] text-slate-500">การมอบทุนปัจจัยพื้นฐานและทุนยากจนพิเศษ (กสศ.)</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">💊</span><div><div class="font-black text-slate-800 text-xs">11. รายงานผลการสุ่มตรวจสารเสพติดและบุหรี่ไฟฟ้า</div><div class="text-[9px] text-slate-500">สรุปมาตรการโรงเรียนสีขาวปลอดยาเสพติด</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🛡️</span><div><div class="font-black text-slate-800 text-xs">12. รายงานสรุปเหตุการณ์ความปลอดภัยในโรงเรียน</div><div class="text-[9px] text-slate-500">บันทึกการระวังป้องกันความปลอดภัย MOE Safety</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📋</span><div><div class="font-semibold text-slate-800 text-xs">1. รายงานสรุปคะแนนพฤติกรรมรายห้อง</div><div class="text-[11px] text-slate-500">สรุปคะแนนคงเหลือเฉลี่ยแยกตามห้องเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🚨</span><div><div class="font-semibold text-slate-800 text-xs">2. รายงานรายชื่อนักเรียนกลุ่มเสี่ยง (ต่ำกว่า 80 คะแนน)</div><div class="text-[11px] text-slate-500">รายชื่อเด็กติดเงื่อนไขวิกฤตทำกิจกรรมซ่อมแซม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎖️</span><div><div class="font-semibold text-slate-800 text-xs">3. รายงานประวัติการทำความดีและจิตอาสา</div><div class="text-[11px] text-slate-500">สรุปการเพิ่มคะแนนความประพฤติเชิดชูเกียรติ</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏫</span><div><div class="font-semibold text-slate-800 text-xs">4. รายงานการเข้าแถวเคารพธงชาติประจำสัปดาห์</div><div class="text-[11px] text-slate-500">สถิติการมาสายและการขาดกิจกรรมหน้าเสาธง</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🚪</span><div><div class="font-semibold text-slate-800 text-xs">5. รายงานการออกนอกสถานศึกษา (Gatepass)</div><div class="text-[11px] text-slate-500">สรุปการขออนุญาตออกนอกโรงเรียนระหว่างวัน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📱</span><div><div class="font-semibold text-slate-800 text-xs">6. รายงานสถิติการฝากและยึดโทรศัพท์มือถือ</div><div class="text-[11px] text-slate-500">การปฏิบัติตามมาตรการการใช้อุปกรณ์สื่อสาร</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">👔</span><div><div class="font-semibold text-slate-800 text-xs">7. รายงานการตรวจสุ่มระเบียบการแต่งกาย/ทรงผม</div><div class="text-[11px] text-slate-500">ผลการบันทึกการตรวจความเรียบร้อยประจำเดือน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📞</span><div><div class="font-semibold text-slate-800 text-xs">8. รายงานการเชิญผู้ปกครองพบรายบุคคล</div><div class="text-[11px] text-slate-500">บันทึกข้อตกลงแก้ไขพฤติกรรมร่วมกับผู้ปกครอง</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🤝</span><div><div class="font-semibold text-slate-800 text-xs">9. รายงานการเยี่ยมบ้านนักเรียน (ระบบดูแลช่วยเหลือ)</div><div class="text-[11px] text-slate-500">สรุปข้อมูลสภาพความเป็นอยู่และการคัดกรอง 5 กลุ่ม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">💰</span><div><div class="font-semibold text-slate-800 text-xs">10. รายงานสรุปการจัดสรรทุนการศึกษานักเรียนยากจน</div><div class="text-[11px] text-slate-500">การมอบทุนปัจจัยพื้นฐานและทุนยากจนพิเศษ (กสศ.)</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">💊</span><div><div class="font-semibold text-slate-800 text-xs">11. รายงานผลการสุ่มตรวจสารเสพติดและบุหรี่ไฟฟ้า</div><div class="text-[11px] text-slate-500">สรุปมาตรการโรงเรียนสีขาวปลอดยาเสพติด</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🛡️</span><div><div class="font-semibold text-slate-800 text-xs">12. รายงานสรุปเหตุการณ์ความปลอดภัยในโรงเรียน</div><div class="text-[11px] text-slate-500">บันทึกการระวังป้องกันความปลอดภัย MOE Safety</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
             </div>
         </div>
     </div>
@@ -586,27 +743,27 @@
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
             <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 bg-emerald-100 text-emerald-800 rounded-xl flex items-center justify-center text-lg shrink-0">📊</div>
+                    <div class="w-9 h-9 bg-emerald-100 text-emerald-800 rounded-xl flex items-center justify-center text-base shrink-0"><i class="fa-solid fa-chart-pie"></i></div>
                     <div>
-                        <h3 class="text-xs font-black text-slate-900 leading-tight">ศูนย์รายงานกราฟสถิติผู้บริหาร (12 รายการ)</h3>
-                        <p class="text-[10px] text-emerald-700 font-bold">เลื่อนเพื่อดูรายการทั้งหมด หรือกดปุ่ม ✕ หรือปัดลงเพื่อปิดกล่อง</p>
+                        <h3 class="text-sm font-bold text-slate-900 leading-tight">ศูนย์รายงานกราฟสถิติผู้บริหาร (12 รายการ)</h3>
+                        <p class="text-[11px] text-emerald-700 font-medium">เลื่อนเพื่อดูรายการทั้งหมด หรือปัดลงเพื่อปิดกล่อง</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeDrawer('execDrawerBackdrop')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 font-black text-xs flex items-center justify-center cursor-pointer">✕</button>
+                <button type="button" onclick="closeDrawer('execDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
             <div class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs">
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📈</span><div><div class="font-black text-slate-800 text-xs">1. กราฟเปรียบเทียบอัตราการมาเรียนรายเดือน</div><div class="text-[9px] text-slate-500">แนวโน้มการสแกนบัตรเข้าโรงเรียนภาพรวมสะสม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🛡️</span><div><div class="font-black text-slate-800 text-xs">2. กราฟสถิติความผิดระเบียบจำแนกตามหมวด</div><div class="text-[9px] text-slate-500">สรุปสถิติความผิดระเบียบโรงเรียนประจำปีการศึกษา</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏥</span><div><div class="font-black text-slate-800 text-xs">3. กราฟสถิติการใช้บริการห้องพยาบาลจำแนกตามโรค</div><div class="text-[9px] text-slate-500">ภาพรวมจำแนกตามกลุ่มอาการและการจ่ายยา</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎓</span><div><div class="font-black text-slate-800 text-xs">4. กราฟแสดงสัดส่วนเกรดเฉลี่ยสะสม (GPAX) แยกชั้น</div><div class="text-[9px] text-slate-500">การกระจายตัวของระดับผลการเรียนนักเรียน ม.1-ม.6</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">⏰</span><div><div class="font-black text-slate-800 text-xs">5. กราฟช่วงเวลาความหนาแน่นการเข้าประตูโรงเรียน</div><div class="text-[9px] text-slate-500">วิเคราะห์จุดพีคการสแกนบัตรช่วงเช้า 06.30 - 08.00 น.</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📊</span><div><div class="font-black text-slate-800 text-xs">6. กราฟเปรียบเทียบการส่งการบ้านรายกลุ่มสาระฯ</div><div class="text-[9px] text-slate-500">สัดส่วนการตรงต่อเวลาในการส่งภาระงานของนักเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🚗</span><div><div class="font-black text-slate-800 text-xs">7. กราฟสรุปประเภทการเดินทางมาโรงเรียนของนักเรียน</div><div class="text-[9px] text-slate-500">สถิติจำนวนรถรับส่ง รถจักรยานยนต์ และการเดินเท้า</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏫</span><div><div class="font-black text-slate-800 text-xs">8. กราฟสถิติการใช้งานห้องเรียนและห้องปฏิบัติการ</div><div class="text-[9px] text-slate-500">อัตราการจองและเข้าใช้ห้องคอมพิวเตอร์/วิทย์</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">👨‍👩‍👧‍👦</span><div><div class="font-black text-slate-800 text-xs">9. กราฟอัตราการเข้าใช้งานแอปพลิเคชันของผู้ปกครอง</div><div class="text-[9px] text-slate-500">ความถี่ในการเปิดอ่านประกาศและเช็กเวลาเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📌</span><div><div class="font-black text-slate-800 text-xs">10. กราฟสถิติการยื่นใบลาอิเล็กทรอนิกส์แยกประเภท</div><div class="text-[9px] text-slate-500">การเปรียบเทียบสัดส่วนลากิจ ลาป่วย และลากิจกรรม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🌱</span><div><div class="font-black text-slate-800 text-xs">11. กราฟสถิติจำนวนชั่วโมงจิตอาสาสะสมรายชั้น</div><div class="text-[9px] text-slate-500">การเข้าร่วมกิจกรรมสาธารณประโยชน์ของนักเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
-                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎯</span><div><div class="font-black text-slate-800 text-xs">12. กราฟสถิติการศึกษาต่อระดับอุดมศึกษา ม.6</div><div class="text-[9px] text-slate-500">สรุปสัดส่วนการสอบติด TCAS รอบ 1 - 4</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📈</span><div><div class="font-semibold text-slate-800 text-xs">1. กราฟเปรียบเทียบอัตราการมาเรียนรายเดือน</div><div class="text-[11px] text-slate-500">แนวโน้มการสแกนบัตรเข้าโรงเรียนภาพรวมสะสม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🛡️</span><div><div class="font-semibold text-slate-800 text-xs">2. กราฟสถิติความผิดระเบียบจำแนกตามหมวด</div><div class="text-[11px] text-slate-500">สรุปสถิติความผิดระเบียบโรงเรียนประจำปีการศึกษา</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏥</span><div><div class="font-semibold text-slate-800 text-xs">3. กราฟสถิติการใช้บริการห้องพยาบาลจำแนกตามโรค</div><div class="text-[11px] text-slate-500">ภาพรวมจำแนกตามกลุ่มอาการและการจ่ายยา</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎓</span><div><div class="font-semibold text-slate-800 text-xs">4. กราฟแสดงสัดส่วนเกรดเฉลี่ยสะสม (GPAX) แยกชั้น</div><div class="text-[11px] text-slate-500">การกระจายตัวของระดับผลการเรียนนักเรียน ม.1-ม.6</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">⏰</span><div><div class="font-semibold text-slate-800 text-xs">5. กราฟช่วงเวลาความหนาแน่นการเข้าประตูโรงเรียน</div><div class="text-[11px] text-slate-500">วิเคราะห์จุดพีคการสแกนบัตรช่วงเช้า 06.30 - 08.00 น.</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📊</span><div><div class="font-semibold text-slate-800 text-xs">6. กราฟเปรียบเทียบการส่งการบ้านรายกลุ่มสาระฯ</div><div class="text-[11px] text-slate-500">สัดส่วนการตรงต่อเวลาในการส่งภาระงานของนักเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🚗</span><div><div class="font-semibold text-slate-800 text-xs">7. กราฟสรุปประเภทการเดินทางมาโรงเรียนของนักเรียน</div><div class="text-[11px] text-slate-500">สถิติจำนวนรถรับส่ง รถจักรยานยนต์ และการเดินเท้า</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🏫</span><div><div class="font-semibold text-slate-800 text-xs">8. กราฟสถิติการใช้งานห้องเรียนและห้องปฏิบัติการ</div><div class="text-[11px] text-slate-500">อัตราการจองและเข้าใช้ห้องคอมพิวเตอร์/วิทย์</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">👨‍👩‍👧‍👦</span><div><div class="font-semibold text-slate-800 text-xs">9. กราฟอัตราการเข้าใช้งานแอปพลิเคชันของผู้ปกครอง</div><div class="text-[11px] text-slate-500">ความถี่ในการเปิดอ่านประกาศและเช็กเวลาเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">📌</span><div><div class="font-semibold text-slate-800 text-xs">10. กราฟสถิติการยื่นใบลาอิเล็กทรอนิกส์แยกประเภท</div><div class="text-[11px] text-slate-500">การเปรียบเทียบสัดส่วนลากิจ ลาป่วย และลากิจกรรม</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🌱</span><div><div class="font-semibold text-slate-800 text-xs">11. กราฟสถิติจำนวนชั่วโมงจิตอาสาสะสมรายชั้น</div><div class="text-[11px] text-slate-500">การเข้าร่วมกิจกรรมสาธารณประโยชน์ของนักเรียน</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
+                <div class="report-menu-item"><div class="flex items-center gap-2.5"><span class="text-base">🎯</span><div><div class="font-semibold text-slate-800 text-xs">12. กราฟสถิติการศึกษาต่อระดับอุดมศึกษา ม.6</div><div class="text-[11px] text-slate-500">สรุปสัดส่วนการสอบติด TCAS รอบ 1 - 4</div></div></div><button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer shrink-0">🖨️ พิมพ์</button></div>
             </div>
         </div>
     </div>
@@ -616,7 +773,7 @@
 <script src="core/supabase-client.js?v=400"></script>
 <script src="core/auth-service.js?v=400"></script>
 <script src="core/auth-manager.js?v=400"></script>
-<!-- 🔒 Dedicated Guard คุ้มครองหน้า Admin & Teacher (กรองสิทธิ์เงียบ ไร้ Alert เด้งขัดจังหวะ) -->
+<!-- 🔒 Dedicated Guard คุ้มครองหน้า Admin & Teacher -->
 <script src="core/guard-admin-teacher.js?v=400"></script>
 
 <!-- 🔒 Universal Core Controller Engine -->
@@ -630,7 +787,6 @@
         }
     }
 
-    /* 🚀 ระบบ Auto-Hide / Auto-Show เมนูลอยเมื่อ Scroll */
     function initAutoScrollNav() {
         let lastScrollTop = 0;
         const nav = document.getElementById('nativeBottomNav');
@@ -638,27 +794,21 @@
 
         window.addEventListener('scroll', function() {
             let st = window.pageYOffset || document.documentElement.scrollTop;
-            
-            // เลื่อนลงเกิน 50px ให้สไลด์ซ่อนเมนูลง
             if (st > lastScrollTop && st > 50) {
                 nav.classList.add('nav-hidden');
-            } 
-            // เลื่อนขึ้นให้สไลด์เมนูกลับขึ้นมาอย่างสมูท
-            else {
+            } else {
                 nav.classList.remove('nav-hidden');
             }
             lastScrollTop = st <= 0 ? 0 : st;
         }, { passive: true });
     }
 
-    // 🔒 ระบบเปิด/ปิด Admin Drawer พร้อม Guard ตรวจสิทธิ์เฉพาะ ADMIN เท่านั้น
     window.toggleAdminDrawer = function(e) {
         if (e) e.stopPropagation();
 
         const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
         const userRole = currentUser ? (currentUser.role || '').toUpperCase() : '';
 
-        // ⛔ ป้องกันกรณี TEACHER หรือสิทธิ์อื่นพยายามสั่งเปิด Drawer
         if (!['ADMIN', 'SUPERADMIN'].includes(userRole)) {
             alert('⛔ เฉพาะผู้ดูแลระบบ (ADMIN) เท่านั้นที่สามารถเข้าถึงเมนูนี้ได้');
             return;
@@ -721,24 +871,20 @@
         }
     };
 
-    // 🟢 1. Main Controller Initialization
     document.addEventListener('DOMContentLoaded', async () => {
         try {
-            // 1. อ่าน Session ผู้ใช้งาน
             const currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
             if (!currentUser) return;
 
             const userRole = (currentUser.role || '').toUpperCase();
 
-            // 🔒 2. เช็กสิทธิ์ซ่อน/แสดง เมนู ADMIN CONTROL
-            const adminDrawerBtn = document.getElementById('adminDrawerBtn') || document.querySelector('[onclick*="toggleAdminDrawer"]');
+            const adminDrawerBtn = document.getElementById('btnAdminSideTrigger') || document.querySelector('[onclick*="toggleAdminDrawer"]');
             const adminSideDrawer = document.getElementById('adminSideDrawer') || document.getElementById('adminDrawerBackdrop');
             const adminCardBtn = document.getElementById('adminModuleCard');
 
             const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(userRole);
 
             if (!isAdmin) {
-                // หากเป็น TEACHER หรือสิทธิ์อื่น ให้ซ่อนปุ่มและเมนูแอดมินทั้งหมด
                 if (adminDrawerBtn) adminDrawerBtn.style.display = 'none';
                 if (adminSideDrawer) {
                     adminSideDrawer.style.display = 'none';
@@ -746,19 +892,15 @@
                 }
                 if (adminCardBtn) adminCardBtn.style.display = 'none';
             } else {
-                // หากเป็น ADMIN ให้แสดงตามปกติ
                 if (adminDrawerBtn) adminDrawerBtn.style.display = 'flex';
                 if (adminSideDrawer) adminSideDrawer.style.display = '';
             }
 
-            // 🟢 3. แสดงผลโปรไฟล์สดจาก SSO บน Header
             renderUniversalProfile(currentUser);
 
-            // 🟢 4. ดึงสถิตินักเรียน Real-Time
             const client = window.supabaseClient || window.db || window.supabase;
             await loadLandingRealStats(client);
 
-            // 🟢 5. เรียกใช้อุปกรณ์เสริม UI (นาฬิกา, เมนูเลื่อน, Gesture)
             startClock();
             initAutoScrollNav();
             initSwipeGestures();
@@ -770,8 +912,7 @@
         }
     });
 
-    // 🟢 2. ฟังก์ชันออกจากระบบ
-     async function handleLogout() {
+    async function handleLogout() {
         if (!confirm('คุณต้องการออกจากระบบและปิดหน้าต่างนี้ใช่หรือไม่?')) return;
     
         if (window.showBCWCurtain) {
@@ -785,28 +926,23 @@
             }
         } catch (e) {}
     
-        // ล้างข้อมูลการเข้าสู่ระบบทั้งหมด
         localStorage.clear();
         sessionStorage.clear();
         sessionStorage.setItem('bcw_just_logged_out', '1');
     
-        // 1. กรณีเปิดผ่าน LINE LIFF ให้สั่งปิดหน้าต่างแอป LINE ทันที
         if (window.liff && typeof liff.isInClient === 'function' && liff.isInClient()) {
             liff.closeWindow();
             return;
         }
     
-        // 2. สั่งปิดหน้าต่างแอป (PWA / WebView / Pop-up)
         window.close();
     
-        // 3. กรณีเปิดบนเบราว์เซอร์ปกติที่ไม่ยอมให้สั่ง window.close() ให้เด้งไปหน้า login แบบล้างค่าฟอร์มเกลี้ยง
         const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
         setTimeout(() => {
             window.location.replace(prefix + '/login.html?logout=1');
         }, 250);
     }
 
-    // 🟢 3. แสดงผลโปรไฟล์และรูป SSO บน Header
     function renderUniversalProfile(userProfile) {
         const nameEl = document.getElementById('userDisplayName') || document.getElementById('adminDisplayName');
         const badgeEl = document.getElementById('userRoleBadge') || document.getElementById('adminRoleBadge');
@@ -831,13 +967,13 @@
             badgeEl.textContent = roleMap[roleName] || roleName;
             
             if (roleName === 'STUDENT') {
-                badgeEl.className = "bg-sky-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                badgeEl.className = "bg-sky-400 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 tracking-wide";
             } else if (['ADMIN', 'SUPERADMIN'].includes(roleName)) {
-                badgeEl.className = "bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                badgeEl.className = "bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 tracking-wide";
             } else if (roleName === 'EXECUTIVE') {
-                badgeEl.className = "bg-purple-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                badgeEl.className = "bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 tracking-wide";
             } else {
-                badgeEl.className = "bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider";
+                badgeEl.className = "bg-amber-400 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 tracking-wide";
             }
         }
 
@@ -858,13 +994,11 @@
         }
     }
 
-    // 🟢 4. โหลดข้อมูลสถิตินักเรียนแบบ Safe-Query ป้องกัน Error 400
     async function loadLandingRealStats(client) {
         let studentCount = 0;
         let presentCount = 0;
 
         if (client) {
-            // 1. ดึงจำนวนนักเรียนทั้งหมด (students count)
             try {
                 const { count, error } = await client
                     .from('students')
@@ -877,7 +1011,6 @@
                 console.warn("Fetch Student Count Error:", err);
             }
 
-            // 2. ดึงจำนวนนักเรียนที่มาเรียนวันนี้
             try {
                 const { data: logs, count: pCount, error: err2 } = await client
                     .from('attendance_logs')
@@ -895,7 +1028,6 @@
             }
         }
 
-        // 3. ปรับค่า Fallback กรณีไม่พบข้อมูล
         if (studentCount === 0) {
             const cached = localStorage.getItem('bcw_cached_students_count');
             studentCount = (cached && !isNaN(cached) && Number(cached) > 0) ? parseInt(cached) : 2173;
@@ -903,7 +1035,6 @@
             localStorage.setItem('bcw_cached_students_count', studentCount);
         }
 
-        // 4. คำนวณเปอร์เซ็นต์และแสดงผลบน UI
         const total = studentCount;
         const present = presentCount;
         const percent = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
@@ -913,7 +1044,7 @@
         
         if (c1) c1.innerText = total.toLocaleString();
         if (c2) {
-            c2.innerHTML = `<span id="total_students_count">${total.toLocaleString()}</span> <span class="text-[9px] font-normal text-slate-500">คน</span>`;
+            c2.innerHTML = `<span id="total_students_count">${total.toLocaleString()}</span> <span class="text-[11px] font-normal text-slate-500 block">คน</span>`;
         }
 
         const pCountEl = document.getElementById('statPresentCountLanding');
@@ -923,11 +1054,10 @@
 
         const aiText = document.getElementById('aiSummaryText');
         if (aiText) {
-            aiText.innerHTML = `สรุปประจำวัน: นักเรียนมาเรียนแล้ว <strong class="text-emerald-700 font-bold">${present.toLocaleString()} คน (${percent}%)</strong> จากจำนวนนักเรียนทั้งหมด ${total.toLocaleString()} คน`;
+            aiText.innerHTML = `สรุปประจำวัน: นักเรียนมาเรียนแล้ว <strong class="text-emerald-700 font-semibold">${present.toLocaleString()} คน (${percent}%)</strong> จากจำนวนนักเรียนทั้งหมด ${total.toLocaleString()} คน`;
         }
     }
 
-    // 🟢 5. ระบบ Touch Swipe สำหรับ Bottom Sheet และ Drawer
     function initSwipeGestures() {
         var adminDrawer = document.getElementById('adminSideDrawer') || document.getElementById('adminDrawerBackdrop');
         if (adminDrawer) {
@@ -968,7 +1098,6 @@
         });
     }
 
-    // 🟢 6. ระบบนาฬิกา Realtime ภาษาไทย
     function startClock() {
         var thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
         var thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
