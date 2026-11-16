@@ -19,9 +19,8 @@
                     fontFamily: { sans: ['Kanit', 'Sarabun', 'sans-serif'] }
                 }
             }
-        }
+        };
 
-        // ประกาศฟังก์ชันออกจากระบบทันทีใน <head> ป้องกัน ReferenceError ทุกกรณี
         window.SUPABASE_DB_REF = null;
         window.handleLogout = async function() {
             try {
@@ -40,7 +39,7 @@
         };
     </script>
 
- <style>
+    <style>
         /* 📱 เฉพาะมือถือ: ล็อกความสูงพอดี 1 หน้าจอ (One-Screen No-Scroll App Layout แบบแอปวิชาการ) */
         @media (max-width: 1023px) {
             html, body {
@@ -288,7 +287,6 @@
             body { background-color: white !important; color: black !important; overflow: visible !important; height: auto !important; }
         }
     </style>
-    
     <script src="../../core/bcw-page-transition.js?v=1"></script>
 </head>
 <body class="affairs-app-body px-3 md:p-6 relative select-none">
@@ -304,7 +302,7 @@
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1 flex-wrap">
-                            <h1 class="text-[13px] sm:text-sm md:text-2xl font-extrabold text-amber-400 tracking-tight leading-none uppercase">BCW SMART HUB</h1>
+                            <h1 class="text-[12.5px] sm:text-sm md:text-2xl font-extrabold text-amber-400 tracking-tight leading-none uppercase">BCW SMART HUB</h1>
                             <span class="bg-amber-400/20 text-amber-300 border border-amber-400/60 px-1.5 py-0.5 rounded-md text-[9.5px] font-semibold shrink-0">กิจการนักเรียน</span>
                         </div>
                         <div class="text-[11px] md:text-base font-medium text-amber-100 leading-snug truncate mt-0.5">
@@ -351,6 +349,76 @@
         </header>
     </div>
 
+    <!-- 🧪 SIDE DRAWER MENU (เครื่องมือเฉพาะงานกิจการนักเรียน/ฝ่ายปกครอง) -->
+    <div id="drawerOverlay" class="drawer-overlay no-print" onclick="toggleDisciplineDrawer()">
+        <div id="drawerContent" class="drawer-content-glass p-4 space-y-3.5" onclick="event.stopPropagation()">
+            <div class="w-12 h-1.5 bg-slate-300 rounded-full mx-auto sm:hidden mb-1"></div>
+
+            <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 font-bold">
+                        <i class="fa-solid fa-shield-halved text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-xs sm:text-sm">เครื่องมือบริหารงานกิจการฯ</h3>
+                        <p class="text-[10px] text-slate-500">ปัดขวา 👉 เพื่อสไลด์ปิดแถบเครื่องมือ</p>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleDisciplineDrawer()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-2 text-xs font-semibold text-slate-800">
+                <a href="scanner.html" onclick="openSmartPage('scanner.html'); return false;" class="w-full text-left p-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-950 rounded-2xl flex items-center justify-between">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-camera-retro"></i></span>
+                        <span>สแกนใบหน้า AI ตรวจระเบียบ/มาสาย</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-amber-700"></i>
+                </a>
+
+                <button type="button" onclick="toggleDisciplineDrawer(); openGatepassModalUI();" class="w-full text-left p-3 bg-slate-50 hover:bg-amber-50 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs"><i class="fa-solid fa-door-open"></i></span>
+                        <span>บันทึกขออนุญาตออกนอกโรงเรียน</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                </button>
+
+                <button type="button" onclick="toggleDisciplineDrawer(); openAffairsSheet('roomSummaryDrawer');" class="w-full text-left p-3 bg-slate-50 hover:bg-sky-50 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs"><i class="fa-solid fa-table-list"></i></span>
+                        <span>ตารางสรุปเข้าแถวรายห้องเรียน</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                </button>
+
+                <button type="button" onclick="toggleDisciplineDrawer(); openAffairsSheet('execReportDrawer');" class="w-full text-left p-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs"><i class="fa-solid fa-chart-pie"></i></span>
+                        <span>รายงานสถิติผู้บริหาร</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                </button>
+
+                <button type="button" onclick="toggleDisciplineDrawer(); openAffairsSheet('reports12Drawer');" class="w-full text-left p-3 bg-slate-50 hover:bg-emerald-50 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs"><i class="fa-solid fa-folder-open"></i></span>
+                        <span>ศูนย์รายงานมาตรฐาน สพฐ. (12 ชุด)</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+                </button>
+
+                <button type="button" onclick="window.handleLogout()" class="w-full text-left p-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-900 rounded-2xl flex items-center justify-between cursor-pointer">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-right-from-bracket"></i></span>
+                        <span>ออกจากระบบ (Logout)</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-rose-600"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 2. MAIN CONTENT AREA (One-Screen No-Scroll บนมือถือ / Full Grid บนคอมพิวเตอร์) -->
     <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-between gap-2 my-1.5 min-h-0">
 
@@ -379,11 +447,11 @@
             </div>
         </section>
 
-        <!-- 📈 แผงหลักตรงกลาง (ยืดเต็มพื้นที่หน้าจอ 100dvh บนมือถือ สลับดูสรุปเข้าแถว / กราฟได้) -->
+        <!-- 📈 แผงหลักตรงกลาง (ยืดเต็มพื้นที่หน้าจอ 100dvh บนมือถือ) -->
         <section id="section-assembly" class="affairs-card p-2.5 md:p-4 flex-1 flex flex-col justify-between min-h-0">
             <div class="flex items-center justify-between gap-1.5 border-b border-slate-100 pb-1.5 shrink-0">
                 <h3 id="reportTitleText" class="text-xs md:text-base font-bold text-slate-900 flex items-center gap-1.5 truncate">
-                    <i class="fa-solid fa-users-rectangle text-amber-600"></i> สรุปการเข้าแถว & ความประพฤติ
+                    <i class="fa-solid fa-users-rectangle text-amber-600"></i> รายงานเข้าแถวเคารพธงชาติ
                 </h3>
                 <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl text-[11px] font-semibold shrink-0">
                     <button type="button" id="btnModeAssembly" onclick="switchReportMode('assembly')" class="px-2 py-1 rounded-lg bg-amber-600 text-white shadow-xs transition cursor-pointer">
@@ -396,7 +464,7 @@
             </div>
 
             <!-- กล่องสรุป ม.ต้น / ม.ปลาย แบบกระชับพอดี 1 หน้าจอ -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 my-1.5 shrink-0">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 my-auto shrink-0">
                 <!-- ม.ต้น -->
                 <div class="bg-slate-50 p-2 sm:p-3 rounded-xl border border-sky-200 space-y-1.5">
                     <div class="flex justify-between items-center">
@@ -434,7 +502,7 @@
             <button type="button" onclick="openAffairsSheet('roomSummaryDrawer')" class="lg:hidden w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl text-amber-950 font-bold text-xs flex items-center justify-between shrink-0 cursor-pointer active:scale-98">
                 <span class="flex items-center gap-2">
                     <i class="fa-solid fa-table-list text-amber-600"></i>
-                    <span>เปิดตารางสรุปเข้าแถว / มาเรียนรายห้องทั้งหมด</span>
+                    <span>เปิดตารางสรุปรายห้องเรียนทั้งหมด</span>
                 </span>
                 <span class="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full">ดูทั้งหมด <i class="fa-solid fa-chevron-right ml-0.5"></i></span>
             </button>
@@ -495,44 +563,334 @@
             </button>
         </div>
 
-                <div id="reports12GridSource" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"></div>
+        <!-- 💻 DESKTOP VIEW: แสดงฟอร์มบันทึกคะแนน, ประวัติ, สถิติผู้บริหาร และรายงาน 12 ชุดครบถ้วน -->
+        <div id="desktopExtendedSections" class="hidden lg:block space-y-5 mt-2">
+            <!-- ฟอร์มบันทึกคะแนนความประพฤติ + ตารางประวัติ -->
+            <section id="section-form-behavior" class="grid grid-cols-3 gap-5">
+                <div class="affairs-card p-5 space-y-4">
+                    <div class="border-b pb-3">
+                        <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-user text-amber-600"></i> บันทึกคะแนนความประพฤติ
+                        </h2>
+                    </div>
+                    <div class="flex rounded-xl bg-slate-100 p-1 text-xs font-bold gap-1">
+                        <button type="button" id="btnTabDeduct" class="form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow"><i class="fa-solid fa-minus-circle mr-1"></i> ตัดคะแนน</button>
+                        <button type="button" id="btnTabRepair" class="form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer"><i class="fa-solid fa-star mr-1"></i> ทำความดี (+คะแนน)</button>
+                    </div>
+
+                    <form id="deductForm" class="space-y-3 text-sm">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">กรอกรหัสนักเรียน</label>
+                            <input type="text" id="studentCodeInput" placeholder="กรอกรหัสนักเรียน เช่น 10001" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-amber-600" required autocomplete="off">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">ชื่อ-นามสกุล / ชั้นเรียน</label>
+                            <input type="text" id="studentNameDisplay" placeholder="ระบุรหัสนักเรียนเพื่อแสดงชื่อ..." class="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-800" readonly>
+                            <p id="studentScorePreview" class="text-xs font-bold mt-1 text-emerald-600">คะแนนปัจจุบัน: 100 / 100 คะแนน 🟢 (ปกติ)</p>
+                        </div>
+                        <div id="deductFields" class="space-y-3">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">ฐานความผิด</label>
+                                <select id="reasonSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none">
+                                    <option value="หนีเรียน/ออกนอกสถานศึกษา" data-points="10">หนีเรียน/ออกนอกสถานศึกษา (-10 คะแนน)</option>
+                                    <option value="มาสายเกินกำหนด" data-points="5">มาสายเกินกำหนด (-5 คะแนน)</option>
+                                    <option value="แต่งกายผิดระเบียบ" data-points="5">แต่งกายผิดระเบียบ (-5 คะแนน)</option>
+                                    <option value="ทะเลาะวิวาท" data-points="20">ทะเลาะวิวาท (-20 คะแนน)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">จำนวนคะแนนที่หัก (-Points)</label>
+                                <input type="number" id="deductPoints" value="10" min="1" max="50" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-rose-600">
+                            </div>
+                        </div>
+                        <div id="repairFields" class="space-y-3 hidden">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">รายการทำความดี</label>
+                                <select id="repairReasonSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:outline-none">
+                                    <option value="สร้างชื่อเสียงให้กับโรงเรียน" data-points="20">สร้างชื่อเสียงให้กับโรงเรียน (+20 คะแนน)</option>
+                                    <option value="เก็บของตกสูญหายนำส่งคืนเจ้าของ" data-points="10">เก็บของตกสูญหายนำส่งคืนเจ้าของ (+10 คะแนน)</option>
+                                    <option value="ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน" data-points="10">ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน (+10 คะแนน)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">จำนวนคะแนนที่เพิ่มให้ (+Points)</label>
+                                <input type="number" id="addPoints" value="20" min="1" max="40" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-600">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">หมายเหตุ</label>
+                            <textarea id="noteInput" rows="2" placeholder="รายละเอียดเพิ่มเติม..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium"></textarea>
+                        </div>
+                        <button type="submit" id="btnSubmitForm" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน
+                        </button>
+                    </form>
+                </div>
+
+                <div class="col-span-2 affairs-card p-5 space-y-4">
+                    <div class="flex flex-wrap border-b gap-3 text-sm font-bold text-slate-500">
+                        <button id="tabHist" class="tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-list-check"></i> ประวัติหัก/เพิ่มคะแนน</button>
+                        <button id="tabRisk" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i> กลุ่มติดเงื่อนไข &lt; 80</button>
+                        <button id="tabGate" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-door-open text-amber-500"></i> รายงานขอออกนอกโรงเรียน</button>
+                    </div>
+
+                    <div id="viewHistory" class="space-y-3">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left min-w-[500px]">
+                                <thead class="bg-slate-50 text-slate-600 border-b font-bold">
+                                    <tr>
+                                        <th class="p-2.5">นักเรียน</th>
+                                        <th class="p-2.5">รายการ / กิจกรรม</th>
+                                        <th class="p-2.5 text-center">หัก/คืน</th>
+                                        <th class="p-2.5 text-center">คะแนนคงเหลือ</th>
+                                        <th class="p-2.5">เวลาบันทึก</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="disciplineTableBody" class="divide-y divide-slate-100 font-medium">
+                                    <tr><td colspan="5" class="text-center py-6 text-slate-400">✨ ยังไม่มีประวัติบันทึกคะแนนความประพฤติ</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="viewRisk" class="space-y-3 hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left min-w-[500px]">
+                                <thead class="bg-rose-50 text-rose-800 border-b font-bold">
+                                    <tr>
+                                        <th class="p-2.5">นักเรียน / ชั้น</th>
+                                        <th class="p-2.5 text-center">คะแนนปัจจุบัน</th>
+                                        <th class="p-2.5">เป้าหมายซ่อมเพิ่ม</th>
+                                        <th class="p-2.5 text-center">สถานะสิทธิ์</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="riskTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="viewGatepass" class="space-y-3 hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left min-w-[550px]">
+                                <thead class="bg-amber-50 text-amber-900 border-b font-bold">
+                                    <tr>
+                                        <th class="p-2.5">นักเรียน / ห้อง</th>
+                                        <th class="p-2.5">เวลาออก-กลับ</th>
+                                        <th class="p-2.5">วัตถุประสงค์</th>
+                                        <th class="p-2.5 text-center">สถานะ</th>
+                                        <th class="p-2.5">ผู้อนุมัติ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gatepassTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Executive Report -->
+            <section id="section-exec-report" class="affairs-card p-5 border-amber-300 space-y-4">
+                <div class="flex flex-wrap justify-between items-center gap-3 border-b pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center"><i class="fa-solid fa-chart-pie"></i></div>
+                        <div>
+                            <h2 class="text-base font-extrabold text-amber-950">รายงานสถิติพฤติกรรมเชิงลึกสำหรับผู้บริหาร</h2>
+                            <p class="text-xs text-amber-700 font-medium">สรุปแนวโน้มความประพฤติและตัวชี้วัดคุณภาพผู้เรียน</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="printOfficialReport('รายงานสถิติพฤติกรรมเชิงลึกสำหรับผู้บริหาร')" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-print"></i> พิมพ์รายงานผู้บริหาร
+                    </button>
+                </div>
+
+                <div id="execReportContentSource" class="space-y-4">
+                    <div class="grid grid-cols-4 gap-3">
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <p class="text-xs font-bold text-slate-500">เคสทำผิดสะสม</p>
+                            <h3 id="execTotalOffenseCount" class="text-xl font-extrabold text-slate-800 mt-0.5">0 ครั้ง</h3>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <p class="text-xs font-bold text-slate-500">คะแนนเฉลี่ยทั้ง รร.</p>
+                            <h3 id="execSchoolAvgScore" class="text-xl font-extrabold text-emerald-600 mt-0.5">100.0 / 100</h3>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <p class="text-xs font-bold text-slate-500">อัตราการซ่อม/ความดี</p>
+                            <h3 id="execRepairRate" class="text-xl font-extrabold text-sky-600 mt-0.5">0%</h3>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <p class="text-xs font-bold text-slate-500">ออกนอกสถานศึกษา</p>
+                            <h3 id="execGatepassTotal" class="text-xl font-extrabold text-purple-600 mt-0.5">0 ฉบับ</h3>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <h4 class="font-bold text-xs text-slate-700 mb-2">แนวโน้มพฤติกรรมรายเดือน</h4>
+                            <div class="h-48"><canvas id="execBehaviorTrendChart"></canvas></div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-700 mb-2">Top 3 ฐานความผิดสูงสุด</h4>
+                                <div id="top3OffensesList" class="text-center py-6 text-xs text-slate-400 font-medium">✨ ยังไม่มีประวัติการกระทำผิด</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 12 Standard Reports -->
+            <section id="section-12-reports" class="affairs-card p-5 space-y-4">
+                <div class="flex flex-wrap justify-between items-center gap-3 border-b pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 bg-slate-800 text-white rounded-xl flex items-center justify-center"><i class="fa-solid fa-folder-open"></i></div>
+                        <div>
+                            <h2 class="text-base font-extrabold text-slate-900">ศูนย์รวมรายงานมาตรฐาน สพฐ. (12 รายการ)</h2>
+                            <p class="text-xs text-slate-500 font-medium">คลิกพิมพ์รายงานแต่ละรายการได้ทันที</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="reports12GridSource" class="grid grid-cols-3 gap-4"></div>
             </section>
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-slate-950 text-slate-300 text-center text-xs py-3 border-t border-slate-800 no-print">
-        © 2026 โรงเรียนบัวเชดวิทยา (BCW Smart Hub) • Student Affairs & Discipline System
-    </footer>
-
-    <!-- 3. FLOATING PILL BOTTOM NAVIGATION BAR (มาตรฐาน App) -->
+    <!-- 3. FLOATING PILL BOTTOM NAVIGATION BAR (มาตรฐาน App แบบเดียวกับแอปวิชาการ) -->
     <nav class="native-bottom-nav no-print">
-        <button id="navAffHome" type="button" class="nav-item-btn active" onclick="scrollToDisciplineSection('section-kpis', this)">
+        <button id="navAffHome" type="button" class="nav-item-btn active" onclick="switchAffairsTab('home')">
             <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
             <span>หน้าหลัก</span>
         </button>
-        <button id="navAffAssembly" type="button" class="nav-item-btn" onclick="scrollToDisciplineSection('section-assembly', this)">
-            <div class="nav-icon-box"><i class="fa-solid fa-flag"></i></div>
-            <span>เคารพธงชาติ</span>
-        </button>
-        <button id="navAffGate" type="button" class="nav-item-btn highlight-gate" onclick="openGatepassModalUI()">
-            <div class="nav-icon-box"><i class="fa-solid fa-door-open"></i></div>
-            <span class="font-bold text-amber-800">ขอออกนอก</span>
-        </button>
-        <button id="navAffBehavior" type="button" class="nav-item-btn" onclick="scrollToDisciplineSection('section-form-behavior', this)">
+        <button id="navAffBehavior" type="button" class="nav-item-btn" onclick="openAffairsSheet('behaviorFormDrawer')">
             <div class="nav-icon-box"><i class="fa-solid fa-clipboard-user"></i></div>
             <span>ตัดคะแนน</span>
         </button>
+        <button id="navAffGate" type="button" class="nav-item-btn highlight-gate" onclick="openGatepassModalUI()">
+            <div class="nav-icon-box"><i class="fa-solid fa-door-open"></i></div>
+            <span class="font-semibold text-amber-800">ขอออกนอก</span>
+        </button>
+        <button id="navAffExec" type="button" class="nav-item-btn" onclick="openAffairsSheet('execReportDrawer')">
+            <div class="nav-icon-box"><i class="fa-solid fa-chart-pie"></i></div>
+            <span>สถิติผู้บริหาร</span>
+        </button>
     </nav>
 
-    <!-- ================= BOTTOM SHEET DRAWERS ================= -->
+    <!-- ================= BOTTOM SHEET DRAWERS (สำหรับมือถือ) ================= -->
+
+    <!-- Drawer A: ตารางสรุปเข้าแถว / มาเรียนรายห้องเรียนทั้งหมด -->
+    <div id="roomSummaryDrawer" class="bottom-sheet-backdrop" onclick="closeAffairsSheet('roomSummaryDrawer')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-table-list"></i></div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">สรุปเข้าแถว / มาเรียนรายห้องเรียน</h3>
+                        <p class="text-xs text-slate-600">แตะปุ่ม "รายชื่อ" เพื่อดูสถานะนักเรียนรายคน</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAffairsSheet('roomSummaryDrawer')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            <div class="p-3 drawer-scroll-content flex-1 text-xs">
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left border-collapse text-xs min-w-[460px]">
+                        <thead class="bg-amber-950 text-white font-bold">
+                            <tr>
+                                <th class="py-2 px-2">ห้องเรียน</th>
+                                <th class="py-2 px-1.5 text-center">รวม</th>
+                                <th class="py-2 px-1.5 text-center">มา</th>
+                                <th class="py-2 px-1.5 text-center">สาย</th>
+                                <th class="py-2 px-1.5 text-center">ขาด</th>
+                                <th class="py-2 px-1.5 text-center">ลา</th>
+                                <th class="py-2 px-1.5 text-center">หนี</th>
+                                <th class="py-2 px-2 text-center">รายชื่อ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mobileAssemblyTableBody" class="divide-y divide-slate-200 font-medium bg-white">
+                            <tr><td colspan="8" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูลรายห้องเรียน...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer B: บันทึกตัดคะแนน / ทำความดี (สำหรับมือถือ) -->
+    <div id="behaviorFormDrawer" class="bottom-sheet-backdrop" onclick="closeAffairsSheet('behaviorFormDrawer')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-rose-100 text-rose-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-clipboard-user"></i></div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">บันทึกคะแนนความประพฤติ</h3>
+                        <p class="text-xs text-slate-600">ตัดคะแนนความประพฤติ หรือเพิ่มคะแนนทำความดี</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAffairsSheet('behaviorFormDrawer')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            <div class="p-3.5 drawer-scroll-content flex-1 text-xs space-y-3">
+                <div class="flex rounded-xl bg-slate-100 p-1 text-xs font-bold gap-1">
+                    <button type="button" id="mBtnTabDeduct" onclick="syncMobileFormMode('deduct')" class="form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow"><i class="fa-solid fa-minus-circle mr-1"></i> ตัดคะแนน</button>
+                    <button type="button" id="mBtnTabRepair" onclick="syncMobileFormMode('repair')" class="form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer"><i class="fa-solid fa-star mr-1"></i> ทำความดี (+คะแนน)</button>
+                </div>
+
+                <form id="mobileDeductForm" class="space-y-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">กรอกรหัสนักเรียน</label>
+                        <input type="text" id="mStudentCodeInput" placeholder="กรอกรหัสนักเรียน เช่น 10001" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900" required autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">ชื่อ-นามสกุล / ชั้นเรียน</label>
+                        <input type="text" id="mStudentNameDisplay" placeholder="ระบุรหัสนักเรียนเพื่อแสดงชื่อ..." class="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-800" readonly>
+                        <p id="mStudentScorePreview" class="text-xs font-bold mt-1 text-emerald-600">คะแนนปัจจุบัน: 100 / 100 คะแนน 🟢 (ปกติ)</p>
+                    </div>
+                    <div id="mDeductFields" class="space-y-2.5">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">ฐานความผิด</label>
+                            <select id="mReasonSelect" onchange="document.getElementById('mDeductPoints').value = this.options[this.selectedIndex].dataset.points" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium">
+                                <option value="หนีเรียน/ออกนอกสถานศึกษา" data-points="10">หนีเรียน/ออกนอกสถานศึกษา (-10 คะแนน)</option>
+                                <option value="มาสายเกินกำหนด" data-points="5">มาสายเกินกำหนด (-5 คะแนน)</option>
+                                <option value="แต่งกายผิดระเบียบ" data-points="5">แต่งกายผิดระเบียบ (-5 คะแนน)</option>
+                                <option value="ทะเลาะวิวาท" data-points="20">ทะเลาะวิวาท (-20 คะแนน)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">จำนวนคะแนนที่หัก (-Points)</label>
+                            <input type="number" id="mDeductPoints" value="10" min="1" max="50" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-rose-600">
+                        </div>
+                    </div>
+                    <div id="mRepairFields" class="space-y-2.5 hidden">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">รายการทำความดี</label>
+                            <select id="mRepairReasonSelect" onchange="document.getElementById('mAddPoints').value = this.options[this.selectedIndex].dataset.points" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium">
+                                <option value="สร้างชื่อเสียงให้กับโรงเรียน" data-points="20">สร้างชื่อเสียงให้กับโรงเรียน (+20 คะแนน)</option>
+                                <option value="เก็บของตกสูญหายนำส่งคืนเจ้าของ" data-points="10">เก็บของตกสูญหายนำส่งคืนเจ้าของ (+10 คะแนน)</option>
+                                <option value="ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน" data-points="10">ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน (+10 คะแนน)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">จำนวนคะแนนที่เพิ่มให้ (+Points)</label>
+                            <input type="number" id="mAddPoints" value="20" min="1" max="40" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-600">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">หมายเหตุ</label>
+                        <textarea id="mNoteInput" rows="2" placeholder="รายละเอียดเพิ่มเติม..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium"></textarea>
+                    </div>
+                    <button type="submit" id="mBtnSubmitForm" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow transition text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Drawer 1: ประวัติคะแนนความประพฤติ (สำหรับมือถือ) -->
     <div id="behaviorHistoryDrawer" class="bottom-sheet-backdrop" onclick="closeAffairsSheet('behaviorHistoryDrawer')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
             <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
-                <h3 class="text-sm font-extrabold text-slate-900">📋 ประวัติบันทึกคะแนน / กลุ่มเสี่ยง / ขอออกนอก</h3>
+                <h3 class="text-sm font-extrabold text-slate-900">📋 ประวัติบันทึกคะแนนความประพฤติ</h3>
                 <button type="button" onclick="closeAffairsSheet('behaviorHistoryDrawer')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
             <div id="mobileHistorySlot" class="p-3 drawer-scroll-content flex-1 text-xs">
@@ -784,6 +1142,31 @@
             if (el) el.classList.remove('active');
         };
 
+        window.switchAffairsTab = function(tab) {
+            document.querySelectorAll('.bottom-sheet-backdrop').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item-btn').forEach(b => b.classList.remove('active'));
+            if (tab === 'home') {
+                document.getElementById('navAffHome')?.classList.add('active');
+            }
+        };
+
+        let mobileFormMode = 'deduct';
+        window.syncMobileFormMode = function(mode) {
+            mobileFormMode = mode;
+            document.getElementById('mBtnTabDeduct').className = mode === 'deduct' ? "form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            document.getElementById('mBtnTabRepair').className = mode === 'repair' ? "form-tab active-repair flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            document.getElementById('mDeductFields').classList.toggle('hidden', mode !== 'deduct');
+            document.getElementById('mRepairFields').classList.toggle('hidden', mode !== 'repair');
+            const btn = document.getElementById('mBtnSubmitForm');
+            if (mode === 'deduct') {
+                btn.className = "w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow transition text-xs flex items-center justify-center gap-1.5 cursor-pointer";
+                btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน`;
+            } else {
+                btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl shadow transition text-xs flex items-center justify-center gap-1.5 cursor-pointer";
+                btn.innerHTML = `<i class="fa-solid fa-star"></i> บันทึกทำความดีและเพิ่มคะแนน`;
+            }
+        };
+
         function openGatepassModalUI() {
             const overlay = document.getElementById('drawerOverlay');
             if (overlay && overlay.classList.contains('active')) toggleDisciplineDrawer();
@@ -794,21 +1177,9 @@
             }
         }
 
-        function scrollToDisciplineSection(sectionId, btnElement) {
-            const target = document.getElementById(sectionId);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                if (btnElement) {
-                    document.querySelectorAll('.nav-item-btn').forEach(btn => btn.classList.remove('active'));
-                    btnElement.classList.add('active');
-                }
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             render12ReportsLists();
 
-            // Swipe right to close Side Drawer
             const drawer = document.getElementById('drawerContent');
             if (drawer) {
                 let startX = 0, currentX = 0, isSwiping = false;
@@ -833,7 +1204,6 @@
                 }, { passive: true });
             }
 
-            // Swipe down to close Bottom Sheet Drawers
             document.querySelectorAll('.bottom-sheet-card').forEach(card => {
                 let startY = 0, currentY = 0;
                 card.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
@@ -855,156 +1225,101 @@
         });
     </script>
 
-<!-- ================= 2. SUPABASE & BUSINESS LOGIC MODULE ================= -->
-    <script>
-        function updateThaiClock() {
-            const now = new Date();
-            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-            const dateElem = document.getElementById('thaiDateStr');
-            if (dateElem) dateElem.innerText = `${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
-
-            const clockElem = document.getElementById('liveClock');
-            if (clockElem) clockElem.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-        }
-        updateThaiClock();
-        setInterval(updateThaiClock, 1000);
-
-        window.openSmartPage = async function(pageName) {
-            const paths = [pageName, `../../${pageName}`, `../${pageName}`, `modules/student-affairs/${pageName}`];
-            for (const p of paths) {
-                try {
-                    const res = await fetch(p, { method: 'HEAD' });
-                    if (res.ok) { window.location.href = p; return; }
-                } catch (_) {}
-            }
-            window.location.href = `../../${pageName}`;
-        };
-    </script>
-
+    <!-- ================= 2. SUPABASE & BUSINESS LOGIC MODULE ================= -->
     <script type="module">
-        import { db } from '../../core/supabase-client.js';
-        window.SUPABASE_DB_REF = db;
+        import { supabase } from '../../core/supabase-client.js';
+        window.SUPABASE_DB_REF = supabase;
 
-        let appData = { students: [], behaviorLogs: [], gatePassLogs: [], attendanceLogs: [], clinicRecords: [] };
         let currentFormMode = 'deduct';
         let currentReportMode = 'assembly';
         let selectedStudentForGatepass = null;
+        let currentRoomStudentsCache = [];
         let execChartInstance = null;
 
-        function getStudentFullName(s) {
-            if (!s) return 'ไม่ระบุชื่อ';
-            if (s.full_name) return s.full_name;
-            const prefix = s.prefix || s.title || '';
-            const first = s.first_name || s.firstname || s.name || '';
-            const last = s.last_name || s.lastname || s.surname || '';
-            const combined = `${prefix}${first} ${last}`.trim();
-            return combined || s.student_id || 'ไม่ระบุชื่อ';
-        }
+        let appData = {
+            students: [],
+            disciplineLogs: [],
+            gatePassLogs: [],
+            attendanceLogs: [],
+            clinicLogs: []
+        };
 
-        function calculateStudentScore(studentName, logs) {
-            if (!studentName || !Array.isArray(logs)) return 100;
-            const delta = logs
-                .filter(l => (l.student_name || '').includes(studentName))
-                .reduce((sum, l) => sum + (Number(l.points) || 0), 0);
-            return Math.max(0, Math.min(100, 100 + delta));
+        function updateThaiClock() {
+            const now = new Date();
+            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            const dateStr = `วันที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
+            const timeStr = now.toTimeString().split(' ')[0];
+            const dateElem = document.getElementById('thaiDateStr');
+            if (dateElem) dateElem.innerText = dateStr;
+            const clockElem = document.getElementById('liveClock');
+            if (clockElem) clockElem.innerText = timeStr;
         }
-
-        async function fetchAllDataDirect() {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const [resStudents, resBehavior, resGate, resAtt, resClinic] = await Promise.all([
-                db.from('students').select('*').order('classroom', { ascending: true }),
-                db.from('behavior_logs').select('*').order('created_at', { ascending: false }).limit(100),
-                db.from('gate_passes').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false }),
-                db.from('attendance_logs').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false }),
-                db.from('clinic_records').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false })
-            ]);
-
-            return {
-                students: resStudents.data || [],
-                behaviorLogs: resBehavior.data || [],
-                gatePassLogs: resGate.data || [],
-                attendanceLogs: resAtt.data || [],
-                clinicRecords: resClinic.data || []
-            };
-        }
+        setInterval(updateThaiClock, 1000);
+        updateThaiClock();
 
         window.openKpiModal = function(type) {
             const modal = document.getElementById('kpiListModal');
             const title = document.getElementById('modalKpiTitle');
             const tbody = document.getElementById('modalKpiBody');
-            if (!modal || !title || !tbody) return;
+            if (!modal || !tbody) return;
 
-            tbody.innerHTML = '';
-
+            let rowsHtml = '';
             if (type === 'risk') {
-                title.innerText = '📋 รายชื่อนักเรียนกลุ่มเสี่ยงวิกฤต (< 80 คะแนน)';
-                const riskStudents = appData.students.filter(s => calculateStudentScore(getStudentFullName(s), appData.behaviorLogs) < 80);
-                if (riskStudents.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-5 text-center text-slate-400 font-bold">✅ ไม่พบรายชื่อนักเรียนกลุ่มเสี่ยงวิกฤต</td></tr>`;
-                } else {
-                    riskStudents.forEach(s => {
-                        const fullName = getStudentFullName(s);
-                        const score = calculateStudentScore(fullName, appData.behaviorLogs);
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-slate-50 border-b border-slate-200">
-                                <td class="py-2 px-2 font-bold text-slate-800">${fullName}</td>
-                                <td class="py-2 px-2 text-center font-bold text-slate-600">${s.classroom || '-'}</td>
-                                <td class="py-2 px-2 text-rose-600 font-bold">คงเหลือ ${score} คะแนน (ซ่อมเพิ่ม ${80 - score} คะแนน)</td>
-                            </tr>`;
-                    });
-                }
+                title.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600"></i> รายชื่อนักเรียนกลุ่มเสี่ยง (< 80 คะแนน)`;
+                const list = appData.students.filter(s => (s.behavior_score ?? 100) < 80);
+                rowsHtml = list.length ? list.map(s => `
+                    <tr>
+                        <td class="py-2 px-2 font-bold text-slate-900">${getStudentFullName(s)}</td>
+                        <td class="py-2 px-2 text-center font-bold">${s.classroom || '-'}</td>
+                        <td class="py-2 px-2 font-extrabold text-rose-600">เหลือ ${s.behavior_score} คะแนน (ต้องซ่อมอีก ${80 - s.behavior_score} คะแนน)</td>
+                    </tr>
+                `).join('') : `<tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold">✨ ไม่มีนักเรียนติดเงื่อนไขเสี่ยง</td></tr>`;
             } else if (type === 'gatepass') {
-                title.innerText = '📋 รายชื่อนักเรียนที่ขอออกนอกสถานศึกษาประจำวัน';
-                if (appData.gatePassLogs.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-5 text-center text-slate-400 font-bold">ไม่มีรายการขอออกนอกสถานศึกษาในวันนี้</td></tr>`;
-                } else {
-                    appData.gatePassLogs.forEach(g => {
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-slate-50 border-b border-slate-200">
-                                <td class="py-2 px-2 font-bold text-slate-800">${g.student_name || g.student_id}</td>
-                                <td class="py-2 px-2 text-center font-bold text-slate-600">${g.exit_time || '-'} - ${g.return_time || '-'}</td>
-                                <td class="py-2 px-2 text-slate-700 font-semibold">${g.reason || 'ขอออกนอกโรงเรียน'}</td>
-                            </tr>`;
-                    });
-                }
+                title.innerHTML = `<i class="fa-solid fa-door-open text-amber-600"></i> รายชื่อนักเรียนขอออกนอกสถานศึกษาวันนี้`;
+                const list = appData.gatePassLogs;
+                rowsHtml = list.length ? list.map(g => `
+                    <tr>
+                        <td class="py-2 px-2 font-bold text-slate-900">${g.student_name}</td>
+                        <td class="py-2 px-2 text-center font-bold">${g.classroom || '-'}</td>
+                        <td class="py-2 px-2 text-slate-700">${g.reason || '-'} (${g.exit_time || '-'} - ${g.return_time || 'ยังไม่กลับ'})</td>
+                    </tr>
+                `).join('') : `<tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold">✨ ยังไม่มีรายการขอออกนอกโรงเรียนวันนี้</td></tr>`;
             } else if (type === 'infirmary') {
-                title.innerText = '📋 รายชื่อนักเรียนที่เข้าใช้ห้องพยาบาลประจำวัน';
-                if (appData.clinicRecords.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-5 text-center text-slate-400 font-bold">ไม่มีประวัติเข้าใช้ห้องพยาบาลในวันนี้</td></tr>`;
-                } else {
-                    appData.clinicRecords.forEach(c => {
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-slate-50 border-b border-slate-200">
-                                <td class="py-2 px-2 font-bold text-slate-800">${c.student_name || c.student_id}</td>
-                                <td class="py-2 px-2 text-center font-bold text-slate-600">${c.classroom || '-'}</td>
-                                <td class="py-2 px-2 text-sky-700 font-bold">${c.symptom || 'ป่วย/นอนพักผ่อน'}</td>
-                            </tr>`;
-                    });
-                }
+                title.innerHTML = `<i class="fa-solid fa-hospital-user text-sky-600"></i> รายชื่อนักเรียนเข้าใช้ห้องพยาบาลวันนี้`;
+                const list = appData.clinicLogs.filter(c => c.status !== 'กลับเข้าเรียนแล้ว');
+                rowsHtml = list.length ? list.map(c => `
+                    <tr>
+                        <td class="py-2 px-2 font-bold text-slate-900">${c.student_name || '-'}</td>
+                        <td class="py-2 px-2 text-center font-bold">${c.classroom || '-'}</td>
+                        <td class="py-2 px-2 text-sky-700 font-bold">${c.symptom || 'เข้าพักรักษาอาการ'} (${c.status || 'กำลังพักรักษา'})</td>
+                    </tr>
+                `).join('') : `<tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold">✨ ไม่มีนักเรียนพักรักษาในห้องพยาบาลขณะนี้</td></tr>`;
             } else if (type === 'truancy') {
-                title.innerText = '📋 รายชื่อนักเรียนที่มีประวัติหนีเรียน/ขาดเรียนวันนี้';
-                const truants = appData.attendanceLogs.filter(a => ['TRUANT', 'ABSENT'].includes((a.status || '').toUpperCase()));
-                if (truants.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-5 text-center text-slate-400 font-bold">✅ ไม่พบประวัติการหนีเรียนในวันนี้</td></tr>`;
-                } else {
-                    truants.forEach(a => {
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-slate-50 border-b border-slate-200">
-                                <td class="py-2 px-2 font-bold text-slate-800">${a.student_name || a.student_id}</td>
-                                <td class="py-2 px-2 text-center font-bold text-slate-600">${a.classroom || '-'}</td>
-                                <td class="py-2 px-2 text-purple-700 font-bold">${a.note || 'ขาดเช็คชื่อ'}</td>
-                            </tr>`;
-                    });
-                }
+                title.innerHTML = `<i class="fa-solid fa-person-running text-purple-600"></i> รายชื่อนักเรียนหนีเรียน / ขาดเรียนรายคาบวันนี้`;
+                const list = appData.attendanceLogs;
+                rowsHtml = list.length ? list.map(t => {
+                    const st = appData.students.find(s => s.student_code === t.student_code || s.id === t.student_id);
+                    return `
+                        <tr>
+                            <td class="py-2 px-2 font-bold text-slate-900">${st ? getStudentFullName(st) : (t.student_code || 'ไม่ระบุรหัส')}</td>
+                            <td class="py-2 px-2 text-center font-bold">${st?.classroom || t.classroom || '-'}</td>
+                            <td class="py-2 px-2 text-purple-700 font-bold">วิชา: ${t.subject_name || t.subject_code || '-'} (คาบ ${t.period || '-'})</td>
+                        </tr>
+                    `;
+                }).join('') : `<tr><td colspan="3" class="text-center py-6 text-slate-400 font-bold">✨ ไม่มีข้อมูลการหนีเรียนรายคาบวันนี้</td></tr>`;
             }
 
+            tbody.innerHTML = rowsHtml;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         };
 
         window.closeKpiModal = function() {
             const modal = document.getElementById('kpiListModal');
-            if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
         };
 
         window.switchReportMode = function(mode) {
@@ -1012,51 +1327,35 @@
             const btnAssembly = document.getElementById('btnModeAssembly');
             const btnDaily = document.getElementById('btnModeDaily');
             const titleText = document.getElementById('reportTitleText');
-
             if (mode === 'assembly') {
-                btnAssembly.className = "px-3 py-1.5 rounded-lg bg-sky-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer";
-                btnDaily.className = "px-3 py-1.5 rounded-lg hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer";
-                titleText.innerText = "📌 รายงานสรุปการเข้าแถวเคารพธงชาติ (ม.ต้น / ม.ปลาย)";
+                btnAssembly.className = "px-2 py-1 rounded-lg bg-amber-600 text-white shadow-xs transition cursor-pointer";
+                btnDaily.className = "px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer";
+                titleText.innerHTML = `<i class="fa-solid fa-users-rectangle text-amber-600"></i> รายงานเข้าแถวเคารพธงชาติ`;
             } else {
-                btnDaily.className = "px-3 py-1.5 rounded-lg bg-sky-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer";
-                btnAssembly.className = "px-3 py-1.5 rounded-lg hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer";
-                titleText.innerText = "🏫 รายงานสรุปการมาเรียนประจำวัน (ม.ต้น / ม.ปลาย)";
+                btnDaily.className = "px-2 py-1 rounded-lg bg-sky-600 text-white shadow-xs transition cursor-pointer";
+                btnAssembly.className = "px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer";
+                titleText.innerHTML = `<i class="fa-solid fa-school-flag text-sky-600"></i> รายงานการมาเรียนประจำวัน`;
             }
-            renderAssemblyTable();
+            renderAssemblyReport();
         };
 
         window.openRoomDrawer = function(roomName) {
             document.getElementById('drawerRoomTitle').innerText = `รายละเอียดห้อง ${roomName}`;
-            document.getElementById('drawerRoomSub').innerText = currentReportMode === 'assembly' ? 'สถานะการเข้าแถวรายบุคคล' : 'สถานะการมาเรียนรายบุคคล';
+            document.getElementById('drawerRoomSub').innerText = currentReportMode === 'assembly' ? 'สถานะการเข้าแถวรายบุคคล' : 'สถานะการมาเรียนประจำวันรายบุคคล';
             
             const tbody = document.getElementById('drawerStudentList');
-            const studentsInRoom = appData.students.filter(s => (s.classroom || s.class_name) === roomName);
+            const roomStudents = currentRoomStudentsCache.filter(s => s.classroom === roomName);
             
-            if (studentsInRoom.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-slate-400">ไม่พบรายชื่อนักเรียนในห้องนี้</td></tr>`;
+            if (roomStudents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-slate-400">ไม่มีรายชื่อนักเรียนในห้องนี้</td></tr>`;
             } else {
-                tbody.innerHTML = studentsInRoom.map((s, idx) => {
-                    const sid = String(s.student_id || s.code || '');
-                    const log = appData.attendanceLogs.find(a => String(a.student_id) === sid);
-                    const gate = appData.gatePassLogs.find(g => String(g.student_id) === sid);
-
-                    let badge = `<span class="bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full text-[11px]">มาเรียน</span>`;
-                    if (gate) badge = `<span class="bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded-full text-[11px]">ขอออกนอก รร.</span>`;
-                    else if (log) {
-                        const st = (log.status || '').toUpperCase();
-                        if (st === 'LATE') badge = `<span class="bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded-full text-[11px]">มาสาย</span>`;
-                        else if (st === 'LEAVE') badge = `<span class="bg-sky-100 text-sky-800 font-extrabold px-2 py-0.5 rounded-full text-[11px]">ลา</span>`;
-                        else if (st === 'ABSENT') badge = `<span class="bg-rose-100 text-rose-800 font-extrabold px-2 py-0.5 rounded-full text-[11px]">ขาด</span>`;
-                        else if (st === 'TRUANT') badge = `<span class="bg-purple-100 text-purple-800 font-extrabold px-2 py-0.5 rounded-full text-[11px]">หนีเรียน</span>`;
-                    }
-
-                    return `
-                        <tr class="hover:bg-slate-50">
-                            <td class="p-2 font-bold text-slate-600">${s.number || idx + 1}</td>
-                            <td class="p-2 font-bold text-slate-800">${getStudentFullName(s)}</td>
-                            <td class="p-2 text-center">${badge}</td>
-                        </tr>`;
-                }).join('');
+                tbody.innerHTML = roomStudents.map((st, idx) => `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2 font-bold text-slate-500">${st.student_number || (idx + 1)}</td>
+                        <td class="p-2 font-bold text-slate-900">${getStudentFullName(st)} <span class="block text-[10px] text-slate-400 font-normal">รหัส: ${st.student_code}</span></td>
+                        <td class="p-2 text-center">${getStatusBadge(st.computedStatus)}</td>
+                    </tr>
+                `).join('');
             }
             document.getElementById('roomDetailDrawer').classList.remove('hidden');
         };
@@ -1065,303 +1364,355 @@
             document.getElementById('roomDetailDrawer').classList.add('hidden');
         };
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await loadDashboardData();
-            setupEventListeners();
-            initExecTrendChart();
-        });
-
-        async function loadDashboardData() {
-            try {
-                appData = await fetchAllDataDirect();
-            } catch (err) {
-                console.error('Supabase fetch error:', err);
-            }
-            renderKPIs();
-            renderAssemblyTable();
-            renderDisciplineHistoryTable();
-            renderRiskTable();
-            renderGatepassFullTable();
-            renderExecutiveMetrics();
+        function getStatusBadge(status) {
+            if (status === 'late') return `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-extrabold">มาสาย</span>`;
+            if (status === 'absent') return `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ขาด</span>`;
+            if (status === 'leave') return `<span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ลา</span>`;
+            if (status === 'truant') return `<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-extrabold">หนีเรียน</span>`;
+            return `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-extrabold">มาตรงเวลา</span>`;
         }
 
-        function renderKPIs() {
-            const riskStudents = appData.students.filter(s => calculateStudentScore(getStudentFullName(s), appData.behaviorLogs) < 80);
+        function getStudentFullName(st) {
+            if (!st) return '-';
+            return `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim() || st.full_name || st.student_code;
+        }
+
+        function updateAllUI() {
+            const riskStudents = appData.students.filter(s => (s.behavior_score ?? 100) < 80);
             document.getElementById('kpiRiskCount').innerText = `${riskStudents.length} คน`;
             document.getElementById('kpiGatePassCount').innerText = `${appData.gatePassLogs.length} คน`;
-            document.getElementById('kpiInfirmaryCount').innerText = `${appData.clinicRecords.length} คน`;
-            const truants = appData.attendanceLogs.filter(a => ['TRUANT', 'ABSENT'].includes((a.status || '').toUpperCase()));
-            document.getElementById('kpiTruancyCount').innerText = `${truants.length} เคส`;
+
+            const activeClinic = appData.clinicLogs.filter(c => c.status !== 'กลับเข้าเรียนแล้ว');
+            document.getElementById('kpiInfirmaryCount').innerText = `${activeClinic.length} คน`;
+            document.getElementById('kpiTruancyCount').innerText = `${appData.attendanceLogs.length} เคส`;
+
+            renderAssemblyReport();
+            renderDisciplineTable();
+            renderRiskTable();
+            renderGatepassTable();
+            renderExecutiveDashboard();
         }
 
-        function renderAssemblyTable() {
+        function renderAssemblyReport() {
             const tbody = document.getElementById('assemblyTableBody');
-            if (!tbody) return;
+            const mTbody = document.getElementById('mobileAssemblyTableBody');
+            const roomStats = {};
+            let mtonPresent = 0, mtonLate = 0, mtonAbsent = 0, mtonLeave = 0, mtonTruant = 0, mtonTotal = 0;
+            let mplayPresent = 0, mplayLate = 0, mplayAbsent = 0, mplayLeave = 0, mplayTruant = 0, mplayTotal = 0;
 
-            let mtonTotal = 0, mtonLate = 0, mtonAbsent = 0, mtonLeave = 0, mtonTruant = 0;
-            let mplayTotal = 0, mplayLate = 0, mplayAbsent = 0, mplayLeave = 0, mplayTruant = 0;
+            currentRoomStudentsCache = appData.students.map(st => {
+                const room = st.classroom || 'ไม่ระบุห้อง';
+                if (!roomStats[room]) roomStats[room] = { total: 0, present: 0, late: 0, absent: 0, leave: 0, truant: 0 };
 
-            const roomMap = {};
-            appData.students.forEach(s => {
-                const room = s.classroom || s.class_name || 'ไม่ระบุห้อง';
-                if (!roomMap[room]) roomMap[room] = { room, total: 0, absent: 0, late: 0, leave: 0, truant: 0 };
-                roomMap[room].total++;
+                let status = 'present';
+                const isLate = appData.disciplineLogs.some(l => l.student_code === st.student_code && (l.action || '').includes('มาสาย'));
+                const isTruant = appData.attendanceLogs.some(a => a.student_code === st.student_code || a.student_id === st.id);
 
-                if (/^ม\.[1-3]/.test(room)) mtonTotal++;
-                else if (/^ม\.[4-6]/.test(room)) mplayTotal++;
-            });
+                if (isTruant) status = 'truant';
+                else if (isLate) status = 'late';
 
-            appData.attendanceLogs.forEach(log => {
-                const room = log.classroom || 'ไม่ระบุห้อง';
-                const st = (log.status || '').toUpperCase();
-                if (roomMap[room]) {
-                    if (st === 'LATE') { roomMap[room].late++; if (/^ม\.[1-3]/.test(room)) mtonLate++; else mplayLate++; }
-                    else if (st === 'LEAVE') { roomMap[room].leave++; if (/^ม\.[1-3]/.test(room)) mtonLeave++; else mplayLeave++; }
-                    else if (st === 'ABSENT') { roomMap[room].absent++; if (/^ม\.[1-3]/.test(room)) mtonAbsent++; else mplayAbsent++; }
-                    else if (st === 'TRUANT') { roomMap[room].truant++; if (/^ม\.[1-3]/.test(room)) mtonTruant++; else mplayTruant++; }
+                roomStats[room].total++;
+                roomStats[room][status]++;
+
+                const isMton = room.startsWith('ม.1') || room.startsWith('ม.2') || room.startsWith('ม.3');
+                if (isMton) {
+                    mtonTotal++;
+                    if (status === 'present') mtonPresent++; else if (status === 'late') mtonLate++; else if (status === 'absent') mtonAbsent++; else if (status === 'leave') mtonLeave++; else if (status === 'truant') mtonTruant++;
+                } else {
+                    mplayTotal++;
+                    if (status === 'present') mplayPresent++; else if (status === 'late') mplayLate++; else if (status === 'absent') mplayAbsent++; else if (status === 'leave') mplayLeave++; else if (status === 'truant') mplayTruant++;
                 }
+
+                return { ...st, computedStatus: status };
             });
 
-            const mtonPresent = Math.max(0, mtonTotal - mtonLate - mtonAbsent - mtonLeave - mtonTruant);
-            const mplayPresent = Math.max(0, mplayTotal - mplayLate - mplayAbsent - mplayLeave - mplayTruant);
             const mtonPct = mtonTotal > 0 ? ((mtonPresent / mtonTotal) * 100).toFixed(1) : '100.0';
-            const mplayPct = mplayTotal > 0 ? ((mplayPresent / mplayTotal) * 100).toFixed(1) : '100.0';
-
             document.getElementById('mton-present').innerText = mtonPresent;
             document.getElementById('mton-late').innerText = mtonLate;
             document.getElementById('mton-absent').innerText = mtonAbsent;
             document.getElementById('mton-leave').innerText = mtonLeave;
             document.getElementById('mton-truant').innerText = mtonTruant;
             document.getElementById('badgeMtonPercent').innerText = `ตรงเวลา ${mtonPct}%`;
-            document.getElementById('total-mton-text').innerText = `นักเรียน ม.ต้น ทั้งหมด ${mtonTotal} คน`;
 
+            const mplayPct = mplayTotal > 0 ? ((mplayPresent / mplayTotal) * 100).toFixed(1) : '100.0';
             document.getElementById('mplay-present').innerText = mplayPresent;
             document.getElementById('mplay-late').innerText = mplayLate;
             document.getElementById('mplay-absent').innerText = mplayAbsent;
             document.getElementById('mplay-leave').innerText = mplayLeave;
             document.getElementById('mplay-truant').innerText = mplayTruant;
             document.getElementById('badgeMplayPercent').innerText = `ตรงเวลา ${mplayPct}%`;
-            document.getElementById('total-mplay-text').innerText = `นักเรียน ม.ปลาย ทั้งหมด ${mplayTotal} คน`;
 
             const grandTotal = mtonTotal + mplayTotal;
             const grandPresent = mtonPresent + mplayPresent;
-            const grandPct = grandTotal > 0 ? Math.round((grandPresent / grandTotal) * 100) : 100;
+            const grandPct = grandTotal > 0 ? ((grandPresent / grandTotal) * 100).toFixed(1) : '100.0';
             const subHeaderAtt = document.getElementById('subHeaderAttendance');
             if (subHeaderAtt) subHeaderAtt.innerText = `${grandPct}%`;
 
-            const rooms = Object.values(roomMap).sort((a, b) => a.room.localeCompare(b.room, 'th'));
-            if (rooms.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-500 font-bold">ยังไม่มีข้อมูลนักเรียนในระบบ (ตรวจสอบสิทธิ์ RLS ตาราง students)</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = rooms.map(d => {
-                const present = Math.max(0, d.total - d.absent - d.late - d.leave - d.truant);
-                const pct = d.total > 0 ? Math.round((present / d.total) * 100) : 100;
-                return `
-                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-                        <td class="p-2.5 font-bold text-slate-900">${d.room}</td>
-                        <td class="p-2.5 text-center font-semibold text-slate-600">${d.total}</td>
-                        <td class="p-2.5 text-center font-bold text-emerald-600">${present}</td>
-                        <td class="p-2.5 text-center font-bold text-amber-600">${d.late}</td>
-                        <td class="p-2.5 text-center font-bold text-rose-600">${d.absent}</td>
-                        <td class="p-2.5 text-center font-bold text-sky-600">${d.leave}</td>
-                        <td class="p-2.5 text-center font-bold text-purple-600">${d.truant}</td>
-                        <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[11px]">${pct}%</span></td>
-                        <td class="p-2.5 text-center">
-                            <button type="button" onclick="openRoomDrawer('${d.room}')" class="bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold px-2.5 py-1 rounded-lg text-[11px] cursor-pointer">
-                                ดูรายชื่อ
-                            </button>
-                        </td>
-                    </tr>`;
-            }).join('');
-        }
-
-        function renderDisciplineHistoryTable() {
-            const tbody = document.getElementById('disciplineTableBody');
-            const mTbody = document.getElementById('mobileDisciplineTableBody');
-
-            if (appData.behaviorLogs.length === 0) {
-                if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-slate-400 font-bold">✨ ยังไม่มีประวัติบันทึกคะแนนความประพฤติ</td></tr>`;
-                if (mTbody) mTbody.innerHTML = `<tr><td colspan="4" class="text-center py-5 text-slate-400 font-bold">✨ ยังไม่มีประวัติบันทึกคะแนน</td></tr>`;
+            const sortedRooms = Object.keys(roomStats).sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
+            if (sortedRooms.length === 0) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400 font-medium">✨ ยังไม่มีข้อมูลนักเรียนในฐานข้อมูล</td></tr>`;
+                if (mTbody) mTbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลนักเรียน</td></tr>`;
                 return;
             }
 
             if (tbody) {
-                tbody.innerHTML = appData.behaviorLogs.map(r => `
-                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-                        <td class="p-2.5 font-bold text-slate-800">${r.student_name || r.student_id || 'ไม่ระบุชื่อ'}</td>
-                        <td class="p-2.5 text-slate-600 font-medium">${r.action || r.reason || '-'}</td>
-                        <td class="p-2.5 text-center font-bold ${r.points < 0 ? 'text-rose-600' : 'text-emerald-600'}">${r.points > 0 ? '+' : ''}${r.points || 0}</td>
-                        <td class="p-2.5 text-center font-bold text-slate-800">${calculateStudentScore(r.student_name || '', appData.behaviorLogs)}</td>
-                        <td class="p-2.5 text-slate-400 text-xs">${r.created_at ? new Date(r.created_at).toLocaleDateString('th-TH') : '-'}</td>
-                    </tr>`).join('');
+                tbody.innerHTML = sortedRooms.map(room => {
+                    const r = roomStats[room];
+                    const attendPct = r.total > 0 ? (((r.present + r.late) / r.total) * 100).toFixed(1) : '100.0';
+                    return `
+                        <tr class="hover:bg-amber-50/50 transition">
+                            <td class="p-2.5 font-extrabold text-slate-900">${room}</td>
+                            <td class="p-2.5 text-center font-bold">${r.total}</td>
+                            <td class="p-2.5 text-center text-emerald-700 font-bold">${r.present}</td>
+                            <td class="p-2.5 text-center text-amber-700 font-bold">${r.late}</td>
+                            <td class="p-2.5 text-center text-rose-700 font-bold">${r.absent}</td>
+                            <td class="p-2.5 text-center text-sky-700 font-bold">${r.leave}</td>
+                            <td class="p-2.5 text-center text-purple-700 font-bold">${r.truant}</td>
+                            <td class="p-2.5 text-center font-extrabold text-slate-800">${attendPct}%</td>
+                            <td class="p-2.5 text-center">
+                                <button type="button" onclick="openRoomDrawer('${room}')" class="bg-amber-100 hover:bg-amber-600 hover:text-white text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer">
+                                    รายชื่อ
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
             }
 
             if (mTbody) {
-                mTbody.innerHTML = appData.behaviorLogs.map(r => `
-                    <tr class="border-b border-slate-100">
-                        <td class="p-2 font-bold text-slate-800">${r.student_name || r.student_id || '-'}</td>
-                        <td class="p-2 text-slate-600">${r.action || r.reason || '-'}</td>
-                        <td class="p-2 text-center font-bold ${r.points < 0 ? 'text-rose-600' : 'text-emerald-600'}">${r.points > 0 ? '+' : ''}${r.points || 0}</td>
-                        <td class="p-2 text-center font-bold">${calculateStudentScore(r.student_name || '', appData.behaviorLogs)}</td>
-                    </tr>`).join('');
+                mTbody.innerHTML = sortedRooms.map(room => {
+                    const r = roomStats[room];
+                    return `
+                        <tr class="hover:bg-amber-50/50">
+                            <td class="py-2 px-2 font-extrabold text-slate-900">${room}</td>
+                            <td class="py-2 px-1.5 text-center font-bold">${r.total}</td>
+                            <td class="py-2 px-1.5 text-center text-emerald-700 font-bold">${r.present}</td>
+                            <td class="py-2 px-1.5 text-center text-amber-700 font-bold">${r.late}</td>
+                            <td class="py-2 px-1.5 text-center text-rose-700 font-bold">${r.absent}</td>
+                            <td class="py-2 px-1.5 text-center text-sky-700 font-bold">${r.leave}</td>
+                            <td class="py-2 px-1.5 text-center text-purple-700 font-bold">${r.truant}</td>
+                            <td class="py-2 px-2 text-center">
+                                <button type="button" onclick="closeAffairsSheet('roomSummaryDrawer'); openRoomDrawer('${room}')" class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                                    รายชื่อ
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        function renderDisciplineTable() {
+            const tbody = document.getElementById('disciplineTableBody');
+            const mTbody = document.getElementById('mobileDisciplineTableBody');
+            if (!appData.disciplineLogs.length) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 font-medium">✨ ยังไม่มีประวัติบันทึกคะแนนความประพฤติ</td></tr>`;
+                if (mTbody) mTbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">✨ ยังไม่มีประวัติบันทึกคะแนน</td></tr>`;
+                return;
+            }
+            if (tbody) {
+                tbody.innerHTML = appData.disciplineLogs.slice(0, 30).map(log => {
+                    const isPositive = log.points_change > 0;
+                    const timeStr = log.created_at ? new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.' : 'วันนี้';
+                    return `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-2.5 font-bold text-slate-900">${log.student_name} <span class="block text-[10px] text-slate-500 font-normal">รหัส: ${log.student_code}</span></td>
+                            <td class="p-2.5 text-slate-700">${log.action}</td>
+                            <td class="p-2.5 text-center font-extrabold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}">${isPositive ? '+' : ''}${log.points_change}</td>
+                            <td class="p-2.5 text-center font-extrabold text-slate-800">${log.remaining_score ?? '-'}</td>
+                            <td class="p-2.5 text-xs text-slate-500">${timeStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            if (mTbody) {
+                mTbody.innerHTML = appData.disciplineLogs.slice(0, 25).map(log => {
+                    const isPositive = log.points_change > 0;
+                    return `
+                        <tr>
+                            <td class="p-2 font-bold text-slate-900">${log.student_name}</td>
+                            <td class="p-2 text-slate-700">${log.action}</td>
+                            <td class="p-2 text-center font-extrabold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}">${isPositive ? '+' : ''}${log.points_change}</td>
+                            <td class="p-2 text-center font-extrabold text-slate-800">${log.remaining_score ?? '-'}</td>
+                        </tr>
+                    `;
+                }).join('');
             }
         }
 
         function renderRiskTable() {
             const tbody = document.getElementById('riskTableBody');
             if (!tbody) return;
-            const riskStudents = appData.students.filter(s => calculateStudentScore(getStudentFullName(s), appData.behaviorLogs) < 80);
-            if (riskStudents.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400 font-bold">✅ ไม่พบนักเรียนกลุ่มเสี่ยง (&lt; 80 คะแนน)</td></tr>`;
+            const riskList = appData.students.filter(s => (s.behavior_score ?? 100) < 80);
+            if (!riskList.length) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-emerald-600 font-bold">✅ ยอดเยี่ยม! ไม่มีนักเรียนคะแนนต่ำกว่าเกณฑ์มาตรฐาน (80 คะแนน)</td></tr>`;
                 return;
             }
-            tbody.innerHTML = riskStudents.map(s => {
-                const name = getStudentFullName(s);
-                const score = calculateStudentScore(name, appData.behaviorLogs);
+            tbody.innerHTML = riskList.map(st => {
+                const needPoints = 80 - (st.behavior_score ?? 0);
                 return `
-                    <tr class="border-b border-rose-100 hover:bg-rose-50/50 transition">
-                        <td class="p-2.5 font-bold text-slate-800">${name} (${s.classroom || '-'})</td>
-                        <td class="p-2.5 text-center font-bold text-rose-600">${score} คะแนน</td>
-                        <td class="p-2.5 text-slate-600 font-medium">บำเพ็ญประโยชน์เพิ่ม ${80 - score} คะแนน</td>
-                        <td class="p-2.5 text-center"><span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full text-xs">เฝ้าระวัง</span></td>
-                    </tr>`;
+                    <tr class="hover:bg-rose-50/40">
+                        <td class="p-2.5 font-bold text-slate-900">${getStudentFullName(st)} <span class="text-xs text-slate-500">(${st.classroom || '-'})</span></td>
+                        <td class="p-2.5 text-center font-extrabold text-rose-600">${st.behavior_score} / 100</td>
+                        <td class="p-2.5 font-bold text-amber-700">ซ่อมเสริมเพิ่มอีก +${needPoints} คะแนน</td>
+                        <td class="p-2.5 text-center"><span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full text-xs font-bold">ติดเงื่อนไข</span></td>
+                    </tr>
+                `;
             }).join('');
         }
 
-        function renderGatepassFullTable() {
+        function renderGatepassTable() {
             const tbody = document.getElementById('gatepassTableBody');
             if (!tbody) return;
-            if (appData.gatePassLogs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-slate-400 font-bold">ไม่มีประวัติการขออนุญาตออกนอกโรงเรียน</td></tr>`;
+            if (!appData.gatePassLogs.length) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 font-medium">✨ ยังไม่มีรายการขออนุญาตออกนอกสถานศึกษา</td></tr>`;
                 return;
             }
-            tbody.innerHTML = appData.gatePassLogs.map(g => `
-                <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-                    <td class="p-2.5 font-bold text-slate-800">${g.student_name || g.student_id}</td>
-                    <td class="p-2.5 text-slate-700 font-semibold">${g.exit_time || '-'} ถึง ${g.return_time || '-'}</td>
-                    <td class="p-2.5 text-slate-600 font-medium">${g.reason || '-'}</td>
-                    <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[11px]">🟢 ซิงก์คาบเรียน</span></td>
-                    <td class="p-2.5 text-slate-400 font-medium">${g.approved_by || '-'}</td>
-                </tr>`).join('');
+            tbody.innerHTML = appData.gatePassLogs.map(gp => `
+                <tr class="hover:bg-amber-50/30">
+                    <td class="p-2.5 font-bold text-slate-900">${gp.student_name} <span class="text-xs text-slate-500">(${gp.classroom || '-'})</span></td>
+                    <td class="p-2.5 font-bold text-amber-800">${gp.exit_time || '-'} - ${gp.return_time || 'ยังไม่กลับ'}</td>
+                    <td class="p-2.5 text-slate-700">${gp.reason}</td>
+                    <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-bold">${gp.status || 'อนุมัติแล้ว'}</span></td>
+                    <td class="p-2.5 text-xs text-slate-600">${gp.approved_by || 'ฝ่ายปกครอง'}</td>
+                </tr>
+            `).join('');
         }
 
-        function renderExecutiveMetrics() {
-            const offenses = appData.behaviorLogs.filter(l => Number(l.points) < 0);
-            const repairs = appData.behaviorLogs.filter(l => Number(l.points) > 0);
-            const totalLogs = appData.behaviorLogs.length;
-            let avgScore = 100.0;
-            if (appData.students.length > 0) {
-                const sumScores = appData.students.reduce((acc, s) => acc + calculateStudentScore(getStudentFullName(s), appData.behaviorLogs), 0);
-                avgScore = (sumScores / appData.students.length).toFixed(1);
-            }
-            const repairRate = totalLogs > 0 ? Math.round((repairs.length / totalLogs) * 100) : 0;
+        function renderExecutiveDashboard() {
+            const offenses = appData.disciplineLogs.filter(l => l.points_change < 0);
+            const repairs = appData.disciplineLogs.filter(l => l.points_change > 0);
+            
+            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            setTxt('execTotalOffenseCount', `${offenses.length} ครั้ง`);
+            setTxt('mExecTotalOffenseCount', `${offenses.length} ครั้ง`);
 
-            ['execTotalOffenseCount', 'mExecTotalOffenseCount'].forEach(id => { const el = document.getElementById(id); if (el) el.innerText = `${offenses.length} ครั้ง`; });
-            ['execSchoolAvgScore', 'mExecSchoolAvgScore'].forEach(id => { const el = document.getElementById(id); if (el) el.innerText = `${avgScore} / 100`; });
-            ['execRepairRate', 'mExecRepairRate'].forEach(id => { const el = document.getElementById(id); if (el) el.innerText = `${repairRate}%`; });
-            ['execGatepassTotal', 'mExecGatepassTotal'].forEach(id => { const el = document.getElementById(id); if (el) el.innerText = `${appData.gatePassLogs.length} ฉบับ`; });
+            const totalScore = appData.students.reduce((sum, s) => sum + (s.behavior_score ?? 100), 0);
+            const avgScore = appData.students.length > 0 ? (totalScore / appData.students.length).toFixed(1) : '100.0';
+            setTxt('execSchoolAvgScore', `${avgScore} / 100`);
+            setTxt('mExecSchoolAvgScore', `${avgScore} / 100`);
 
-            const reasonCounts = {};
-            offenses.forEach(o => { const r = o.action || o.reason || 'อื่นๆ'; reasonCounts[r] = (reasonCounts[r] || 0) + 1; });
-            const top3 = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-            const top3Html = top3.length === 0
-                ? `<div class="text-center py-4 text-xs text-slate-400 font-medium">✨ ยังไม่มีประวัติการกระทำผิด</div>`
-                : `<ul class="space-y-1.5 text-left text-xs font-bold">` + top3.map(([reason, cnt], i) => `
-                    <li class="flex justify-between items-center bg-white p-2 rounded-lg border border-rose-100">
-                        <span class="truncate pr-2 text-slate-800">${i + 1}. ${reason}</span>
-                        <span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full shrink-0">${cnt} ครั้ง</span>
-                    </li>`).join('') + `</ul>`;
-            ['top3OffensesList', 'mTop3OffensesList'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = top3Html; });
-        }
+            const repairPct = offenses.length > 0 ? Math.min(100, Math.round((repairs.length / offenses.length) * 100)) : 0;
+            setTxt('execRepairRate', `${repairPct}%`);
+            setTxt('mExecRepairRate', `${repairPct}%`);
 
-        function initExecTrendChart() {
-            const ctx = document.getElementById('execBehaviorTrendChart')?.getContext('2d');
-            if (!ctx || typeof Chart === 'undefined') return;
-            if (execChartInstance) execChartInstance.destroy();
-            const offenses = appData.behaviorLogs.filter(l => Number(l.points) < 0);
-            const repairs = appData.behaviorLogs.filter(l => Number(l.points) > 0);
-            execChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['สัปดาห์ 1', 'สัปดาห์ 2', 'สัปดาห์ 3', 'สัปดาห์ 4 (ปัจจุบัน)'],
-                    datasets: [
-                        { label: 'เคสทำผิดระเบียบ', data: [0, 0, 0, offenses.length], borderColor: '#ef4444', backgroundColor: '#ef444420', fill: true, tension: 0.3 },
-                        { label: 'เคสทำความดี/ซ่อม', data: [0, 0, 0, repairs.length], borderColor: '#10b981', backgroundColor: '#10b98120', fill: true, tension: 0.3 }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            setTxt('execGatepassTotal', `${appData.gatePassLogs.length} ฉบับ`);
+            setTxt('mExecGatepassTotal', `${appData.gatePassLogs.length} ฉบับ`);
+
+            const countByReason = {};
+            offenses.forEach(o => { countByReason[o.action] = (countByReason[o.action] || 0) + 1; });
+            const sortedOffenses = Object.entries(countByReason).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            
+            const top3Html = sortedOffenses.length ? sortedOffenses.map(([reason, count], i) => `
+                <div class="flex justify-between items-center py-1.5 border-b border-slate-200 last:border-0 text-left">
+                    <span class="font-bold text-slate-800">${i + 1}. ${reason}</span>
+                    <span class="bg-rose-100 text-rose-700 font-extrabold px-2 py-0.5 rounded-full text-[11px]">${count} เคส</span>
+                </div>
+            `).join('') : `<div class="text-slate-400">✨ ยังไม่มีประวัติการกระทำผิด</div>`;
+
+            ['top3OffensesList', 'mTop3OffensesList'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = top3Html;
             });
+
+            const ctx = document.getElementById('execBehaviorTrendChart')?.getContext('2d');
+            if (ctx) {
+                if (execChartInstance) execChartInstance.destroy();
+                execChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['มาสาย', 'แต่งกาย', 'หนีเรียน', 'ทะเลาะวิวาท', 'ทำความดี (+คะแนน)'],
+                        datasets: [{
+                            label: 'จำนวนรายการ',
+                            data: [
+                                offenses.filter(o => (o.action || '').includes('มาสาย')).length,
+                                offenses.filter(o => (o.action || '').includes('แต่งกาย')).length,
+                                offenses.filter(o => (o.action || '').includes('หนีเรียน')).length,
+                                offenses.filter(o => (o.action || '').includes('ทะเลาะ')).length,
+                                repairs.length
+                            ],
+                            backgroundColor: ['#f59e0b', '#3b82f6', '#8b5cf6', '#e11d48', '#10b981'],
+                            borderRadius: 8
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
         }
 
-        function setupEventListeners() {
+        function bindEvents() {
             document.getElementById('tabHist')?.addEventListener('click', () => switchTableTab('hist'));
             document.getElementById('tabRisk')?.addEventListener('click', () => switchTableTab('risk'));
             document.getElementById('tabGate')?.addEventListener('click', () => switchTableTab('gate'));
+
             document.getElementById('btnTabDeduct')?.addEventListener('click', () => switchFormMode('deduct'));
             document.getElementById('btnTabRepair')?.addEventListener('click', () => switchFormMode('repair'));
 
             document.getElementById('reasonSelect')?.addEventListener('change', (e) => {
-                document.getElementById('deductPoints').value = e.target.options[e.target.selectedIndex]?.getAttribute('data-points') || '10';
+                const pts = e.target.options[e.target.selectedIndex].dataset.points;
+                const input = document.getElementById('deductPoints');
+                if (pts && input) input.value = pts;
             });
+
             document.getElementById('repairReasonSelect')?.addEventListener('change', (e) => {
-                document.getElementById('addPoints').value = e.target.options[e.target.selectedIndex]?.getAttribute('data-points') || '10';
+                const pts = e.target.options[e.target.selectedIndex].dataset.points;
+                const input = document.getElementById('addPoints');
+                if (pts && input) input.value = pts;
             });
 
-            document.getElementById('studentCodeInput')?.addEventListener('input', (e) => {
-                const code = e.target.value.trim();
-                const student = appData.students.find(s => String(s.student_id || s.code || '') === code);
-                const nameDisplay = document.getElementById('studentNameDisplay');
-                const scorePreview = document.getElementById('studentScorePreview');
-
-                if (student) {
-                    const fullName = getStudentFullName(student);
-                    const score = calculateStudentScore(fullName, appData.behaviorLogs);
-                    if (nameDisplay) nameDisplay.value = `${fullName} (${student.classroom || '-'})`;
-                    if (scorePreview) {
-                        scorePreview.innerText = score < 80
-                            ? `คะแนนปัจจุบัน: ${score} / 100 คะแนน 🔴 (กลุ่มเสี่ยงวิกฤต)`
-                            : `คะแนนปัจจุบัน: ${score} / 100 คะแนน 🟢 (ปกติ)`;
-                        scorePreview.className = score < 80 ? "text-xs font-bold mt-1 text-rose-600" : "text-xs font-bold mt-1 text-emerald-600";
+            // ค้นหาชื่อนักเรียนอัตโนมัติ (ทั้งฟอร์ม Desktop และ Mobile Drawer)
+            const bindStudentLookup = (codeInputId, nameDisplayId, scorePreviewId) => {
+                document.getElementById(codeInputId)?.addEventListener('input', (e) => {
+                    const code = e.target.value.trim();
+                    const st = appData.students.find(s => s.student_code === code);
+                    const nameDisplay = document.getElementById(nameDisplayId);
+                    const scorePreview = document.getElementById(scorePreviewId);
+                    if (st) {
+                        nameDisplay.value = `${getStudentFullName(st)} (${st.classroom || '-'})`;
+                        const sc = st.behavior_score ?? 100;
+                        scorePreview.innerText = `คะแนนปัจจุบัน: ${sc} / 100 คะแนน ${sc >= 80 ? '🟢 (ปกติ)' : '🔴 (ติดเงื่อนไข)'}`;
+                        scorePreview.className = `text-xs font-bold mt-1 ${sc >= 80 ? 'text-emerald-600' : 'text-rose-600'}`;
+                    } else {
+                        nameDisplay.value = '';
+                        scorePreview.innerText = code ? '⚠️ ไม่พบรหัสนักเรียนในระบบ' : 'คะแนนปัจจุบัน: 100 / 100 คะแนน 🟢 (ปกติ)';
+                        scorePreview.className = `text-xs font-bold mt-1 ${code ? 'text-amber-600' : 'text-emerald-600'}`;
                     }
-                } else if (nameDisplay) {
-                    nameDisplay.value = code ? '⚠️ ไม่พบข้อมูลนักเรียน' : '';
-                }
-            });
+                });
+            };
+            bindStudentLookup('studentCodeInput', 'studentNameDisplay', 'studentScorePreview');
+            bindStudentLookup('mStudentCodeInput', 'mStudentNameDisplay', 'mStudentScorePreview');
 
+            // บันทึกคะแนนความประพฤติ (Desktop)
             document.getElementById('deductForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const studentCode = document.getElementById('studentCodeInput').value.trim();
-                const student = appData.students.find(s => String(s.student_id || s.code || '') === studentCode);
-                if (!student) { alert('กรุณากรอกรหัสนักเรียนให้ถูกต้อง'); return; }
+                await submitBehaviorRecord({
+                    studentCode: document.getElementById('studentCodeInput').value.trim(),
+                    mode: currentFormMode,
+                    action: currentFormMode === 'deduct' ? document.getElementById('reasonSelect').value : document.getElementById('repairReasonSelect').value,
+                    points: currentFormMode === 'deduct' ? -Math.abs(Number(document.getElementById('deductPoints').value || 10)) : Math.abs(Number(document.getElementById('addPoints').value || 10)),
+                    note: document.getElementById('noteInput').value,
+                    onSuccess: () => {
+                        document.getElementById('deductForm').reset();
+                        document.getElementById('studentNameDisplay').value = '';
+                    }
+                });
+            });
 
-                const studentName = `${getStudentFullName(student)} (${student.classroom || '-'})`;
-                const action = currentFormMode === 'deduct' ? document.getElementById('reasonSelect').value : document.getElementById('repairReasonSelect').value;
-                const points = currentFormMode === 'deduct'
-                    ? -Math.abs(Number(document.getElementById('deductPoints').value || 10))
-                    : Math.abs(Number(document.getElementById('addPoints').value || 10));
-                const note = document.getElementById('noteInput').value;
-
-                const { error } = await db.from('behavior_logs').insert([{
-                    student_id: studentCode,
-                    student_name: studentName,
-                    type: currentFormMode,
-                    action,
-                    points,
-                    note,
-                    created_at: new Date().toISOString()
-                }]);
-
-                if (!error) {
-                    alert('🎉 บันทึกข้อมูลเรียบร้อยแล้ว!');
-                    document.getElementById('deductForm').reset();
-                    document.getElementById('studentNameDisplay').value = '';
-                    await loadDashboardData();
-                    initExecTrendChart();
-                } else {
-                    alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
-                }
+            // บันทึกคะแนนความประพฤติ (Mobile Drawer)
+            document.getElementById('mobileDeductForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await submitBehaviorRecord({
+                    studentCode: document.getElementById('mStudentCodeInput').value.trim(),
+                    mode: mobileFormMode,
+                    action: mobileFormMode === 'deduct' ? document.getElementById('mReasonSelect').value : document.getElementById('mRepairReasonSelect').value,
+                    points: mobileFormMode === 'deduct' ? -Math.abs(Number(document.getElementById('mDeductPoints').value || 10)) : Math.abs(Number(document.getElementById('mAddPoints').value || 10)),
+                    note: document.getElementById('mNoteInput').value,
+                    onSuccess: () => {
+                        document.getElementById('mobileDeductForm').reset();
+                        document.getElementById('mStudentNameDisplay').value = '';
+                        closeAffairsSheet('behaviorFormDrawer');
+                    }
+                });
             });
 
             document.getElementById('btnCloseGatepassModal')?.addEventListener('click', () => window.toggleModal('gatepassModal', false));
@@ -1369,70 +1720,92 @@
 
             document.getElementById('btnSearchGateStudent')?.addEventListener('click', () => {
                 const code = document.getElementById('gateStudentId').value.trim();
-                selectedStudentForGatepass = appData.students.find(s => String(s.student_id || s.code || '') === code);
+                const st = appData.students.find(s => s.student_code === code);
                 const infoBox = document.getElementById('modalStudentInfoBox');
                 const btnSubmit = document.getElementById('btnSubmitGatepass');
 
-                if (selectedStudentForGatepass) {
+                if (st) {
+                    selectedStudentForGatepass = st;
+                    document.getElementById('modalStudentName').innerText = getStudentFullName(st);
+                    document.getElementById('modalStudentClass').innerText = `ชั้น ${st.classroom || '-'}`;
                     infoBox.classList.remove('hidden');
-                    document.getElementById('modalStudentName').innerText = getStudentFullName(selectedStudentForGatepass);
-                    document.getElementById('modalStudentClass').innerText = `ชั้น ${selectedStudentForGatepass.classroom || '-'}`;
                     btnSubmit.disabled = false;
                     btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
                 } else {
+                    selectedStudentForGatepass = null;
                     infoBox.classList.add('hidden');
                     btnSubmit.disabled = true;
                     btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
-                    alert('ไม่พบข้อมูลนักเรียน');
+                    alert(`ไม่พบนักเรียนรหัส "${code}" ในระบบ`);
                 }
             });
 
             document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!selectedStudentForGatepass) return;
-
-                const studentName = `${getStudentFullName(selectedStudentForGatepass)} (${selectedStudentForGatepass.classroom || '-'})`;
                 const reason = document.getElementById('gateReason').value;
                 const exitTime = document.getElementById('gateExitTime').value;
                 const returnTime = document.getElementById('gateReturnTime').value;
                 const approvedBy = document.getElementById('gateApprovedBy').value;
 
-                const { error } = await db.from('gate_passes').insert([{
-                    student_id: selectedStudentForGatepass.student_id,
-                    student_name: studentName,
+                const newRecord = {
+                    student_code: selectedStudentForGatepass.student_code,
+                    student_name: getStudentFullName(selectedStudentForGatepass),
+                    classroom: selectedStudentForGatepass.classroom || '-',
                     reason,
                     exit_time: exitTime,
                     return_time: returnTime,
                     approved_by: approvedBy,
+                    status: 'อนุมัติแล้ว',
                     created_at: new Date().toISOString()
-                }]);
+                };
 
                 try {
-                    await db.from('attendance_logs').insert([{
-                        student_id: selectedStudentForGatepass.student_id,
-                        classroom: selectedStudentForGatepass.classroom,
-                        status: 'LEAVE',
-                        note: `ออกนอกโรงเรียน (อนุมัติโดยห้องปกครอง: ${reason})`,
-                        recorded_by: approvedBy,
-                        created_at: new Date().toISOString()
-                    }]);
-                } catch (_) {}
+                    const { error } = await supabase.from('gatepass_logs').insert([newRecord]);
+                    if (error) console.warn(error);
+                } catch (err) {}
 
-                if (!error) {
-                    alert('🎉 บันทึกขออนุญาตออกนอกสถานศึกษาเรียบร้อยแล้ว!\nระบบอัปเดตสถานะไปยังคาบเรียนของครูผู้สอนเรียบร้อยครับ');
-                    window.toggleModal('gatepassModal', false);
-                    document.getElementById('gatepassForm').reset();
-                    await loadDashboardData();
-                } else {
-                    alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
-                }
+                appData.gatePassLogs.unshift(newRecord);
+                updateAllUI();
+                window.toggleModal('gatepassModal', false);
+                document.getElementById('gatepassForm').reset();
+                alert(`✅ บันทึกใบขออนุญาตออกนอกสถานศึกษาของ ${newRecord.student_name} เรียบร้อยแล้ว`);
             });
+        }
+
+        async function submitBehaviorRecord({ studentCode, mode, action, points, note, onSuccess }) {
+            const st = appData.students.find(s => s.student_code === studentCode);
+            if (!st) return alert(`ไม่พบรหัสนักเรียน "${studentCode}" กรุณาตรวจสอบอีกครั้ง`);
+
+            const currentScore = st.behavior_score ?? 100;
+            const newScore = Math.max(0, Math.min(100, currentScore + points));
+            st.behavior_score = newScore;
+
+            const logRecord = {
+                student_code: st.student_code,
+                student_name: getStudentFullName(st),
+                action: note ? `${action} (${note})` : action,
+                points_change: points,
+                remaining_score: newScore,
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                await supabase.from('students').update({ behavior_score: newScore }).eq('student_code', st.student_code);
+                await supabase.from('discipline_logs').insert([logRecord]);
+            } catch (err) { console.warn(err); }
+
+            appData.disciplineLogs.unshift(logRecord);
+            updateAllUI();
+            if (onSuccess) onSuccess();
+            alert(`✅ บันทึกข้อมูลเรียบร้อย! คะแนนคงเหลือของ ${logRecord.student_name} คือ ${newScore} คะแนน`);
         }
 
         function switchTableTab(tab) {
             document.getElementById('tabHist').className = tab === 'hist' ? "tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer" : "tab-btn pb-2 flex items-center gap-1.5 cursor-pointer";
             document.getElementById('tabRisk').className = tab === 'risk' ? "tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer" : "tab-btn pb-2 flex items-center gap-1.5 cursor-pointer";
             document.getElementById('tabGate').className = tab === 'gate' ? "tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer" : "tab-btn pb-2 flex items-center gap-1.5 cursor-pointer";
+
             document.getElementById('viewHistory').classList.toggle('hidden', tab !== 'hist');
             document.getElementById('viewRisk').classList.toggle('hidden', tab !== 'risk');
             document.getElementById('viewGatepass').classList.toggle('hidden', tab !== 'gate');
@@ -1444,9 +1817,15 @@
             document.getElementById('btnTabRepair').className = mode === 'repair' ? "form-tab active-repair flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
             document.getElementById('deductFields').classList.toggle('hidden', mode !== 'deduct');
             document.getElementById('repairFields').classList.toggle('hidden', mode !== 'repair');
+
             const btnSubmit = document.getElementById('btnSubmitForm');
-            btnSubmit.className = mode === 'deduct' ? "w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow transition text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer" : "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl shadow transition text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer";
-            btnSubmit.innerHTML = mode === 'deduct' ? `<i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน` : `<i class="fa-solid fa-star"></i> บันทึกเพิ่มคะแนน/ทำความดี`;
+            if (mode === 'deduct') {
+                btnSubmit.className = "w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
+                btnSubmit.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน`;
+            } else {
+                btnSubmit.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
+                btnSubmit.innerHTML = `<i class="fa-solid fa-star"></i> บันทึกทำความดีและเพิ่มคะแนน`;
+            }
         }
 
         window.toggleModal = function(modalId, show) {
@@ -1455,6 +1834,34 @@
             if (show) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
             else { modal.classList.add('hidden'); modal.classList.remove('flex'); }
         };
+
+        async function loadInitialData() {
+            try {
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                const [stRes, discRes, gpRes, attRes, clinicRes] = await Promise.all([
+                    supabase.from('students').select('*').order('classroom', { ascending: true }),
+                    supabase.from('discipline_logs').select('*').order('created_at', { ascending: false }).limit(50),
+                    supabase.from('gatepass_logs').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false }),
+                    supabase.from('attendance_records').select('*').eq('date', todayStr).in('status', ['absent', 'truant', 'หนีเรียน']),
+                    supabase.from('clinic_logs').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false })
+                ]);
+
+                if (stRes.data) appData.students = stRes.data;
+                if (discRes.data) appData.disciplineLogs = discRes.data;
+                if (gpRes.data) appData.gatePassLogs = gpRes.data;
+                if (attRes.data) appData.attendanceLogs = attRes.data;
+                if (clinicRes.data) appData.clinicLogs = clinicRes.data;
+
+                updateAllUI();
+            } catch (err) {
+                console.warn('Supabase sync notice:', err.message);
+                updateAllUI();
+            }
+        }
+
+        bindEvents();
+        loadInitialData();
     </script>
 </body>
 </html>
