@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BCW Student Portal - นักเรียน โรงเรียนบัวเชดวิทยา</title>
+    <title>BCW Parent Connect - ผู้ปกครอง โรงเรียนบัวเชดวิทยา</title>
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
         /* 📱 เฉพาะมือถือ: ล็อกความสูงพอดี Viewport และเว้นระยะด้านล่างให้พ้นแถบเมนูล่าง 100% */
@@ -22,7 +21,7 @@
                 overscroll-behavior: none !important;
                 touch-action: manipulation;
             }
-            body.student-app-body {
+            body.parent-app-body {
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: flex-start !important;
@@ -47,8 +46,14 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* ซ่อนแถบ Scrollbar แนวนอนให้สะอาดตา */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
 
         /* การ์ดสรุปข้อมูลนักเรียนใบเดียว (Unified Student Card) */
         .unified-student-card {
@@ -75,7 +80,9 @@
             transition: transform 0.15s ease;
             position: relative;
         }
-        .mobile-app-card:active { transform: scale(0.95); }
+        .mobile-app-card:active {
+            transform: scale(0.95);
+        }
         .mobile-app-icon {
             width: 30px;
             height: 30px;
@@ -93,7 +100,7 @@
             white-space: nowrap;
         }
 
-        /* 📱 Bottom Sheet Drawer มาตรฐาน App */
+        /* 📱 Bottom Sheet Drawer มาตรฐานเดียวกับหน้าหลัก */
         .bottom-sheet-backdrop {
             position: fixed;
             inset: 0;
@@ -229,9 +236,9 @@
             border: 1px solid #a5b4fc !important;
         }
         .nav-item-btn.highlight-leave .nav-icon-box {
-            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: #ffffff !important;
-            box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
         }
 
         /* จอเล็กมาก (ความสูงต่ำกว่า 660px) */
@@ -243,9 +250,9 @@
     </style>
     <script src="../../core/bcw-page-transition.js?v=1"></script>
 </head>
-<body class="student-app-body px-3 md:p-6 relative select-none">
+<body class="parent-app-body px-3 md:p-6 relative select-none">
 
-    <!-- 1. TOP APP HEADER + แถบวันที่/เวลา + ตัวนับเวลาขอออก -->
+    <!-- 1. TOP APP HEADER + ตัวเลือกบุตรหลาน -->
     <div class="max-w-7xl mx-auto w-full shrink-0 space-y-1.5">
         <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-2 md:p-5 border-b-2 border-amber-400">
             <div class="flex justify-between items-center gap-2">
@@ -255,23 +262,18 @@
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5">
-                            <h1 class="text-sm md:text-2xl font-extrabold text-amber-400 tracking-wide leading-tight uppercase truncate">BCW STUDENT</h1>
-                            <span id="studentRoleBadge" class="bg-emerald-400/20 text-emerald-300 border border-emerald-400/60 px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold shrink-0">นักเรียน</span>
+                            <h1 class="text-sm md:text-2xl font-extrabold text-amber-400 tracking-wide leading-tight uppercase truncate">BCW PARENT</h1>
+                            <span class="bg-amber-400/20 text-amber-300 border border-amber-400/60 px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold shrink-0">ผู้ปกครอง</span>
                         </div>
-                        <div class="text-xs md:text-base font-medium text-indigo-100 leading-snug truncate">โรงเรียนบัวเชดวิทยา <span class="hidden sm:inline text-indigo-300 text-xs">• STUDENT PORTAL</span></div>
+                        <div class="text-xs md:text-base font-medium text-indigo-100 leading-snug truncate">โรงเรียนบัวเชดวิทยา <span class="hidden sm:inline text-indigo-300 text-xs">• PARENT CONNECT</span></div>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-1.5 shrink-0">
-                    <!-- แสดงเวลาถอยหลังเมื่อได้รับอนุมัติขอออกนอกโรงเรียน -->
-                    <div id="topGatepassTimerBadge" class="hidden bg-indigo-900/95 border border-amber-400/80 rounded-xl px-2 py-1 text-left flex items-center gap-1.5 shadow-xs">
-                        <i class="fa-solid fa-clock-rotate-left text-amber-400 text-xs animate-spin" style="animation-duration: 4s;"></i>
-                        <div class="leading-none">
-                            <span class="text-[9px] text-amber-300 font-semibold block">เวลาเหลือ</span>
-                            <span id="topGatepassCountdown" class="text-[11px] font-bold text-amber-400 font-mono">00:00:00</span>
-                        </div>
-                    </div>
-
+                    <button type="button" onclick="toggleChildModal()" title="จัดการรายชื่อบุตรหลาน" class="w-8 h-8 md:w-auto md:px-3 md:py-2 bg-indigo-800 hover:bg-indigo-700 active:scale-95 text-amber-300 rounded-xl font-semibold transition border border-indigo-600 flex items-center justify-center gap-1.5 cursor-pointer text-xs">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span class="hidden md:inline">เพิ่มบุตรหลาน</span>
+                    </button>
                     <button id="btnLogout" type="button" onclick="handleLogout()" title="ออกจากระบบ" class="w-8 h-8 md:w-auto md:px-3.5 md:py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl font-semibold transition shadow-md flex items-center justify-center gap-1.5 border border-rose-400/50 cursor-pointer text-xs">
                         <i class="fa-solid fa-right-from-bracket text-xs"></i>
                         <span class="hidden md:inline">ออกจากระบบ</span>
@@ -289,22 +291,25 @@
             </div>
         </header>
 
-        <!-- แถบคาบเรียนถัดไปแบบกระชับ (Next Class Live Bar) -->
-        <div onclick="openDrawerById('scheduleDrawerBackdrop')" class="w-full bg-indigo-950/95 border border-amber-400/80 shadow-sm rounded-2xl py-1 px-3 flex items-center justify-between gap-2 cursor-pointer active:scale-99 transition">
+        <!-- แถบสลับชื่อนักเรียนในปกครอง -->
+        <div class="w-full bg-indigo-950/95 border border-amber-400/80 shadow-sm rounded-2xl py-1 px-3 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
-                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0"></span>
-                <span id="nextClassBarText" class="text-xs text-indigo-100 font-medium truncate">กำลังตรวจสอบคาบเรียนวันนี้...</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+                <span class="text-xs text-indigo-100 font-medium truncate">นักเรียนในปกครอง</span>
             </div>
-            <span class="shrink-0 bg-indigo-900 text-amber-300 border border-amber-400/60 px-2 py-0.5 rounded-lg text-[10.5px] font-semibold">
-                ตารางเรียน
-            </span>
+            <button type="button" onclick="toggleChildModal()" id="customChildBtn" class="shrink-0 bg-indigo-900 hover:bg-indigo-800 text-amber-300 border border-amber-400/60 px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition active:scale-95">
+                <i class="fa-solid fa-children text-[11px]"></i>
+                <span id="customChildText">สลับ / เพิ่มบุตรหลาน</span>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </button>
+            <input type="hidden" id="childSelector" value="">
         </div>
     </div>
 
     <!-- 2. MAIN CONTENT AREA -->
     <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-center gap-1.5 my-1 min-h-0">
 
-        <!-- 🌟 การ์ดสรุปข้อมูลนักเรียนใบเดียว (Unified Student Card) -->
+        <!-- 🌟 การ์ดสรุปข้อมูลบุตรหลานใบเดียว -->
         <section id="section-profile" class="unified-student-card shrink-0">
             <!-- ส่วนบน: รูปนักเรียน + ชื่อ/ชั้น/เลขที่ + คะแนนความประพฤติ -->
             <div class="p-2 md:p-4 flex items-center justify-between gap-2 border-b border-slate-100">
@@ -316,7 +321,7 @@
                     <div class="min-w-0">
                         <h2 id="student-fullname" class="text-[15px] md:text-base font-bold text-slate-900 truncate leading-tight">กำลังโหลดข้อมูล...</h2>
                         <div class="text-xs text-slate-700 font-medium mt-0.5">
-                            ชั้น <span id="student-class" class="font-semibold text-indigo-700">-</span> &bull; เลขที่ <span id="student-no" class="font-semibold text-slate-900">-</span> &bull; รหัส <span id="student-id" class="text-slate-600">-</span>
+                            ชั้น <span id="student-class" class="font-semibold text-indigo-700">-</span> &bull; เลขที่ <span id="student-no" class="font-semibold text-slate-900">-</span> &bull; รหัส <span id="student-code" class="text-slate-600">-</span>
                         </div>
                     </div>
                 </div>
@@ -331,7 +336,7 @@
                 </div>
             </div>
 
-            <!-- 👨‍🏫 แถบครูที่ปรึกษาประจำห้อง (แสดงรูปโปรไฟล์ + ชื่อจริงครบไม่ตัดคำ) -->
+            <!-- 👨‍🏫 แถบครูที่ปรึกษาประจำชั้น (แสดงชื่อครบไม่ตัดคำ + ซ่อนแถบเลื่อน) -->
             <div onclick="openDrawerById('advisorDrawerBackdrop')" class="px-2.5 py-1.5 bg-indigo-50/60 border-b border-indigo-100/80 flex items-center justify-between gap-1.5 cursor-pointer hover:bg-indigo-50 transition">
                 <div id="advisorCardList" class="flex items-center gap-1.5 min-w-0 flex-1 overflow-x-auto no-scrollbar">
                     <div class="flex items-center gap-1.5 text-xs text-slate-600">
@@ -342,7 +347,7 @@
                 <span class="text-[10.5px] font-semibold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-lg shrink-0">ข้อมูลครู</span>
             </div>
 
-            <!-- ส่วนกลาง: สถานะการเข้าเรียนวันนี้ -->
+            <!-- ส่วนกลาง: สถานะการเข้าเรียนวันนี้ (ภาษาเข้าใจง่ายสำหรับผู้ปกครอง) -->
             <div id="section-gate" class="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                     <div id="trafficIconBg" class="w-6 h-6 rounded-lg bg-slate-500 text-white flex items-center justify-center text-xs shrink-0">
@@ -359,10 +364,10 @@
                 </div>
             </div>
 
-            <!-- ส่วนล่าง: การ์ดสรุปสถิติ 4 ช่อง -->
+            <!-- ส่วนล่าง: การ์ดสรุปสถิติ 4 ช่อง พร้อมหัวข้อระบุช่วงเวลา -->
             <div id="section-attendance-stats" class="px-2 pt-1 pb-1.5 bg-white">
                 <div class="flex justify-between items-center px-1 mb-1">
-                    <span class="text-[11px] font-medium text-slate-600">สถิติการมาเรียนของฉัน (ภาคเรียนนี้)</span>
+                    <span class="text-[11px] font-medium text-slate-600">สถิติการมาเรียน (ภาคเรียนนี้)</span>
                     <span class="text-[10.5px] text-slate-500">หน่วย: ครั้ง</span>
                 </div>
                 <div class="grid grid-cols-4 gap-1.5 text-center">
@@ -393,7 +398,7 @@
                     <i id="todayBehaviorIcon" class="fa-solid fa-shield-heart"></i>
                 </div>
                 <div class="min-w-0">
-                    <span class="text-[11px] font-semibold text-emerald-900 block leading-tight">สถานะพฤติกรรมวันนี้</span>
+                    <span class="text-[11px] font-semibold text-emerald-900 block leading-tight">พฤติกรรมนักเรียนวันนี้</span>
                     <div id="todayBehaviorStatusText" class="text-xs font-bold text-emerald-950 truncate leading-tight">
                         ✅ พฤติกรรมปกติ (ไม่พบเหตุการณ์ผิดปกติ)
                     </div>
@@ -402,21 +407,21 @@
             <span class="bg-white/95 text-emerald-900 border border-emerald-200 text-[11px] font-semibold px-2 py-0.5 rounded-lg shrink-0">ประวัติ</span>
         </section>
 
-        <!-- 🪪 แถบสถานะบัตรผ่านประตูดิจิทัล / แจ้งเตือนจากโรงเรียน -->
-        <section id="gatepassStatusBanner" onclick="openDrawerById('gatepassDrawerBackdrop')" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0">
+        <!-- 🔔 แถบข้อความแจ้งเตือนด่วนจากโรงเรียน (ไม่โดนตัดคำ) -->
+        <section id="section-notifications" onclick="openDrawerById('notificationDrawerBackdrop')" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0">
             <div class="flex items-center gap-2 min-w-0">
                 <span class="relative flex h-2 w-2 shrink-0">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-600"></span>
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                 </span>
-                <span class="text-xs font-semibold text-amber-950 truncate" id="gatepassBannerText">
-                    🪪 บัตรผ่านออกนอกโรงเรียน & ประกาศโรงเรียน
+                <span class="text-xs font-semibold text-amber-950 truncate" id="latestNotificationPreview">
+                    🔔 แจ้งเตือนและประกาศจากโรงเรียน
                 </span>
             </div>
-            <span class="bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0">เปิดดู</span>
+            <span class="bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0">เปิดอ่าน</span>
         </section>
 
-        <!-- 📱 APP GRID 4 บริการหลักของนักเรียน -->
+        <!-- 📱 APP GRID 4 บริการติดตามผล (1 บรรทัดเท่ากันทุกปุ่ม อ่านง่ายไม่มีตัวย่อ) -->
         <div class="grid grid-cols-4 gap-2 shrink-0">
             <button type="button" onclick="openDrawerById('homeworkDrawerBackdrop')" class="mobile-app-card border-indigo-200 cursor-pointer">
                 <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
@@ -432,11 +437,11 @@
                 <span class="mobile-app-label">ห้องพยาบาล</span>
             </button>
 
-            <button type="button" onclick="openDrawerById('gatepassDrawerBackdrop')" class="mobile-app-card border-amber-200 cursor-pointer">
+            <button type="button" onclick="openDrawerById('leaveHistoryDrawerBackdrop')" class="mobile-app-card border-amber-200 cursor-pointer">
                 <div class="mobile-app-icon bg-amber-100 text-amber-700 border border-amber-200">
-                    <i class="fa-solid fa-id-card-clip"></i>
+                    <i class="fa-solid fa-clock-rotate-left"></i>
                 </div>
-                <span class="mobile-app-label">บัตรผ่านประตู</span>
+                <span class="mobile-app-label">ประวัติการลา</span>
             </button>
 
             <button type="button" onclick="openDrawerById('behaviorDrawerBackdrop')" class="mobile-app-card border-emerald-200 cursor-pointer">
@@ -454,7 +459,7 @@
                     <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                         <i class="fa-solid fa-calendar-days text-sky-600"></i> ตารางเรียนประจำวัน
                     </h3>
-                    <button type="button" onclick="openDayPickerModal()" class="text-xs bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 font-semibold text-slate-700 flex items-center gap-1 cursor-pointer">
+                    <button type="button" onclick="toggleDayModal()" class="text-xs bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 font-semibold text-slate-700 flex items-center gap-1 cursor-pointer">
                         <span id="desktopDayText">วันจันทร์</span>
                         <i class="fa-solid fa-chevron-down text-[10px]"></i>
                     </button>
@@ -467,10 +472,10 @@
             <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 shadow-xs">
                 <div class="flex justify-between items-center border-b border-slate-100 pb-2">
                     <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                        <i class="fa-solid fa-shield-cat text-indigo-600"></i> ประวัติความประพฤติ & คำขอออกนอกโรงเรียน
+                        <i class="fa-solid fa-shield-cat text-indigo-600"></i> ประวัติพฤติกรรม & การยื่นใบลา
                     </h3>
-                    <button type="button" onclick="openGatepassModal()" class="text-xs bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-xl font-semibold cursor-pointer">
-                        + ยื่นขอออกนอกโรงเรียน
+                    <button type="button" onclick="openLeaveModalFromNav()" class="text-xs bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-xl font-semibold cursor-pointer">
+                        + ยื่นใบลาใหม่
                     </button>
                 </div>
                 <div id="desktopBehaviorLogsContainer" class="space-y-1.5 max-h-60 overflow-y-auto">
@@ -480,21 +485,21 @@
         </div>
     </main>
 
-    <!-- 3. FLOATING BOTTOM NAVIGATION BAR (มาตรฐานเดียวกับ BCW Parent) -->
+    <!-- 3. FLOATING BOTTOM NAVIGATION BAR -->
     <nav id="nativeBottomNav" class="native-bottom-nav">
-        <button id="navHome" type="button" class="nav-item-btn active" onclick="switchStudentTab('home')">
+        <button id="navHome" type="button" class="nav-item-btn active" onclick="switchParentTab('home')">
             <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
             <span>หน้าหลัก</span>
         </button>
-        <button id="navAlert" type="button" class="nav-item-btn" onclick="switchStudentTab('alert')">
+        <button id="navAlert" type="button" class="nav-item-btn" onclick="switchParentTab('alert')">
             <div class="nav-icon-box"><i class="fa-solid fa-bell"></i></div>
             <span>แจ้งเตือน</span>
         </button>
-        <button id="navLeave" type="button" class="nav-item-btn highlight-leave" onclick="openGatepassModal()">
-            <div class="nav-icon-box"><i class="fa-solid fa-door-open"></i></div>
-            <span class="font-semibold text-orange-800">ขอออก</span>
+        <button id="navLeave" type="button" class="nav-item-btn highlight-leave" onclick="openLeaveModalFromNav()">
+            <div class="nav-icon-box"><i class="fa-solid fa-paper-plane"></i></div>
+            <span class="font-semibold text-amber-800">ยื่นใบลา</span>
         </button>
-        <button id="navStudy" type="button" class="nav-item-btn" onclick="switchStudentTab('study')">
+        <button id="navStudy" type="button" class="nav-item-btn" onclick="switchParentTab('study')">
             <div class="nav-icon-box"><i class="fa-solid fa-calendar-days"></i></div>
             <span>ตารางเรียน</span>
         </button>
@@ -502,7 +507,7 @@
 
     <!-- ================= BOTTOM SHEET DRAWERS ================= -->
 
-    <!-- 👨‍🏫 Drawer 0: ข้อมูลครูที่ปรึกษาประจำห้อง -->
+    <!-- 👨‍🏫 Drawer 0: ข้อมูลครูที่ปรึกษาประจำชั้น -->
     <div id="advisorDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('advisorDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -510,7 +515,7 @@
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-user-tie"></i></div>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900">ครูที่ปรึกษาประจำห้อง</h3>
+                        <h3 class="text-sm font-bold text-slate-900">ครูที่ปรึกษาประจำชั้น</h3>
                         <p class="text-xs text-slate-600">ข้อมูลและช่องทางติดต่อครูที่ปรึกษา</p>
                     </div>
                 </div>
@@ -531,14 +536,15 @@
                     <div class="w-8 h-8 bg-sky-100 text-sky-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-calendar-days"></i></div>
                     <div>
                         <h3 class="text-sm font-bold text-slate-900">ตารางเรียนประจำวัน</h3>
-                        <p class="text-xs text-slate-600">รายวิชาเรียนของห้องเรียน</p>
+                        <p class="text-xs text-slate-600">เลือกวันเพื่อตรวจสอบรายวิชา</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <button type="button" onclick="openDayPickerModal()" class="text-xs bg-sky-50 border border-sky-200 rounded-xl px-2.5 py-1 font-semibold text-sky-800 flex items-center gap-1 cursor-pointer">
-                        <span id="currentDayText">วันจันทร์</span>
+                    <button type="button" onclick="toggleDayModal()" id="customDayBtn" class="text-xs bg-sky-50 border border-sky-200 rounded-xl px-2.5 py-1 font-semibold text-sky-800 flex items-center gap-1 cursor-pointer">
+                        <span id="customDayText">วันจันทร์</span>
                         <i class="fa-solid fa-chevron-down text-[10px]"></i>
                     </button>
+                    <input type="hidden" id="dayFilter" value="Monday">
                     <button type="button" onclick="closeDrawer('scheduleDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
                 </div>
             </div>
@@ -548,47 +554,7 @@
         </div>
     </div>
 
-    <!-- 🪪 Drawer 2: บัตรผ่านประตูดิจิทัล (QR Code) & ประวัติขอออก -->
-    <div id="gatepassDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('gatepassDrawerBackdrop')">
-        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
-            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
-            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-id-card-clip"></i></div>
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-900">บัตรผ่านประตูดิจิทัล (QR Code)</h3>
-                        <p class="text-xs text-slate-600">สถานะการขออนุญาตออกนอกบริเวณโรงเรียน</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <button type="button" onclick="closeDrawer('gatepassDrawerBackdrop'); openGatepassModal();" class="bg-orange-600 text-white px-2.5 py-1 rounded-xl font-semibold text-xs cursor-pointer">+ ยื่นคำขอ</button>
-                    <button type="button" onclick="closeDrawer('gatepassDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
-                </div>
-            </div>
-            <div class="p-3 space-y-3 drawer-scroll-content flex-1 text-xs">
-                <!-- การ์ด QR Code ปัจจุบัน -->
-                <div id="activePassCard" class="bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-2xl p-4 shadow-md border border-indigo-700 space-y-2.5 hidden">
-                    <div class="flex justify-between items-center border-b border-indigo-700/60 pb-2">
-                        <span class="text-xs font-bold text-indigo-300"><i class="fa-solid fa-shield-halved mr-1"></i> คำขอล่าสุด</span>
-                        <span id="passStatusBadge" class="bg-amber-400 text-slate-950 text-[10.5px] font-bold px-2.5 py-0.5 rounded-md">รอการอนุมัติ</span>
-                    </div>
-                    <div class="text-center py-1 space-y-2">
-                        <div class="flex justify-center my-1">
-                            <div id="qrcodeContainer" class="p-2 bg-white rounded-xl shadow border border-indigo-300 min-w-[116px] min-h-[116px] flex items-center justify-center"></div>
-                        </div>
-                        <p id="passReason" class="text-xs font-bold text-white">เหตุผล: --</p>
-                        <p id="passTimeRange" class="text-[11px] text-indigo-200 font-medium">เวลาอนุญาต: -- ถึง --</p>
-                    </div>
-                </div>
-
-                <div id="noActivePassNotice" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-slate-600">
-                    ยังไม่มีรายการขออนุญาตออกนอกโรงเรียนในขณะนี้
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🔔 Drawer 3: ประกาศและแจ้งเตือนจากโรงเรียน -->
+    <!-- 🔔 Drawer 2: ข้อความแจ้งเตือนด่วนจากโรงเรียน -->
     <div id="notificationDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('notificationDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -596,8 +562,8 @@
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-bell"></i></div>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900">แจ้งเตือนและประกาศจากโรงเรียน</h3>
-                        <p class="text-xs text-slate-600">ข่าวสารสำหรับนักเรียน</p>
+                        <h3 class="text-sm font-bold text-slate-900">ข้อความแจ้งเตือนจากโรงเรียน</h3>
+                        <p class="text-xs text-slate-600">ประกาศและแจ้งเตือนด่วนถึงผู้ปกครอง</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('notificationDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
@@ -610,7 +576,7 @@
         </div>
     </div>
 
-    <!-- 📚 Drawer 4: การบ้าน & เวลาเรียนสะสม / สิทธิ์สอบ -->
+    <!-- 📚 Drawer 3: การบ้าน & สิทธิ์สอบ -->
     <div id="homeworkDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('homeworkDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -618,22 +584,22 @@
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-book-bookmark"></i></div>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900">การบ้านและสิทธิ์สอบ (เวลาเรียนสะสม)</h3>
-                        <p class="text-xs text-slate-600">ติดตามงานที่ได้รับมอบหมายและเวลาเรียน</p>
+                        <h3 class="text-sm font-bold text-slate-900">การบ้านและสิทธิ์สอบ (เวลาเรียน)</h3>
+                        <p class="text-xs text-slate-600">ติดตามงานค้างส่งและเวลาเรียนรายวิชา</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('homeworkDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
             <div class="p-3 space-y-3 drawer-scroll-content flex-1 text-xs">
                 <div class="space-y-1.5">
-                    <div class="font-bold text-slate-800">📌 เวลาเรียนสะสมรายวิชา (ฝ่ายวิชาการ)</div>
-                    <div id="studentAcademicContainer" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-emerald-900 font-semibold">
+                    <div class="font-bold text-slate-800">📌 สถานะสิทธิ์สอบ (ฝ่ายวิชาการ)</div>
+                    <div id="academicRiskContainer" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-emerald-900 font-semibold">
                         <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> เวลาเรียนปกติทุกรายวิชา (มีสิทธิ์สอบครบ)
                     </div>
                 </div>
                 <div class="space-y-1.5">
-                    <div class="font-bold text-slate-800">📝 งานที่ได้รับมอบหมาย / การบ้าน</div>
-                    <div id="studentHomeworkList" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-600">
+                    <div class="font-bold text-slate-800">📝 รายการการบ้าน / งานที่ได้รับมอบหมาย</div>
+                    <div id="homeworkList" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-600">
                         🎉 ปัจจุบันไม่มีการบ้านค้างส่ง
                     </div>
                 </div>
@@ -641,7 +607,7 @@
         </div>
     </div>
 
-    <!-- 🏥 Drawer 5: ประวัติห้องพยาบาล -->
+    <!-- 🏥 Drawer 4: ประวัติห้องพยาบาล -->
     <div id="clinicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('clinicDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -649,37 +615,62 @@
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 bg-rose-100 text-rose-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-notes-medical"></i></div>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900">บันทึกสุขภาพ / ห้องพยาบาล</h3>
-                        <p class="text-xs text-slate-600">ประวัติการเข้ารับบริการงานอนามัยโรงเรียน</p>
+                        <h3 class="text-sm font-bold text-slate-900">ประวัติห้องพยาบาล / อาการป่วย</h3>
+                        <p class="text-xs text-slate-600">บันทึกการเข้ารับบริการงานอนามัยโรงเรียน</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('clinicDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
             <div class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs">
-                <div id="studentClinicList" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-slate-600">
-                    ไม่มีประวัติห้องพยาบาล
+                <div id="clinicHistoryList" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-slate-600">
+                    ไม่มีประวัติการเข้ารับบริการห้องพยาบาล
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 🛡️ Drawer 6: ประวัติคะแนนความประพฤติ -->
+    <!-- 📄 Drawer 5: ประวัติการยื่นใบลาออนไลน์ -->
+    <div id="leaveHistoryDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('leaveHistoryDrawerBackdrop')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">ประวัติการยื่นใบลาออนไลน์</h3>
+                        <p class="text-xs text-slate-600">รายการลาป่วยและลากิจทั้งหมด</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="closeDrawer('leaveHistoryDrawerBackdrop'); openLeaveModalFromNav();" class="bg-amber-500 text-white px-2.5 py-1 rounded-xl font-semibold text-xs cursor-pointer">+ ยื่นใบลา</button>
+                    <button type="button" onclick="closeDrawer('leaveHistoryDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
+                </div>
+            </div>
+            <div class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs">
+                <div id="leaveHistoryList" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-slate-600">
+                    ไม่มีประวัติการยื่นใบลา
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🛡️ Drawer 6: ประวัติความประพฤติและการตัดคะแนน -->
     <div id="behaviorDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('behaviorDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
             <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-scale-balanced"></i></div>
+                    <div class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-shield-cat"></i></div>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900">ประวัติคะแนนความประพฤติ</h3>
-                        <p class="text-xs text-slate-600">บันทึกการหักคะแนนและการซ่อมความดี (+คะแนน)</p>
+                        <h3 class="text-sm font-bold text-slate-900">ประวัติความประพฤติและการตัดคะแนน</h3>
+                        <p class="text-xs text-slate-600">บันทึกคะแนนความประพฤติเรียลไทม์</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('behaviorDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
-            <div id="behaviorHistoryList" class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs">
+            <div id="behaviorLogsContainer" class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs">
                 <div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-center text-emerald-900 font-medium">
-                    ✅ พฤติกรรมปกติ ยังไม่มีประวัติการหักคะแนน
+                    ✅ พฤติกรรมปกติ ยังไม่มีประวัติการบันทึกพฤติกรรมผิดปกติ
                 </div>
             </div>
         </div>
@@ -687,76 +678,88 @@
 
     <!-- ================= MODALS ================= -->
 
-    <!-- Modal 1: ยื่นขออนุญาตออกนอกบริเวณโรงเรียน -->
-    <div id="gatepass-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden z-[10020] p-4" onclick="if(event.target.id==='gatepass-modal') closeGatepassModalDirect()">
-        <div class="bg-white rounded-2xl max-w-md w-full p-4 space-y-3 shadow-xl border border-slate-100" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-id-card-clip"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800">ขออนุญาตออกนอกบริเวณโรงเรียน</h3>
-                        <p class="text-[11px] text-slate-500">ส่งคำขออนุมัติไปยังครูที่ปรึกษา / ฝ่ายปกครอง</p>
-                    </div>
-                </div>
-                <button type="button" onclick="closeGatepassModalDirect()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs cursor-pointer">✕</button>
+    <!-- Modal 1: เลือกนักเรียนในปกครอง -->
+    <div id="childModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[10020] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-children text-indigo-600"></i> เลือกนักเรียนในปกครอง
+                </h3>
+                <button type="button" onclick="toggleChildModal()" class="w-7 h-7 rounded-full bg-slate-200/70 text-slate-700 flex items-center justify-center text-xs cursor-pointer">✕</button>
             </div>
-
-            <form id="gatepassForm" class="space-y-2.5 text-xs">
-                <div>
-                    <label for="requestReasonSelect" class="font-semibold text-slate-700 block mb-1">เหตุผลในการขอออกนอกโรงเรียน <span class="text-rose-500">*</span></label>
-                    <select id="requestReasonSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 font-medium text-xs">
-                        <option value="">-- เลือกเหตุผล --</option>
-                        <option value="ผู้ปกครองมารับกลับบ้าน/ทำธุระ">ผู้ปกครองมารับกลับบ้าน / ทำธุระครอบครัว</option>
-                        <option value="ไปพบแพทย์/โรงพยาบาล">ไปพบแพทย์ / ทำหัตถการโรงพยาบาล</option>
-                        <option value="เป็นตัวแทนโรงเรียนร่วมกิจกรรมภายนอก">เป็นตัวแทนโรงเรียนร่วมกิจกรรมภายนอก</option>
-                        <option value="other">อื่นๆ (ระบุเพิ่มเติม)</option>
-                    </select>
-                </div>
-
-                <div id="customReasonBox" class="hidden">
-                    <label for="customReasonInput" class="font-semibold text-slate-700 block mb-1">ระบุเหตุผลเพิ่มเติม</label>
-                    <input type="text" id="customReasonInput" placeholder="กรอกรายละเอียดเหตุผล..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label for="exitTimeInput" class="font-semibold text-slate-700 block mb-1">เวลาขอออก <span class="text-rose-500">*</span></label>
-                        <input type="time" id="exitTimeInput" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
-                    </div>
-                    <div>
-                        <label for="returnTimeInput" class="font-semibold text-slate-700 block mb-1">เวลากลับ (ประมาณ)</label>
-                        <input type="time" id="returnTimeInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
-                    </div>
-                </div>
-
-                <div class="pt-1 flex justify-end gap-2">
-                    <button type="button" onclick="closeGatepassModalDirect()" class="px-3.5 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold cursor-pointer">ยกเลิก</button>
-                    <button type="submit" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold shadow-sm cursor-pointer">
-                        <i class="fa-solid fa-paper-plane mr-1"></i> ส่งคำขออนุมัติ
-                    </button>
-                </div>
-            </form>
+            <div id="childModalList" class="p-2.5 space-y-1.5 text-xs max-h-[65vh] overflow-y-auto"></div>
         </div>
     </div>
 
     <!-- Modal 2: เลือกวันตารางเรียน -->
-    <div id="day-picker-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[10020] flex items-center justify-center p-4 hidden" onclick="if(event.target.id==='day-picker-modal') closeDayPickerModalDirect()">
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden" onclick="event.stopPropagation()">
+    <div id="dayModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[10020] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden">
             <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                 <h3 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-1.5">
                     <i class="fa-solid fa-calendar-day text-sky-600"></i> เลือกวันตารางเรียน
                 </h3>
-                <button type="button" onclick="closeDayPickerModalDirect()" class="w-7 h-7 rounded-full bg-slate-200/70 text-slate-700 flex items-center justify-center text-xs cursor-pointer">✕</button>
+                <button type="button" onclick="toggleDayModal()" class="w-7 h-7 rounded-full bg-slate-200/70 text-slate-700 flex items-center justify-center text-xs cursor-pointer">✕</button>
             </div>
             <div class="p-2 space-y-1 text-xs">
-                <button type="button" onclick="selectScheduleDay('Monday', 'วันจันทร์')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันจันทร์</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
-                <button type="button" onclick="selectScheduleDay('Tuesday', 'วันอังคาร')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันอังคาร</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
-                <button type="button" onclick="selectScheduleDay('Wednesday', 'วันพุธ')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันพุธ</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
-                <button type="button" onclick="selectScheduleDay('Thursday', 'วันพฤหัสบดี')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันพฤหัสบดี</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
-                <button type="button" onclick="selectScheduleDay('Friday', 'วันศุกร์')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันศุกร์</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
+                <button type="button" onclick="selectDayOption('Monday', 'วันจันทร์')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันจันทร์</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
+                <button type="button" onclick="selectDayOption('Tuesday', 'วันอังคาร')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันอังคาร</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
+                <button type="button" onclick="selectDayOption('Wednesday', 'วันพุธ')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันพุธ</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
+                <button type="button" onclick="selectDayOption('Thursday', 'วันพฤหัสบดี')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันพฤหัสบดี</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
+                <button type="button" onclick="selectDayOption('Friday', 'วันศุกร์')" class="w-full text-left p-2.5 rounded-xl hover:bg-sky-50 font-medium transition flex justify-between cursor-pointer"><span>วันศุกร์</span><i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i></button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: ยื่นใบลาออนไลน์ -->
+    <div id="leaveModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden z-[10020] p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-4 space-y-3 shadow-xl border border-slate-100">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">ยื่นใบลาออนไลน์ (ยืนยันสิทธิ์ผู้ปกครอง)</h3>
+                    <p class="text-xs text-slate-600">กรอกข้อมูลให้ครบถ้วนเพื่อส่งถึงครูที่ปรึกษา</p>
+                </div>
+                <button type="button" id="btnCloseLeaveModal" class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs cursor-pointer">✕</button>
+            </div>
+            <form id="leaveForm" class="space-y-2.5 text-xs">
+                <div>
+                    <label class="font-semibold text-slate-700 block mb-1">ประเภทการลา</label>
+                    <select id="leaveType" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 font-medium text-xs">
+                        <option value="sick">🤒 ลาป่วย</option>
+                        <option value="personal">🏠 ลากิจ</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">ตั้งแต่วันที่</label>
+                        <input type="date" id="startDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">ถึงวันที่</label>
+                        <input type="date" id="endDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
+                    </div>
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block mb-1">สาเหตุการลา</label>
+                    <textarea id="leaveReason" rows="2" required placeholder="ระบุเหตุผลการลา..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs"></textarea>
+                </div>
+                <div class="bg-indigo-50/80 p-2.5 rounded-xl border border-indigo-100 space-y-2">
+                    <span class="text-xs font-semibold text-indigo-900 block"><i class="fa-solid fa-shield-halved mr-1 text-indigo-600"></i> ยืนยันสิทธิ์ผู้ปกครอง</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[11px] font-medium text-slate-700 block mb-0.5">เบอร์โทรศัพท์ผู้ปกครอง</label>
+                            <input type="tel" id="parentPhone" required placeholder="08X-XXX-XXXX" class="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-medium text-slate-700 block mb-0.5">รหัส PIN ผู้ปกครอง</label>
+                            <input type="password" id="parentPin" maxlength="6" required placeholder="****" class="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs text-center font-bold tracking-widest">
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-1 flex justify-end gap-2">
+                    <button type="button" id="btnCancelLeave" class="px-3.5 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold cursor-pointer">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-sm cursor-pointer">ส่งใบลา</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -784,7 +787,7 @@
         if (activeBtn) activeBtn.classList.add('active');
     }
 
-    window.switchStudentTab = function(tab) {
+    window.switchParentTab = function(tab) {
         if (tab === 'home') {
             closeAllDrawers();
             setActiveBottomNav('navHome');
@@ -797,32 +800,10 @@
         }
     };
 
-    function openGatepassModal() {
+    function openLeaveModalFromNav() {
         closeAllDrawers();
-        const modal = document.getElementById('gatepass-modal');
-        if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeGatepassModalDirect() {
-        const modal = document.getElementById('gatepass-modal');
-        if (modal) modal.classList.add('hidden');
-    }
-
-    function openDayPickerModal() {
-        const modal = document.getElementById('day-picker-modal');
-        if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeDayPickerModalDirect() {
-        const modal = document.getElementById('day-picker-modal');
-        if (modal) modal.classList.add('hidden');
-    }
-
-    function selectScheduleDay(dayKey, dayLabel) {
-        if (document.getElementById('currentDayText')) document.getElementById('currentDayText').innerText = dayLabel;
-        if (document.getElementById('desktopDayText')) document.getElementById('desktopDayText').innerText = dayLabel;
-        closeDayPickerModalDirect();
-        if (window.onScheduleDayChange) window.onScheduleDayChange(dayKey);
+        const leaveModal = document.getElementById('leaveModal');
+        if (leaveModal) leaveModal.classList.remove('hidden');
     }
 
     function updateHeaderClock() {
@@ -839,6 +820,24 @@
     }
     setInterval(updateHeaderClock, 1000);
     updateHeaderClock();
+
+    function toggleChildModal() {
+        const m = document.getElementById('childModal');
+        if (m) m.classList.toggle('hidden');
+    }
+
+    function toggleDayModal() {
+        const m = document.getElementById('dayModal');
+        if (m) m.classList.toggle('hidden');
+    }
+
+    function selectDayOption(val, label) {
+        document.getElementById('dayFilter').value = val;
+        if (document.getElementById('customDayText')) document.getElementById('customDayText').innerText = label;
+        if (document.getElementById('desktopDayText')) document.getElementById('desktopDayText').innerText = label;
+        toggleDayModal();
+        document.getElementById('dayFilter').dispatchEvent(new Event('change'));
+    }
 
     // ระบบปัดลงเพื่อปิด Bottom Sheet Drawer
     document.addEventListener('DOMContentLoaded', () => {
@@ -872,18 +871,11 @@
 <script src="../../core/auth-manager.js?v=400"></script>
 <script src="../../core/guard-student-parent.js?v=400"></script>
 
-<!-- Student Data & Logic Integration -->
+<!-- Data & Logic Integration -->
 <script>
-    let CURRENT_STUDENT_ID = '';
-    let currentStudentClass = '';
-    let SELECTED_SCHEDULE_DAY = 'Monday';
-    let gatepassTimerInterval = null;
-
-    function formatCompactTeacherName(fullName) {
-        return String(fullName || '')
-            .replace(/^(นางสาว|นาย|นาง|ว่าที่ร้อยตรี|ว่าที่ ร\.ต\.)\s*/g, 'ครู')
-            .trim();
-    }
+    let currentStudentId = '';
+    let CURRENT_PARENT_USER = null;
+    let PARENT_CHILDREN_LIST = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
         try {
@@ -894,95 +886,153 @@
             }
             if (!currentUser) return;
 
-            const client = window.supabaseClient || window.db || window.supabase;
-            const rawId = String(currentUser.studentId || currentUser.student_id || currentUser.id || '').trim();
-            const email = String(currentUser.email || '').toLowerCase().trim();
-            CURRENT_STUDENT_ID = rawId;
+            CURRENT_PARENT_USER = currentUser;
+            await loadParentChildrenList(currentUser);
 
-            if (currentUser.name && document.getElementById('student-fullname')) {
-                document.getElementById('student-fullname').textContent = currentUser.name;
+            if (currentStudentId) {
+                await loadDashboardData();
             }
-            if (currentUser.avatar && document.getElementById('student-avatar')) {
-                document.getElementById('student-avatar').src = currentUser.avatar;
-            }
-
-            // ดึงข้อมูลนักเรียนจากตาราง students (รองรับทั้ง student_id, email, และ id)
-            let student = null;
-            if (client) {
-                try {
-                    if (rawId) {
-                        const { data: byStuId } = await client.from('students').select('*').eq('student_id', rawId).maybeSingle();
-                        student = byStuId;
-                    }
-                    if (!student && email) {
-                        const { data: byEmail } = await client.from('students').select('*').eq('email', email).maybeSingle();
-                        student = byEmail;
-                    }
-                    if (!student && rawId) {
-                        const { data: byPk } = await client.from('students').select('*').eq('id', rawId).maybeSingle();
-                        student = byPk;
-                    }
-                } catch (e) {
-                    console.warn('[StudentPortal] Fetch student notice:', e);
-                }
-            }
-
-            if (student) {
-                CURRENT_STUDENT_ID = String(student.student_id || rawId);
-                currentStudentClass = String(student.classroom || student.class_name || '').trim();
-                const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
-                const studentNo = student.student_no || student.no || '-';
-                const avatarUrl = student.avatar_url || student.photo_url || currentUser.avatar || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-
-                if (document.getElementById('student-fullname') && fullName) document.getElementById('student-fullname').textContent = fullName;
-                if (document.getElementById('student-class')) document.getElementById('student-class').textContent = currentStudentClass || '-';
-                if (document.getElementById('student-no')) document.getElementById('student-no').textContent = studentNo;
-                if (document.getElementById('student-id')) document.getElementById('student-id').textContent = CURRENT_STUDENT_ID;
-
-                const avatarEl = document.getElementById('student-avatar');
-                if (avatarEl) {
-                    avatarEl.src = avatarUrl;
-                    avatarEl.onerror = () => { avatarEl.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'; };
-                }
-            }
-
-            // กำหนดวันเริ่มต้นตารางเรียน
-            const dayMap = {
-                'Sunday': { key: 'Monday', label: 'วันจันทร์' },
-                'Monday': { key: 'Monday', label: 'วันจันทร์' },
-                'Tuesday': { key: 'Tuesday', label: 'วันอังคาร' },
-                'Wednesday': { key: 'Wednesday', label: 'วันพุธ' },
-                'Thursday': { key: 'Thursday', label: 'วันพฤหัสบดี' },
-                'Friday': { key: 'Friday', label: 'วันศุกร์' },
-                'Saturday': { key: 'Monday', label: 'วันจันทร์' }
-            };
-            const currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-            const defaultDay = dayMap[currentDayName] || { key: 'Monday', label: 'วันจันทร์' };
-            SELECTED_SCHEDULE_DAY = defaultDay.key;
-            if (document.getElementById('currentDayText')) document.getElementById('currentDayText').innerText = defaultDay.label;
-            if (document.getElementById('desktopDayText')) document.getElementById('desktopDayText').innerText = defaultDay.label;
-
-            // โหลดข้อมูลจริงครบทุกส่วนพร้อมกัน
-            await Promise.all([
-                renderHomeroomAdvisors(currentStudentClass),
-                renderAttendanceAndGateStatus(client, CURRENT_STUDENT_ID),
-                renderActiveGatepass(),
-                renderStudentSchedule(),
-                renderAcademicData(CURRENT_STUDENT_ID),
-                renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
-                renderHomeworkData(currentStudentClass),
-                renderClinicData(CURRENT_STUDENT_ID),
-                renderAnnouncements(client)
-            ]);
-
             setupEventListeners();
         } catch (err) {
-            console.error('[StudentPortal] Init Error:', err);
+            console.error('[ParentPortal] Init Error:', err);
         }
     });
 
-    // 👨‍🏫 โหลดรูปโปรไฟล์ + ชื่อจริงครูที่ปรึกษาทุกคน
-    async function renderHomeroomAdvisors(classroom) {
+    async function loadParentChildrenList(user) {
+        const client = window.supabaseClient || window.db || window.supabase;
+        const customChildText = document.getElementById('customChildText');
+        const childModalList = document.getElementById('childModalList');
+        if (!client) return;
+
+        let lineId = user.lineUserId || localStorage.getItem('bcw_bound_line_id') || '';
+        const fallbackStudentId = String(user.studentId || user.student_id || user.id || '').trim();
+        let children = [];
+
+        try {
+            if (lineId) {
+                const { data: byLine } = await client.from('students').select('*').eq('parent_line_id', lineId).order('student_id', { ascending: true });
+                if (byLine && byLine.length > 0) children = byLine;
+            }
+            if (children.length === 0 && fallbackStudentId) {
+                const { data: byId } = await client.from('students').select('*').eq('student_id', fallbackStudentId);
+                if (byId && byId.length > 0) {
+                    children = byId;
+                    const dbParentLineId = byId[0].parent_line_id;
+                    if (dbParentLineId) {
+                        lineId = dbParentLineId;
+                        const { data: siblings } = await client.from('students').select('*').eq('parent_line_id', dbParentLineId).order('student_id', { ascending: true });
+                        if (siblings && siblings.length > 0) children = siblings;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[ParentPortal] Fetch children warning:', e);
+        }
+
+        PARENT_CHILDREN_LIST = children;
+
+        if (children.length > 0) {
+            const firstChild = children[0];
+            if (!currentStudentId || !children.some(c => String(c.student_id) === String(currentStudentId))) {
+                currentStudentId = String(firstChild.student_id);
+            }
+
+            if (document.getElementById('childSelector')) document.getElementById('childSelector').value = currentStudentId;
+            if (customChildText) {
+                customChildText.innerText = children.length > 1 ? `สลับนักเรียน (${children.length} คน)` : 'สลับ / เพิ่มบุตรหลาน';
+            }
+
+            const groupLinkKey = lineId || firstChild.parent_line_id || `PARENT_${firstChild.student_id}`;
+
+            if (childModalList) {
+                const itemsHtml = children.map(c => {
+                    const cId = String(c.student_id);
+                    const cName = `${c.prefix || ''}${c.first_name || ''} ${c.last_name || ''}`.trim();
+                    const cClass = c.classroom || c.class_name || '-';
+                    const cAvatar = c.avatar_url || c.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+                    const isSelected = cId === String(currentStudentId);
+                    return `
+                        <button type="button" data-student-id="${cId}" data-student-name="${cName.replace(/"/g, '&quot;')}" class="child-option-btn w-full text-left p-2.5 rounded-xl ${isSelected ? 'bg-indigo-50 border-indigo-300' : 'hover:bg-indigo-50 border-transparent'} font-semibold text-slate-800 transition flex items-center justify-between border cursor-pointer">
+                            <div class="flex items-center gap-2.5 min-w-0 pointer-events-none">
+                                <img src="${cAvatar}" class="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-slate-900 truncate">${cName}</div>
+                                    <div class="text-[11px] text-slate-600">รหัส: ${cId} &bull; ชั้น ${cClass}</div>
+                                </div>
+                            </div>
+                            <i class="fa-solid ${isSelected ? 'fa-circle-check text-indigo-600' : 'fa-chevron-right text-indigo-400'} text-xs shrink-0 pointer-events-none"></i>
+                        </button>
+                    `;
+                }).join('');
+
+                const addChildBtnHtml = `
+                    <div class="pt-2 mt-2 border-t border-slate-100">
+                        <button type="button" id="btnAddAnotherChild" data-group-key="${groupLinkKey}" data-primary-id="${firstChild.student_id}" class="w-full p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition border border-dashed border-indigo-300 cursor-pointer">
+                            <i class="fa-solid fa-user-plus pointer-events-none"></i> เพิ่มนักเรียนในปกครองอีกคน
+                        </button>
+                    </div>
+                `;
+                childModalList.innerHTML = itemsHtml + addChildBtnHtml;
+            }
+        } else {
+            if (customChildText) customChildText.innerText = 'ไม่พบข้อมูล';
+            if (document.getElementById('student-fullname')) document.getElementById('student-fullname').textContent = 'ไม่พบรหัสนักเรียนที่เชื่อมโยง';
+        }
+    }
+
+    window.selectChildOption = async (id, name) => {
+        currentStudentId = String(id);
+        if (document.getElementById('childSelector')) document.getElementById('childSelector').value = currentStudentId;
+
+        const modal = document.getElementById('childModal');
+        if (modal && !modal.classList.contains('hidden')) modal.classList.add('hidden');
+
+        await loadParentChildrenList(CURRENT_PARENT_USER);
+        await loadDashboardData();
+    };
+
+    window.promptAddAnotherChild = async (groupLinkKey, primaryStudentId) => {
+        const newStudentId = prompt('กรุณากรอกรหัสนักเรียน (5 หลัก) ของบุตรหลานที่ต้องการเพิ่ม:');
+        if (!newStudentId || !newStudentId.trim()) return;
+
+        const cleanId = newStudentId.trim();
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client) return;
+
+        try {
+            const { data: targetStudent } = await client.from('students').select('student_id, prefix, first_name, last_name').eq('student_id', cleanId).maybeSingle();
+            if (!targetStudent) {
+                alert('❌ ไม่พบรหัสนักเรียน ' + cleanId + ' ในระบบ');
+                return;
+            }
+            await client.from('students').update({ parent_line_id: groupLinkKey }).eq('student_id', String(primaryStudentId));
+            const { error } = await client.from('students').update({ parent_line_id: groupLinkKey }).eq('student_id', cleanId);
+            if (error) throw error;
+
+            if (CURRENT_PARENT_USER) {
+                CURRENT_PARENT_USER.lineUserId = groupLinkKey;
+                localStorage.setItem('bcw_user_session', JSON.stringify(CURRENT_PARENT_USER));
+            }
+            const addedName = `${targetStudent.prefix || ''}${targetStudent.first_name || ''} ${targetStudent.last_name || ''}`.trim();
+            alert(`✅ เพิ่ม "${addedName}" เข้าในรายชื่อผู้ปกครองเรียบร้อยแล้ว!`);
+
+            currentStudentId = cleanId;
+            await loadParentChildrenList(CURRENT_PARENT_USER);
+            await window.selectChildOption(cleanId, addedName);
+        } catch (err) {
+            alert('เกิดข้อผิดพลาดในการเพิ่มนักเรียน: ' + err.message);
+        }
+    };
+
+    // ย่อคำนำหน้าชื่อครูบนการ์ดหน้าหลักเป็น "ครู..." เพื่อให้แสดงชื่อ-นามสกุลครบไม่ล้นขอบ
+    function formatCompactTeacherName(fullName) {
+        return String(fullName || '')
+            .replace(/^(นางสาว|นาย|นาง|ว่าที่ร้อยตรี|ว่าที่ ร\.ต\.)\s*/g, 'ครู')
+            .trim();
+    }
+
+    // 👨‍🏫 โหลดรูปโปรไฟล์ + ชื่อ + ข้อมูลติดต่อครูที่ปรึกษาทุกคน
+    async function loadHomeroomAdvisors(classroom) {
         const cardListEl = document.getElementById('advisorCardList');
         const drawerListEl = document.getElementById('advisorDrawerList');
         const client = window.supabaseClient || window.db || window.supabase;
@@ -994,8 +1044,10 @@
         }
 
         let advisors = [];
+        const cleanRoom = String(classroom).trim();
+
         try {
-            const { data: advisorRows } = await client.from('class_advisors').select('*').eq('class_name', classroom).order('id', { ascending: true });
+            const { data: advisorRows } = await client.from('class_advisors').select('*').eq('class_name', cleanRoom).order('id', { ascending: true });
             if (advisorRows && advisorRows.length > 0) {
                 advisorRows.sort((a, b) => (a.advisor_type === 'main' ? -1 : b.advisor_type === 'main' ? 1 : 0));
                 const [{ data: allUsers }, { data: allTeachers }] = await Promise.all([
@@ -1006,7 +1058,9 @@
                 for (const row of advisorRows) {
                     const tCode = String(row.teacher_id || '').trim().toUpperCase();
                     if (!tCode) continue;
-                    let tName = '', tAvatar = '', tPhone = '';
+                    let tName = '';
+                    let tAvatar = '';
+                    let tPhone = '';
                     const roleLabel = row.advisor_type === 'main' ? 'ที่ปรึกษาหลัก' : 'ที่ปรึกษาร่วม';
 
                     if (allUsers) {
@@ -1027,19 +1081,21 @@
                     }
 
                     advisors.push({
+                        code: tCode,
                         name: tName || tCode,
                         shortName: formatCompactTeacherName(tName || tCode),
                         avatar: tAvatar || defaultTeacherAvatar,
-                        phone: tPhone || 'ห้องพักครู / ฝ่ายกิจการนักเรียน',
+                        phone: tPhone || 'ติดต่อผ่านฝ่ายกิจการนักเรียน',
                         role: roleLabel
                     });
                 }
             }
         } catch (e) {
-            console.warn('[StudentPortal] Load class_advisors notice:', e);
+            console.warn('[ParentPortal] Load class_advisors notice:', e);
         }
 
         if (advisors.length > 0) {
+            // แสดงบนการ์ดหน้าหลักพร้อมรูปโปรไฟล์ครูทุกคน (ไม่ล้นขอบ)
             if (cardListEl) {
                 cardListEl.innerHTML = advisors.map(adv => `
                     <div class="flex items-center gap-1 bg-white border border-indigo-100 rounded-xl px-1.5 py-0.5 shrink-0">
@@ -1048,6 +1104,7 @@
                     </div>
                 `).join('');
             }
+            // แสดงรายละเอียดเต็มใน Drawer เมื่อผู้ปกครองกด
             if (drawerListEl) {
                 drawerListEl.innerHTML = advisors.map(adv => `
                     <div class="p-3 bg-indigo-50/70 border border-indigo-200 rounded-2xl flex items-center justify-between gap-3">
@@ -1064,26 +1121,28 @@
                 `).join('');
             }
         } else {
-            if (cardListEl) cardListEl.innerHTML = `<span class="text-xs text-slate-700"><i class="fa-solid fa-user-tie text-indigo-500 mr-1"></i>ครูที่ปรึกษาประจำชั้น ${classroom}</span>`;
-            if (drawerListEl) drawerListEl.innerHTML = `<div class="p-4 text-center text-slate-600">ยังไม่มีข้อมูลรายชื่อครูที่ปรึกษาชั้น ${classroom}</div>`;
+            if (cardListEl) cardListEl.innerHTML = `<span class="text-xs text-slate-700"><i class="fa-solid fa-user-tie text-indigo-500 mr-1"></i>ครูที่ปรึกษาประจำชั้น ${cleanRoom}</span>`;
+            if (drawerListEl) drawerListEl.innerHTML = `<div class="p-4 text-center text-slate-600">ยังไม่มีข้อมูลรายชื่อครูที่ปรึกษาชั้น ${cleanRoom}</div>`;
         }
     }
 
-    // 📊 สถิติการมาเรียน & สถานะเข้าโรงเรียนวันนี้
-    async function renderAttendanceAndGateStatus(client, studentId) {
-        if (!client || !studentId) return;
+    // 📊 คำนวณสถิติการมาเรียน + สถานะประตูโรงเรียนวันนี้จริง
+    async function loadAttendanceAndGateStatus(client, studentId) {
         const todayStr = new Date().toISOString().slice(0, 10);
         try {
             const { data: attLogs } = await client.from('attendance_logs').select('*').eq('student_id', studentId).order('recorded_at', { ascending: false });
             const logs = attLogs || [];
 
             let presentCount = 0, lateCount = 0, absentCount = 0, truantCount = 0;
+            const leaveRecords = [];
+
             logs.forEach(item => {
                 const st = String(item.status || '').toLowerCase();
                 if (st === 'present' || st === 'ontime' || st === 'มาเรียน') presentCount++;
                 else if (st === 'late' || st === 'มาสาย') lateCount++;
                 else if (st === 'absent' || st === 'ขาดเรียน') absentCount++;
                 else if (st === 'truant' || st === 'หนีเรียน') truantCount++;
+                else if (st === 'leave' || item.method === 'parent_leave_request') leaveRecords.push(item);
             });
 
             if (document.getElementById('stat-present')) document.getElementById('stat-present').textContent = presentCount;
@@ -1091,6 +1150,26 @@
             if (document.getElementById('stat-absent')) document.getElementById('stat-absent').textContent = absentCount;
             if (document.getElementById('stat-truant')) document.getElementById('stat-truant').textContent = truantCount;
 
+            // อัปเดตประวัติการยื่นใบลา
+            const leaveListEl = document.getElementById('leaveHistoryList');
+            if (leaveListEl) {
+                leaveListEl.innerHTML = leaveRecords.length === 0
+                    ? `<div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-slate-600">ไม่มีประวัติการยื่นใบลา</div>`
+                    : leaveRecords.map(lv => {
+                        const dt = lv.recorded_at ? new Date(lv.recorded_at).toLocaleDateString('th-TH') : '-';
+                        return `
+                            <div class="p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-left">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-amber-950 truncate">${lv.subject_name || 'แจ้งลาออนไลน์'}</div>
+                                    <div class="text-[11px] text-slate-600">วันที่ยื่น: ${dt}</div>
+                                </div>
+                                <span class="bg-amber-500 text-white text-[10.5px] font-semibold px-2 py-0.5 rounded-lg shrink-0">ส่งข้อมูลแล้ว</span>
+                            </div>
+                        `;
+                    }).join('');
+            }
+
+            // สถานะเข้า-ออกโรงเรียนวันนี้ (Smart Gate)
             const todayLogs = logs.filter(l => String(l.recorded_at || l.created_at || '').startsWith(todayStr));
             const gateSection = document.getElementById('section-gate');
             const iconBg = document.getElementById('trafficIconBg');
@@ -1108,311 +1187,196 @@
 
                 if (gateSection) gateSection.className = "px-3 py-1.5 bg-emerald-50/90 border-b border-emerald-100 flex items-center justify-between gap-2";
                 if (iconBg) iconBg.className = "w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0";
-                if (titleEl) { titleEl.className = "text-xs font-semibold text-emerald-950 truncate"; titleEl.textContent = "🟢 อยู่ในโรงเรียน (เช็กชื่อเข้าเรียนแล้ว)"; }
+                if (titleEl) { titleEl.className = "text-xs font-semibold text-emerald-950 truncate"; titleEl.textContent = "🟢 อยู่ในโรงเรียน (ปกติ)"; }
                 if (descEl) { descEl.className = "text-[11px] text-emerald-800 truncate"; descEl.textContent = "บันทึกการเข้าเรียนวันนี้เรียบร้อยแล้ว"; }
-            }
-        } catch (e) {
-            console.warn('[StudentPortal] Attendance notice:', e);
-        }
-    }
-
-    // 🛡️ คะแนนความประพฤติคงเหลือ + ประวัติการหัก/เพิ่มคะแนน
-    async function renderBehaviorScoreAndHistory(studentId) {
-        const container = document.getElementById('behaviorHistoryList');
-        const desktopContainer = document.getElementById('desktopBehaviorLogsContainer');
-        const scoreEl = document.getElementById('student-behavior-score');
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (!client || !studentId) return;
-
-        try {
-            const { data: logs } = await client.from('behavior_logs').select('*').eq('student_id', studentId).order('created_at', { ascending: false });
-            const list = logs || [];
-
-            // คำนวณคะแนนคงเหลือจริง (เริ่มต้น 100)
-            let totalScore = 100;
-            list.forEach(item => {
-                const rawPts = Number(item.points ?? item.score ?? 0);
-                const isAdd = item.type === 'add' || item.type === 'merit' || rawPts > 0 && item.action_type === 'add';
-                if (isAdd) {
-                    totalScore = Math.min(100, totalScore + Math.abs(rawPts));
-                } else {
-                    totalScore = Math.max(0, totalScore - Math.abs(rawPts));
-                }
-            });
-            if (scoreEl) scoreEl.textContent = totalScore;
-
-            // อัปเดตกล่องสถานะพฤติกรรมวันนี้
-            const todayStr = new Date().toISOString().slice(0, 10);
-            const todayLogs = list.filter(l => String(l.created_at || '').startsWith(todayStr));
-            const cardEl = document.getElementById('todayBehaviorCard');
-            const iconBoxEl = document.getElementById('todayBehaviorIconBox');
-            const iconEl = document.getElementById('todayBehaviorIcon');
-            const statusTextEl = document.getElementById('todayBehaviorStatusText');
-
-            if (todayLogs.length > 0) {
-                const latest = todayLogs[0];
-                const pts = Math.abs(Number(latest.points ?? latest.score ?? 0));
-                const reason = latest.behavior_name || latest.action || latest.note || 'บันทึกพฤติกรรม';
-                if (cardEl) cardEl.className = "bg-rose-50 border border-rose-300 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0 shadow-2xs";
-                if (iconBoxEl) iconBoxEl.className = "w-7 h-7 rounded-xl bg-rose-600 text-white flex items-center justify-center text-xs shrink-0";
-                if (iconEl) iconEl.className = "fa-solid fa-triangle-exclamation";
-                if (statusTextEl) {
-                    statusTextEl.className = "text-xs font-bold text-rose-950 truncate leading-tight";
-                    statusTextEl.textContent = `⚠️ วันนี้: ${reason} (-${pts} คะแนน)`;
-                }
-            }
-
-            const html = list.length === 0
-                ? `<div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-center text-emerald-900 font-medium">✅ พฤติกรรมปกติ ยังไม่มีประวัติการหักคะแนน</div>`
-                : list.map(item => {
-                    const isAdd = item.type === 'add' || item.type === 'merit';
-                    const pts = Math.abs(Number(item.points ?? item.score ?? 0));
-                    const dt = item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : '-';
-                    return `
-                        <div class="p-2.5 ${isAdd ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'} border rounded-xl flex justify-between items-center gap-2">
-                            <div class="min-w-0">
-                                <span class="font-bold text-xs ${isAdd ? 'text-emerald-950' : 'text-rose-950'} block truncate">
-                                    <i class="fa-solid ${isAdd ? 'fa-plus-circle' : 'fa-minus-circle'} mr-1"></i>${item.behavior_name || item.action || item.note || 'บันทึกพฤติกรรม'}
-                                </span>
-                                <span class="text-[11px] text-slate-600">วันที่: ${dt}</span>
-                            </div>
-                            <span class="text-xs font-bold px-2 py-0.5 rounded-lg text-white ${isAdd ? 'bg-emerald-600' : 'bg-rose-600'} shrink-0">${isAdd ? '+' : '-'}${pts} คะแนน</span>
-                        </div>
-                    `;
-                }).join('');
-
-            if (container) container.innerHTML = html;
-            if (desktopContainer) desktopContainer.innerHTML = html;
-        } catch (e) {
-            console.warn('[StudentPortal] Behavior log error:', e);
-        }
-    }
-
-    // 🪪 บัตรผ่านประตูดิจิทัล (QR Code) & ตัวนับเวลาถอยหลัง
-    async function renderActiveGatepass() {
-        if (!CURRENT_STUDENT_ID) return;
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (!client) return;
-        
-        try {
-            const { data: pass } = await client.from('gate_pass_logs')
-                .select('*')
-                .eq('student_id', String(CURRENT_STUDENT_ID))
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            const activeCard = document.getElementById('activePassCard');
-            const noPassNotice = document.getElementById('noActivePassNotice');
-            const qrContainer = document.getElementById('qrcodeContainer');
-            const topTimerBadge = document.getElementById('topGatepassTimerBadge');
-            const bannerText = document.getElementById('gatepassBannerText');
-
-            if (pass && ['pending', 'approved', 'out'].includes(pass.status)) {
-                if (activeCard) activeCard.classList.remove('hidden');
-                if (noPassNotice) noPassNotice.classList.add('hidden');
-                if (document.getElementById('passReason')) document.getElementById('passReason').innerText = `เหตุผล: ${pass.reason || '-'}`;
-                if (document.getElementById('passTimeRange')) document.getElementById('passTimeRange').innerText = `เวลาอนุญาต: ${pass.exit_time || '-'} ถึง ${pass.return_time || '-'}`;
-
-                const statusBadge = document.getElementById('passStatusBadge');
-                if (qrContainer) qrContainer.innerHTML = "";
-
-                if (pass.status === 'pending') {
-                    if (statusBadge) {
-                        statusBadge.className = "bg-amber-400 text-slate-950 text-[10.5px] font-bold px-2.5 py-0.5 rounded-md";
-                        statusBadge.innerText = "⏳ รอครู/ฝ่ายปกครองอนุมัติ";
-                    }
-                    if (bannerText) bannerText.innerText = "⏳ คำขอออกนอกโรงเรียน: รอครูอนุมัติ";
-                    if (qrContainer) qrContainer.innerHTML = `<p class="text-[11px] text-slate-600 p-2 text-center">เมื่อครูอนุมัติแล้ว<br>QR Code จะแสดงที่นี่</p>`;
-                    if (topTimerBadge) topTimerBadge.classList.add('hidden');
-                } else if (pass.status === 'approved' || pass.status === 'out') {
-                    if (statusBadge) {
-                        statusBadge.className = "bg-emerald-400 text-slate-950 text-[10.5px] font-bold px-2.5 py-0.5 rounded-md";
-                        statusBadge.innerText = pass.status === 'out' ? "🚪 อยู่นอกโรงเรียน" : "✅ อนุมัติแล้ว (สแกนผ่านประตูได้)";
-                    }
-                    if (bannerText) bannerText.innerText = "✅ อนุมัติบัตรผ่านประตูแล้ว (แตะเปิด QR Code)";
-
-                    if (typeof QRCode !== 'undefined' && qrContainer) {
-                        new QRCode(qrContainer, {
-                            text: `GATEPASS:${pass.id}:${pass.student_id}`,
-                            width: 100, height: 100
-                        });
-                    }
-
-                    if (pass.return_time) {
-                        if (topTimerBadge) topTimerBadge.classList.remove('hidden');
-                        startCountDownTimer(pass.return_time);
-                    }
-                }
             } else {
-                if (activeCard) activeCard.classList.add('hidden');
-                if (noPassNotice) noPassNotice.classList.remove('hidden');
-                if (topTimerBadge) topTimerBadge.classList.add('hidden');
-                if (gatepassTimerInterval) clearInterval(gatepassTimerInterval);
+                if (timeInEl) timeInEl.textContent = '--:--';
+                if (timeOutEl) timeOutEl.textContent = '--:--';
+                if (gateSection) gateSection.className = "px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2";
+                if (iconBg) iconBg.className = "w-6 h-6 rounded-lg bg-slate-500 text-white flex items-center justify-center text-xs shrink-0";
+                if (titleEl) { titleEl.className = "text-xs font-semibold text-slate-800 truncate"; titleEl.textContent = "⚪ รอเช็กชื่อเข้าเรียนวันนี้"; }
+                if (descEl) { descEl.className = "text-[11px] text-slate-600 truncate"; descEl.textContent = "ระบบจะอัปเดตอัตโนมัติเมื่อเช็กชื่อเข้าแถว"; }
             }
-        } catch (e) { console.warn('[StudentPortal] Gatepass notice:', e); }
-    }
-
-    function startCountDownTimer(returnTimeStr) {
-        if (gatepassTimerInterval) clearInterval(gatepassTimerInterval);
-        function updateTimer() {
-            const now = new Date();
-            const [targetHour, targetMinute] = returnTimeStr.split(':').map(Number);
-            const targetTime = new Date();
-            targetTime.setHours(targetHour, targetMinute, 0, 0);
-
-            let diffMs = targetTime - now;
-            const countdownEl = document.getElementById('topGatepassCountdown');
-            if (!countdownEl) return;
-
-            if (diffMs <= 0) {
-                countdownEl.innerText = "หมดเวลา";
-                countdownEl.className = "text-[11px] font-bold text-rose-400 font-mono animate-pulse";
-                clearInterval(gatepassTimerInterval);
-                return;
-            }
-            const hrs = String(Math.floor(diffMs / (1000 * 60 * 60))).padStart(2, '0');
-            const mins = String(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
-            const secs = String(Math.floor((diffMs % (1000 * 60)) / 1000)).padStart(2, '0');
-            countdownEl.innerText = `${hrs}:${mins}:${secs}`;
-        }
-        updateTimer();
-        gatepassTimerInterval = setInterval(updateTimer, 1000);
-    }
-
-    // 📅 ตารางเรียนประจำห้อง + แถบคาบเรียนถัดไปด้านบน
-    async function renderStudentSchedule() {
-        const container = document.getElementById('scheduleContainer');
-        const desktopContainer = document.getElementById('desktopScheduleContainer');
-        const nextBar = document.getElementById('nextClassBarText');
-        const client = window.supabaseClient || window.db || window.supabase;
-
-        if (!currentStudentClass || !client) {
-            const emptyHtml = `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่พบข้อมูลห้องเรียนของนักเรียน</div>`;
-            if (container) container.innerHTML = emptyHtml;
-            if (desktopContainer) desktopContainer.innerHTML = emptyHtml;
-            if (nextBar) nextBar.textContent = "ตารางเรียนประจำวัน (แตะเพื่อเปิดดู)";
-            return;
-        }
-
-        try {
-            const { data: schedules } = await client.from('course_assignments').select('*').eq('class_name', currentStudentClass);
-            if (!schedules || schedules.length === 0) {
-                const noDataHtml = `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายวิชาในตารางเรียน (${currentStudentClass})</div>`;
-                if (container) container.innerHTML = noDataHtml;
-                if (desktopContainer) desktopContainer.innerHTML = noDataHtml;
-                if (nextBar) nextBar.textContent = `ห้อง ${currentStudentClass} • แตะเพื่อตรวจสอบตารางเรียน`;
-                return;
-            }
-
-            if (nextBar) {
-                nextBar.textContent = `📚 วิชาเรียนห้อง ${currentStudentClass}: ${schedules[0].subject_name || schedules[0].course_code || 'ดูตารางเรียนทั้งหมด'}`;
-            }
-
-            const html = schedules.map((s, idx) => `
-                <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
-                            ${idx + 1}
-                        </div>
-                        <div class="min-w-0">
-                            <h4 class="text-xs font-semibold text-slate-800 truncate">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
-                            <p class="text-[11px] text-slate-600 truncate">รหัสวิชา: ${s.course_code || '-'} &bull; ห้อง ${s.class_name || currentStudentClass}</p>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-
-            if (container) container.innerHTML = html;
-            if (desktopContainer) desktopContainer.innerHTML = html;
         } catch (e) {
-            console.warn('[StudentPortal] Schedule error:', e);
+            console.warn('[ParentPortal] Attendance/Gate load notice:', e);
         }
     }
 
-    async function renderAcademicData(studentId) {
-        const container = document.getElementById('studentAcademicContainer');
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (!container || !client || !studentId) return;
+    // 🛡️ อัปเดตกล่องแสดงสถานะพฤติกรรมนักเรียนวันนี้บนหน้าหลัก + ประวัติทั้งหมด
+    function renderBehaviorStatusAndLogs(logs) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayLogs = (logs || []).filter(l => String(l.created_at || '').startsWith(todayStr));
 
-        try {
-            const { data: risks } = await client.from('academic_attendance_summary').select('*').eq('student_id', studentId);
-            if (!risks || risks.length === 0) return;
+        const cardEl = document.getElementById('todayBehaviorCard');
+        const iconBoxEl = document.getElementById('todayBehaviorIconBox');
+        const iconEl = document.getElementById('todayBehaviorIcon');
+        const statusTextEl = document.getElementById('todayBehaviorStatusText');
 
-            container.className = "space-y-2 text-left";
-            container.innerHTML = risks.map(item => {
-                const percent = item.attendance_percent ?? 100;
-                const badgeStyle = percent < 80 ? 'bg-rose-100 text-rose-800' : percent < 85 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800';
-                const statusText = percent < 80 ? 'ติด มส.' : percent < 85 ? 'เสี่ยง มส.' : 'ปกติ';
+        if (todayLogs.length === 0) {
+            if (cardEl) cardEl.className = "bg-emerald-50 border border-emerald-200 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0 shadow-2xs";
+            if (iconBoxEl) iconBoxEl.className = "w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0";
+            if (iconEl) iconEl.className = "fa-solid fa-shield-heart";
+            if (statusTextEl) {
+                statusTextEl.className = "text-xs font-bold text-emerald-950 truncate leading-tight";
+                statusTextEl.textContent = "✅ พฤติกรรมปกติ (ไม่พบเหตุการณ์ผิดปกติ)";
+            }
+        } else {
+            const latest = todayLogs[0];
+            const pts = Number(latest.score || latest.points || 0);
+            const reason = latest.behavior_name || latest.reason || latest.note || 'บันทึกพฤติกรรม';
+            if (cardEl) cardEl.className = "bg-rose-50 border border-rose-300 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0 shadow-2xs";
+            if (iconBoxEl) iconBoxEl.className = "w-7 h-7 rounded-xl bg-rose-600 text-white flex items-center justify-center text-xs shrink-0";
+            if (iconEl) iconEl.className = "fa-solid fa-triangle-exclamation";
+            if (statusTextEl) {
+                statusTextEl.className = "text-xs font-bold text-rose-950 truncate leading-tight";
+                statusTextEl.textContent = `⚠️ วันนี้: ${reason} (${pts > 0 ? '-' + pts + ' คะแนน' : 'บันทึกพฤติกรรม'})`;
+            }
+        }
+
+        const logsHtml = (!logs || logs.length === 0)
+            ? `<div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-center text-emerald-900 font-medium">✅ พฤติกรรมปกติ ยังไม่มีประวัติการบันทึกพฤติกรรมผิดปกติ</div>`
+            : logs.map(l => {
+                const pts = Number(l.score || l.points || 0);
+                const dateDisplay = l.created_at ? new Date(l.created_at).toLocaleDateString('th-TH') : '-';
                 return `
-                    <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center gap-2">
-                        <div>
-                            <span class="font-bold text-slate-800 block">${item.subject_name || item.subject_code}</span>
-                            <span class="text-[11px] text-slate-600">ขาดเรียน ${item.absent_count || 0} คาบ</span>
+                    <div class="p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold text-rose-950 truncate">${l.behavior_name || l.reason || 'บันทึกพฤติกรรม'}</div>
+                            <div class="text-[11px] text-slate-600">วันที่: ${dateDisplay}</div>
                         </div>
-                        <span class="${badgeStyle} text-[10.5px] px-2.5 py-0.5 rounded-full font-bold">${statusText} (${percent}%)</span>
+                        <span class="bg-rose-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-lg shrink-0">-${pts} คะแนน</span>
                     </div>
                 `;
             }).join('');
-        } catch (e) {}
+
+        if (document.getElementById('behaviorLogsContainer')) document.getElementById('behaviorLogsContainer').innerHTML = logsHtml;
+        if (document.getElementById('desktopBehaviorLogsContainer')) document.getElementById('desktopBehaviorLogsContainer').innerHTML = logsHtml;
     }
 
-    async function renderHomeworkData(className) {
-        const container = document.getElementById('studentHomeworkList');
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (!container || !client || !className) return;
-
+    // 📚🏥🔔 โหลดข้อมูลเสริม (การบ้าน / ห้องพยาบาล / แจ้งเตือน) จากฐานข้อมูล
+    async function loadSecondaryModules(client, studentId, classroom) {
         try {
-            const { data: list } = await client.from('homeworks').select('*').eq('class_name', className).order('created_at', { ascending: false }).limit(10);
-            if (list && list.length > 0) {
-                container.className = "space-y-2 text-left";
-                container.innerHTML = list.map(h => `
-                    <div class="p-2.5 bg-indigo-50/70 rounded-xl border border-indigo-200">
-                        <span class="font-bold text-indigo-950 block">${h.subject_name || h.title || 'การบ้าน'}</span>
+            const { data: hws } = await client.from('homeworks').select('*').eq('class_name', classroom).order('created_at', { ascending: false }).limit(10);
+            const hwEl = document.getElementById('homeworkList');
+            if (hwEl && hws && hws.length > 0) {
+                hwEl.className = "space-y-2";
+                hwEl.innerHTML = hws.map(h => `
+                    <div class="p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl text-left">
+                        <div class="font-bold text-indigo-950">${h.subject_name || h.title || 'งานที่ได้รับมอบหมาย'}</div>
                         <div class="text-[11.5px] text-slate-700 mt-0.5">${h.description || h.detail || '-'}</div>
                         ${h.due_date ? `<div class="text-[11px] text-rose-600 font-semibold mt-1">กำหนดส่ง: ${new Date(h.due_date).toLocaleDateString('th-TH')}</div>` : ''}
                     </div>
                 `).join('');
             }
         } catch (e) {}
-    }
-
-    async function renderClinicData(studentId) {
-        const container = document.getElementById('studentClinicList');
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (!container || !client || !studentId) return;
 
         try {
-            const { data: list } = await client.from('clinic_logs').select('*').eq('student_id', studentId).order('created_at', { ascending: false }).limit(10);
-            if (list && list.length > 0) {
-                container.className = "space-y-2 text-left";
-                container.innerHTML = list.map(c => `
-                    <div class="p-2.5 bg-rose-50/70 rounded-xl border border-rose-200">
-                        <span class="font-bold text-rose-950 block">อาการ: ${c.symptom || 'ปฐมพยาบาล'}</span>
-                        <div class="text-[11.5px] text-slate-700 mt-0.5">การรักษา: ${c.treatment || c.medicine || '-'}</div>
-                        <div class="text-[11px] text-slate-600 mt-1">${c.created_at ? new Date(c.created_at).toLocaleDateString('th-TH') : '-'}</div>
+            const { data: clinics } = await client.from('clinic_logs').select('*').eq('student_id', studentId).order('created_at', { ascending: false }).limit(10);
+            const clinicEl = document.getElementById('clinicHistoryList');
+            if (clinicEl && clinics && clinics.length > 0) {
+                clinicEl.className = "space-y-2";
+                clinicEl.innerHTML = clinics.map(c => `
+                    <div class="p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl text-left">
+                        <div class="font-bold text-rose-950">อาการ: ${c.symptom || c.reason || '-'}</div>
+                        <div class="text-[11.5px] text-slate-700 mt-0.5">การรักษา/จ่ายยา: ${c.treatment || c.medicine || '-'}</div>
+                        <div class="text-[11px] text-slate-600 mt-1">วันที่: ${c.created_at ? new Date(c.created_at).toLocaleDateString('th-TH') : '-'}</div>
                     </div>
                 `).join('');
             }
         } catch (e) {}
-    }
 
-    async function renderAnnouncements(client) {
-        if (!client) return;
         try {
             const { data: notis } = await client.from('announcements').select('*').order('created_at', { ascending: false }).limit(5);
             const notiListEl = document.getElementById('notificationList');
-            if (notis && notis.length > 0 && notiListEl) {
-                notiListEl.className = "space-y-2 text-left";
-                notiListEl.innerHTML = notis.map(n => `
-                    <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                        <div class="font-bold text-amber-950">${n.title || 'ประกาศจากโรงเรียน'}</div>
-                        <div class="text-[11.5px] text-slate-700 mt-0.5">${n.content || n.message || '-'}</div>
-                        <div class="text-[11px] text-slate-500 mt-1">${n.created_at ? new Date(n.created_at).toLocaleDateString('th-TH') : ''}</div>
-                    </div>
-                `).join('');
+            const previewEl = document.getElementById('latestNotificationPreview');
+            if (notis && notis.length > 0) {
+                if (previewEl) previewEl.textContent = `🔔 ${notis[0].title || notis[0].message || 'แจ้งเตือนและประกาศจากโรงเรียน'}`;
+                if (notiListEl) {
+                    notiListEl.className = "space-y-2";
+                    notiListEl.innerHTML = notis.map(n => `
+                        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-left">
+                            <div class="font-bold text-amber-950">${n.title || 'ประกาศจากโรงเรียน'}</div>
+                            <div class="text-[11.5px] text-slate-700 mt-0.5">${n.content || n.message || '-'}</div>
+                            <div class="text-[11px] text-slate-500 mt-1">${n.created_at ? new Date(n.created_at).toLocaleDateString('th-TH') : ''}</div>
+                        </div>
+                    `).join('');
+                }
             }
         } catch (e) {}
+    }
+
+    async function loadDashboardData() {
+        const client = window.supabaseClient || window.db || window.supabase;
+        if (!client || !currentStudentId) return;
+
+        try {
+            let student = PARENT_CHILDREN_LIST.find(c => String(c.student_id) === String(currentStudentId));
+            if (!student) {
+                const { data } = await client.from('students').select('*').eq('student_id', String(currentStudentId)).maybeSingle();
+                student = data;
+            }
+
+            if (student) {
+                const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                const classroom = student.classroom || student.class_name || '-';
+                const studentNo = student.student_no || student.number || '-';
+                const avatarUrl = student.avatar_url || student.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+
+                if (document.getElementById('student-fullname')) document.getElementById('student-fullname').textContent = fullName || 'นักเรียน';
+                if (document.getElementById('student-class')) document.getElementById('student-class').textContent = classroom;
+                if (document.getElementById('student-no')) document.getElementById('student-no').textContent = studentNo;
+                if (document.getElementById('student-code')) document.getElementById('student-code').textContent = String(student.student_id);
+
+                const studentAvatarEl = document.getElementById('student-avatar');
+                if (studentAvatarEl) {
+                    studentAvatarEl.src = avatarUrl;
+                    studentAvatarEl.onerror = () => { studentAvatarEl.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'; };
+                }
+
+                await Promise.all([
+                    loadHomeroomAdvisors(classroom),
+                    loadAttendanceAndGateStatus(client, currentStudentId),
+                    loadSecondaryModules(client, currentStudentId, classroom)
+                ]);
+
+                const { data: logs } = await client.from('behavior_logs').select('*').eq('student_id', currentStudentId).order('created_at', { ascending: false });
+                let totalScore = 100;
+                if (logs && logs.length > 0) {
+                    const totalDeducted = logs.reduce((sum, l) => sum + Number(l.score || l.points || 0), 0);
+                    totalScore = Math.max(0, 100 - totalDeducted);
+                }
+                if (document.getElementById('student-behavior-score')) document.getElementById('student-behavior-score').textContent = totalScore;
+                renderBehaviorStatusAndLogs(logs || []);
+
+                if (classroom && classroom !== '-') {
+                    const dayName = document.getElementById('dayFilter')?.value || 'Monday';
+                    const { data: schedule } = await client.from('course_assignments').select('*').eq('class_name', classroom);
+                    renderSchedule(schedule || [], dayName);
+                }
+            }
+        } catch (err) {
+            console.error('[ParentPortal] Load Dashboard Error:', err);
+        }
+    }
+
+    function renderSchedule(scheduleList, dayName) {
+        const html = (!scheduleList || scheduleList.length === 0)
+            ? `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันนี้ (${dayName})</div>`
+            : scheduleList.map((s, idx) => `
+                <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
+                            ${idx + 1}
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-semibold text-slate-800">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
+                            <p class="text-[11px] text-slate-600">ห้องเรียน: ${s.class_name || 'ไม่ระบุ'}</p>
+                        </div>
+                    </div>
+                </div>`).join('');
+
+        if (document.getElementById('scheduleContainer')) document.getElementById('scheduleContainer').innerHTML = html;
+        if (document.getElementById('desktopScheduleContainer')) document.getElementById('desktopScheduleContainer').innerHTML = html;
     }
 
     function handleLogout() {
@@ -1429,51 +1393,57 @@
     }
 
     function setupEventListeners() {
-        window.onScheduleDayChange = (dayKey) => {
-            SELECTED_SCHEDULE_DAY = dayKey;
-            renderStudentSchedule();
-        };
+        document.getElementById('dayFilter')?.addEventListener('change', loadDashboardData);
 
-        document.getElementById('requestReasonSelect')?.addEventListener('change', (e) => {
-            const customBox = document.getElementById('customReasonBox');
-            const customInput = document.getElementById('customReasonInput');
-            if (e.target.value === 'other') {
-                customBox?.classList.remove('hidden');
-                if (customInput) customInput.required = true;
-            } else {
-                customBox?.classList.add('hidden');
-                if (customInput) customInput.required = false;
+        document.getElementById('childModalList')?.addEventListener('click', async (e) => {
+            const childBtn = e.target.closest('.child-option-btn');
+            if (childBtn) {
+                const sId = childBtn.getAttribute('data-student-id');
+                const sName = childBtn.getAttribute('data-student-name');
+                if (sId && typeof window.selectChildOption === 'function') await window.selectChildOption(sId, sName);
+                return;
+            }
+            const addBtn = e.target.closest('#btnAddAnotherChild');
+            if (addBtn) {
+                const gKey = addBtn.getAttribute('data-group-key');
+                const pId = addBtn.getAttribute('data-primary-id');
+                if (typeof window.promptAddAnotherChild === 'function') await window.promptAddAnotherChild(gKey, pId);
             }
         });
 
-        document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
+        const leaveModal = document.getElementById('leaveModal');
+        document.getElementById('btnCloseLeaveModal')?.addEventListener('click', () => leaveModal?.classList.add('hidden'));
+        document.getElementById('btnCancelLeave')?.addEventListener('click', () => leaveModal?.classList.add('hidden'));
+
+        document.getElementById('leaveForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
                 const client = window.supabaseClient || window.db || window.supabase;
                 if (!client) throw new Error("ไม่พบการเชื่อมต่อ Supabase");
 
-                const selectVal = document.getElementById('requestReasonSelect').value;
-                const customVal = document.getElementById('customReasonInput').value;
-                const reasonText = selectVal === 'other' ? customVal : selectVal;
+                const leaveType = document.getElementById('leaveType').value;
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const reason = document.getElementById('leaveReason').value;
 
-                const { error } = await client.from('gate_pass_logs').insert([{
-                    student_id: CURRENT_STUDENT_ID,
-                    reason: reasonText,
-                    exit_time: document.getElementById('exitTimeInput').value,
-                    return_time: document.getElementById('returnTimeInput').value,
-                    status: 'pending'
+                const { error } = await client.from('attendance_logs').insert([{
+                    student_id: currentStudentId,
+                    status: 'leave',
+                    method: 'parent_leave_request',
+                    period_no: 1,
+                    recorded_at: new Date().toISOString(),
+                    subject_name: `แจ้งลา (${leaveType}): ${reason} [${startDate} ถึง ${endDate}]`
                 }]);
 
                 if (error) throw error;
 
-                alert('🎉 ส่งคำขออนุมัติไปยังครู / ฝ่ายปกครองเรียบร้อยแล้ว!');
-                document.getElementById('gatepassForm').reset();
-                closeGatepassModalDirect();
-                await renderActiveGatepass();
-                openDrawerById('gatepassDrawerBackdrop');
+                alert('🎉 ยื่นใบลาออนไลน์ส่งถึงครูเรียบร้อยแล้ว!');
+                document.getElementById('leaveForm').reset();
+                leaveModal?.classList.add('hidden');
+                loadDashboardData();
             } catch (err) {
-                console.error('Submit Gatepass Error:', err);
-                alert('เกิดข้อผิดพลาดในการยื่นขออนุญาต: ' + err.message);
+                console.error('Submit Leave Error:', err);
+                alert('เกิดข้อผิดพลาดในการยื่นใบลา: ' + err.message);
             }
         });
     }
