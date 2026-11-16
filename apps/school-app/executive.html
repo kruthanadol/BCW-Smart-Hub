@@ -26,26 +26,28 @@
         }
     </script>
 <style>
-html, body {
+        html, body {
             font-size: 16px;
             font-family: 'Kanit', 'Sarabun', sans-serif;
             background-color: #f1f5f9;
             color: #0f172a;
             width: 100%;
             max-width: 100vw;
-            overflow-x: hidden !important;
-            overscroll-behavior-y: none !important; /* ป้องกันเบราว์เซอร์ดึงรีเฟรชหน้าจอ */
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto !important; /* บังคับให้หน้าหลักเลื่อนขึ้น-ลงได้เสมอ */
             margin: 0;
             padding: 0;
             -webkit-text-size-adjust: 100%;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* ล็อกการดึงรีเฟรชภายในแผ่น Bottom Sheet */
-        .bottom-sheet-content {
+        /* บล็อกการดึงรีเฟรชเฉพาะตอนปัดบนแผ่น Bottom Sheet และ Drawer เท่านั้น */
+        .bottom-sheet-content, .drawer-content-glass {
             overscroll-behavior-y: contain;
             -webkit-overflow-scrolling: touch;
             will-change: transform;
+            touch-action: pan-y;
         }
     
         @media print {
@@ -836,6 +838,16 @@ html, body {
         setInterval(startExecutiveClock, 1000);
 
         // 2. ควบคุม Side Drawer & Bottom Sheets (เปิด-ปิดแบบ Reset ค่า Transform เสมอเพื่อให้สมูททุกรอบ)
+        function syncBodyScrollLock() {
+            const anyOpen =
+                document.getElementById('drawerOverlay')?.classList.contains('active') ||
+                document.getElementById('affairsBottomSheetOverlay')?.classList.contains('active') ||
+                document.getElementById('academicBottomSheetOverlay')?.classList.contains('active');
+            
+            document.documentElement.style.overflowY = anyOpen ? 'hidden' : 'auto';
+            document.body.style.overflowY = anyOpen ? 'hidden' : 'auto';
+        }
+
         function toggleExecutiveDrawer() {
             const overlay = document.getElementById('drawerOverlay');
             const drawer = document.getElementById('drawerContent');
@@ -846,14 +858,13 @@ html, body {
                 drawer.style.transform = '';
             }
             overlay.classList.toggle('active', willOpen);
-            document.body.style.overflow = willOpen ? 'hidden' : '';
+            syncBodyScrollLock();
         }
 
         function toggleAffairsBottomSheet() {
             const overlay = document.getElementById('affairsBottomSheetOverlay');
             const sheet = document.getElementById('affairsBottomSheetContent');
             if (!overlay) return;
-            // ปิดอีกแผ่นก่อนถ้าเปิดค้างอยู่
             document.getElementById('academicBottomSheetOverlay')?.classList.remove('active');
             const willOpen = !overlay.classList.contains('active');
             if (sheet) {
@@ -861,14 +872,13 @@ html, body {
                 sheet.style.transform = '';
             }
             overlay.classList.toggle('active', willOpen);
-            document.body.style.overflow = willOpen ? 'hidden' : '';
+            syncBodyScrollLock();
         }
 
         function toggleAcademicBottomSheet() {
             const overlay = document.getElementById('academicBottomSheetOverlay');
             const sheet = document.getElementById('academicBottomSheetContent');
             if (!overlay) return;
-            // ปิดอีกแผ่นก่อนถ้าเปิดค้างอยู่
             document.getElementById('affairsBottomSheetOverlay')?.classList.remove('active');
             const willOpen = !overlay.classList.contains('active');
             if (sheet) {
@@ -876,7 +886,7 @@ html, body {
                 sheet.style.transform = '';
             }
             overlay.classList.toggle('active', willOpen);
-            document.body.style.overflow = willOpen ? 'hidden' : '';
+            syncBodyScrollLock();
         }
 
         function openAcademicHomeworkModal() {
@@ -1064,9 +1074,10 @@ html, body {
                         sheet.style.transform = 'translate3d(0, 105%, 0)';
                         setTimeout(() => {
                             overlay.classList.remove('active');
-                            document.body.style.overflow = '';
                             sheet.style.transform = '';
+                            syncBodyScrollLock(); // ปลดล็อกหน้าหลักทันทีที่ปิดเสร็จ
                         }, 300);
+                    }
                     } else {
                         // เด้งกลับตำแหน่งเดิมอย่างนุ่มนวล
                         sheet.style.transform = 'translate3d(0, 0, 0)';
