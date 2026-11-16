@@ -45,10 +45,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* การ์ดหลักของระบบห้องพยาบาล */
         .clinic-main-card {
             background: #ffffff;
             border: 1.5px solid #e2e8f0;
@@ -207,7 +203,7 @@
 </head>
 <body class="clinic-app-body px-3 md:p-6 relative select-none">
 
-    <!-- 1. TOP APP HEADER (มาตรฐานเดียวกับ Student / Parent) -->
+    <!-- 1. TOP APP HEADER -->
     <div class="max-w-7xl mx-auto w-full shrink-0 space-y-1.5 no-print">
         <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-2 md:p-5 border-b-2 border-amber-400">
             <div class="flex justify-between items-center gap-2">
@@ -236,11 +232,11 @@
                 </div>
             </div>
 
-            <!-- แถบสถานะห้องพยาบาล + วันที่/เวลา Real-time -->
-            <div class="bg-indigo-950/90 border-t border-indigo-800/70 mt-1.5 pt-1 px-1 flex justify-between items-center text-[11px] md:text-xs">
+            <!-- แถบสถานะห้องพยาบาล + พักฟื้นสะสมวันนี้ + นาฬิกา Real-time -->
+            <div class="bg-indigo-950/90 border-t border-indigo-800/70 mt-1.5 pt-1 px-1 flex justify-between items-center text-[11px] md:text-xs gap-1.5">
                 <div class="flex items-center gap-1.5 min-w-0">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                    <span id="header-date-display" class="font-medium text-emerald-200 truncate">ห้องพยาบาลเปิดทำการ</span>
+                    <span class="font-medium text-emerald-200 truncate">เปิดทำการ &bull; พักฟื้นสะสม: <strong id="totalRestingMinutesText" class="text-amber-300">0 นาที</strong></span>
                 </div>
                 <div class="flex items-center gap-1.5 text-amber-200 font-semibold shrink-0">
                     <i class="fa-regular fa-clock text-amber-400 text-[11px]"></i>
@@ -257,7 +253,7 @@
         <section class="clinic-main-card p-2.5 shrink-0">
             <div class="flex items-center justify-between mb-2 px-0.5">
                 <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <i class="fa-solid fa-heart-pulse text-rose-600"></i> สถิติบริการห้องพยาบาลวันนี้
+                    <i class="fa-solid fa-heart-pulse text-rose-600"></i> การดูแลสุขภาพและงานห้องพยาบาล
                 </span>
                 <button type="button" onclick="window.print()" class="no-print bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold px-2.5 py-1 rounded-xl flex items-center gap-1 cursor-pointer">
                     <i class="fa-solid fa-print text-[10px]"></i> พิมพ์รายงาน
@@ -300,15 +296,15 @@
             </div>
         </section>
 
-        <!-- 📷 แถบสแกนบาร์โค้ด / ค้นหารหัสนักเรียนเข้ารับบริการ (Barcode Quick Scan) -->
+        <!-- 📷 แถบสแกนบัตรนักเรียน (รองรับทั้ง QR Code และบาร์โค้ด) + ค้นหาด่วน -->
         <section class="clinic-main-card p-2.5 shrink-0 no-print">
             <div class="flex items-center gap-2">
-                <button type="button" onclick="openBarcodeScannerModal()" class="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 active:scale-95 text-white px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer">
-                    <i class="fa-solid fa-barcode text-sm"></i>
-                    <span>สแกนบาร์โค้ด</span>
+                <button type="button" onclick="openStudentScannerModal()" class="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 active:scale-95 text-white px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer">
+                    <i class="fa-solid fa-qrcode text-sm"></i>
+                    <span>สแกนบัตร / รับเคส</span>
                 </button>
                 <div class="relative flex-1 min-w-0">
-                    <input type="text" id="quickStudentSearchInput" placeholder="ยิงบาร์โค้ด หรือพิมพ์รหัส/ชื่อนักเรียน..." class="w-full bg-slate-50 border border-slate-200 focus:border-rose-400 focus:bg-white rounded-xl py-2 pl-3 pr-8 text-xs font-medium outline-none">
+                    <input type="text" id="quickStudentSearchInput" placeholder="สแกน QR / พิมพ์รหัสหรือชื่อนักเรียน..." class="w-full bg-slate-50 border border-slate-200 focus:border-rose-400 focus:bg-white rounded-xl py-2 pl-3 pr-8 text-xs font-medium outline-none">
                     <button type="button" onclick="searchStudentForClinic()" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs cursor-pointer">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
@@ -316,7 +312,7 @@
             </div>
         </section>
 
-        <!-- 🛏️ รายการนักเรียนที่กำลังพักฟื้น / เคสล่าสุดวันนี้ (ยืดหยุ่นเต็มพื้นที่ที่เหลือ) -->
+        <!-- 🛏️ รายการนักเรียนที่กำลังพักฟื้น / ผู้รับบริการวันนี้ -->
         <section class="clinic-main-card flex-1 flex flex-col min-h-0">
             <div class="px-3 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -328,13 +324,13 @@
                 <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-6">
                     <i class="fa-solid fa-notes-medical text-2xl text-slate-300 mb-1.5"></i>
                     <p class="font-medium">ยังไม่มีรายการเข้าใช้ห้องพยาบาลวันนี้</p>
-                    <p class="text-[11px] text-slate-400">กด "สแกนบาร์โค้ด" หรือปุ่ม "+" ด้านล่างเพื่อบันทึกเคส</p>
+                    <p class="text-[11px] text-slate-400">กด "สแกนบัตร / รับเคส" หรือปุ่ม "+" ด้านล่างเพื่อบันทึกเคส</p>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- 3. FLOATING BOTTOM NAVIGATION BAR (ไม่บังตัวอักษร 100%) -->
+    <!-- 3. FLOATING BOTTOM NAVIGATION BAR -->
     <nav id="nativeBottomNav" class="native-bottom-nav no-print">
         <button id="navClinicHome" type="button" class="nav-item-btn active" onclick="switchClinicTab('home')">
             <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
@@ -344,9 +340,9 @@
             <div class="nav-icon-box"><i class="fa-solid fa-bed-pulse"></i></div>
             <span>เคสล่าสุด</span>
         </button>
-        <button id="navClinicScan" type="button" class="nav-item-btn highlight-scan" onclick="openBarcodeScannerModal()">
-            <div class="nav-icon-box"><i class="fa-solid fa-barcode"></i></div>
-            <span class="font-semibold text-rose-800">สแกน/เพิ่ม</span>
+        <button id="navClinicScan" type="button" class="nav-item-btn highlight-scan" onclick="openStudentScannerModal()">
+            <div class="nav-icon-box"><i class="fa-solid fa-plus"></i></div>
+            <span class="font-semibold text-rose-800">รับเคสใหม่</span>
         </button>
         <button id="navClinicStats" type="button" class="nav-item-btn" onclick="switchClinicTab('stats')">
             <div class="nav-icon-box"><i class="fa-solid fa-chart-pie"></i></div>
@@ -365,7 +361,7 @@
                     <div class="w-8 h-8 bg-rose-100 text-rose-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-bed-pulse"></i></div>
                     <div>
                         <h3 class="text-sm font-bold text-slate-900">เคสล่าสุดและผู้กำลังพักฟื้น</h3>
-                        <p class="text-xs text-slate-600">กด "จำหน่ายกลับห้อง" เมื่อนักเรียนอาการดีขึ้น</p>
+                        <p class="text-xs text-slate-600">จัดการสถานะกลับเข้าเรียนหรือส่งตัวกลับบ้าน</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('casesDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
@@ -376,7 +372,7 @@
         </div>
     </div>
 
-    <!-- Drawer 2: สถิติการใช้ห้องพยาบาลประจำสัปดาห์ -->
+    <!-- Drawer 2: สถิติการใช้ห้องพยาบาลประจำสัปดาห์ (กราฟแท่ง + สรุปอาการ) -->
     <div id="statsDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('statsDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -385,14 +381,20 @@
                     <div class="w-8 h-8 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-chart-column"></i></div>
                     <div>
                         <h3 class="text-sm font-bold text-slate-900">สถิติการใช้ห้องพยาบาลประจำสัปดาห์</h3>
-                        <p class="text-xs text-slate-600">สรุปจำแนกตามกลุ่มอาการและระดับชั้น</p>
+                        <p class="text-xs text-slate-600">จำนวนผู้เข้าใช้บริการวันจันทร์ – วันศุกร์</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('statsDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
-            <div id="drawerStatsBody" class="p-3 space-y-2.5 drawer-scroll-content flex-1 text-xs">
-                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-slate-600">
-                    ยังไม่มีข้อมูลสถิติสะสมในสัปดาห์นี้
+            <div id="drawerStatsBody" class="p-3 space-y-3 drawer-scroll-content flex-1 text-xs">
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div class="font-bold text-slate-800 mb-3">📊 กราฟสถิติรายวัน (สัปดาห์นี้)</div>
+                    <div id="weeklyBarChartContainer" class="grid grid-cols-5 gap-2 items-end h-36 pt-4 px-2 border-b border-slate-200">
+                        <!-- แสดงกราฟแท่งอัตโนมัติ -->
+                    </div>
+                </div>
+                <div id="weeklySymptomSummary" class="p-3 bg-indigo-50/70 border border-indigo-200 rounded-2xl text-indigo-950 font-medium">
+                    สรุปกลุ่มอาการยอดฮิตประจำสัปดาห์
                 </div>
             </div>
         </div>
@@ -400,27 +402,27 @@
 
     <!-- ================= MODALS ================= -->
 
-    <!-- Modal 1: กล้องสแกนบาร์โค้ด / QR Code นักเรียน + บันทึกอาการ -->
-    <div id="barcodeScannerModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center hidden z-[10020] p-3" onclick="if(event.target.id==='barcodeScannerModal') closeBarcodeScannerModal()">
-        <div class="bg-white rounded-2xl max-w-md w-full p-4 space-y-3 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    <!-- Modal 1: กล้องสแกน QR Code / บัตรนักเรียน + บันทึกอาการ -->
+    <div id="studentScannerModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center hidden z-[10020] p-3" onclick="if(event.target.id==='studentScannerModal') closeStudentScannerModal()">
+        <div class="bg-white rounded-2xl max-w-md w-full p-4 space-y-3 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b border-slate-100 pb-2">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-barcode"></i>
+                        <i class="fa-solid fa-qrcode"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900">สแกนบาร์โค้ด / บันทึกห้องพยาบาล</h3>
-                        <p class="text-[11px] text-slate-500">ส่องบาร์โค้ดบัตรนักเรียน หรือกรอกรหัสประจำตัว</p>
+                        <h3 class="text-sm font-bold text-slate-900">สแกน QR Code บัตรนักเรียน / รับเคส</h3>
+                        <p class="text-[11px] text-slate-500">ส่อง QR Code บัตรประจำตัว หรือพิมพ์รหัสนักเรียน</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeBarcodeScannerModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs cursor-pointer">✕</button>
+                <button type="button" onclick="closeStudentScannerModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs cursor-pointer">✕</button>
             </div>
 
-            <!-- พื้นที่กล้องสแกนบาร์โค้ด -->
+            <!-- พื้นที่กล้องสแกน QR Code / บาร์โค้ด -->
             <div class="bg-slate-950 rounded-2xl overflow-hidden relative border border-slate-800">
-                <div id="barcodeReaderContainer" class="w-full min-h-[190px]"></div>
+                <div id="qrReaderContainer" class="w-full min-h-[190px]"></div>
                 <div id="scannerStatusText" class="text-[11px] text-amber-300 bg-slate-900/90 text-center py-1 font-medium">
-                    พร้อมสแกนบาร์โค้ด / QR Code นักเรียน
+                    ส่อง QR Code หรือบาร์โค้ดนักเรียนในกรอบกล้อง
                 </div>
             </div>
 
@@ -429,7 +431,7 @@
                 <div class="grid grid-cols-3 gap-2">
                     <div class="col-span-2">
                         <label class="font-semibold text-slate-700 block mb-1">รหัสนักเรียน <span class="text-rose-500">*</span></label>
-                        <input type="text" id="clinicStudentIdInput" required placeholder="สแกนหรือพิมพ์รหัส..." onchange="lookupStudentById(this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 font-bold text-indigo-900">
+                        <input type="text" id="clinicStudentIdInput" required placeholder="สแกน QR หรือพิมพ์รหัส..." oninput="lookupStudentById(this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 font-bold text-indigo-900">
                     </div>
                     <div>
                         <label class="font-semibold text-slate-700 block mb-1">ประเภทเคส</label>
@@ -470,7 +472,7 @@
                 </div>
 
                 <div class="pt-1 flex justify-end gap-2">
-                    <button type="button" onclick="closeBarcodeScannerModal()" class="px-3.5 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold cursor-pointer">ปิด</button>
+                    <button type="button" onclick="closeStudentScannerModal()" class="px-3.5 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold cursor-pointer">ปิด</button>
                     <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-sm cursor-pointer">
                         <i class="fa-solid fa-floppy-disk mr-1"></i> บันทึกข้อมูล
                     </button>
@@ -479,7 +481,7 @@
         </div>
     </div>
 
-<!-- UI & Barcode Scanner Controller -->
+<!-- UI & QR Scanner Controller -->
 <script>
     let html5QrScannerInstance = null;
 
@@ -520,22 +522,16 @@
 
     function updateHeaderClock() {
         const now = new Date();
-        const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-        const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
-        const dateStr = `เปิดทำการ • ${thaiDays[now.getDay()]} ${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-
-        const dateElem = document.getElementById('header-date-display');
         const clockElem = document.getElementById('header-clock-display');
-        if (dateElem) dateElem.textContent = dateStr;
         if (clockElem) clockElem.textContent = timeStr;
     }
     setInterval(updateHeaderClock, 1000);
     updateHeaderClock();
 
-    async function openBarcodeScannerModal(prefillStudentId = '') {
+    async function openStudentScannerModal(prefillStudentId = '') {
         closeAllDrawers();
-        const modal = document.getElementById('barcodeScannerModal');
+        const modal = document.getElementById('studentScannerModal');
         if (modal) modal.classList.remove('hidden');
 
         if (prefillStudentId) {
@@ -543,15 +539,15 @@
             if (window.lookupStudentById) window.lookupStudentById(prefillStudentId);
         }
 
-        // เปิดกล้องสแกนบาร์โค้ดอัตโนมัติ (รองรับ Code128, EAN13, QR Code)
+        // เปิดกล้องสแกน QR Code และบาร์โค้ดอัตโนมัติ
         try {
             if (typeof Html5Qrcode !== 'undefined' && !html5QrScannerInstance) {
-                html5QrScannerInstance = new Html5Qrcode("barcodeReaderContainer");
+                html5QrScannerInstance = new Html5Qrcode("qrReaderContainer");
                 await html5QrScannerInstance.start(
                     { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 230, height: 110 } },
+                    { fps: 10, qrbox: { width: 210, height: 150 } },
                     (decodedText) => {
-                        const cleanId = decodedText.replace(/^GATEPASS:\d+:/i, '').trim();
+                        const cleanId = decodedText.replace(/^(GATEPASS:\d+:|STUDENT:|BCW:)/i, '').trim();
                         document.getElementById('clinicStudentIdInput').value = cleanId;
                         document.getElementById('scannerStatusText').textContent = `✅ สแกนสำเร็จ: ${cleanId}`;
                         if (window.lookupStudentById) window.lookupStudentById(cleanId);
@@ -561,12 +557,12 @@
             }
         } catch (err) {
             const statusEl = document.getElementById('scannerStatusText');
-            if (statusEl) statusEl.textContent = "พิมพ์รหัสนักเรียน หรือใช้เครื่องยิงบาร์โค้ด USB ได้ทันที";
+            if (statusEl) statusEl.textContent = "กรอกรหัสนักเรียนด้านล่าง หรือใช้เครื่องสแกน USB ได้ทันที";
         }
     }
 
-    async function closeBarcodeScannerModal() {
-        const modal = document.getElementById('barcodeScannerModal');
+    async function closeStudentScannerModal() {
+        const modal = document.getElementById('studentScannerModal');
         if (modal) modal.classList.add('hidden');
         if (html5QrScannerInstance) {
             try {
@@ -598,7 +594,6 @@
             });
         });
 
-        // รองรับเครื่องยิงบาร์โค้ด USB (กด Enter ในช่องค้นหา)
         document.getElementById('quickStudentSearchInput')?.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -635,6 +630,7 @@
                 const stuObj = ALL_STUDENTS_CACHE.find(s => String(s.student_id) === stuId);
                 const stuName = stuObj ? `${stuObj.prefix || ''}${stuObj.first_name || ''} ${stuObj.last_name || ''}`.trim() : stuId;
                 const stuClass = stuObj ? (stuObj.classroom || stuObj.class_name || '-') : '-';
+                const statusVal = document.getElementById('clinicStatusSelect').value;
 
                 const payload = {
                     student_id: stuId,
@@ -643,16 +639,27 @@
                     case_type: document.getElementById('clinicCaseTypeSelect').value,
                     symptom: document.getElementById('clinicSymptomInput').value.trim(),
                     treatment: document.getElementById('clinicTreatmentInput').value.trim(),
-                    status: document.getElementById('clinicStatusSelect').value
+                    status: statusVal
                 };
 
                 const { error } = await client.from('clinic_records').insert([payload]);
                 if (error) throw error;
 
+                // หากเลือก "ผู้ปกครองรับกลับ / ส่ง รพ." ให้สร้างคำขออนุญาตออกนอกโรงเรียนอัตโนมัติ
+                if (statusVal === 'sent_home') {
+                    const nowTime = new Date().toTimeString().slice(0, 5);
+                    await client.from('gate_pass_logs').insert([{
+                        student_id: stuId,
+                        reason: `ห้องพยาบาลส่งกลับบ้าน (${payload.symptom})`,
+                        exit_time: nowTime,
+                        status: 'approved'
+                    }]);
+                }
+
                 alert('✅ บันทึกข้อมูลห้องพยาบาลเรียบร้อยแล้ว');
                 document.getElementById('clinicRecordForm').reset();
                 document.getElementById('scannedStudentPreview')?.classList.add('hidden');
-                await closeBarcodeScannerModal();
+                await closeStudentScannerModal();
                 await loadTodayClinicRecords();
             } catch (err) {
                 alert('เกิดข้อผิดพลาด: ' + err.message);
@@ -671,7 +678,9 @@
             document.getElementById('scannedStudentName').textContent = `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim();
             document.getElementById('scannedStudentClass').textContent = `ชั้น ${stu.classroom || stu.class_name || '-'} • รหัส ${stu.student_id}`;
             document.getElementById('scannedStudentAvatar').src = stu.avatar_url || stu.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-            document.getElementById('clinicStudentIdInput').value = stu.student_id;
+            if (String(stu.student_id) === code) {
+                document.getElementById('clinicStudentIdInput').value = stu.student_id;
+            }
         } else {
             previewBox.classList.add('hidden');
         }
@@ -680,11 +689,11 @@
     function searchStudentForClinic() {
         const q = document.getElementById('quickStudentSearchInput').value.trim();
         if (!q) {
-            openBarcodeScannerModal();
+            openStudentScannerModal();
             return;
         }
         const stu = ALL_STUDENTS_CACHE.find(s => String(s.student_id) === q || `${s.first_name || ''} ${s.last_name || ''}`.includes(q));
-        openBarcodeScannerModal(stu ? stu.student_id : q);
+        openStudentScannerModal(stu ? stu.student_id : q);
         document.getElementById('quickStudentSearchInput').value = '';
     }
 
@@ -694,13 +703,25 @@
 
         const todayStr = new Date().toISOString().slice(0, 10);
         try {
-            const { data: records } = await client.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(50);
+            const { data: records } = await client.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(100);
             const allList = records || [];
             const todayList = allList.filter(r => String(r.created_at || '').startsWith(todayStr));
 
             const accidentCount = todayList.filter(r => r.case_type === 'accident').length;
             const restingCount = todayList.filter(r => r.status === 'resting').length;
 
+            // คำนวณเวลาพักฟื้นสะสมวันนี้ (นาที)
+            let totalRestMinutes = 0;
+            const nowMs = Date.now();
+            todayList.forEach(r => {
+                if (r.created_at) {
+                    const startMs = new Date(r.created_at).getTime();
+                    const endMs = r.status === 'resting' ? nowMs : (r.updated_at ? new Date(r.updated_at).getTime() : startMs + 1800000);
+                    totalRestMinutes += Math.max(0, Math.round((endMs - startMs) / 60000));
+                }
+            });
+
+            if (document.getElementById('totalRestingMinutesText')) document.getElementById('totalRestingMinutesText').textContent = `${totalRestMinutes} นาที`;
             if (document.getElementById('kpi-today-total')) document.getElementById('kpi-today-total').textContent = todayList.length;
             if (document.getElementById('kpi-today-accident')) document.getElementById('kpi-today-accident').textContent = accidentCount;
             if (document.getElementById('kpi-resting-now')) document.getElementById('kpi-resting-now').textContent = restingCount;
@@ -723,15 +744,54 @@
                             </div>
                             ${isResting
                                 ? `<button type="button" onclick="dischargeClinicStudent('${item.id}')" class="bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-xl shrink-0 cursor-pointer">กลับเข้าเรียน</button>`
-                                : `<span class="bg-emerald-100 text-emerald-800 text-[10.5px] font-bold px-2 py-0.5 rounded-lg shrink-0">เรียบร้อย</span>`
+                                : `<span class="bg-emerald-100 text-emerald-800 text-[10.5px] font-bold px-2 py-0.5 rounded-lg shrink-0">${item.status === 'sent_home' ? 'ส่งกลับบ้าน' : 'เรียบร้อย'}</span>`
                             }
                         </div>
                     `;
                 }).join('');
 
             if (document.getElementById('todayClinicListContainer')) document.getElementById('todayClinicListContainer').innerHTML = renderCards(todayList);
-            if (document.getElementById('drawerCasesList')) document.getElementById('drawerCasesList').innerHTML = renderCards(allList.slice(0, 15));
+            if (document.getElementById('drawerCasesList')) document.getElementById('drawerCasesList').innerHTML = renderCards(allList.slice(0, 20));
+
+            renderWeeklyBarChart(allList);
         } catch (e) {}
+    }
+
+    function renderWeeklyBarChart(allList) {
+        const chartEl = document.getElementById('weeklyBarChartContainer');
+        const summaryEl = document.getElementById('weeklySymptomSummary');
+        if (!chartEl) return;
+
+        const dayLabels = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.'];
+        const counts = [0, 0, 0, 0, 0];
+        const symptomMap = {};
+
+        allList.forEach(item => {
+            if (!item.created_at) return;
+            const d = new Date(item.created_at).getDay(); // 1=Mon .. 5=Fri
+            if (d >= 1 && d <= 5) counts[d - 1]++;
+            const sym = String(item.symptom || '').trim();
+            if (sym) symptomMap[sym] = (symptomMap[sym] || 0) + 1;
+        });
+
+        const maxVal = Math.max(1, ...counts);
+        chartEl.innerHTML = counts.map((cnt, idx) => {
+            const heightPct = Math.max(12, Math.round((cnt / maxVal) * 100));
+            return `
+                <div class="flex flex-col items-center justify-end h-full gap-1">
+                    <span class="text-[11px] font-bold text-indigo-900">${cnt}</span>
+                    <div class="w-full max-w-[34px] bg-gradient-to-t from-rose-600 to-amber-500 rounded-t-xl transition-all" style="height: ${heightPct}%;"></div>
+                    <span class="text-[11px] font-semibold text-slate-600">${dayLabels[idx]}</span>
+                </div>
+            `;
+        }).join('');
+
+        const topSymptoms = Object.entries(symptomMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
+        if (summaryEl) {
+            summaryEl.innerHTML = topSymptoms.length > 0
+                ? `<strong>อาการที่พบบ่อย:</strong> ` + topSymptoms.map(([k, v]) => `${k} (${v} ครั้ง)`).join(' • ')
+                : `ยังไม่มีข้อมูลกลุ่มอาการสะสมในสัปดาห์นี้`;
+        }
     }
 
     async function dischargeClinicStudent(recordId) {
