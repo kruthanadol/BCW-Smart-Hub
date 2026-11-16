@@ -2,11 +2,11 @@
 <html lang="th" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ฝ่ายวิชาการ - โรงเรียนบัวเชดวิทยา (BCW)</title>
     <link rel="icon" type="image/png" href="../../assets/images/logo_bcw.png">
 
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN & Chart.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -22,563 +22,746 @@
         }
     </script>
     <style>
-        html { font-size: 16px; }
-        @media (min-width: 768px) { html { font-size: 18px; } }
-        body { font-family: 'Kanit', 'Sarabun', sans-serif; background-color: #f1f5f9; color: #0f172a; overflow-x: hidden; }
-        .touch-btn { min-height: 32px; padding: 2px 8px; display: inline-flex; align-items: center; justify-content: center; margin: 0; }
-        @media print { .no-print { display: none !important; } body { background-color: white !important; color: black !important; } }
-
-        /* ==========================================
-           1. 💻 DESKTOP ONLY STYLES (สำหรับหน้าจอคอมพิวเตอร์)
-           ========================================== */
-        @media (min-width: 769px) {
-            body { padding-bottom: 0 !important; }
-            .academic-bottom-nav { display: none !important; }
-            .dynamic-subheader { max-height: none !important; opacity: 1 !important; }
+        /* 📱 เฉพาะมือถือ: ล็อกความสูงพอดี 1 หน้าจอ (One-Screen No-Scroll App Layout) */
+        @media (max-width: 1023px) {
+            html, body {
+                height: 100dvh !important;
+                max-height: 100dvh !important;
+                width: 100vw !important;
+                overflow: hidden !important;
+                overscroll-behavior: none !important;
+                touch-action: manipulation;
+            }
+            body.academic-app-body {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                padding-top: max(6px, env(safe-area-inset-top)) !important;
+                padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+            }
         }
-
-        /* ==========================================
-           2. 📱 MOBILE ONLY STYLES (สำหรับมือถือเท่านั้น)
-           ========================================== */
-        @media (max-width: 768px) {
-            body { padding-bottom: 75px !important; -webkit-tap-highlight-color: transparent; }
-            main section, main > div { scroll-margin-top: 120px; }
-
-            /* Sticky Dynamic Sub-Header เฉพาะมือถือ */
-            .dynamic-subheader {
-                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                max-height: 48px;
-                opacity: 1;
-                overflow: hidden;
-            }
-
-            .dynamic-subheader.is-scrolled {
-                max-height: 0;
-                opacity: 0;
-                padding-top: 0 !important;
-                padding-bottom: 0 !important;
-                border-bottom: none !important;
-            }
-
-            /* Bottom Navigation Bar สำหรับมือถือ */
-            .academic-bottom-nav {
-                position: fixed;
-                bottom: 0; left: 0; right: 0;
-                height: 62px;
-                background: rgba(255, 255, 255, 0.92);
-                backdrop-filter: blur(20px) saturate(180%);
-                -webkit-backdrop-filter: blur(20px) saturate(180%);
-                border-top: 1px solid rgba(226, 232, 240, 0.8);
-                display: flex;
-                align-items: center;
-                justify-content: space-around;
-                z-index: 999;
-                box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
-                padding: 0 6px;
-            }
-
-            .academic-nav-btn {
-                position: relative;
-                display: flex; flex-direction: column; align-items: center; justify-content: center;
-                color: #64748b; font-size: 10px; font-weight: 700;
-                background: transparent; border: 1.5px solid transparent;
-                padding: 3px 10px; border-radius: 14px; cursor: pointer;
-                transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            }
-
-            .academic-nav-btn i { font-size: 16px; margin-bottom: 1px; }
-
-            .academic-nav-btn.active {
-                color: #3730a3 !important;
-                background: rgba(238, 242, 255, 0.9) !important;
-                border: 1.5px solid #f59e0b !important;
-                transform: translateY(-3px);
-                box-shadow: 0 4px 12px -2px rgba(55, 48, 163, 0.25);
-            }
-
-            .academic-nav-btn.highlight-btn i {
-                width: 36px; height: 36px;
-                background: linear-gradient(135deg, #059669 0%, #047857 100%);
-                color: #ffffff !important;
-                border: 1.5px solid #d1fae5;
-                border-radius: 13px;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 16px;
-                box-shadow: 0 3px 12px rgba(5, 150, 105, 0.4);
+        /* 💻 สำหรับคอมพิวเตอร์ให้ Scroll ดูตารางทั้งหมดได้ปกติ */
+        @media (min-width: 1024px) {
+            html, body {
+                height: auto !important;
+                min-height: 100vh !important;
+                overflow-y: auto !important;
             }
         }
 
-        /* 🧪 FROSTED LIQUID GLASS DRAWER (รองรับนิ้วปัด Swipe to Close) */
-        .drawer-overlay {
+        body {
+            font-family: 'Kanit', 'Sarabun', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* การ์ดหลักของระบบวิชาการ */
+        .academic-card {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 18px;
+            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+            overflow: hidden;
+        }
+
+        /* ปุ่ม App Grid 4 ช่องบนมือถือ */
+        .mobile-app-card {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 7px 3px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 4px;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.035);
+            transition: transform 0.15s ease;
+        }
+        .mobile-app-card:active { transform: scale(0.95); }
+        .mobile-app-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .mobile-app-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #1e293b;
+            line-height: 1.15;
+            white-space: nowrap;
+        }
+
+        /* 📱 Bottom Sheet Drawer มาตรฐาน App */
+        .bottom-sheet-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            z-index: 1000;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 9990;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
         }
+        .bottom-sheet-backdrop.active {
+            opacity: 1;
+            pointer-events: auto !important;
+        }
+        .bottom-sheet-card {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 760px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-top-left-radius: 26px;
+            border-top-right-radius: 26px;
+            border: 1.5px solid #e2e8f0;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+            z-index: 9995;
+            transform: translateY(120%);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 82vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-bottom: 78px;
+        }
+        @media (min-width: 1024px) {
+            .bottom-sheet-card {
+                top: 50%;
+                bottom: auto;
+                left: 50%;
+                right: auto;
+                width: 90%;
+                max-width: 780px;
+                border-radius: 26px;
+                padding-bottom: 20px;
+                transform: translate(-50%, -40%) scale(0.95) !important;
+            }
+            .bottom-sheet-backdrop.active .bottom-sheet-card {
+                transform: translate(-50%, -50%) scale(1) !important;
+            }
+        }
+        .bottom-sheet-backdrop.active .bottom-sheet-card {
+            transform: translateY(0);
+        }
+        .drawer-scroll-content {
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+        }
+        .swipe-handle-area {
+            width: 100%;
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+            cursor: grab;
+            shrink: 0;
+            background: #f8fafc;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .swipe-handle {
+            width: 44px;
+            height: 5px;
+            background-color: #cbd5e1;
+            border-radius: 99px;
+        }
 
+        /* 👑 Floating Pill Bottom Navigation Bar มาตรฐาน App */
+        .native-bottom-nav {
+            position: fixed;
+            bottom: max(8px, env(safe-area-inset-bottom));
+            left: 12px;
+            right: 12px;
+            max-width: 520px;
+            margin: 0 auto;
+            height: 58px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid #f59e0b;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 6px;
+            z-index: 10000;
+            box-shadow: 0 8px 24px rgba(217, 119, 6, 0.16), 0 4px 12px rgba(15, 23, 42, 0.08);
+        }
+        @media (min-width: 1024px) {
+            .native-bottom-nav { display: none !important; }
+        }
+        .nav-item-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            font-size: 11px;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 24%;
+            flex-shrink: 0;
+            line-height: 1.2;
+        }
+        .nav-item-btn .nav-icon-box {
+            width: 40px;
+            height: 24px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            margin-bottom: 2px;
+        }
+        .nav-item-btn.active {
+            color: #3730a3 !important;
+            font-weight: 600;
+        }
+        .nav-item-btn.active .nav-icon-box {
+            background: #e0e7ff !important;
+            color: #3730a3 !important;
+            border: 1px solid #a5b4fc !important;
+        }
+        .nav-item-btn.highlight-print .nav-icon-box {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: #ffffff !important;
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
+        }
+
+        /* 🧪 SIDE DRAWER MENU (เมนูบริการงานวิชาการด้านข้าง) */
+        .drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 10010;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
         .drawer-overlay.active { opacity: 1; pointer-events: auto; }
-
         .drawer-content-glass {
             position: fixed;
             top: 0;
             right: -330px;
             width: 300px;
             height: 100%;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(25px) saturate(180%);
-            -webkit-backdrop-filter: blur(25px) saturate(180%);
-            border-left: 1.5px solid rgba(255, 255, 255, 0.8);
-            box-shadow: -10px 0 35px rgba(15, 23, 42, 0.25), inset 1px 0 2px rgba(255, 255, 255, 0.9);
-            z-index: 1001;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(25px);
+            border-left: 1.5px solid #e2e8f0;
+            box-shadow: -10px 0 35px rgba(15, 23, 42, 0.25);
+            z-index: 10015;
             transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
             overflow-y: auto;
-            touch-action: pan-y;
         }
-
         .drawer-overlay.active .drawer-content-glass { transform: translateX(-330px); }
 
-        .glass-item-btn {
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .glass-item-btn:active {
-            transform: scale(0.97);
-            background: rgba(238, 242, 255, 0.85);
+        @media print {
+            .no-print, .native-bottom-nav, .bottom-sheet-backdrop, .drawer-overlay { display: none !important; }
+            body { background-color: white !important; color: black !important; overflow: visible !important; height: auto !important; }
         }
     </style>
     <script src="../../core/bcw-page-transition.js?v=1"></script>
 </head>
-<body class="min-h-screen flex flex-col justify-between">
+<body class="academic-app-body px-3 md:p-6 relative select-none">
 
-    <!-- Top Nav Bar (มาตรฐาน BCW SMART HUB) -->
-    <header class="bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md sticky top-0 z-50 border-b-2 border-indigo-600 no-print">
-        
-        <!-- แถบบน: โลโก้, ชื่อระบบปรับเรียงบรรทัดใหม่ และปุ่มกดฝั่งขวา -->
-        <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex justify-between items-center gap-2">
+    <!-- 1. TOP APP HEADER (มาตรฐาน BCW SMART HUB) -->
+    <div class="max-w-7xl mx-auto w-full shrink-0 space-y-1.5 no-print">
+        <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-2 md:p-4 border-b-2 border-amber-400">
+            <div class="flex justify-between items-center gap-2">
+                <!-- โลโก้ + ชื่อระบบ -->
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                    <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-amber-300/60 flex items-center justify-center">
+                        <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5">
+                            <h1 class="text-sm md:text-2xl font-extrabold text-amber-400 tracking-wide leading-tight uppercase truncate">BCW SMART HUB</h1>
+                            <span class="bg-amber-400/20 text-amber-300 border border-amber-400/60 px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold shrink-0">ฝ่ายวิชาการ</span>
+                        </div>
+                        <div class="text-xs md:text-base font-medium text-indigo-100 leading-snug truncate">โรงเรียนบัวเชดวิทยา <span class="hidden sm:inline text-indigo-300 text-xs">• ACADEMIC CENTER</span></div>
+                    </div>
+                </div>
+
+                <!-- ปุ่มเมนูวิชาการ + ปุ่มหน้าหลัก + ปุ่มออกจากระบบ -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="toggleAcademicDrawer()" class="relative bg-indigo-800/90 hover:bg-indigo-700 text-indigo-100 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-indigo-600 transition flex items-center gap-1 cursor-pointer active:scale-95">
+                        <i class="fa-solid fa-bars-staggered text-amber-400"></i>
+                        <span class="hidden sm:inline">เมนูวิชาการ</span>
+                        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-indigo-950"></span>
+                    </button>
+
+                    <a href="teacher.html" title="ระบบครูผู้สอน" class="hidden md:flex bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500 transition items-center gap-1.5">
+                        <i class="fa-solid fa-chalkboard-user"></i> <span>ครูผู้สอน</span>
+                    </a>
+
+                    <a href="../../landing.html" title="กลับหน้าหลักระบบ" class="w-8 h-8 md:w-9 md:h-9 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-bold transition shadow-sm flex items-center justify-center active:scale-95">
+                        <i class="fa-solid fa-house text-xs sm:text-sm"></i>
+                    </a>
+
+                    <button type="button" onclick="handleLogout()" title="ออกจากระบบ" class="w-8 h-8 md:w-9 md:h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-400/50 active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- แถบสถานะ Real-time: เช็กชื่อสอนวันนี้ + วันที่/นาฬิกา -->
+            <div id="dynamicSubHeader" class="bg-indigo-950/90 border-t border-indigo-800/70 mt-1.5 pt-1 px-1 flex justify-between items-center text-[11px] md:text-xs gap-1.5">
+                <span class="font-semibold text-emerald-400 flex items-center gap-1.5 truncate">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                    <span>เช็กชื่อสอนวันนี้: <strong id="subHeaderAttendance" class="text-amber-300">0%</strong> <span id="subHeaderClassCount" class="text-[10.5px] text-indigo-200 font-normal">(0/0 คาบ)</span></span>
+                </span>
             
-            <!-- ฝั่งซ้าย: โลโก้ + ข้อความระบบ 3 แถบ -->
-            <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-indigo-300/50">
-                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 sm:w-11 sm:h-11 object-contain" onerror="this.src='https://via.placeholder.com/40'">
-                </div>
-                <div class="min-w-0 flex-1">
-                    <h1 class="text-[12px] sm:text-sm font-black text-amber-400 tracking-wider leading-none uppercase truncate">
-                        BCW SMART HUB
-                    </h1>
-                    <div class="text-[11px] sm:text-xs font-bold text-indigo-100 leading-tight truncate mt-0.5">
-                        โรงเรียนบัวเชดวิทยา
-                    </div>
-                    <div class="mt-0.5">
-                        <span class="inline-block bg-amber-400/20 text-amber-300 border border-amber-400/60 px-1.5 py-0.2 rounded-md text-[9.5px] sm:text-[10.5px] font-black tracking-wide shadow-xs backdrop-blur-xs whitespace-nowrap">
-                            📚 ฝ่ายวิชาการ (Academic Center)
-                        </span>
-                    </div>
+                <div class="flex items-center gap-1.5 text-amber-200 font-semibold shrink-0">
+                    <i class="fa-regular fa-clock text-amber-400 text-[11px]"></i>
+                    <span id="thaiDateStr" class="hidden sm:inline">กำลังโหลด...</span>
+                    <span id="liveClock" class="bg-indigo-900/90 px-2 py-0.5 rounded-md border border-indigo-700/80 font-mono text-white text-[11.5px]">00:00:00</span>
                 </div>
             </div>
+        </header>
+    </div>
 
-            <!-- ฝั่งขวาบน: ปุ่มเปิด Side Drawer, ปุ่มหน้าหลัก & ปุ่มออกจากระบบ -->
-            <div class="flex items-center gap-1.5 shrink-0">
-                <button onclick="toggleAcademicDrawer()" class="relative bg-indigo-800/80 hover:bg-indigo-700 text-indigo-100 p-2 rounded-xl text-xs font-bold border border-indigo-600 transition flex items-center gap-1 cursor-pointer active:scale-95">
-                    <i class="fa-solid fa-bars-staggered text-amber-400"></i>
-                    <span class="hidden sm:inline">เมนูวิชาการ</span>
-                    <span id="drawerBadgeDot" class="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full border-2 border-indigo-950 animate-ping"></span>
-                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full border-2 border-indigo-950"></span>
-                </button>
-
-                <a href="../../landing.html" title="หน้าหลัก" class="w-8 h-8 sm:w-9 sm:h-9 bg-indigo-800 hover:bg-indigo-700 text-amber-300 rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-indigo-600 active:scale-95">
-                    <i class="fa-solid fa-house text-xs sm:text-sm"></i>
-                </a>
-                <button type="button" onclick="handleLogout()" title="ออกจากระบบ" class="w-8 h-8 sm:w-9 sm:h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-500 active:scale-95">
-                    <i class="fa-solid fa-right-from-bracket text-xs sm:text-sm"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Sticky Dynamic Sub-Header แถบล่างแสดงสถานะ Real-time -->
-        <div id="dynamicSubHeader" class="dynamic-subheader bg-indigo-950/90 border-t border-indigo-800/60 px-3 sm:px-5 py-1.5 flex justify-between items-center text-xs">
-            <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 text-xs sm:text-sm truncate">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                <span>เช็คชื่อสอนวันนี้: <strong id="subHeaderAttendance" class="text-amber-300">0%</strong> <span id="subHeaderClassCount" class="text-[10px] text-indigo-200 font-normal hidden sm:inline">(0/0 คาบ)</span></span>
-            </span>
-        
-            <div class="flex items-center gap-1.5 text-amber-200 font-bold text-xs shrink-0">
-                <i class="fa-regular fa-clock text-amber-400"></i>
-                <span id="thaiDateStr" class="hidden sm:inline">กำลังโหลด...</span>
-                <span id="liveClock" class="bg-indigo-900 px-1.5 py-0.5 rounded border border-indigo-700 font-mono text-white">00:00:00</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- 🧪 SIDE DRAWER MENU (สไลด์ข้างแบบ Liquid Glass + ใช้นิ้วปัดเปิด-ปิดได้) -->
-    <div id="drawerOverlay" class="drawer-overlay" onclick="toggleAcademicDrawer()">
+    <!-- 🧪 SIDE DRAWER MENU (เมนูบริการงานวิชาการสไลด์ข้าง) -->
+    <div id="drawerOverlay" class="drawer-overlay no-print" onclick="toggleAcademicDrawer()">
         <div id="drawerContent" class="drawer-content-glass p-4 space-y-4" onclick="event.stopPropagation()">
-            <!-- Indicator สำหรับลากปัดปิด -->
-            <div class="w-12 h-1.5 bg-slate-300/80 rounded-full mx-auto sm:hidden mb-1"></div>
+            <div class="w-12 h-1.5 bg-slate-300 rounded-full mx-auto sm:hidden mb-1"></div>
 
-            <div class="flex justify-between items-center border-b border-indigo-900/10 pb-3">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-3">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400/50 flex items-center justify-center text-amber-600 font-bold">
+                    <div class="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 font-bold">
                         <i class="fa-solid fa-book-bookmark text-sm"></i>
                     </div>
                     <div>
-                        <h3 class="font-black text-slate-900 text-xs sm:text-sm">เมนูบริการงานวิชาการ</h3>
-                        <p class="text-[9.5px] text-slate-500 font-semibold">เอานิ้วปัดขวา 👉 เพื่อสไลด์เก็บได้</p>
+                        <h3 class="font-bold text-slate-900 text-xs sm:text-sm">เมนูบริการงานวิชาการ</h3>
+                        <p class="text-[10px] text-slate-500">เลือกหมวดข้อมูลที่ต้องการตรวจสอบ</p>
                     </div>
                 </div>
-                <button onclick="toggleAcademicDrawer()" class="w-7 h-7 rounded-full bg-slate-200/60 text-slate-600 hover:bg-slate-300/80 flex items-center justify-center text-xs transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                <button type="button" onclick="toggleAcademicDrawer()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <div class="space-y-2 text-xs font-bold text-slate-800">
-                <button onclick="scrollToAcademicSection('section-charts'); toggleAcademicDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between">
+            <div class="space-y-2 text-xs font-semibold text-slate-800">
+                <button type="button" onclick="openAcademicSheet('subjectRiskDrawer'); toggleAcademicDrawer();" class="w-full text-left p-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer">
                     <span class="flex items-center gap-2.5">
-                        <span class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center text-xs"><i class="fa-solid fa-chart-pie"></i></span>
-                        <span>แผนภูมิสถิติเสี่ยง มส.</span>
+                        <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs"><i class="fa-solid fa-book-bookmark"></i></span>
+                        <span>1. รายวิชาที่มีนักเรียนเสี่ยงสูงสุด</span>
                     </span>
                     <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
                 </button>
 
-                <button onclick="scrollToAcademicSection('section-warning-table'); toggleAcademicDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between">
+                <button type="button" onclick="openAcademicSheet('remediationDrawer'); toggleAcademicDrawer();" class="w-full text-left p-3 bg-slate-50 hover:bg-amber-50 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer">
                     <span class="flex items-center gap-2.5">
-                        <span class="w-7 h-7 rounded-lg bg-yellow-500/10 text-yellow-600 flex items-center justify-center text-xs"><i class="fa-solid fa-eye"></i></span>
-                        <span>รายชื่อกลุ่มเฝ้าระวังพิเศษ</span>
+                        <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs"><i class="fa-solid fa-user-clock"></i></span>
+                        <span>2-5. แก้ มส. / เฝ้าระวัง / เรียนซ้ำ</span>
                     </span>
                     <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
                 </button>
 
-                <button onclick="scrollToAcademicSection('section-teacher-monitor'); toggleAcademicDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between">
+                <button type="button" onclick="openAcademicSheet('homeworkGroupDrawer'); toggleAcademicDrawer();" class="w-full text-left p-3 bg-slate-50 hover:bg-sky-50 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer">
                     <span class="flex items-center gap-2.5">
-                        <span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xs"><i class="fa-solid fa-clipboard-user"></i></span>
-                        <span>ติดตามการเข้าสอนรายคาบ</span>
+                        <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs"><i class="fa-solid fa-book-open"></i></span>
+                        <span>6. สรุปการบ้าน 8 กลุ่มสาระฯ</span>
                     </span>
                     <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
                 </button>
 
-                <button onclick="window.print(); toggleAcademicDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between">
+                <button type="button" onclick="openAcademicSheet('teacherMonitorDrawer'); toggleAcademicDrawer();" class="w-full text-left p-3 bg-slate-50 hover:bg-emerald-50 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer">
                     <span class="flex items-center gap-2.5">
-                        <span class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center text-xs"><i class="fa-solid fa-print"></i></span>
-                        <span>พิมพ์รายงานสรุป PDF</span>
+                        <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs"><i class="fa-solid fa-clipboard-user"></i></span>
+                        <span>7. ติดตามการเข้าสอนรายคาบ</span>
                     </span>
                     <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
                 </button>
-            </div>
 
-            <div class="pt-4 border-t border-indigo-900/10 text-[10px] text-slate-500 font-semibold text-center">
-                โรงเรียนบัวเชดวิทยา &bull; Academic System
+                <button type="button" onclick="window.print(); toggleAcademicDrawer();" class="w-full text-left p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center justify-between cursor-pointer">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-print"></i></span>
+                        <span>8. พิมพ์รายงานสรุป PDF</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-emerald-600"></i>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Header Branding สำหรับ Desktop -->
-    <header class="bg-white border-b-2 md:border-b-4 border-indigo-700 shadow-sm hidden md:block no-print">
-        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex justify-between items-center gap-2">
-            <div class="flex items-center gap-2.5 sm:gap-4">
-                <div class="w-12 h-12 sm:w-16 sm:h-16 bg-indigo-50 rounded-2xl flex items-center justify-center p-1 border-2 border-indigo-600 shrink-0">
-                    <img src="../../assets/images/logo_bcw.png" alt="โลโก้โรงเรียนบัวเชดวิทยา" class="w-full h-full object-contain" onerror="this.src='https://via.placeholder.com/80?text=BCW'">
-                </div>
-                <div>
-                    <h1 class="text-[22px] sm:text-3xl font-black text-amber-500 tracking-tight leading-none">BCW SMART HUB</h1>
-                    <div class="mt-1 flex items-center gap-1.5">
-                        <span class="text-base sm:text-lg font-black text-indigo-950 bg-indigo-100 border border-indigo-300 px-3 py-0.5 rounded-full leading-tight">
-                            📚 ฝ่ายวิชาการ (Academic Center)
-                        </span>
-                        <span class="text-sm sm:text-base text-slate-800 font-extrabold leading-tight">โรงเรียนบัวเชดวิทยา</span>
-                    </div>
-                </div>
-            </div>
+    <!-- 2. MAIN CONTENT AREA -->
+    <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-between gap-2 my-1.5 min-h-0">
 
-            <div class="flex items-center gap-2">
-                <a href="teacher.html" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold shadow transition flex items-center gap-1 touch-btn">
-                    <i class="fa-solid fa-chalkboard-user"></i> <span>ระบบครูผู้สอน</span>
-                </a>
-                <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold shadow transition flex items-center gap-1 touch-btn cursor-pointer">
-                    <i class="fa-solid fa-file-pdf"></i> <span>พิมพ์รายงาน PDF</span>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto w-full px-2 sm:px-6 py-3 sm:py-6 space-y-3 sm:space-y-6 my-auto">
-
-        <!-- 4 การ์ดสรุปสถิติวิชาการ -->
-        <section id="section-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-            <div class="bg-white p-2.5 sm:p-4 rounded-xl shadow-xs border-2 border-slate-200 flex flex-col sm:flex-row justify-center sm:justify-between items-center text-center sm:text-left">
-                <div class="order-2 sm:order-1">
-                    <span class="text-[14px] sm:text-xs font-bold text-slate-600">เข้าเรียนเฉลี่ย</span>
-                    <div id="overallAttendance" class="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5">0%</div>
+        <!-- 📊 การ์ดสรุปสถิติวิชาการ 4 ช่องแนวนอน (Compact KPI Row) -->
+        <section id="section-stats" class="academic-card p-2 shrink-0">
+            <div class="grid grid-cols-4 gap-1.5 text-center">
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl py-1.5 px-1">
+                    <span class="text-[10.5px] font-semibold text-emerald-900 block leading-tight">📈 เข้าเรียนเฉลี่ย</span>
+                    <div id="overallAttendance" class="text-base md:text-xl font-extrabold text-emerald-700 mt-0.5 leading-none">0%</div>
                 </div>
-                <span class="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-sm sm:text-xl font-bold mb-1 sm:mb-0 order-1 sm:order-2"><i class="fa-solid fa-chart-line"></i></span>
-            </div>
 
-            <div onclick="window.showStudentModal('warning')" class="bg-white p-2.5 sm:p-4 rounded-xl shadow-xs border-2 border-yellow-300 hover:border-yellow-500 transition cursor-pointer flex flex-col sm:flex-row justify-center sm:justify-between items-center text-center sm:text-left">
-                <div class="order-2 sm:order-1">
-                    <span class="text-[14px] sm:text-xs text-yellow-900 font-extrabold">เฝ้าระวังพิเศษ 🔍</span>
-                    <div class="text-xl sm:text-2xl font-black text-yellow-600 mt-0.5"><span id="countWarning">0</span> คน</div>
+                <div onclick="window.showStudentModal('warning')" class="bg-yellow-50 border border-yellow-300 rounded-xl py-1.5 px-1 cursor-pointer active:scale-95 transition">
+                    <span class="text-[10.5px] font-semibold text-yellow-900 block leading-tight">👁️ เฝ้าระวัง</span>
+                    <div class="text-base md:text-xl font-extrabold text-yellow-700 mt-0.5 leading-none"><span id="countWarning">0</span> <span class="text-[10px] font-semibold">คน</span></div>
                 </div>
-                <span class="p-1.5 bg-yellow-50 text-yellow-600 rounded-lg text-sm sm:text-xl font-bold mb-1 sm:mb-0 order-1 sm:order-2"><i class="fa-solid fa-eye"></i></span>
-            </div>
 
-            <div onclick="window.showStudentModal('risk')" class="bg-white p-2.5 sm:p-4 rounded-xl shadow-xs border-2 border-amber-300 hover:border-amber-500 transition cursor-pointer flex flex-col sm:flex-row justify-center sm:justify-between items-center text-center sm:text-left">
-                <div class="order-2 sm:order-1">
-                    <span class="text-[14px] sm:text-xs text-amber-900 font-extrabold">เสี่ยงติด มส. 🔍</span>
-                    <div class="text-xl sm:text-2xl font-black text-amber-600 mt-0.5"><span id="countRisk">0</span> คน</div>
+                <div onclick="window.showStudentModal('risk')" class="bg-amber-50 border border-amber-300 rounded-xl py-1.5 px-1 cursor-pointer active:scale-95 transition">
+                    <span class="text-[10.5px] font-semibold text-amber-900 block leading-tight">⚠️ เสี่ยง มส.</span>
+                    <div class="text-base md:text-xl font-extrabold text-amber-700 mt-0.5 leading-none"><span id="countRisk">0</span> <span class="text-[10px] font-semibold">คน</span></div>
                 </div>
-                <span class="p-1.5 bg-amber-50 text-amber-600 rounded-lg text-sm sm:text-xl font-bold mb-1 sm:mb-0 order-1 sm:order-2"><i class="fa-solid fa-user-clock"></i></span>
-            </div>
 
-            <div onclick="window.showStudentModal('repeat')" class="bg-white p-2.5 sm:p-4 rounded-xl shadow-xs border-2 border-rose-300 hover:border-rose-500 transition cursor-pointer flex flex-col sm:flex-row justify-center sm:justify-between items-center text-center sm:text-left">
-                <div class="order-2 sm:order-1">
-                    <span class="text-[14px] sm:text-xs text-rose-900 font-extrabold">ต้องเรียนซ้ำ 🔍</span>
-                    <div class="text-xl sm:text-2xl font-black text-rose-600 mt-0.5"><span id="countRepeat">0</span> คน</div>
+                <div onclick="window.showStudentModal('repeat')" class="bg-rose-50 border border-rose-300 rounded-xl py-1.5 px-1 cursor-pointer active:scale-95 transition">
+                    <span class="text-[10.5px] font-semibold text-rose-900 block leading-tight">🚨 เรียนซ้ำ</span>
+                    <div class="text-base md:text-xl font-extrabold text-rose-700 mt-0.5 leading-none"><span id="countRepeat">0</span> <span class="text-[10px] font-semibold">คน</span></div>
                 </div>
-                <span class="p-1.5 bg-rose-50 text-rose-600 rounded-lg text-sm sm:text-xl font-bold mb-1 sm:mb-0 order-1 sm:order-2"><i class="fa-solid fa-triangle-exclamation"></i></span>
             </div>
         </section>
 
-        <!-- แผนภูมิแสดงจำนวนนักเรียนเสี่ยงติด มส. และเรียนซ้ำ -->
-        <section id="section-charts" class="bg-white p-3 sm:p-5 rounded-2xl shadow-xs border-2 border-slate-200 space-y-3">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-200 pb-2">
-                <div>
-                    <h3 class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-bar text-indigo-600"></i> แผนภูมิแสดงจำนวนนักเรียนเสี่ยงติด มส. และเรียนซ้ำ
+        <!-- 📈 แผนภูมิแสดงจำนวนนักเรียนเสี่ยงติด มส. และเรียนซ้ำ (ยืดหยุ่นเต็มพื้นที่หน้าจอ) -->
+        <section id="section-charts" class="academic-card p-2.5 md:p-4 flex-1 flex flex-col min-h-0">
+            <div class="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-100 pb-1.5 shrink-0">
+                <div class="min-w-0">
+                    <h3 class="text-xs md:text-base font-bold text-slate-900 flex items-center gap-1.5 truncate">
+                        <i class="fa-solid fa-chart-bar text-indigo-600"></i> สถิตินักเรียนเสี่ยงติด มส. และเรียนซ้ำ
                     </h3>
-                    <p class="text-[13px] sm:text-xs text-slate-500 mt-0.5">วิเคราะห์สถิติจำนวนนักเรียนแยกตามระดับชั้นและห้องเรียน</p>
                 </div>
                 
-                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[13px] sm:text-xs font-semibold self-start md:self-auto">
-                    <button id="btnByRoom" onclick="window.switchChartView('room')" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white shadow transition font-extrabold cursor-pointer">
+                <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl text-[11px] font-semibold shrink-0">
+                    <button type="button" id="btnByRoom" onclick="window.switchChartView('room')" class="px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-xs transition cursor-pointer">
                         รายห้องเรียน
                     </button>
-                    <button id="btnByGrade" onclick="window.switchChartView('grade')" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition font-extrabold cursor-pointer">
-                        รวมตามระดับชั้น (ม.1-ม.6)
+                    <button type="button" id="btnByGrade" onclick="window.switchChartView('grade')" class="px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer">
+                        ระดับชั้น (ม.1-ม.6)
                     </button>
                 </div>
             </div>
 
-            <div class="relative w-full h-52 sm:h-80">
+            <div class="relative w-full flex-1 min-h-[150px] md:h-72 mt-1.5">
                 <canvas id="riskChart"></canvas>
             </div>
         </section>
 
-        <!-- 📊 ตารางที่ 1: วิเคราะห์จำแนกตามรายวิชาที่มีนักเรียนเสี่ยงสูงสุด -->
-        <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-xs border-2 border-slate-200 space-y-3">
-            <div class="border-b border-slate-200 pb-2">
-                <h3 class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">
-                    <i class="fa-solid fa-book-bookmark text-indigo-600"></i> 1. วิเคราะห์จำแนกตามรายวิชาที่มีนักเรียนเสี่ยงสูงสุด
-                </h3>
+        <!-- 📱 APP GRID 4 บริการหลักฝ่ายวิชาการ (แสดงบนมือถือเพื่อเปิดดูทุกตารางใน Bottom Sheet) -->
+        <div class="grid grid-cols-4 gap-2 shrink-0 lg:hidden no-print">
+            <button type="button" onclick="openAcademicSheet('subjectRiskDrawer')" class="mobile-app-card border-indigo-200 cursor-pointer">
+                <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                </div>
+                <span class="mobile-app-label">วิชาเสี่ยงสูง</span>
+            </button>
+
+            <button type="button" onclick="openAcademicSheet('remediationDrawer')" class="mobile-app-card border-amber-200 cursor-pointer">
+                <div class="mobile-app-icon bg-amber-100 text-amber-700 border border-amber-200">
+                    <i class="fa-solid fa-user-check"></i>
+                </div>
+                <span class="mobile-app-label">แก้ มส./เฝ้าระวัง</span>
+            </button>
+
+            <button type="button" onclick="openAcademicSheet('homeworkGroupDrawer')" class="mobile-app-card border-sky-200 cursor-pointer">
+                <div class="mobile-app-icon bg-sky-100 text-sky-700 border border-sky-200">
+                    <i class="fa-solid fa-book-open"></i>
+                </div>
+                <span class="mobile-app-label">สรุปการบ้าน</span>
+            </button>
+
+            <button type="button" onclick="openAcademicSheet('teacherMonitorDrawer')" class="mobile-app-card border-emerald-200 cursor-pointer">
+                <div class="mobile-app-icon bg-emerald-100 text-emerald-700 border border-emerald-200">
+                    <i class="fa-solid fa-clipboard-user"></i>
+                </div>
+                <span class="mobile-app-label">ติดตามเข้าสอน</span>
+            </button>
+        </div>
+
+        <!-- 💻 DESKTOP VIEW: แสดงตารางทั้งหมดครบถ้วนบนหน้าจอคอมพิวเตอร์ -->
+        <div id="desktopAllTablesWrapper" class="hidden lg:block space-y-5 mt-2">
+            <!-- ตารางที่ 1 -->
+            <div class="academic-card p-5 space-y-3">
+                <div class="border-b border-slate-200 pb-2">
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-book-bookmark text-indigo-600"></i> 1. วิเคราะห์จำแนกตามรายวิชาที่มีนักเรียนเสี่ยงสูงสุด
+                    </h3>
+                </div>
+                <div class="grid grid-cols-12 gap-4 items-center">
+                    <div class="col-span-5 relative h-48 border-r border-slate-200 pr-4">
+                        <canvas id="subjectChart"></canvas>
+                    </div>
+                    <div class="col-span-7 overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-bold">
+                                    <th class="py-2 px-3">รหัส/ชื่อวิชา</th>
+                                    <th class="py-2 px-3">ครูผู้สอน</th>
+                                    <th class="py-2 px-3 text-center">เฝ้าระวัง</th>
+                                    <th class="py-2 px-3 text-center">เสี่ยง มส.</th>
+                                    <th class="py-2 px-3 text-center">เรียนซ้ำ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topSubjectsTableBody" class="divide-y divide-slate-200">
+                                <tr><td colspan="5" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
-                <div class="lg:col-span-5 relative h-48 border-r-0 lg:border-r border-slate-200 pr-0 lg:pr-4">
-                    <canvas id="subjectChart"></canvas>
-                </div>
+            <!-- ตารางที่ 2-5 -->
+            <div class="academic-card p-5 space-y-4">
+                <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2">
+                    <i class="fa-solid fa-user-clock text-amber-600 mr-1"></i> 2-5. รายชื่อนักเรียนกลุ่มเฝ้าระวัง เสี่ยงติด มส. เรียนซ้ำ และรายการที่อนุมัติแล้ว
+                </h3>
+                <div id="desktopRemediationTablesSlot" class="space-y-5"></div>
+            </div>
 
-                <div class="lg:col-span-7 overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
+            <!-- ตารางที่ 6 -->
+            <div class="academic-card p-5 space-y-3">
+                <h3 class="text-lg font-bold text-slate-900 border-b border-slate-200 pb-2">
+                    <i class="fa-solid fa-book-open text-indigo-600 mr-1"></i> 6. สรุปการสั่งและส่งภาระงาน/การบ้าน แยกตามกลุ่มสาระการเรียนรู้
+                </h3>
+                <div id="desktopHomeworkTableSlot"></div>
+            </div>
+
+            <!-- ตารางที่ 7 -->
+            <div class="academic-card p-5 space-y-3">
+                <h3 class="text-lg font-bold text-indigo-950 border-b border-slate-200 pb-2">
+                    <i class="fa-solid fa-clipboard-user text-indigo-600 mr-1"></i> 7. ตารางติดตามการเข้าสอนและการเช็คชื่อรายคาบประจำวัน
+                </h3>
+                <div id="desktopTeacherMonitorSlot"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 3. FLOATING PILL BOTTOM NAVIGATION BAR -->
+    <nav class="native-bottom-nav no-print">
+        <button id="navAcadHome" type="button" class="nav-item-btn active" onclick="switchAcademicTab('home')">
+            <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
+            <span>หน้าหลัก</span>
+        </button>
+        <button id="navAcadRisk" type="button" class="nav-item-btn" onclick="switchAcademicTab('risk')">
+            <div class="nav-icon-box"><i class="fa-solid fa-chart-pie"></i></div>
+            <span>สถิติเสี่ยง</span>
+        </button>
+        <button id="navAcadPrint" type="button" class="nav-item-btn highlight-print" onclick="window.print()">
+            <div class="nav-icon-box"><i class="fa-solid fa-print"></i></div>
+            <span class="font-semibold text-emerald-800">พิมพ์รายงาน</span>
+        </button>
+        <button id="navAcadMonitor" type="button" class="nav-item-btn" onclick="switchAcademicTab('monitor')">
+            <div class="nav-icon-box"><i class="fa-solid fa-clipboard-user"></i></div>
+            <span>ติดตามสอน</span>
+        </button>
+    </nav>
+
+    <!-- ================= BOTTOM SHEET DRAWERS (แสดงตารางทั้งหมดบนมือถืออย่างเป็นระเบียบ) ================= -->
+
+    <!-- Drawer 1: วิเคราะห์จำแนกตามรายวิชาที่มีนักเรียนเสี่ยงสูงสุด -->
+    <div id="subjectRiskDrawer" class="bottom-sheet-backdrop" onclick="closeAcademicSheet('subjectRiskDrawer')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-book-bookmark"></i></div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">รายวิชาที่มีนักเรียนเสี่ยงสูงสุด</h3>
+                        <p class="text-xs text-slate-600">สรุปจำนวนนักเรียนเฝ้าระวัง / เสี่ยง มส. รายวิชา</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAcademicSheet('subjectRiskDrawer')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            <div class="p-3 space-y-3 drawer-scroll-content flex-1 text-xs">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
                         <thead>
-                            <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-extrabold">
-                                <th class="py-2 px-1.5 sm:px-3">รหัส/ชื่อวิชา</th>
-                                <th class="py-2 px-1.5 sm:px-3">ครูผู้สอน</th>
-                                <th class="py-2 px-1.5 sm:px-3 text-center">เฝ้าระวัง</th>
-                                <th class="py-2 px-1.5 sm:px-3 text-center">เสี่ยง มส.</th>
-                                <th class="py-2 px-1.5 sm:px-3 text-center">เรียนซ้ำ</th>
+                            <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-bold">
+                                <th class="py-2 px-2">รหัส/ชื่อวิชา</th>
+                                <th class="py-2 px-2">ครูผู้สอน</th>
+                                <th class="py-2 px-2 text-center">เฝ้าระวัง</th>
+                                <th class="py-2 px-2 text-center">เสี่ยง มส.</th>
+                                <th class="py-2 px-2 text-center">เรียนซ้ำ</th>
                             </tr>
                         </thead>
-                        <tbody id="topSubjectsTableBody" class="divide-y divide-slate-200 font-medium">
+                        <tbody id="mobileTopSubjectsTableBody" class="divide-y divide-slate-200 font-medium">
                             <tr><td colspan="5" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- 🟡 ตารางที่ 2: ป้ายเฝ้าระวัง -->
-        <div id="section-warning-table" class="bg-white p-3 sm:p-5 rounded-2xl shadow-xs border-2 border-yellow-300 space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-2 gap-1.5">
-                <h3 class="text-base sm:text-xl font-black text-yellow-900 leading-snug">
-                    <i class="fa-solid fa-eye text-yellow-600 mr-1"></i>
-                    <span>2. รายชื่อนักเรียนกลุ่มเฝ้าระวังพิเศษ (เวลาเรียน 80% - 82%)</span>
-                    <span class="sm:hidden text-[11px] bg-yellow-100 text-yellow-900 font-extrabold px-2 py-0.5 rounded-md border border-yellow-300 inline-flex items-center gap-1 align-middle ml-1">
-                        👁️ เฝ้าระวัง
-                    </span>
-                </h3>
-                <span class="hidden sm:inline-flex text-xs bg-yellow-100 text-yellow-900 font-extrabold px-2.5 py-1 rounded-full border border-yellow-300">
-                    👁️ เฝ้าระวัง
-                </span>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-extrabold">
-                            <th class="py-2 px-1.5 sm:px-3">ชื่อ - นามสกุล</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">ชั้นเรียน</th>
-                            <th class="py-2 px-1.5 sm:px-3">ครูที่ปรึกษา</th>
-                            <th class="py-2 px-1.5 sm:px-3">รายวิชา</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">เวลาเรียน</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">การจัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="warningTableBody" class="divide-y divide-slate-200 font-medium">
-                        <tr><td colspan="6" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 🟠 ตารางที่ 3: ป้ายเร่งติดตาม -->
-        <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-xs border-2 border-amber-300 space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-2 gap-1.5">
-                <h3 class="text-base sm:text-xl font-black text-amber-900 leading-snug">
-                    <i class="fa-solid fa-user-clock text-amber-600 mr-1"></i>
-                    <span>3. รายชื่อนักเรียนกลุ่มเสี่ยงติด มส. (เวลาเรียน 60% - 79%)</span>
-                    <span class="sm:hidden text-[11px] bg-amber-100 text-amber-900 font-extrabold px-2 py-0.5 rounded-md border border-amber-300 inline-flex items-center gap-1 align-middle ml-1">
-                        ⚠️ เร่งติดตาม
-                    </span>
-                </h3>
-                <span class="hidden sm:inline-flex text-xs bg-amber-100 text-amber-900 font-extrabold px-2.5 py-1 rounded-full border border-amber-300">
-                    ⚠️ เร่งติดตาม
-                </span>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-extrabold">
-                            <th class="py-2 px-1.5 sm:px-3">ชื่อ - นามสกุล</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">ชั้นเรียน</th>
-                            <th class="py-2 px-1.5 sm:px-3">ครูที่ปรึกษา</th>
-                            <th class="py-2 px-1.5 sm:px-3">รายวิชา</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">เวลาเรียน</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">การจัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="riskTableBody" class="divide-y divide-slate-200 font-medium">
-                        <tr><td colspan="6" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 🔴 ตารางที่ 4: ป้ายต้องเรียนซ้ำ -->
-        <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-xs border-2 border-rose-300 space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-2 gap-1.5">
-                <div>
-                    <h3 class="text-base sm:text-xl font-black text-rose-900 leading-snug">
-                        <i class="fa-solid fa-triangle-exclamation text-rose-600 mr-1"></i>
-                        <span>4. รายชื่อนักเรียนที่ต้องลงทะเบียนเรียนซ้ำ (เวลาเรียน &lt; 60%)</span>
-                        <span class="sm:hidden text-[11px] bg-rose-600 text-white font-extrabold px-2 py-0.5 rounded-md shadow inline-flex items-center gap-1 align-middle ml-1">
-                            🚨 ต้องเรียนซ้ำ
-                        </span>
-                    </h3>
-                    <p class="text-[13px] sm:text-xs text-slate-500 mt-0.5">กลุ่มที่ขาดเรียนเกิน 40% หมดสิทธิ์ยื่นเวลาเรียน ต้องลงทะเบียนเรียนซ้ำเท่านั้น</p>
-                </div>
-                <span class="hidden sm:inline-flex text-xs bg-rose-600 text-white font-extrabold px-2.5 py-1 rounded-full shadow">
-                    🚨 ต้องเรียนซ้ำ
-                </span>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-extrabold">
-                            <th class="py-2 px-1.5 sm:px-3">ชื่อ - นามสกุล</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">ชั้นเรียน</th>
-                            <th class="py-2 px-1.5 sm:px-3">ครูที่ปรึกษา</th>
-                            <th class="py-2 px-1.5 sm:px-3">รายวิชา</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">เวลาเรียน</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">การจัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="repeatTableBody" class="divide-y divide-slate-200 font-medium">
-                        <tr><td colspan="6" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 🟢 ตารางที่ 5: ป้ายแก้ไขเรียบร้อย -->
-        <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-xs border-2 border-emerald-300 space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-2 gap-1.5">
-                <h3 class="text-base sm:text-xl font-black text-emerald-900 leading-snug">
-                    <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>
-                    <span>5. สรุปรายชื่อนักเรียนที่ดำเนินการยื่นแก้ มส. / ยื่นเวลาเรียนอนุมัติแล้ว</span>
-                    <span class="sm:hidden text-[11px] bg-emerald-100 text-emerald-900 font-extrabold px-2 py-0.5 rounded-md border border-emerald-300 inline-flex items-center gap-1 align-middle ml-1">
-                        ✅ แก้ไขเรียบร้อย
-                    </span>
-                </h3>
-                <span class="hidden sm:inline-flex text-xs bg-emerald-100 text-emerald-900 font-extrabold px-2.5 py-1 rounded-full border border-emerald-300">
-                    ✅ แก้ไขเรียบร้อย
-                </span>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-extrabold">
-                            <th class="py-2 px-1.5 sm:px-3">ชื่อ - นามสกุล</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">ชั้นเรียน</th>
-                            <th class="py-2 px-1.5 sm:px-3">รายวิชา</th>
-                            <th class="py-2 px-1.5 sm:px-3">ผลการอนุมัติ / หมายเหตุเอกสาร</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resolvedTableBody" class="divide-y divide-slate-200 font-medium">
-                        <tr><td colspan="5" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูลรายการที่อนุมัติแล้ว...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 📘 ตารางที่ 6: สรุปภาระงาน/การบ้าน -->
-        <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-xs border-2 border-slate-200 space-y-3">
-            <div class="border-b border-slate-200 pb-2">
-                <h3 class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">
-                    <i class="fa-solid fa-book-open text-indigo-600"></i> 6. สรุปการสั่งและส่งภาระงาน/การบ้าน แยกตามกลุ่มสาระการเรียนรู้
-                </h3>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-extrabold">
-                            <th class="py-2 px-1.5 sm:px-3">กลุ่มสาระการเรียนรู้</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">จำนวนวิชา</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">การบ้านที่สั่งแล้ว</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">การจัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="subjectGroupTableBody" class="divide-y divide-slate-200 font-medium">
-                        <tr><td colspan="4" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูลกลุ่มสาระฯ...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ⏱️ ตารางที่ 7: ตารางติดตามการเข้าสอนประจำวัน -->
-        <section id="section-teacher-monitor" class="bg-white p-3 sm:p-5 rounded-2xl shadow-xs border-2 border-indigo-200 space-y-3">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-200 pb-2">
-                <div>
-                    <h3 class="text-[19px] sm:text-2xl font-black text-indigo-950 flex items-center gap-2 leading-snug">
-                        <i class="fa-solid fa-clipboard-user text-indigo-600"></i>
-                        7. ตารางติดตามการเข้าสอนและการเช็คชื่อรายคาบประจำวัน
-                    </h3>
-                    <p class="text-[13px] sm:text-xs text-slate-500 mt-0.5">ตรวจสอบความเคลื่อนไหวการเข้าสอนและการเช็คชื่อของครูผู้สอนในแต่ละคาบเรียนแบบ Real-time</p>
-                </div>
-
-                <div class="flex items-center gap-1.5 text-xs font-semibold">
+    <!-- Drawer 2: รายชื่อกลุ่มเฝ้าระวัง / เสี่ยงติด มส. / ต้องเรียนซ้ำ / อนุมัติแล้ว -->
+    <div id="remediationDrawer" class="bottom-sheet-backdrop" onclick="closeAcademicSheet('remediationDrawer')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-user-clock"></i></div>
                     <div>
-                        <label class="text-[10px] text-slate-400 block mb-0.5">วันที่เลือก:</label>
-                        <input type="date" id="teacherMonitorDate" onchange="window.loadTeacherAttendanceMonitor()" class="p-1 border-2 border-slate-300 rounded-lg text-xs font-bold text-slate-700 bg-slate-50 outline-none">
+                        <h3 class="text-sm font-bold text-slate-900">จัดการนักเรียนเสี่ยง มส. / แก้ มส.</h3>
+                        <p class="text-xs text-slate-600">เฝ้าระวัง (80-82%), เสี่ยง มส. (60-79%), เรียนซ้ำ (&lt;60%)</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAcademicSheet('remediationDrawer')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            <div id="remediationTablesSource" class="p-3 space-y-4 drawer-scroll-content flex-1 text-xs">
+                <!-- ตารางที่ 2: เฝ้าระวังพิเศษ -->
+                <div class="border border-yellow-300 rounded-xl overflow-hidden">
+                    <div class="bg-yellow-50 px-3 py-1.5 font-bold text-yellow-900 border-b border-yellow-200">👁️ กลุ่มเฝ้าระวังพิเศษ (80% - 82%)</div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-800 border-b border-slate-200 font-bold">
+                                    <th class="py-1.5 px-2">ชื่อ - นามสกุล</th>
+                                    <th class="py-1.5 px-2 text-center">ชั้น</th>
+                                    <th class="py-1.5 px-2">ครูที่ปรึกษา</th>
+                                    <th class="py-1.5 px-2">รายวิชา</th>
+                                    <th class="py-1.5 px-2 text-center">เวลา</th>
+                                    <th class="py-1.5 px-2 text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="warningTableBody" class="divide-y divide-slate-200">
+                                <tr><td colspan="6" class="text-center py-3 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ตารางที่ 3: เสี่ยงติด มส. -->
+                <div class="border border-amber-300 rounded-xl overflow-hidden">
+                    <div class="bg-amber-50 px-3 py-1.5 font-bold text-amber-900 border-b border-amber-200">⚠️ กลุ่มเสี่ยงติด มส. (60% - 79%)</div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-800 border-b border-slate-200 font-bold">
+                                    <th class="py-1.5 px-2">ชื่อ - นามสกุล</th>
+                                    <th class="py-1.5 px-2 text-center">ชั้น</th>
+                                    <th class="py-1.5 px-2">ครูที่ปรึกษา</th>
+                                    <th class="py-1.5 px-2">รายวิชา</th>
+                                    <th class="py-1.5 px-2 text-center">เวลา</th>
+                                    <th class="py-1.5 px-2 text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="riskTableBody" class="divide-y divide-slate-200">
+                                <tr><td colspan="6" class="text-center py-3 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ตารางที่ 4: ต้องเรียนซ้ำ -->
+                <div class="border border-rose-300 rounded-xl overflow-hidden">
+                    <div class="bg-rose-50 px-3 py-1.5 font-bold text-rose-900 border-b border-rose-200">🚨 ต้องลงทะเบียนเรียนซ้ำ (&lt; 60%)</div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-800 border-b border-slate-200 font-bold">
+                                    <th class="py-1.5 px-2">ชื่อ - นามสกุล</th>
+                                    <th class="py-1.5 px-2 text-center">ชั้น</th>
+                                    <th class="py-1.5 px-2">ครูที่ปรึกษา</th>
+                                    <th class="py-1.5 px-2">รายวิชา</th>
+                                    <th class="py-1.5 px-2 text-center">เวลา</th>
+                                    <th class="py-1.5 px-2 text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repeatTableBody" class="divide-y divide-slate-200">
+                                <tr><td colspan="6" class="text-center py-3 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ตารางที่ 5: อนุมัติแล้ว -->
+                <div class="border border-emerald-300 rounded-xl overflow-hidden">
+                    <div class="bg-emerald-50 px-3 py-1.5 font-bold text-emerald-900 border-b border-emerald-200">✅ ยื่นแก้ มส. / ยื่นเวลาเรียนอนุมัติแล้ว</div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-800 border-b border-slate-200 font-bold">
+                                    <th class="py-1.5 px-2">ชื่อ - นามสกุล</th>
+                                    <th class="py-1.5 px-2 text-center">ชั้น</th>
+                                    <th class="py-1.5 px-2">รายวิชา</th>
+                                    <th class="py-1.5 px-2">หมายเหตุ</th>
+                                    <th class="py-1.5 px-2 text-center">สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resolvedTableBody" class="divide-y divide-slate-200">
+                                <tr><td colspan="5" class="text-center py-3 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer 3: สรุปภาระงาน/การบ้าน แยกตามกลุ่มสาระการเรียนรู้ -->
+    <div id="homeworkGroupDrawer" class="bottom-sheet-backdrop" onclick="closeAcademicSheet('homeworkGroupDrawer')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-sky-100 text-sky-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-book-open"></i></div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">สรุปภาระงาน/การบ้าน 8 กลุ่มสาระฯ</h3>
+                        <p class="text-xs text-slate-600">แตะที่กลุ่มสาระฯ เพื่อดูรายละเอียดการบ้าน</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAcademicSheet('homeworkGroupDrawer')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            <div id="homeworkTableSource" class="p-3 drawer-scroll-content flex-1 text-xs">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-bold">
+                                <th class="py-2 px-2">กลุ่มสาระการเรียนรู้</th>
+                                <th class="py-2 px-2 text-center">จำนวนวิชา</th>
+                                <th class="py-2 px-2 text-center">การบ้าน</th>
+                                <th class="py-2 px-2 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subjectGroupTableBody" class="divide-y divide-slate-200 font-medium">
+                            <tr><td colspan="4" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูลกลุ่มสาระฯ...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer 4: ตารางติดตามการเข้าสอนและการเช็คชื่อรายคาบประจำวัน -->
+    <div id="teacherMonitorDrawer" class="bottom-sheet-backdrop" onclick="closeAcademicSheet('teacherMonitorDrawer')">
+        <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+            <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
+            <div class="px-4 py-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-clipboard-user"></i></div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">ติดตามการเข้าสอนรายคาบประจำวัน</h3>
+                        <p class="text-xs text-slate-600">ตรวจสอบสถานะการเช็คชื่อของครูผู้สอน</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAcademicSheet('teacherMonitorDrawer')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
+            </div>
+            <div id="teacherMonitorSource" class="p-3 space-y-3 drawer-scroll-content flex-1 text-xs">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[11px] text-slate-600 font-semibold block mb-0.5">วันที่เลือก:</label>
+                        <input type="date" id="teacherMonitorDate" onchange="window.loadTeacherAttendanceMonitor()" class="w-full p-1.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 bg-slate-50">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-400 block mb-0.5">คาบเรียน:</label>
-                        <select id="teacherMonitorPeriod" onchange="window.loadTeacherAttendanceMonitor()" class="p-1 border-2 border-slate-300 rounded-lg text-xs font-bold text-slate-700 bg-slate-50 outline-none">
+                        <label class="text-[11px] text-slate-600 font-semibold block mb-0.5">คาบเรียน:</label>
+                        <select id="teacherMonitorPeriod" onchange="window.loadTeacherAttendanceMonitor()" class="w-full p-1.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 bg-slate-50">
                             <option value="1">คาบ 1 (08.30-09.20)</option>
                             <option value="2">คาบ 2 (09.20-10.10)</option>
                             <option value="3">คาบ 3 (10.10-11.00)</option>
@@ -589,291 +772,226 @@
                         </select>
                     </div>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                <div class="bg-indigo-50/60 p-2.5 sm:p-3.5 rounded-xl border border-indigo-100 flex items-center justify-between">
-                    <div>
-                        <span class="text-[14px] sm:text-sm font-extrabold text-indigo-800">คาบทั้งหมด</span>
-                        <div id="pTotalClasses" class="text-xl sm:text-2xl font-black text-indigo-950 mt-0.5">0 วิชา</div>
+                <div class="grid grid-cols-4 gap-1.5 text-center">
+                    <div class="bg-indigo-50 p-2 rounded-xl border border-indigo-100">
+                        <span class="text-[10px] font-semibold text-indigo-800 block">ทั้งหมด</span>
+                        <div id="pTotalClasses" class="text-sm font-extrabold text-indigo-950">0 วิชา</div>
                     </div>
-                    <i class="fa-solid fa-chalkboard text-indigo-400 text-lg sm:text-xl"></i>
-                </div>
-                <div class="bg-emerald-50/60 p-2.5 sm:p-3.5 rounded-xl border border-emerald-100 flex items-center justify-between">
-                    <div>
-                        <span class="text-[14px] sm:text-sm font-extrabold text-emerald-800">เช็คชื่อแล้ว (🟢)</span>
-                        <div id="pCheckedClasses" class="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5">0 วิชา</div>
+                    <div class="bg-emerald-50 p-2 rounded-xl border border-emerald-100">
+                        <span class="text-[10px] font-semibold text-emerald-800 block">🟢 เช็กแล้ว</span>
+                        <div id="pCheckedClasses" class="text-sm font-extrabold text-emerald-700">0 วิชา</div>
                     </div>
-                    <i class="fa-solid fa-circle-check text-emerald-500 text-lg sm:text-xl"></i>
-                </div>
-                <div class="bg-amber-50/60 p-2.5 sm:p-3.5 rounded-xl border border-amber-100 flex items-center justify-between">
-                    <div>
-                        <span class="text-[14px] sm:text-sm font-extrabold text-amber-800">รอเช็ค (🟡)</span>
-                        <div id="pPendingClasses" class="text-xl sm:text-2xl font-black text-amber-600 mt-0.5">0 วิชา</div>
+                    <div class="bg-amber-50 p-2 rounded-xl border border-amber-100">
+                        <span class="text-[10px] font-semibold text-amber-800 block">🟡 รอเช็ก</span>
+                        <div id="pPendingClasses" class="text-sm font-extrabold text-amber-700">0 วิชา</div>
                     </div>
-                    <i class="fa-solid fa-clock text-amber-500 text-lg sm:text-xl"></i>
-                </div>
-                <div class="bg-rose-50/60 p-2.5 sm:p-3.5 rounded-xl border border-rose-100 flex items-center justify-between">
-                    <div>
-                        <span class="text-[14px] sm:text-sm font-extrabold text-rose-800">ยังไม่เช็ค (🔴)</span>
-                        <div id="pMissingClasses" class="text-xl sm:text-2xl font-black text-rose-600 mt-0.5">0 วิชา</div>
+                    <div class="bg-rose-50 p-2 rounded-xl border border-rose-100">
+                        <span class="text-[10px] font-semibold text-rose-800 block">🔴 ยังไม่เช็ก</span>
+                        <div id="pMissingClasses" class="text-sm font-extrabold text-rose-700">0 วิชา</div>
                     </div>
-                    <i class="fa-solid fa-circle-exclamation text-rose-500 text-lg sm:text-xl"></i>
                 </div>
-            </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-extrabold">
-                            <th class="py-2 px-1 text-center w-10">คาบ</th>
-                            <th class="py-2 px-1.5 sm:px-3">ครูผู้สอน</th>
-                            <th class="py-2 px-1.5 sm:px-3">วิชาที่สอน</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">ห้อง</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">เวลา</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">สถานะ</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">การจัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="teacherMonitorTableBody" class="divide-y divide-slate-200 font-medium">
-                        <tr><td colspan="7" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูลการเข้าสอนจริง...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- 📑 ตารางที่ 8: สรุปรายงานประจำภาคเรียน -->
-        <div class="bg-white p-3 sm:p-5 rounded-2xl shadow-xs border-2 border-indigo-200 space-y-3 no-print">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
-                <div>
-                    <h3 class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-file-contract text-indigo-600"></i>
-                        8. สรุปรายงานฝ่ายวิชาการประจำภาคเรียน / พิมพ์รายงาน
-                    </h3>
-                    <p class="text-[13px] sm:text-xs text-slate-500 mt-0.5">ออกเอกสารสรุปผลวิชาการสำหรับเสนอฝ่ายบริหารและคณะกรรมการสถานศึกษา</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-xs font-extrabold shadow transition flex items-center gap-1 touch-btn cursor-pointer">
-                        <i class="fa-solid fa-print"></i>
-                        <span>พิมพ์เอกสาร PDF</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                    <span class="text-[14px] sm:text-xs font-bold text-slate-500">📄 รายงานสถิติเวลาเรียน</span>
-                    <h4 class="text-base sm:text-sm font-black text-indigo-900">สรุปนักเรียนกลุ่มเสี่ยง มส.</h4>
-                    <p class="text-[14px] sm:text-[11px] text-slate-600 leading-relaxed">วิเคราะห์ข้อมูลกลุ่ม 80-82% และ 60-79% รายห้องอย่างเป็นระบบ</p>
-                </div>
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                    <span class="text-[14px] sm:text-xs font-bold text-slate-500">📊 สรุปผลการยื่นแก้ มส.</span>
-                    <h4 class="text-base sm:text-sm font-black text-indigo-900">บันทึกการซ่อมฟื้นฟูรายวิชา</h4>
-                    <p class="text-[14px] sm:text-[11px] text-slate-600 leading-relaxed">สรุปจำนวนนักเรียนที่ยื่นคำร้องผ่านการอนุมัติเรียบร้อยแล้ว</p>
-                </div>
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                    <span class="text-[14px] sm:text-xs font-bold text-slate-500">🏫 สรุปการเข้าสอนของครู</span>
-                    <h4 class="text-base sm:text-sm font-black text-indigo-900">รายงานการเช็คชื่อรายคาบ</h4>
-                    <p class="text-[14px] sm:text-[11px] text-slate-600 leading-relaxed">สถิติความเคลื่อนไหวการเข้าสอนของครูผู้สอนประจำวันแบบ Real-Time</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-bold">
+                                <th class="py-1.5 px-1 text-center">คาบ</th>
+                                <th class="py-1.5 px-2">ครูผู้สอน</th>
+                                <th class="py-1.5 px-2">วิชาที่สอน</th>
+                                <th class="py-1.5 px-2 text-center">ห้อง</th>
+                                <th class="py-1.5 px-2 text-center">เวลา</th>
+                                <th class="py-1.5 px-2 text-center">สถานะ</th>
+                                <th class="py-1.5 px-2 text-center">แจ้งเตือน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacherMonitorTableBody" class="divide-y divide-slate-200 font-medium">
+                            <tr><td colspan="7" class="text-center py-4 text-slate-400">กำลังโหลดข้อมูลการเข้าสอนจริง...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
+    </div>
 
-    </main>
+    <!-- ================= MODALS (คงเดิมครบทั้ง 3 Modal) ================= -->
 
     <!-- Modal 1: แสดง Pop-up รายชื่อนักเรียนเมื่อคลิกกล่องสถิติด้านบน -->
-    <div id="studentListModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-3 sm:p-6">
-        <div class="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border-2 border-slate-300 space-y-3.5 max-h-[85vh] flex flex-col">
-            <div class="flex justify-between items-center border-b border-slate-200 pb-2.5 shrink-0">
-                <h3 id="modalStudentListTitle" class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">📋 รายชื่อนักเรียน</h3>
-                <button onclick="window.closeStudentListModal()" class="text-slate-400 hover:text-slate-600 font-extrabold text-xl cursor-pointer">✕</button>
+    <div id="studentListModal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs hidden items-center justify-center z-[10020] p-3 sm:p-6">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-200 space-y-3 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-2 shrink-0">
+                <h3 id="modalStudentListTitle" class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">📋 รายชื่อนักเรียน</h3>
+                <button type="button" onclick="window.closeStudentListModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold text-sm cursor-pointer">✕</button>
             </div>
             <div class="overflow-y-auto flex-1">
-                <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
                     <thead>
-                        <tr class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300 sticky top-0">
-                            <th class="py-2 px-1.5 sm:px-3">ชื่อ - นามสกุล</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">ชั้นเรียน</th>
-                            <th class="py-2 px-1.5 sm:px-3">รายวิชา</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">เวลาเรียน (%)</th>
+                        <tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0">
+                            <th class="py-2 px-2">ชื่อ - นามสกุล</th>
+                            <th class="py-2 px-2 text-center">ชั้นเรียน</th>
+                            <th class="py-2 px-2">รายวิชา</th>
+                            <th class="py-2 px-2 text-center">เวลาเรียน (%)</th>
                         </tr>
                     </thead>
                     <tbody id="modalStudentListBody" class="divide-y divide-slate-200 font-medium"></tbody>
                 </table>
             </div>
             <div class="pt-2 border-t border-slate-200 text-right shrink-0">
-                <button onclick="window.closeStudentListModal()" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-lg text-xs cursor-pointer">ปิดหน้าต่าง</button>
+                <button type="button" onclick="window.closeStudentListModal()" class="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs cursor-pointer">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
 
     <!-- Modal 2: แบบฟอร์มบันทึกการอนุมัติแก้ มส. -->
-    <div id="remediationModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-3 sm:p-6">
-        <div class="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl border-2 border-slate-300 space-y-3.5">
-            <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
-                <h3 class="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">📝 บันทึกอนุมัติการแก้ไข มส.</h3>
-                <button onclick="window.closeRemediationModal()" class="text-slate-400 hover:text-slate-600 font-extrabold text-xl cursor-pointer">✕</button>
+    <div id="remediationModal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs hidden items-center justify-center z-[10025] p-3 sm:p-6">
+        <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 shadow-2xl border border-slate-200 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">📝 บันทึกอนุมัติการแก้ไข มส.</h3>
+                <button type="button" onclick="window.closeRemediationModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold text-sm cursor-pointer">✕</button>
             </div>
-            <form id="remediationForm" onsubmit="window.submitRemediationForm(event)" class="space-y-3 text-[13px] sm:text-sm">
+            <form id="remediationForm" onsubmit="window.submitRemediationForm(event)" class="space-y-3 text-xs sm:text-sm">
                 <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1">
-                    <div id="remStudentName" class="font-extrabold text-slate-800">ชื่อนักเรียน: -</div>
+                    <div id="remStudentName" class="font-bold text-slate-800">ชื่อนักเรียน: -</div>
                     <div id="remSubject" class="text-slate-600 font-semibold">วิชา: -</div>
                 </div>
                 <div>
-                    <label class="block font-extrabold text-slate-800 mb-1">ผลการอนุมัติ:</label>
-                    <select id="remStatusSelect" required class="w-full p-2 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold outline-none">
+                    <label class="block font-bold text-slate-800 mb-1">ผลการอนุมัติ:</label>
+                    <select id="remStatusSelect" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold outline-none">
                         <option value="resolved_time">✅ ยื่นคำร้องยื่นเวลาเรียนครบถ้วน (ผ่านเกณฑ์ 80%)</option>
                         <option value="resolved_exam">✅ เข้าซ่อมฟื้นฟู / สอบแก้ตัวผ่านเกณฑ์</option>
                         <option value="resolved_re-enroll">📝 ลงทะเบียนเรียนซ้ำเรียบร้อยแล้ว</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block font-extrabold text-slate-800 mb-1">เลขที่เอกสาร / หมายเหตุ:</label>
-                    <input type="text" id="remNote" placeholder="เช่น ใบยื่นเวลาเรียน เลขที่ 012/2569" required class="w-full p-2 bg-slate-50 border-2 border-slate-300 rounded-xl font-semibold outline-none">
+                    <label class="block font-bold text-slate-800 mb-1">เลขที่เอกสาร / หมายเหตุ:</label>
+                    <input type="text" id="remNote" placeholder="เช่น ใบยื่นเวลาเรียน เลขที่ 012/2569" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-medium outline-none">
                 </div>
                 <div class="pt-2 flex gap-2">
-                    <button type="button" onclick="window.closeRemediationModal()" class="w-1/2 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-xl transition cursor-pointer">ยกเลิก</button>
-                    <button type="submit" class="w-1/2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow transition cursor-pointer">💾 บันทึกอนุมัติ</button>
+                    <button type="button" onclick="window.closeRemediationModal()" class="w-1/2 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition cursor-pointer">ยกเลิก</button>
+                    <button type="submit" class="w-1/2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition cursor-pointer">💾 บันทึกอนุมัติ</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal 3: ดูรายละเอียดภาระงานรายกลุ่มสาระฯ -->
-    <div id="academicModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-3 sm:p-6">
-        <div class="bg-white rounded-2xl sm:rounded-3xl max-w-3xl w-full p-4 sm:p-6 shadow-2xl border-2 border-slate-300 space-y-3.5 max-h-[85vh] flex flex-col">
-            <div class="flex justify-between items-center border-b border-slate-200 pb-2.5 shrink-0">
-                <h3 id="modalTitle" class="text-base sm:text-xl font-black text-slate-900 flex items-center gap-2">รายละเอียดภาระงาน</h3>
-                <button onclick="window.closeModal()" class="text-slate-400 hover:text-slate-600 font-extrabold text-xl cursor-pointer">✕</button>
+    <div id="academicModal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs hidden items-center justify-center z-[10025] p-3 sm:p-6">
+        <div class="bg-white rounded-2xl max-w-3xl w-full p-4 sm:p-5 shadow-2xl border border-slate-200 space-y-3 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-2 shrink-0">
+                <h3 id="modalTitle" class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">รายละเอียดภาระงาน</h3>
+                <button type="button" onclick="window.closeModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold text-sm cursor-pointer">✕</button>
             </div>
             <div class="overflow-y-auto flex-1">
-                <table class="w-full text-left border-collapse text-[13px] sm:text-sm">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
                     <thead>
-                        <tr class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300 sticky top-0">
-                            <th class="py-2 px-1.5 sm:px-3">รายวิชา</th>
-                            <th class="py-2 px-1.5 sm:px-3">หัวข้อการบ้าน</th>
-                            <th class="py-2 px-1.5 sm:px-3">ครูผู้สอน</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">ระดับชั้น</th>
-                            <th class="py-2 px-1.5 sm:px-3 text-center">กำหนดส่ง</th>
+                        <tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-300 sticky top-0">
+                            <th class="py-2 px-2">รายวิชา</th>
+                            <th class="py-2 px-2">หัวข้อการบ้าน</th>
+                            <th class="py-2 px-2">ครูผู้สอน</th>
+                            <th class="py-2 px-2 text-center">ระดับชั้น</th>
+                            <th class="py-2 px-2 text-center">กำหนดส่ง</th>
                         </tr>
                     </thead>
                     <tbody id="modalAssignmentTableBody" class="divide-y divide-slate-200 font-medium"></tbody>
                 </table>
             </div>
             <div class="pt-2 border-t border-slate-200 text-right shrink-0">
-                <button onclick="window.closeModal()" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold rounded-lg text-xs cursor-pointer">ปิดหน้าต่าง</button>
+                <button type="button" onclick="window.closeModal()" class="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs cursor-pointer">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-slate-950 text-slate-300 text-center text-xs py-3 border-t border-slate-800 no-print">
-        © 2026 โรงเรียนบัวเชดวิทยา (BCW Smart Hub) • Academic Management System
-    </footer>
-
-    <!-- 📱 MOBILE BOTTOM NAVIGATION BAR -->
-    <nav class="academic-bottom-nav no-print">
-        <button type="button" class="academic-nav-btn active" onclick="scrollToAcademicSection('section-stats', this)">
-            <i class="fa-solid fa-house"></i>
-            <span>หน้าหลัก</span>
-        </button>
-        <button type="button" class="academic-nav-btn" onclick="scrollToAcademicSection('section-charts', this)">
-            <i class="fa-solid fa-chart-pie"></i>
-            <span>สถิติเสี่ยง</span>
-        </button>
-        <button type="button" class="academic-nav-btn highlight-btn" onclick="window.print()">
-            <i class="fa-solid fa-print"></i>
-            <span>พิมพ์รายงาน</span>
-        </button>
-        <button type="button" class="academic-nav-btn" onclick="scrollToAcademicSection('section-teacher-monitor', this)">
-            <i class="fa-solid fa-clipboard-user"></i>
-            <span>ติดตามสอน</span>
-        </button>
-    </nav>
-
-    <!-- Global Navigation Control Scripts & Touch Gesture Support -->
+    <!-- Global Navigation & Drawer Controller -->
     <script>
         function toggleAcademicDrawer() {
             const overlay = document.getElementById('drawerOverlay');
-            if (overlay) {
-                overlay.classList.toggle('active');
-                if (!overlay.classList.contains('active')) {
-                    const drawer = document.getElementById('drawerContent');
-                    if (drawer) drawer.style.transform = '';
+            if (overlay) overlay.classList.toggle('active');
+        }
+
+        window.openAcademicSheet = function(id) {
+            closeAllAcademicSheets();
+            const el = document.getElementById(id);
+            if (el) el.classList.add('active');
+        };
+
+        window.closeAcademicSheet = function(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+            setActiveAcadNav('navAcadHome');
+        };
+
+        function closeAllAcademicSheets() {
+            document.querySelectorAll('.bottom-sheet-backdrop').forEach(el => el.classList.remove('active'));
+        }
+
+        function setActiveAcadNav(btnId) {
+            document.querySelectorAll('.nav-item-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(btnId);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+
+        window.switchAcademicTab = function(tab) {
+            if (tab === 'home') {
+                closeAllAcademicSheets();
+                setActiveAcadNav('navAcadHome');
+            } else if (tab === 'risk') {
+                openAcademicSheet('remediationDrawer');
+                setActiveAcadNav('navAcadRisk');
+            } else if (tab === 'monitor') {
+                openAcademicSheet('teacherMonitorDrawer');
+                setActiveAcadNav('navAcadMonitor');
+            }
+        };
+
+        // ย้ายเนื้อหาตารางไปแสดงบน Desktop ด้วยเมื่อเปิดบนหน้าจอใหญ่ (>= 1024px)
+        function syncDesktopTables() {
+            if (window.innerWidth >= 1024) {
+                const remSrc = document.getElementById('remediationTablesSource');
+                const remDst = document.getElementById('desktopRemediationTablesSlot');
+                if (remSrc && remDst && remSrc.children.length > 0) {
+                    while (remSrc.firstChild) remDst.appendChild(remSrc.firstChild);
+                }
+
+                const hwSrc = document.getElementById('homeworkTableSource');
+                const hwDst = document.getElementById('desktopHomeworkTableSlot');
+                if (hwSrc && hwDst && hwSrc.children.length > 0) {
+                    while (hwSrc.firstChild) hwDst.appendChild(hwSrc.firstChild);
+                }
+
+                const tmSrc = document.getElementById('teacherMonitorSource');
+                const tmDst = document.getElementById('desktopTeacherMonitorSlot');
+                if (tmSrc && tmDst && tmSrc.children.length > 0) {
+                    while (tmSrc.firstChild) tmDst.appendChild(tmSrc.firstChild);
                 }
             }
         }
+        window.addEventListener('DOMContentLoaded', syncDesktopTables);
+        window.addEventListener('resize', syncDesktopTables);
 
-        function scrollToAcademicSection(sectionId, btnElement) {
-            const target = document.getElementById(sectionId);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-                if (btnElement) {
-                    document.querySelectorAll('.academic-nav-btn').forEach(btn => btn.classList.remove('active'));
-                    btnElement.classList.add('active');
-                }
-            }
-        }
-
-        // 👈👉 SWIPE TO CLOSE GESTURE (ใช้นิ้วปัดขวาเพื่อสไลด์ปิดเมนู)
+        // ระบบปัดลงเพื่อปิด Bottom Sheet Drawer
         document.addEventListener('DOMContentLoaded', () => {
-            const drawer = document.getElementById('drawerContent');
-            if (!drawer) return;
-
-            let startX = 0;
-            let currentX = 0;
-            let isSwiping = false;
-
-            drawer.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-                isSwiping = true;
-                drawer.style.transition = 'none';
-            }, { passive: true });
-
-            drawer.addEventListener('touchmove', (e) => {
-                if (!isSwiping) return;
-                currentX = e.touches[0].clientX;
-                const diffX = currentX - startX;
-
-                // เมื่อปัดไปทางขวา (ขยับเก็บตามมือ)
-                if (diffX > 0) {
-                    drawer.style.transform = `translateX(${-330 + diffX}px)`;
-                }
-            }, { passive: true });
-
-            drawer.addEventListener('touchend', (e) => {
-                if (!isSwiping) return;
-                isSwiping = false;
-                drawer.style.transition = 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
-
-                const diffX = currentX - startX;
-                // ปัดขวาไปเกิน 50px สั่งสไลด์ปิดทันที
-                if (diffX > 50) {
-                    toggleAcademicDrawer();
-                } else {
-                    drawer.style.transform = 'translateX(-330px)';
-                }
-                startX = 0;
-                currentX = 0;
-            }, { passive: true });
-        });
-
-        // Dynamic Sub-Header Hide/Show เฉพาะจอมือถือ
-        window.addEventListener('scroll', () => {
-            if (window.innerWidth > 768) return;
-            const subHeader = document.getElementById('dynamicSubHeader');
-            if (!subHeader) return;
-
-            if (window.scrollY > 50) {
-                subHeader.classList.add('is-scrolled');
-            } else {
-                subHeader.classList.remove('is-scrolled');
-            }
+            document.querySelectorAll('.bottom-sheet-card').forEach(card => {
+                let startY = 0, currentY = 0;
+                card.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+                card.addEventListener('touchmove', e => {
+                    currentY = e.touches[0].clientY;
+                    const diffY = currentY - startY;
+                    if (diffY > 0 && card.scrollTop <= 0) card.style.transform = `translateY(${diffY}px)`;
+                }, { passive: true });
+                card.addEventListener('touchend', () => {
+                    const diffY = currentY - startY;
+                    card.style.transform = '';
+                    if (diffY > 80) {
+                        const parent = card.closest('.bottom-sheet-backdrop');
+                        if (parent) closeAcademicSheet(parent.id);
+                    }
+                    startY = 0; currentY = 0;
+                });
+            });
         });
     </script>
 
-    <!-- JavaScript Module Integration - Real Supabase Database Connection -->
+    <!-- JavaScript Module Integration - Real Supabase Database Connection (คง Logic เดิม 100%) -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
         import { fetchAcademicRiskStats, processAcademicRiskData, submitAcademicRemediation } from '../../modules/academic/academic-risk.service.js';
@@ -883,12 +1001,9 @@
         let globalProcessedData = null;
         let activeRecordForRemediation = null;
 
-        // ฟังก์ชันคำนวณเปอร์เซนต์การเช็คชื่อของครูประจำวันแบบ Real-time
         async function updateDailyTeacherCheckProgress() {
             const todayStr = new Date().toISOString().split('T')[0];
-            
             try {
-                // ดึงข้อมูลการเข้าสอนของครูทั้งหมดในวันนี้
                 const { data: logs, error } = await db.from('teacher_attendance')
                     .select('status')
                     .eq('date', todayStr);
@@ -912,18 +1027,13 @@
             }
         }
         
-        // เรียกใช้งานเมื่อโหลดหน้าเว็บ
-        document.addEventListener('DOMContentLoaded', async () => {
-            await updateDailyTeacherCheckProgress();
-        });
-        
         function updateThaiClock() {
             const now = new Date();
-            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
             const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
 
             const dateElem = document.getElementById('thaiDateStr');
-            if (dateElem) dateElem.innerText = `วัน${thaiDays[now.getDay()]}ที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
+            if (dateElem) dateElem.innerText = `วัน${thaiDays[now.getDay()]} ${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
 
             const clockElem = document.getElementById('liveClock');
             if (clockElem) clockElem.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
@@ -949,6 +1059,7 @@
             if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
             initCharts();
+            await updateDailyTeacherCheckProgress();
             await loadDashboard();
             await loadSubjectGroupSummary();
             await window.loadTeacherAttendanceMonitor();
@@ -962,12 +1073,16 @@
                     data: {
                         labels: [],
                         datasets: [
-                            { label: 'กลุ่มเฝ้าระวัง (80-82%)', data: [], backgroundColor: '#eab308', borderRadius: 6 },
+                            { label: 'เฝ้าระวัง (80-82%)', data: [], backgroundColor: '#eab308', borderRadius: 6 },
                             { label: 'เสี่ยง มส. (60-79%)', data: [], backgroundColor: '#f97316', borderRadius: 6 },
-                            { label: 'ต้องเรียนซ้ำ (<60%)', data: [], backgroundColor: '#e11d48', borderRadius: 6 }
+                            { label: 'เรียนซ้ำ (<60%)', data: [], backgroundColor: '#e11d48', borderRadius: 6 }
                         ]
                     },
-                    options: { responsive: true, maintainAspectRatio: false }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Kanit', size: 11 } } } }
+                    }
                 });
             }
 
@@ -989,11 +1104,11 @@
             const btnGrade = document.getElementById('btnByGrade');
 
             if (viewType === 'room') {
-                btnRoom.className = "px-2.5 py-1 rounded-lg bg-indigo-600 text-white shadow transition font-extrabold cursor-pointer";
-                btnGrade.className = "px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition font-extrabold cursor-pointer";
+                btnRoom.className = "px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-xs transition cursor-pointer";
+                btnGrade.className = "px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer";
             } else {
-                btnGrade.className = "px-2.5 py-1 rounded-lg bg-indigo-600 text-white shadow transition font-extrabold cursor-pointer";
-                btnRoom.className = "px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition font-extrabold cursor-pointer";
+                btnGrade.className = "px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-xs transition cursor-pointer";
+                btnRoom.className = "px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer";
             }
             if (globalProcessedData) updateChartsWithData(globalProcessedData, viewType);
         }
@@ -1015,6 +1130,27 @@
                 subjectChartInst.data.datasets[0].data = data.topSubjects.map(s => s.totalRisk);
                 subjectChartInst.update();
             }
+
+            // อัปเดตตารางรายวิชาเสี่ยงสูงสุดทั้งใน Mobile Drawer และ Desktop
+            const renderTopSubRows = (tbodyId) => {
+                const tb = document.getElementById(tbodyId);
+                if (!tb) return;
+                if (!data.topSubjects || data.topSubjects.length === 0) {
+                    tb.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">ยังไม่มีรายวิชาที่มีนักเรียนเสี่ยง มส.</td></tr>`;
+                    return;
+                }
+                tb.innerHTML = data.topSubjects.map(sub => `
+                    <tr class="hover:bg-slate-50 border-b border-slate-200">
+                        <td class="py-2 px-2 font-bold text-slate-900">${sub.name || '-'}</td>
+                        <td class="py-2 px-2 text-slate-700">${sub.teacher || '-'}</td>
+                        <td class="py-2 px-2 text-center font-bold text-yellow-700">${sub.warning || 0}</td>
+                        <td class="py-2 px-2 text-center font-bold text-amber-700">${sub.risk || 0}</td>
+                        <td class="py-2 px-2 text-center font-bold text-rose-700">${sub.repeat || 0}</td>
+                    </tr>
+                `).join('');
+            };
+            renderTopSubRows('topSubjectsTableBody');
+            renderTopSubRows('mobileTopSubjectsTableBody');
         }
 
         async function loadDashboard() {
@@ -1022,9 +1158,6 @@
             globalProcessedData = processAcademicRiskData(records);
 
             document.getElementById('overallAttendance').innerText = `${globalProcessedData.overallAttendance}%`;
-            const subAttendance = document.getElementById('subHeaderAttendance');
-            if (subAttendance) subAttendance.innerText = `${globalProcessedData.overallAttendance}%`;
-
             document.getElementById('countWarning').innerText = globalProcessedData.countWarning;
             document.getElementById('countRisk').innerText = globalProcessedData.countRisk;
             document.getElementById('countRepeat').innerText = globalProcessedData.countRepeat;
@@ -1052,12 +1185,12 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 font-medium border-b border-slate-200";
                 tr.innerHTML = `
-                    <td class="py-2 px-1.5 sm:px-3 font-bold">${name}</td>
-                    <td class="py-2 px-1.5 sm:px-3 text-center font-bold">${s.classroom || '-'}</td>
-                    <td class="py-2 px-1.5 sm:px-3">${s.advisor_name || '-'}</td>
-                    <td class="py-2 px-1.5 sm:px-3">${rec.subject_name || '-'}</td>
-                    <td class="py-2 px-1.5 sm:px-3 text-center font-bold text-yellow-700">${rec.attendance_percentage}%</td>
-                    <td class="py-2 px-1.5 sm:px-3 text-center">
+                    <td class="py-2 px-2 font-bold">${name}</td>
+                    <td class="py-2 px-2 text-center font-bold">${s.classroom || '-'}</td>
+                    <td class="py-2 px-2">${s.advisor_name || '-'}</td>
+                    <td class="py-2 px-2">${rec.subject_name || '-'}</td>
+                    <td class="py-2 px-2 text-center font-bold text-yellow-700">${rec.attendance_percentage}%</td>
+                    <td class="py-2 px-2 text-center">
                         <button onclick='window.openRemediationModal(${JSON.stringify(rec)})' class="bg-yellow-100 hover:bg-yellow-200 text-yellow-900 border border-yellow-300 px-2 py-0.5 rounded text-[11px] font-bold transition whitespace-nowrap cursor-pointer">
                             📝 แก้ มส.
                         </button>
@@ -1083,12 +1216,12 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 font-medium border-b border-slate-200";
                 tr.innerHTML = `
-                    <td class="py-2 px-1.5 sm:px-3 font-bold">${name}</td>
-                    <td class="py-2 px-1.5 sm:px-3 text-center font-bold">${s.classroom || '-'}</td>
-                    <td class="py-2 px-1.5 sm:px-3">${s.advisor_name || '-'}</td>
-                    <td class="py-2 px-1.5 sm:px-3">${rec.subject_name || '-'}</td>
-                    <td class="py-2 px-1.5 sm:px-3 text-center font-bold text-amber-700">${rec.attendance_percentage}%</td>
-                    <td class="py-2 px-1.5 sm:px-3 text-center">
+                    <td class="py-2 px-2 font-bold">${name}</td>
+                    <td class="py-2 px-2 text-center font-bold">${s.classroom || '-'}</td>
+                    <td class="py-2 px-2">${s.advisor_name || '-'}</td>
+                    <td class="py-2 px-2">${rec.subject_name || '-'}</td>
+                    <td class="py-2 px-2 text-center font-bold text-amber-700">${rec.attendance_percentage}%</td>
+                    <td class="py-2 px-2 text-center">
                         <button onclick='window.openRemediationModal(${JSON.stringify(rec)})' class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-2 py-0.5 rounded text-[11px] font-bold transition whitespace-nowrap cursor-pointer">
                             📝 แก้ มส.
                         </button>
@@ -1114,12 +1247,12 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 font-medium border-b border-slate-200";
                 tr.innerHTML = `
-                    <td class="py-2 px-1.5 sm:px-3 font-bold">${name}</td>
-                    <td class="py-2 px-1.5 sm:px-3 text-center font-bold">${s.classroom || '-'}</td>
-                    <td class="py-2 px-1.5 sm:px-3">${s.advisor_name || '-'}</td>
-                    <td class="py-2 px-1.5 sm:px-3">${rec.subject_name || '-'}</td>
-                    <td class="py-2 px-1.5 sm:px-3 text-center font-bold text-rose-700">${rec.attendance_percentage}%</td>
-                    <td class="py-2 px-1.5 sm:px-3 text-center">
+                    <td class="py-2 px-2 font-bold">${name}</td>
+                    <td class="py-2 px-2 text-center font-bold">${s.classroom || '-'}</td>
+                    <td class="py-2 px-2">${s.advisor_name || '-'}</td>
+                    <td class="py-2 px-2">${rec.subject_name || '-'}</td>
+                    <td class="py-2 px-2 text-center font-bold text-rose-700">${rec.attendance_percentage}%</td>
+                    <td class="py-2 px-2 text-center">
                         <button onclick='window.openRemediationModal(${JSON.stringify(rec)})' class="bg-rose-100 hover:bg-rose-200 text-rose-900 border border-rose-300 px-2 py-0.5 rounded text-[11px] font-bold transition whitespace-nowrap cursor-pointer">
                             📝 เรียนซ้ำ
                         </button>
@@ -1151,11 +1284,11 @@
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 font-medium border-b border-slate-200";
                     tr.innerHTML = `
-                        <td class="py-2 px-1.5 sm:px-3 font-bold">${name}</td>
-                        <td class="py-2 px-1.5 sm:px-3 text-center font-bold">${s.classroom || '-'}</td>
-                        <td class="py-2 px-1.5 sm:px-3">${rec.subject_name || '-'}</td>
-                        <td class="py-2 px-1.5 sm:px-3 text-slate-700">${rec.remediation_note || 'ผ่านการอนุมัติแล้ว'}</td>
-                        <td class="py-2 px-1.5 sm:px-3 text-center"><span class="bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">✅ อนุมัติแล้ว</span></td>
+                        <td class="py-2 px-2 font-bold">${name}</td>
+                        <td class="py-2 px-2 text-center font-bold">${s.classroom || '-'}</td>
+                        <td class="py-2 px-2">${rec.subject_name || '-'}</td>
+                        <td class="py-2 px-2 text-slate-700">${rec.remediation_note || 'ผ่านการอนุมัติแล้ว'}</td>
+                        <td class="py-2 px-2 text-center"><span class="bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">✅ อนุมัติแล้ว</span></td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -1180,10 +1313,10 @@
                     tr.className = "hover:bg-indigo-50/50 cursor-pointer transition";
                     tr.onclick = () => window.showAcademicModal(group);
                     tr.innerHTML = `
-                        <td class="py-2.5 px-1.5 sm:px-3 text-slate-900 font-bold">${group}</td>
-                        <td class="py-2.5 px-1.5 sm:px-3 text-center font-bold text-slate-600">8 วิชา</td>
-                        <td class="py-2.5 px-1.5 sm:px-3 text-center font-bold text-indigo-700">${count} รายการ</td>
-                        <td class="py-2.5 px-1.5 sm:px-3 text-center"><button class="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 text-[11px] font-bold px-2 py-1 rounded-lg whitespace-nowrap cursor-pointer"><i class="fa-solid fa-search mr-1"></i> ดูการบ้าน</button></td>
+                        <td class="py-2.5 px-2 text-slate-900 font-bold">${group}</td>
+                        <td class="py-2.5 px-2 text-center font-bold text-slate-600">8 วิชา</td>
+                        <td class="py-2.5 px-2 text-center font-bold text-indigo-700">${count} รายการ</td>
+                        <td class="py-2.5 px-2 text-center"><button class="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 text-[11px] font-bold px-2 py-1 rounded-lg whitespace-nowrap cursor-pointer"><i class="fa-solid fa-search mr-1"></i> ดูการบ้าน</button></td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -1217,25 +1350,25 @@
                         let statusBadge = '';
                         if (log.status === 'checked') {
                             checked++;
-                            statusBadge = `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">🟢 เช็คชื่อแล้ว</span>`;
+                            statusBadge = `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">🟢 เช็กชื่อแล้ว</span>`;
                         } else if (log.status === 'pending') {
                             pending++;
-                            statusBadge = `<span class="bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">🟡 รอเช็ค</span>`;
+                            statusBadge = `<span class="bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">🟡 รอเช็ก</span>`;
                         } else {
                             missing++;
-                            statusBadge = `<span class="bg-rose-100 text-rose-900 border border-rose-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">🔴 ยังไม่เช็ค</span>`;
+                            statusBadge = `<span class="bg-rose-100 text-rose-900 border border-rose-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">🔴 ยังไม่เช็ก</span>`;
                         }
 
                         const tr = document.createElement('tr');
                         tr.className = "hover:bg-slate-50 border-b border-slate-200";
                         tr.innerHTML = `
                             <td class="py-2 px-1 text-center font-bold text-indigo-900">${periodVal}</td>
-                            <td class="py-2 px-1.5 sm:px-3 font-bold">${name}</td>
-                            <td class="py-2 px-1.5 sm:px-3">${log.subject_name || '-'}</td>
-                            <td class="py-2 px-1.5 sm:px-3 text-center font-bold">${log.classroom || '-'}</td>
-                            <td class="py-2 px-1.5 sm:px-3 text-center text-slate-500 font-bold">${log.check_time || '-'}</td>
-                            <td class="py-2 px-1.5 sm:px-3 text-center">${statusBadge}</td>
-                            <td class="py-2 px-1.5 sm:px-3 text-center"><button class="bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap cursor-pointer">🔔 เตือน</button></td>
+                            <td class="py-2 px-2 font-bold">${name}</td>
+                            <td class="py-2 px-2">${log.subject_name || '-'}</td>
+                            <td class="py-2 px-2 text-center font-bold">${log.classroom || '-'}</td>
+                            <td class="py-2 px-2 text-center text-slate-500 font-bold">${log.check_time || '-'}</td>
+                            <td class="py-2 px-2 text-center">${statusBadge}</td>
+                            <td class="py-2 px-2 text-center"><button class="bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap cursor-pointer">🔔 เตือน</button></td>
                         `;
                         tbody.appendChild(tr);
                     });
@@ -1281,10 +1414,10 @@
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 border-b border-slate-200";
                     tr.innerHTML = `
-                        <td class="py-2 px-1.5 sm:px-3 font-bold">${name}</td>
-                        <td class="py-2 px-1.5 sm:px-3 text-center font-bold">${s.classroom || '-'}</td>
-                        <td class="py-2 px-1.5 sm:px-3">${rec.subject_name || '-'}</td>
-                        <td class="py-2 px-1.5 sm:px-3 text-center font-bold text-indigo-700">${rec.attendance_percentage}%</td>
+                        <td class="py-2 px-2 font-bold">${name}</td>
+                        <td class="py-2 px-2 text-center font-bold">${s.classroom || '-'}</td>
+                        <td class="py-2 px-2">${rec.subject_name || '-'}</td>
+                        <td class="py-2 px-2 text-center font-bold text-indigo-700">${rec.attendance_percentage}%</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -1362,11 +1495,11 @@
                         const tr = document.createElement('tr');
                         tr.className = "hover:bg-slate-50 border-b border-slate-200";
                         tr.innerHTML = `
-                            <td class="py-2 px-1.5 sm:px-3 font-bold text-indigo-900">${a.subject_name || '-'}</td>
-                            <td class="py-2 px-1.5 sm:px-3">${a.title || '-'}</td>
-                            <td class="py-2 px-1.5 sm:px-3">${a.teacher_name || '-'}</td>
-                            <td class="py-2 px-1.5 sm:px-3 text-center font-bold">${a.classroom || '-'}</td>
-                            <td class="py-2 px-1.5 sm:px-3 text-center font-bold text-rose-600">${a.due_date || '-'}</td>
+                            <td class="py-2 px-2 font-bold text-indigo-900">${a.subject_name || '-'}</td>
+                            <td class="py-2 px-2">${a.title || '-'}</td>
+                            <td class="py-2 px-2">${a.teacher_name || '-'}</td>
+                            <td class="py-2 px-2 text-center font-bold">${a.classroom || '-'}</td>
+                            <td class="py-2 px-2 text-center font-bold text-rose-600">${a.due_date || '-'}</td>
                         `;
                         tbody.appendChild(tr);
                     });
