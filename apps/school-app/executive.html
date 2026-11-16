@@ -820,7 +820,7 @@
         </button>
     </nav>
 
-   <!-- Global Navigation Control Scripts, Real-time Clock & Smooth Touch Gesture Support -->
+<!-- Global Navigation Control Scripts, Real-time Clock & Smooth Touch Gesture Support -->
     <script>
         // 1. นาฬิกา Real-time
         function startExecutiveClock() {
@@ -837,8 +837,8 @@
         startExecutiveClock();
         setInterval(startExecutiveClock, 1000);
 
-        // 2. ควบคุม Side Drawer & Bottom Sheets (เปิด-ปิดแบบ Reset ค่า Transform เสมอเพื่อให้สมูททุกรอบ)
-        function syncBodyScrollLock() {
+        // 2. ควบคุม Side Drawer & Bottom Sheets
+        window.syncBodyScrollLock = function() {
             const anyOpen =
                 document.getElementById('drawerOverlay')?.classList.contains('active') ||
                 document.getElementById('affairsBottomSheetOverlay')?.classList.contains('active') ||
@@ -846,9 +846,9 @@
             
             document.documentElement.style.overflowY = anyOpen ? 'hidden' : 'auto';
             document.body.style.overflowY = anyOpen ? 'hidden' : 'auto';
-        }
+        };
 
-        function toggleExecutiveDrawer() {
+        window.toggleExecutiveDrawer = function() {
             const overlay = document.getElementById('drawerOverlay');
             const drawer = document.getElementById('drawerContent');
             if (!overlay) return;
@@ -858,10 +858,10 @@
                 drawer.style.transform = '';
             }
             overlay.classList.toggle('active', willOpen);
-            syncBodyScrollLock();
-        }
+            window.syncBodyScrollLock();
+        };
 
-        function toggleAffairsBottomSheet() {
+        window.toggleAffairsBottomSheet = function() {
             const overlay = document.getElementById('affairsBottomSheetOverlay');
             const sheet = document.getElementById('affairsBottomSheetContent');
             if (!overlay) return;
@@ -872,10 +872,10 @@
                 sheet.style.transform = '';
             }
             overlay.classList.toggle('active', willOpen);
-            syncBodyScrollLock();
-        }
+            window.syncBodyScrollLock();
+        };
 
-        function toggleAcademicBottomSheet() {
+        window.toggleAcademicBottomSheet = function() {
             const overlay = document.getElementById('academicBottomSheetOverlay');
             const sheet = document.getElementById('academicBottomSheetContent');
             if (!overlay) return;
@@ -886,26 +886,31 @@
                 sheet.style.transform = '';
             }
             overlay.classList.toggle('active', willOpen);
-            syncBodyScrollLock();
-        }
+            window.syncBodyScrollLock();
+        };
 
-        function openAcademicHomeworkModal() {
+        window.openAcademicHomeworkModal = function() {
             const modal = document.getElementById('academicHomeworkModal');
             if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-        }
+        };
 
-        function closeAcademicHomeworkModal() {
+        window.closeAcademicHomeworkModal = function() {
             const modal = document.getElementById('academicHomeworkModal');
             if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
-        }
+        };
 
-        function triggerRefreshDataFromDrawer() {
-            toggleExecutiveDrawer();
+        window.triggerRefreshDataFromDrawer = function() {
+            window.toggleExecutiveDrawer();
             const btn = document.getElementById('btnRefreshData');
             if (btn) btn.click();
-        }
+        };
 
-        function scrollToExecutiveSection(sectionId, btnElement) {
+        window.scrollToExecutiveSection = function(sectionId, btnElement) {
+            // ปิด Bottom Sheet ที่อาจเปิดค้างอยู่ก่อนเลื่อนหน้า
+            document.getElementById('affairsBottomSheetOverlay')?.classList.remove('active');
+            document.getElementById('academicBottomSheetOverlay')?.classList.remove('active');
+            window.syncBodyScrollLock();
+
             const target = document.getElementById(sectionId);
             if (target) {
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -914,9 +919,9 @@
                     btnElement.classList.add('active');
                 }
             }
-        }
+        };
 
-        // 3. ควบคุม Modal สถิติ 6 กล่อง (ชุดเดียวจบ ไม่ซ้ำซ้อน เปิดติด 100%)
+        // 3. ควบคุม Modal สถิติ 6 กล่อง
         window.openStudentModal = function() {
             const modal = document.getElementById('studentModal');
             if (modal) {
@@ -952,10 +957,8 @@
             if (headerBg) headerBg.className = `p-4 text-white flex justify-between items-center shrink-0 ${cfg.bg}`;
             tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2 text-indigo-600"></i> กำลังดึงข้อมูลล่าสุดจากระบบ...</td></tr>`;
 
-            // เปิดป๊อปอัพทันที
             window.openStudentModal();
 
-            // ดึงข้อมูลจาก Supabase
             if (window.loadExecModalData) {
                 window.loadExecModalData(type);
             } else {
@@ -969,7 +972,7 @@
             }
         };
 
-        // 4. SMOOTH TOUCH GESTURES (ปัดสไลด์เก็บลื่นไหล มีแรงต้านและคำนวณความเร็วปัด)
+        // 4. SMOOTH TOUCH GESTURES (ปัดสไลด์เก็บ Side Drawer และ Bottom Sheets)
         document.addEventListener('DOMContentLoaded', () => {
             // 4.1 ปัดสไลด์เก็บ Side Drawer ฝั่งขวา
             const drawer = document.getElementById('drawerContent');
@@ -998,13 +1001,13 @@
                     const diffX = currentX - startX;
                     const velocity = diffX / (Date.now() - startTime || 1);
                     drawer.style.transition = 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)';
-                    
+
                     if (diffX > 70 || velocity > 0.45) {
                         drawer.style.transform = 'translate3d(100%, 0, 0)';
                         setTimeout(() => {
                             document.getElementById('drawerOverlay')?.classList.remove('active');
-                            document.body.style.overflow = '';
                             drawer.style.transform = '';
+                            window.syncBodyScrollLock();
                         }, 280);
                     } else {
                         drawer.style.transform = 'translate3d(0, 0, 0)';
@@ -1012,7 +1015,7 @@
                 }, { passive: true });
             }
 
-            // 4.2 ปัดสไลด์เก็บ Bottom Sheets ด้านล่าง (บล็อกการรีเฟรช 100% + ลื่นไหล 60fps)
+            // 4.2 ปัดสไลด์เก็บ Bottom Sheets ด้านล่าง
             const setupSmoothSheetSwipe = (sheetId, overlayId) => {
                 const sheet = document.getElementById(sheetId);
                 const overlay = document.getElementById(overlayId);
@@ -1026,7 +1029,6 @@
 
                 sheet.addEventListener('touchstart', (e) => {
                     if (e.touches.length > 1) return;
-                    // เริ่มปัดลงได้เมื่อเนื้อหาเลื่อนอยู่บนสุดเท่านั้น
                     if (sheet.scrollTop <= 2) {
                         startY = e.touches[0].clientY;
                         currentY = startY;
@@ -1043,20 +1045,17 @@
                     currentY = e.touches[0].clientY;
                     const diffY = currentY - startY;
 
-                    // ถ้าปัดนิ้วลง (diffY > 0) และเนื้อหาอยู่บนสุด ให้บล็อกการเลื่อน/รีเฟรชของเบราว์เซอร์ทันที
                     if (diffY > 0 && sheet.scrollTop <= 2) {
                         if (e.cancelable) e.preventDefault();
-
                         if (rafId) cancelAnimationFrame(rafId);
                         rafId = requestAnimationFrame(() => {
                             sheet.style.transform = `translate3d(0, ${diffY}px, 0)`;
                         });
                     } else if (diffY < 0) {
-                        // ถ้าผู้ใช้ปัดขึ้นเพื่อเลื่อนอ่านเนื้อหาด้านใน ให้ปล่อยเลื่อนตามปกติ
                         isSwiping = false;
                         sheet.style.transform = '';
                     }
-                }, { passive: false }); // สำคัญ: ต้องเป็น false เพื่อให้ preventDefault() หยุดการรีเฟรชได้
+                }, { passive: false });
 
                 const finishSwipe = () => {
                     if (!isSwiping) return;
@@ -1069,17 +1068,14 @@
 
                     sheet.style.transition = 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)';
 
-                    // ปิดแผ่นทันทีหากปัดลงเกิน 85px หรือตวัดนิ้วลงเร็ว
                     if (diffY > 85 || (diffY > 25 && velocity > 0.45)) {
                         sheet.style.transform = 'translate3d(0, 105%, 0)';
                         setTimeout(() => {
                             overlay.classList.remove('active');
                             sheet.style.transform = '';
-                            syncBodyScrollLock(); // ปลดล็อกหน้าหลักทันทีที่ปิดเสร็จ
+                            window.syncBodyScrollLock();
                         }, 300);
-                    }
                     } else {
-                        // เด้งกลับตำแหน่งเดิมอย่างนุ่มนวล
                         sheet.style.transform = 'translate3d(0, 0, 0)';
                         setTimeout(() => {
                             sheet.style.transform = '';
@@ -1130,7 +1126,6 @@
             }
         };
 
-        // ฟังก์ชันดึงข้อมูลลงตารางป๊อปอัพเมื่อคลิกกล่องสถิติทั้ง 6 กล่อง
         window.loadExecModalData = async function(type) {
             try {
                 if (type === 'truancy') {
