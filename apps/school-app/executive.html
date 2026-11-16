@@ -971,7 +971,36 @@
             }
         }
         window.handleLogout = handleLogout;
-
+        window.execShowTruancyModal = () => showTruancyModal();
+        window.execShowRiskModal = () => showRiskModal();
+        window.execShowClinicModal = async () => {
+            document.getElementById('modalHeaderBg').className = "p-4 text-white flex justify-between items-center bg-sky-900";
+            document.getElementById('modalTitle').innerText = "รายชื่อนักเรียนเข้าห้องพยาบาลวันนี้";
+            const { data } = await db.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(30);
+            const formatted = (data || []).map(x => ({
+                id: x.student_id || '-',
+                name: x.student_name || 'นักเรียน',
+                room: x.classroom || '-',
+                detail: x.symptom || 'เข้าพักรักษาอาการ',
+                teacher: x.recorded_by || 'ครูห้องพยาบาล'
+            }));
+            renderModalTable(formatted);
+            openStudentModal();
+        };
+        window.execShowNotifModal = async () => {
+            document.getElementById('modalHeaderBg').className = "p-4 text-white flex justify-between items-center bg-amber-800";
+            document.getElementById('modalTitle').innerText = "ประวัติการแจ้งเตือนผู้ปกครองวันนี้";
+            const { data } = await db.from('parent_notifications').select('*').order('created_at', { ascending: false }).limit(30);
+            const formatted = (data || []).map(x => ({
+                id: x.student_id || '-',
+                name: x.student_name || 'นักเรียน',
+                room: x.classroom || '-',
+                detail: x.message || 'แจ้งเตือนสถานะการมาเรียน',
+                teacher: 'ระบบอัตโนมัติ'
+            }));
+            renderModalTable(formatted);
+            openStudentModal();
+        };
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboard();
             setupEventListeners();
