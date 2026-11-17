@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ลงทะเบียนวิชาเลือกเสรีและชุมนุม (นักเรียน) - BCW Smart Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script type="module" src="../../core/guard-student-parent.js"></script>
+    <style>
+        html, body {
+            font-size: 16px;
+            font-family: 'Kanit', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+
+        @media (max-width: 1023px) {
+            body { padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+            .student-bottom-nav {
+                position: fixed !important;
+                bottom: max(10px, env(safe-area-inset-bottom)) !important;
+                left: 12px !important;
+                right: 12px !important;
+                width: calc(100vw - 24px) !important;
+                max-width: 520px !important;
+                margin: 0 auto !important;
+                height: 62px !important;
+                background: rgba(255, 255, 255, 0.98) !important;
+                backdrop-filter: blur(20px);
+                border: 1.5px solid #4f46e5 !important;
+                border-radius: 22px !important;
+                display: flex !important;
+                align-items: center;
+                justify-content: space-around;
+                padding: 0 6px;
+                z-index: 9990 !important;
+                box-shadow: 0 8px 24px rgba(49, 46, 129, 0.18);
+            }
+            .s-nav-btn {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #475569;
+                font-size: 11px;
+                font-weight: 700;
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                width: 32%;
+                line-height: 1.2;
+            }
+            .s-nav-btn .icon-box {
+                width: 42px;
+                height: 26px;
+                border-radius: 11px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 15px;
+                margin-bottom: 2px;
+                transition: all 0.2s;
+            }
+            .s-nav-btn.active { color: #312e81; }
+            .s-nav-btn.active .icon-box {
+                background: #e0e7ff;
+                color: #3730a3;
+                border: 1px solid #6366f1;
+            }
+        }
+        @media (min-width: 1024px) {
+            .student-bottom-nav { display: none !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- 1. UNIFIED TOP HEADER (มาตรฐาน 3 บรรทัด BCW Smart Hub) -->
+    <div class="max-w-6xl mx-auto w-full px-3 lg:px-6 pt-2 lg:pt-4 sticky top-0 lg:static z-40">
+        <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-2.5 md:p-4 border-b-2 border-indigo-400">
+            <div class="flex justify-between items-center gap-2">
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div class="bg-white p-1.5 rounded-xl shadow-sm shrink-0 border border-indigo-300/60 flex items-center justify-center">
+                        <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-11 h-11 md:w-14 md:h-14 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
+                    </div>
+                    <div class="min-w-0 flex-1 flex flex-col justify-center">
+                        <h1 class="text-[17px] sm:text-xl md:text-2xl font-extrabold text-amber-400 tracking-tight leading-none uppercase truncate">
+                            BCW SMART HUB
+                        </h1>
+                        <div class="mt-1 max-w-full">
+                            <span class="inline-block max-w-full truncate bg-indigo-400/25 text-indigo-200 border border-indigo-400/70 px-2 py-0.5 rounded-md text-[11px] sm:text-xs font-bold leading-none">
+                                🎓 ระบบลงทะเบียนวิชาเลือกเสรี & ชุมนุม
+                            </span>
+                        </div>
+                        <div class="text-[13px] sm:text-base md:text-lg font-bold text-white leading-tight truncate mt-1">
+                            โรงเรียนบัวเชดวิทยา
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ปุ่มควบคุมด้านขวา -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="window.loadAllStudentData()" title="รีเฟรชที่นั่งล่าสุด" class="w-9 h-9 md:w-10 md:h-10 bg-indigo-800/90 hover:bg-indigo-700 text-amber-300 rounded-xl font-bold border border-indigo-400/70 transition flex items-center justify-center active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-rotate text-sm"></i>
+                    </button>
+
+                    <a href="../../landing.html" title="กลับหน้าหลักระบบ" class="w-9 h-9 md:w-10 md:h-10 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-bold transition shadow-sm flex items-center justify-center active:scale-95">
+                        <i class="fa-solid fa-house text-sm"></i>
+                    </a>
+
+                    <button type="button" onclick="window.handleLogout()" title="ออกจากระบบ" class="w-9 h-9 md:w-10 md:h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-400/50 active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sub-Header แสดงข้อมูลนักเรียนและระดับชั้น -->
+            <div class="bg-indigo-950/90 border-t border-indigo-800/70 mt-1.5 pt-1.5 px-1 flex justify-between items-center text-xs md:text-sm gap-2">
+                <span class="font-semibold text-emerald-400 flex items-center gap-1.5 truncate">
+                    <i class="fa-solid fa-user-graduate text-amber-400 shrink-0"></i>
+                    <span id="studentDisplayInfo" class="truncate">กำลังโหลดข้อมูลนักเรียน...</span>
+                </span>
+                <span id="studentGradeBadge" class="bg-indigo-900/90 px-2.5 py-0.5 rounded-md border border-indigo-700/80 text-amber-300 text-xs font-bold shrink-0">
+                    ภาคเรียนที่ 1/2569
+                </span>
+            </div>
+        </header>
+    </div>
+
+    <!-- 2. MAIN CONTENT -->
+    <main class="max-w-6xl mx-auto w-full px-3 lg:px-6 py-4 flex-1 space-y-4">
+
+        <!-- แถบสลับหมวดหมู่: เลือกวิชาเลือกเสรี vs เลือกชุมนุม -->
+        <div class="bg-white p-1.5 rounded-2xl shadow-xs border border-slate-200 grid grid-cols-2 gap-1.5">
+            <button type="button" id="tabElective" onclick="window.switchCategory('ELECTIVE')" class="py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer bg-indigo-900 text-white shadow-sm">
+                <i class="fa-solid fa-book-open"></i>
+                <span>วิชาเลือกเสรี</span>
+            </button>
+            <button type="button" id="tabClub" onclick="window.switchCategory('CLUB')" class="py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer text-slate-600 hover:bg-slate-100">
+                <i class="fa-solid fa-users-rays"></i>
+                <span>กิจกรรมชุมนุม</span>
+            </button>
+        </div>
+
+        <!-- แถบแจ้งสถานะช่วงเวลาเปิด-ปิดลงทะเบียน -->
+        <div id="periodBanner" class="bg-indigo-950 text-white px-4 py-3 rounded-2xl border border-indigo-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs sm:text-sm">
+            <div class="flex items-center gap-2">
+                <span id="periodDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                <span id="periodStatusText" class="font-bold">กำลังตรวจสอบกำหนดการลงทะเบียน...</span>
+            </div>
+            <span id="periodTimeText" class="text-amber-300 font-semibold">-</span>
+        </div>
+
+        <!-- บัตรผลการลงทะเบียนปัจจุบันของฉัน (My Registration Card) -->
+        <section id="myRegistrationSection">
+            <!-- แสดงผลด้วย JS -->
+        </section>
+
+        <!-- ช่องค้นหาและตัวกรอง -->
+        <section class="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" id="searchInput" oninput="window.filterOfferings()" placeholder="ค้นหาชื่อวิชา, รหัสวิชา, ชุมนุม หรือชื่อครูผู้สอน..." class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 focus:border-indigo-600 focus:outline-none text-sm font-medium">
+            </div>
+            <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer select-none shrink-0">
+                <input type="checkbox" id="filterAvailableOnly" onchange="window.filterOfferings()" class="w-4 h-4 accent-indigo-900 rounded">
+                <span class="text-xs sm:text-sm font-bold text-slate-700">แสดงเฉพาะที่ยังว่าง</span>
+            </label>
+        </section>
+
+        <!-- รายการวิชาเลือกเสรี / ชุมนุม ที่เปิดรับสมัคร -->
+        <section id="offeringsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-bold">
+                <i class="fa-solid fa-spinner fa-spin text-indigo-600 text-xl mb-2"></i>
+                <p>กำลังโหลดรายวิชาที่เปิดรับสมัคร...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 3. FLOATING PILL BOTTOM NAVIGATION (มือถือ) -->
+    <nav class="student-bottom-nav" aria-label="เมนูนำทางนักเรียน">
+        <button type="button" onclick="window.switchCategory('ELECTIVE')" id="bNavElective" class="s-nav-btn active">
+            <div class="icon-box"><i class="fa-solid fa-book-open"></i></div>
+            <span>วิชาเลือกเสรี</span>
+        </button>
+
+        <button type="button" onclick="window.scrollToMySelection()" class="s-nav-btn">
+            <div class="icon-box"><i class="fa-solid fa-id-card-clip"></i></div>
+            <span>ผลการเลือก</span>
+        </button>
+
+        <button type="button" onclick="window.switchCategory('CLUB')" id="bNavClub" class="s-nav-btn">
+            <div class="icon-box"><i class="fa-solid fa-users-rays"></i></div>
+            <span>ชุมนุม</span>
+        </button>
+    </nav>
+
+    <!-- 4. MODAL: ยืนยันการลงทะเบียน / ดูรายละเอียดวิชา -->
+    <div id="confirmModal" style="display: none;" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-[10070] items-center justify-center p-3 sm:p-5" onclick="window.closeConfirmModal()">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border-2 border-indigo-200" onclick="event.stopPropagation()">
+            <div class="bg-indigo-950 text-white p-4 flex justify-between items-center">
+                <h3 id="confirmModalHeader" class="font-extrabold text-base sm:text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check text-amber-400"></i> ยืนยันการลงทะเบียน
+                </h3>
+                <button type="button" onclick="window.closeConfirmModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold flex items-center justify-center cursor-pointer">&times;</button>
+            </div>
+
+            <div class="p-4 sm:p-5 space-y-3 text-sm">
+                <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl space-y-1">
+                    <div id="modalCourseCode" class="text-xs font-extrabold text-indigo-700">-</div>
+                    <div id="modalCourseTitle" class="text-base sm:text-lg font-extrabold text-indigo-950">-</div>
+                    <div id="modalCourseTeacher" class="text-xs sm:text-sm font-semibold text-slate-700">-</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span class="text-slate-500 block">สถานที่เรียน</span>
+                        <strong id="modalCourseRoom" class="text-slate-900 text-sm">-</strong>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span class="text-slate-500 block">เวลาเรียน</span>
+                        <strong id="modalCourseSchedule" class="text-slate-900 text-sm">-</strong>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-700">
+                    <span class="font-bold text-slate-900 block mb-1">คำอธิบายรายวิชา / กิจกรรม:</span>
+                    <p id="modalCourseDesc" class="leading-relaxed">-</p>
+                </div>
+
+                <div id="modalSeatNotice" class="text-center font-extrabold text-xs py-1.5 px-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    เหลือที่นั่งว่าง -- ที่นั่ง
+                </div>
+            </div>
+
+            <div class="p-3.5 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button type="button" onclick="window.closeConfirmModal()" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-sm cursor-pointer">
+                    ปิดหน้าต่าง
+                </button>
+                <button type="button" id="btnConfirmEnroll" onclick="window.executeEnrollment()" class="px-5 py-2.5 rounded-xl bg-indigo-900 hover:bg-indigo-800 text-white font-extrabold text-sm shadow-md flex items-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-check"></i> ยืนยันลงทะเบียน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-500 font-medium">
+        โรงเรียนบัวเชดวิทยา • BCW Smart Hub Student Registration
+    </footer>
+
+    <!-- MODULE SCRIPT -->
+    <script type="module">
+        import { db } from '../../core/supabase-client.js';
+        import {
+            DEFAULT_ACADEMIC_YEAR,
+            DEFAULT_SEMESTER,
+            getRegistrationPeriod,
+            getOfferings,
+            getStudentCurrentRegistration,
+            registerStudent,
+            cancelStudentRegistration
+        } from './registration.service.js';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentCategory = (urlParams.get('type') || 'ELECTIVE').toUpperCase() === 'CLUB' ? 'CLUB' : 'ELECTIVE';
+
+        let currentStudent = {
+            student_id: '',
+            student_name: 'นักเรียน',
+            classroom: '',
+            grade: ''
+        };
+
+        let isPeriodOpen = true;
+        let currentRegistration = null;
+        let allApprovedOfferings = [];
+        let selectedOfferingToEnroll = null;
+
+        // 1. ดึงข้อมูลนักเรียนที่ล็อกอินอยู่
+        async function initStudentProfile() {
+            try {
+                const storedUser = JSON.parse(localStorage.getItem('bcw_user') || sessionStorage.getItem('bcw_user') || 'null');
+                if (storedUser) {
+                    currentStudent.student_id = storedUser.student_code || storedUser.username || storedUser.id || '';
+                    currentStudent.student_name = storedUser.full_name || `${storedUser.prefix || ''}${storedUser.first_name || ''} ${storedUser.last_name || ''}`.trim() || 'นักเรียน';
+                    currentStudent.classroom = storedUser.classroom || '';
+                }
+
+                // ค้นหาข้อมูลล่าสุดจากตาราง students เพื่อความแม่นยำของห้องเรียนและรหัสนักเรียน
+                if (currentStudent.student_id) {
+                    const { data: stu } = await db
+                        .from('students')
+                        .select('student_code, prefix, first_name, last_name, classroom')
+                        .eq('student_code', currentStudent.student_id)
+                        .maybeSingle();
+
+                    if (stu) {
+                        currentStudent.student_id = stu.student_code;
+                        currentStudent.student_name = `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim();
+                        currentStudent.classroom = stu.classroom || currentStudent.classroom;
+                    }
+                }
+            } catch (err) {
+                console.warn('Student profile fallback:', err);
+            }
+
+            if (!currentStudent.student_id) currentStudent.student_id = 'STD_DEMO';
+            currentStudent.grade = (currentStudent.classroom || '').split('/')[0];
+
+            document.getElementById('studentDisplayInfo').innerText = `${currentStudent.student_name} (${currentStudent.student_id})`;
+            document.getElementById('studentGradeBadge').innerText = currentStudent.classroom ? `ชั้น ${currentStudent.classroom}` : `ภาคเรียนที่ ${DEFAULT_SEMESTER}/${DEFAULT_ACADEMIC_YEAR}`;
+        }
+
+        // 2. สลับหมวดหมู่ วิชาเลือกเสรี <-> ชุมนุม
+        window.switchCategory = async function(cat) {
+            currentCategory = cat;
+            const isElective = cat === 'ELECTIVE';
+
+            const tabE = document.getElementById('tabElective');
+            const tabC = document.getElementById('tabClub');
+            if (isElective) {
+                tabE.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer bg-indigo-900 text-white shadow-sm";
+                tabC.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer text-slate-600 hover:bg-slate-100";
+                document.getElementById('bNavElective')?.classList.add('active');
+                document.getElementById('bNavClub')?.classList.remove('active');
+            } else {
+                tabC.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer bg-indigo-900 text-white shadow-sm";
+                tabE.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer text-slate-600 hover:bg-slate-100";
+                document.getElementById('bNavClub')?.classList.add('active');
+                document.getElementById('bNavElective')?.classList.remove('active');
+            }
+
+            await window.loadAllStudentData();
+        };
+
+        // 3. โหลดข้อมูลทั้งหมดของหมวดหมู่ปัจจุบัน
+        window.loadAllStudentData = async function() {
+            const grid = document.getElementById('offeringsGrid');
+            grid.innerHTML = `<div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin text-indigo-600 mr-2"></i> กำลังอัปเดตข้อมูลล่าสุด...</div>`;
+
+            try {
+                // 3.1 ตรวจสอบช่วงเวลาเปิด-ปิดระบบ
+                const period = await getRegistrationPeriod(currentCategory);
+                const statusEl = document.getElementById('periodStatusText');
+                const timeEl = document.getElementById('periodTimeText');
+                const dotEl = document.getElementById('periodDot');
+
+                if (period) {
+                    const now = new Date();
+                    const start = new Date(period.start_at);
+                    const end = new Date(period.end_at);
+                    isPeriodOpen = period.is_active && now >= start && now <= end;
+
+                    const startStr = start.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+                    const endStr = end.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+                    timeEl.innerText = `${startStr} - ${endStr}`;
+
+                    if (isPeriodOpen) {
+                        statusEl.innerText = `เปิดระบบลงทะเบียน${currentCategory === 'ELECTIVE' ? 'วิชาเลือกเสรี' : 'กิจกรรมชุมนุม'}แล้ว`;
+                        dotEl.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0';
+                    } else {
+                        statusEl.innerText = `ปิดรับลงทะเบียนชั่วคราว / หมดเขตลงทะเบียน`;
+                        dotEl.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
+                    }
+                } else {
+                    isPeriodOpen = true;
+                    statusEl.innerText = 'เปิดรับลงทะเบียน';
+                    timeEl.innerText = `ภาคเรียนที่ ${DEFAULT_SEMESTER}/${DEFAULT_ACADEMIC_YEAR}`;
+                }
+
+                // 3.2 โหลดผลการลงทะเบียนปัจจุบันของนักเรียน
+                currentRegistration = await getStudentCurrentRegistration(currentStudent.student_id, currentCategory);
+                renderMyRegistrationCard();
+
+                // 3.3 โหลดรายการวิชา/ชุมนุมที่อนุมัติแล้ว และกรองตามระดับชั้นของนักเรียน
+                const offerings = await getOfferings({
+                    category: currentCategory,
+                    status: 'approved'
+                });
+
+                allApprovedOfferings = offerings.filter(item => {
+                    if (!currentStudent.grade) return true; // กรณีทดสอบที่ยังไม่ผูกห้องเรียนให้เห็นทั้งหมด
+                    return (item.target_grades || []).includes(currentStudent.grade);
+                });
+
+                window.filterOfferings();
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = `<div class="col-span-full bg-rose-50 text-rose-700 p-6 rounded-2xl border border-rose-200 text-center font-bold">เกิดข้อผิดพลาด: ${err.message}</div>`;
+            }
+        };
+
+        // 4. แสดงบัตรยืนยันผลการลงทะเบียนของนักเรียน (ด้านบน)
+        function renderMyRegistrationCard() {
+            const section = document.getElementById('myRegistrationSection');
+            const isElective = currentCategory === 'ELECTIVE';
+
+            if (!currentRegistration || !currentRegistration.offering) {
+                section.innerHTML = `
+                    <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <div class="font-extrabold text-amber-950 text-sm sm:text-base">
+                                    คุณยังไม่ได้ลงทะเบียน${isElective ? 'วิชาเลือกเสรี' : 'กิจกรรมชุมนุม'}
+                                </div>
+                                <div class="text-xs text-amber-800 font-medium">
+                                    กรุณาเลือกรายการที่สนใจจากด้านล่าง (เลือกได้ 1 รายการ)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const off = currentRegistration.offering;
+            const cancelBtnHtml = isPeriodOpen
+                ? `<button type="button" onclick="window.handleCancelMyRegistration()" class="w-full sm:w-auto bg-white/15 hover:bg-rose-600 text-white border border-white/30 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left"></i> ยกเลิกเพื่อเลือกใหม่
+                   </button>`
+                : `<span class="text-xs bg-white/15 px-3 py-1.5 rounded-xl font-bold text-amber-300">🔒 ยืนยันสิทธิ์เรียบร้อย</span>`;
+
+            section.innerHTML = `
+                <div class="bg-gradient-to-r from-emerald-900 via-teal-900 to-indigo-950 text-white rounded-2xl p-4 sm:p-5 border-2 border-emerald-400 shadow-md space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="bg-emerald-400 text-slate-950 px-3 py-0.5 rounded-full text-xs font-extrabold flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check"></i> ลงทะเบียน${isElective ? 'วิชาเลือกเสรี' : 'ชุมนุม'}สำเร็จแล้ว
+                        </span>
+                        <span class="text-xs text-emerald-200 font-semibold">
+                            รหัสอ้างอิง: ${off.code || '-'}
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="space-y-1">
+                            <h2 class="text-lg sm:text-xl font-extrabold text-amber-300">${off.title}</h2>
+                            <div class="text-xs sm:text-sm text-slate-100 flex flex-wrap gap-x-4 gap-y-1 font-medium">
+                                <span><i class="fa-solid fa-chalkboard-user text-amber-400 mr-1"></i> ${off.teacher_name}</span>
+                                <span><i class="fa-solid fa-location-dot text-rose-400 mr-1"></i> ${off.room || 'ไม่ระบุห้อง'}</span>
+                                <span><i class="fa-regular fa-clock text-sky-300 mr-1"></i> ${off.schedule_info || 'ตามตารางเรียน'}</span>
+                            </div>
+                        </div>
+                        <div class="shrink-0">
+                            ${cancelBtnHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 5. กรองและแสดงการ์ดรายวิชา / ชุมนุม
+        window.filterOfferings = function() {
+            const keyword = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+            const onlyAvailable = document.getElementById('filterAvailableOnly').checked;
+
+            const filtered = allApprovedOfferings.filter(item => {
+                const seatsLeft = item.max_seats - (item.enrolled_count || 0);
+                if (onlyAvailable && seatsLeft <= 0) return false;
+
+                if (keyword) {
+                    const text = `${item.code || ''} ${item.title || ''} ${item.teacher_name || ''} ${item.sub_group || ''}`.toLowerCase();
+                    return text.includes(keyword);
+                }
+                return true;
+            });
+
+            renderOfferingsGrid(filtered);
+        };
+
+        function renderOfferingsGrid(list) {
+            const grid = document.getElementById('offeringsGrid');
+            const isElective = currentCategory === 'ELECTIVE';
+
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-2">
+                        <i class="fa-solid fa-folder-open text-3xl text-slate-300"></i>
+                        <p class="font-extrabold text-slate-700">ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</p>
+                        <p class="text-xs text-slate-500">ลองลบคำค้นหา หรือยกเลิกตัวกรอง "แสดงเฉพาะที่ยังว่าง"</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const enrolledOfferingId = currentRegistration?.offering_id || null;
+
+            grid.innerHTML = list.map(item => {
+                const enrolled = item.enrolled_count || 0;
+                const seatsLeft = Math.max(0, item.max_seats - enrolled);
+                const isFull = seatsLeft <= 0;
+                const isLow = !isFull && seatsLeft <= 5;
+                const isMyChoice = enrolledOfferingId === item.id;
+                const percent = Math.min(100, Math.round((enrolled / item.max_seats) * 100));
+
+                // สีแถบสถานะที่นั่ง
+                let seatBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-300';
+                let seatText = `ว่าง ${seatsLeft}/${item.max_seats} ที่นั่ง`;
+                let barColor = 'bg-emerald-500';
+
+                if (isFull) {
+                    seatBadgeClass = 'bg-slate-100 text-slate-500 border-slate-300';
+                    seatText = `เต็มแล้ว (${item.max_seats}/${item.max_seats})`;
+                    barColor = 'bg-slate-400';
+                } else if (isLow) {
+                    seatBadgeClass = 'bg-amber-50 text-amber-800 border-amber-300';
+                    seatText = `🔥 เหลือ ${seatsLeft} ที่นั่งสุดท้าย!`;
+                    barColor = 'bg-amber-500';
+                }
+
+                // ปุ่มกดด้านล่างการ์ด
+                let actionBtn = '';
+                if (isMyChoice) {
+                    actionBtn = `<button type="button" disabled class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 text-white font-extrabold text-sm flex items-center justify-center gap-1.5 cursor-default">
+                        <i class="fa-solid fa-circle-check"></i> รายการที่คุณเลือกไว้
+                    </button>`;
+                } else if (!isPeriodOpen) {
+                    actionBtn = `<button type="button" disabled class="w-full py-2.5 px-4 rounded-xl bg-slate-200 text-slate-500 font-bold text-sm cursor-not-allowed">
+                        ปิดรับลงทะเบียน
+                    </button>`;
+                } else if (isFull) {
+                    actionBtn = `<button type="button" disabled class="w-full py-2.5 px-4 rounded-xl bg-slate-200 text-slate-500 font-bold text-sm cursor-not-allowed">
+                        ที่นั่งเต็มแล้ว
+                    </button>`;
+                } else if (enrolledOfferingId) {
+                    actionBtn = `<button type="button" onclick="window.openEnrollModal('${item.id}')" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-indigo-50 text-indigo-900 border border-indigo-200 font-bold text-sm transition cursor-pointer">
+                        ดูรายละเอียด
+                    </button>`;
+                } else {
+                    actionBtn = `<button type="button" onclick="window.openEnrollModal('${item.id}')" class="w-full py-2.5 px-4 rounded-xl bg-indigo-900 hover:bg-indigo-800 active:scale-98 text-white font-extrabold text-sm shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-hand-pointer"></i> เลือกรายการนี้
+                    </button>`;
+                }
+
+                return `
+                    <div class="bg-white rounded-2xl border-2 ${isMyChoice ? 'border-emerald-500 ring-2 ring-emerald-200' : (isFull ? 'border-slate-200 opacity-80' : 'border-slate-200 hover:border-indigo-400')} p-4 flex flex-col justify-between shadow-xs transition space-y-3">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="text-xs font-extrabold text-indigo-800 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md truncate">
+                                    ${item.code || (isElective ? 'วิชาเลือกเสรี' : 'ชุมนุม')}
+                                </span>
+                                <span class="text-xs font-extrabold border px-2.5 py-0.5 rounded-full shrink-0 ${seatBadgeClass}">
+                                    ${seatText}
+                                </span>
+                            </div>
+
+                            <h3 class="text-base font-extrabold text-slate-900 leading-snug line-clamp-2">${item.title}</h3>
+
+                            <div class="text-xs text-slate-600 space-y-1 font-medium">
+                                <div class="flex items-center gap-1.5 truncate"><i class="fa-solid fa-user-tie text-indigo-600 w-4 shrink-0"></i> <span class="truncate">${item.teacher_name}</span></div>
+                                <div class="flex items-center gap-1.5 truncate"><i class="fa-solid fa-location-dot text-rose-600 w-4 shrink-0"></i> <span class="truncate">${item.room || 'ไม่ระบุสถานที่'} • ${item.schedule_info || 'ตามตาราง'}</span></div>
+                            </div>
+
+                            ${item.description ? `<p class="text-xs text-slate-500 line-clamp-2 bg-slate-50 p-2 rounded-lg border border-slate-100">${item.description}</p>` : ''}
+                        </div>
+
+                        <div class="space-y-2.5 pt-1">
+                            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full ${barColor} rounded-full transition-all" style="width: ${percent}%"></div>
+                            </div>
+                            ${actionBtn}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 6. เปิด Modal ยืนยันการลงทะเบียน
+        window.openEnrollModal = function(offeringId) {
+            const item = allApprovedOfferings.find(x => x.id === offeringId);
+            if (!item) return;
+
+            selectedOfferingToEnroll = item;
+            const seatsLeft = Math.max(0, item.max_seats - (item.enrolled_count || 0));
+
+            document.getElementById('modalCourseCode').innerText = `${item.code ? 'รหัส ' + item.code + ' • ' : ''}${item.sub_group || ''}`;
+            document.getElementById('modalCourseTitle').innerText = item.title;
+            document.getElementById('modalCourseTeacher').innerText = `ครูผู้สอน: ${item.teacher_name}`;
+            document.getElementById('modalCourseRoom').innerText = item.room || 'ไม่ระบุ';
+            document.getElementById('modalCourseSchedule').innerText = item.schedule_info || 'ตามตารางเรียน';
+            document.getElementById('modalCourseDesc').innerText = item.description || 'ไม่มีคำอธิบายเพิ่มเติม';
+            document.getElementById('modalSeatNotice').innerText = `จำนวนที่นั่งคงเหลือ: ${seatsLeft} จาก ${item.max_seats} ที่นั่ง`;
+
+            const confirmBtn = document.getElementById('btnConfirmEnroll');
+            if (currentRegistration || !isPeriodOpen || seatsLeft <= 0) {
+                confirmBtn.style.display = 'none';
+            } else {
+                confirmBtn.style.display = 'inline-flex';
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = `<i class="fa-solid fa-check"></i> ยืนยันลงทะเบียน`;
+            }
+
+            document.getElementById('confirmModal').style.display = 'flex';
+        };
+
+        window.closeConfirmModal = function() {
+            document.getElementById('confirmModal').style.display = 'none';
+            selectedOfferingToEnroll = null;
+        };
+
+        // 7. ส่งคำสั่งลงทะเบียนผ่าน Supabase RPC
+        window.executeEnrollment = async function() {
+            if (!selectedOfferingToEnroll) return;
+
+            const btn = document.getElementById('btnConfirmEnroll');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึกสิทธิ์...`;
+
+            try {
+                const res = await registerStudent(currentStudent, selectedOfferingToEnroll.id, 'self');
+                if (res && res.success) {
+                    window.closeConfirmModal();
+                    alert(`🎉 ${res.message}\nคุณได้ลงทะเบียน "${res.offering_title}" เรียบร้อยแล้ว`);
+                    await window.loadAllStudentData();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    alert(`⚠️ ${res?.message || 'ไม่สามารถลงทะเบียนได้'}`);
+                    window.closeConfirmModal();
+                    await window.loadAllStudentData();
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> ยืนยันลงทะเบียน`;
+            }
+        };
+
+        // 8. ยกเลิกการลงทะเบียนเพื่อเลือกใหม่
+        window.handleCancelMyRegistration = async function() {
+            if (!currentRegistration) return;
+            const title = currentRegistration.offering?.title || 'รายการนี้';
+            if (!confirm(`ต้องการยกเลิกการลงทะเบียน "${title}" เพื่อเปลี่ยนไปเลือกวิชาอื่นใช่หรือไม่?\n(ที่นั่งเดิมจะถูกปล่อยว่างทันที)`)) return;
+
+            try {
+                const res = await cancelStudentRegistration(currentStudent.student_id, currentCategory, false);
+                if (res && res.success) {
+                    alert(`✅ ${res.message}`);
+                    await window.loadAllStudentData();
+                } else {
+                    alert(`⚠️ ${res?.message || 'ไม่สามารถยกเลิกได้'}`);
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+            }
+        };
+
+        window.scrollToMySelection = function() {
+            document.getElementById('myRegistrationSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        window.handleLogout = async function() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                await db.auth.signOut();
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = '../../login.html';
+            }
+        };
+
+        // 9. อัปเดตยอดที่นั่งแบบ Real-time เมื่อมีเพื่อนกดลงทะเบียนพร้อมกัน
+        function subscribeRealtimeSeats() {
+            db.channel('public:registration_offerings')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'registration_offerings' }, (payload) => {
+                    const updated = payload.new;
+                    const idx = allApprovedOfferings.findIndex(x => x.id === updated.id);
+                    if (idx !== -1) {
+                        allApprovedOfferings[idx] = { ...allApprovedOfferings[idx], ...updated };
+                        window.filterOfferings();
+                    }
+                })
+                .subscribe();
+        }
+
+        // เริ่มทำงาน
+        (async () => {
+            await initStudentProfile();
+            await window.switchCategory(currentCategory);
+            subscribeRealtimeSeats();
+        })();
+    </script>
+</body>
+</html>
