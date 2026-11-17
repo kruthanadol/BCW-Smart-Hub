@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>เปิดวิชาเลือกเสรีและชุมนุม (สำหรับครู) - BCW Smart Hub</title>
+    <link rel="icon" type="image/png" href="../../assets/images/logo_bcw.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script type="module" src="../../core/guard-admin-teacher.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../core/supabase-client.js?v=400"></script>
     <style>
         html, body {
             font-size: 16px;
@@ -104,16 +106,16 @@
                         <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-11 h-11 md:w-14 md:h-14 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
                     </div>
                     <div class="min-w-0 flex-1 flex flex-col justify-center">
-                        <h1 class="text-[17px] sm:text-xl md:text-2xl font-extrabold text-amber-400 tracking-tight leading-none uppercase truncate">
+                        <h1 class="text-[17px] sm:text-xl md:text-2xl font-extrabold text-amber-400 tracking-tight leading-none uppercase whitespace-nowrap">
                             BCW SMART HUB
                         </h1>
+                        <div class="text-[13px] sm:text-base md:text-lg font-bold text-white leading-tight truncate mt-1">
+                            โรงเรียนบัวเชดวิทยา
+                        </div>
                         <div class="mt-1 max-w-full">
                             <span id="headerRoleBadge" class="inline-block max-w-full truncate bg-indigo-400/25 text-indigo-200 border border-indigo-400/70 px-2 py-0.5 rounded-md text-[11px] sm:text-xs font-bold leading-none">
                                 👩‍🏫 ระบบเปิดรายวิชาเลือกเสรี & ชุมนุม
                             </span>
-                        </div>
-                        <div class="text-[13px] sm:text-base md:text-lg font-bold text-white leading-tight truncate mt-1">
-                            โรงเรียนบัวเชดวิทยา
                         </div>
                     </div>
                 </div>
@@ -138,7 +140,6 @@
             <!-- Sub-Header แสดงชื่อครูผู้สอนและเวลา -->
             <div class="bg-indigo-950/90 border-t border-indigo-800/70 mt-1.5 pt-1.5 px-1 flex justify-between items-center text-xs md:text-sm gap-2">
                 <span class="font-semibold text-emerald-400 flex items-center gap-1.5 truncate">
-                    <i class="fa-solid fa-user-tie text-amber-400 shrink-0"></i>
                     <span id="teacherDisplayInfo" class="truncate">ครูผู้สอน: กำลังตรวจสอบสิทธิ์...</span>
                 </span>
                 <span id="periodStatusBadge" class="bg-indigo-900/90 px-2.5 py-0.5 rounded-md border border-indigo-700/80 text-amber-300 text-xs font-bold shrink-0">
@@ -251,9 +252,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div class="sm:col-span-2">
                         <label id="lblSubGroup" class="block font-bold text-slate-700 mb-1">กลุ่มสาระการเรียนรู้</label>
-                        <select id="inpSubGroup" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-indigo-600 focus:outline-none font-semibold bg-white">
-                            <!-- เติมตัวเลือกอัตโนมัติตามประเภท ELECTIVE / CLUB -->
-                        </select>
+                        <select id="inpSubGroup" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-indigo-600 focus:outline-none font-semibold bg-white"></select>
                     </div>
                     <div id="creditsFieldWrapper">
                         <label class="block font-bold text-slate-700 mb-1">หน่วยกิต</label>
@@ -266,7 +265,6 @@
                     </div>
                 </div>
 
-                <!-- เลือกระดับชั้นที่เปิดรับ -->
                 <div>
                     <div class="flex flex-wrap justify-between items-center gap-1 mb-1.5">
                         <label class="font-bold text-slate-700">ระดับชั้นที่เปิดรับสมัคร <span class="text-rose-600">*</span></label>
@@ -327,7 +325,6 @@
                 <button type="button" onclick="window.closeRosterModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer">&times;</button>
             </div>
 
-            <!-- หัวกระดาษสำหรับสั่งพิมพ์ (Print Only) -->
             <div class="hidden print:block p-4 border-b-2 border-slate-800 text-center">
                 <h2 class="text-lg font-extrabold">โรงเรียนบัวเชดวิทยา — รายชื่อนักเรียนลงทะเบียน</h2>
                 <p id="printRosterHeader" class="text-sm font-bold mt-1"></p>
@@ -367,30 +364,20 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-500 font-medium no-print">
         โรงเรียนบัวเชดวิทยา • BCW Smart Hub Registration Module
     </footer>
 
-    <!-- MODULE SCRIPT -->
-    <script type="module">
-        import { db } from '../../core/supabase-client.js';
-        import {
-            DEFAULT_ACADEMIC_YEAR,
-            DEFAULT_SEMESTER,
-            getRegistrationPeriod,
-            getOfferings,
-            saveOffering,
-            deleteOffering,
-            getEnrolledStudentsByOffering,
-            cancelStudentRegistration
-        } from './registration.service.js';
+    <!-- SELF-CONTAINED SCRIPT (ไม่พึ่ง External Service Module ป้องกัน 404) -->
+    <script>
+        const DEFAULT_ACADEMIC_YEAR = '2569';
+        const DEFAULT_SEMESTER = '1';
+        const db = window.supabaseClient || window.db || window.supabase;
 
-        // อ่านค่า ?type=club หรือ ?type=elective จาก URL
         const urlParams = new URLSearchParams(window.location.search);
         let currentCategory = (urlParams.get('type') || 'ELECTIVE').toUpperCase() === 'CLUB' ? 'CLUB' : 'ELECTIVE';
 
-        let currentTeacher = { id: '', name: 'ครูผู้สอน' };
+        let currentTeacher = { id: '', name: 'ครูผู้สอน', avatar: '' };
         let myOfferingsList = [];
         let activeRosterOffering = null;
         let activeRosterStudents = [];
@@ -415,24 +402,45 @@
             'ชุมนุมภาษาและวัฒนธรรม'
         ];
 
-        // ตรวจสอบข้อมูลครูที่ล็อกอินอยู่
+        // 1. ตรวจสอบข้อมูลครูที่ล็อกอินอยู่
         async function initTeacherProfile() {
             try {
-                // ดึงจาก localStorage / sessionStorage ของระบบ BCW Smart Hub ก่อน
-                const storedUser = JSON.parse(localStorage.getItem('bcw_user') || sessionStorage.getItem('bcw_user') || 'null');
-                if (storedUser) {
-                    currentTeacher.id = storedUser.teacher_code || storedUser.username || storedUser.id || '';
-                    currentTeacher.name = storedUser.full_name || `${storedUser.prefix || ''}${storedUser.first_name || ''} ${storedUser.last_name || ''}`.trim() || 'ครูผู้สอน';
+                const possibleKeys = ['bcw_user_session', 'bcw_user', 'user_session', 'currentUser'];
+                let storedUser = null;
+
+                for (const key of possibleKeys) {
+                    const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
+                    if (raw && raw !== 'null' && raw !== 'undefined') {
+                        try {
+                            const parsed = JSON.parse(raw);
+                            if (parsed && typeof parsed === 'object') {
+                                storedUser = parsed;
+                                break;
+                            }
+                        } catch (e) {}
+                    }
                 }
 
-                // เสริมข้อมูลจาก Supabase Auth ถ้ามี
-                const { data: { user } } = await db.auth.getUser();
-                if (user) {
-                    if (!currentTeacher.id) currentTeacher.id = user.id;
-                    const { data: profile } = await db.from('users').select('*').eq('id', user.id).maybeSingle();
-                    if (profile) {
-                        currentTeacher.id = profile.teacher_code || profile.username || user.id;
-                        currentTeacher.name = profile.full_name || `${profile.prefix || ''}${profile.first_name || ''} ${profile.last_name || ''}`.trim() || currentTeacher.name;
+                if (!storedUser) {
+                    window.location.replace('../../login.html');
+                    return false;
+                }
+
+                currentTeacher.id = String(storedUser.teacher_id || storedUser.teacher_code || storedUser.username || storedUser.id || '').trim();
+                currentTeacher.name = storedUser.name || storedUser.full_name || `${storedUser.prefix || ''}${storedUser.first_name || ''} ${storedUser.last_name || ''}`.trim() || 'ครูผู้สอน';
+                currentTeacher.avatar = storedUser.avatar || storedUser.avatar_url || storedUser.photo_url || '';
+
+                if (db && currentTeacher.id) {
+                    const { data: tch } = await db
+                        .from('teachers')
+                        .select('*')
+                        .or(`teacher_id.eq.${currentTeacher.id},username.eq.${currentTeacher.id}`)
+                        .maybeSingle();
+
+                    if (tch) {
+                        currentTeacher.id = String(tch.teacher_id || tch.username || currentTeacher.id);
+                        currentTeacher.name = `${tch.prefix || ''}${tch.first_name || ''} ${tch.last_name || ''}`.trim() || currentTeacher.name;
+                        currentTeacher.avatar = tch.avatar_url || tch.photo_url || currentTeacher.avatar;
                     }
                 }
             } catch (e) {
@@ -440,15 +448,84 @@
             }
 
             if (!currentTeacher.id) currentTeacher.id = 'TEACHER_BCW';
-            document.getElementById('teacherDisplayInfo').innerText = `ครูผู้สอน: ${currentTeacher.name}`;
+
+            const defaultAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+            const finalAvatar = currentTeacher.avatar || defaultAvatar;
+            const infoEl = document.getElementById('teacherDisplayInfo');
+
+            if (infoEl) {
+                infoEl.innerHTML = `
+                    <span class="inline-flex items-center gap-2">
+                        <img src="${finalAvatar}" alt="Teacher Avatar" class="w-6 h-6 rounded-full object-cover border border-amber-400 bg-white shrink-0" onerror="this.src='${defaultAvatar}'">
+                        <span>ครูผู้สอน: ${currentTeacher.name}</span>
+                    </span>
+                `;
+            }
+            return true;
         }
 
-        // สลับโหมด วิชาเลือกเสรี <-> ชุมนุม
+        // 2. ฟังก์ชันจัดการข้อมูล Supabase โดยตรง
+        async function fetchPeriod(category) {
+            if (!db) return null;
+            const { data } = await db
+                .from('registration_periods')
+                .select('*')
+                .eq('category', category)
+                .eq('academic_year', DEFAULT_ACADEMIC_YEAR)
+                .eq('semester', DEFAULT_SEMESTER)
+                .maybeSingle();
+            return data;
+        }
+
+        async function fetchTeacherOfferings(category, teacherId) {
+            if (!db) throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูล Supabase ได้');
+            const { data, error } = await db
+                .from('registration_offerings')
+                .select('*')
+                .eq('category', category)
+                .eq('academic_year', DEFAULT_ACADEMIC_YEAR)
+                .eq('semester', DEFAULT_SEMESTER)
+                .eq('teacher_id', teacherId)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        }
+
+        async function upsertOffering(payload) {
+            if (!db) throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูล Supabase ได้');
+            if (payload.id) {
+                const { id, ...updateData } = payload;
+                const { error } = await db.from('registration_offerings').update(updateData).eq('id', id);
+                if (error) throw error;
+            } else {
+                const { error } = await db.from('registration_offerings').insert([payload]);
+                if (error) throw error;
+            }
+        }
+
+        async function removeOfferingById(id) {
+            if (!db) throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูล Supabase ได้');
+            await db.from('student_registrations').delete().eq('offering_id', id);
+            const { error } = await db.from('registration_offerings').delete().eq('id', id);
+            if (error) throw error;
+        }
+
+        async function fetchEnrolledStudents(offeringId) {
+            if (!db) return [];
+            const { data, error } = await db
+                .from('student_registrations')
+                .select('*')
+                .eq('offering_id', offeringId)
+                .order('created_at', { ascending: true });
+            if (error) throw error;
+            return data || [];
+        }
+
+        // 3. สลับโหมด วิชาเลือกเสรี <-> ชุมนุม
         window.switchCategory = async function(cat) {
             currentCategory = cat;
             const isElective = cat === 'ELECTIVE';
 
-            // อัปเดตสไตล์ปุ่ม Tab ด้านบน
             const tabE = document.getElementById('tabElective');
             const tabC = document.getElementById('tabClub');
             if (isElective) {
@@ -463,7 +540,6 @@
                 document.getElementById('bNavElective')?.classList.remove('active');
             }
 
-            // อัปเดตข้อความหัวข้อและปุ่มต่างๆ
             document.getElementById('categoryHeading').innerHTML = isElective
                 ? `<i class="fa-solid fa-book-open"></i> รายการวิชาเลือกเสรีที่ฉันเปิดสอน`
                 : `<i class="fa-solid fa-users-rays"></i> รายการกิจกรรมชุมนุมที่ฉันเปิดรับสมัคร`;
@@ -479,8 +555,7 @@
             container.innerHTML = `<div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin text-indigo-600 mr-2"></i> กำลังโหลดข้อมูล...</div>`;
 
             try {
-                // 1. โหลดช่วงเวลาเปิด-ปิดลงทะเบียน
-                const period = await getRegistrationPeriod(currentCategory);
+                const period = await fetchPeriod(currentCategory);
                 const periodTextEl = document.getElementById('periodDateRangeText');
                 if (period) {
                     const startStr = new Date(period.start_at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
@@ -493,12 +568,7 @@
                     periodTextEl.innerText = 'ยังไม่ได้กำหนดช่วงเวลาเปิดรับสมัคร (สามารถสร้างรายวิชาเตรียมไว้ล่วงหน้าได้)';
                 }
 
-                // 2. โหลดรายการของครูคนนี้
-                myOfferingsList = await getOfferings({
-                    category: currentCategory,
-                    teacherId: currentTeacher.id
-                });
-
+                myOfferingsList = await fetchTeacherOfferings(currentCategory, currentTeacher.id);
                 renderOfferingsCards();
             } catch (err) {
                 console.error(err);
@@ -510,7 +580,6 @@
             const container = document.getElementById('myOfferingsContainer');
             const isElective = currentCategory === 'ELECTIVE';
 
-            // อัปเดตสถิติย่อ 3 ช่อง
             document.getElementById('statMyCount').innerText = myOfferingsList.length;
             document.getElementById('statApprovedCount').innerText = myOfferingsList.filter(x => x.status === 'approved').length;
             const totalEnrolled = myOfferingsList.reduce((sum, x) => sum + (x.enrolled_count || 0), 0);
@@ -564,7 +633,6 @@
                         </div>
 
                         <div class="space-y-2.5 pt-1">
-                            <!-- แถบแสดงจำนวนผู้ลงทะเบียน -->
                             <div>
                                 <div class="flex justify-between text-xs font-extrabold mb-1">
                                     <span class="text-slate-600">จำนวนผู้ลงทะเบียน</span>
@@ -575,7 +643,6 @@
                                 </div>
                             </div>
 
-                            <!-- ปุ่มจัดการ -->
                             <div class="flex items-center gap-1.5 pt-1 border-t border-slate-100">
                                 <button type="button" onclick="window.openRosterModal('${item.id}')" class="flex-1 bg-indigo-900 hover:bg-indigo-800 text-white text-xs sm:text-sm font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer">
                                     <i class="fa-solid fa-users"></i> ดูรายชื่อ (${item.enrolled_count || 0})
@@ -595,7 +662,6 @@
             container.innerHTML = html;
         }
 
-        // เปิดฟอร์มสร้าง / แก้ไข
         window.openOfferingFormModal = function(offering = null) {
             const isElective = currentCategory === 'ELECTIVE';
             const modal = document.getElementById('offeringFormModal');
@@ -613,7 +679,6 @@
             document.getElementById('lblSubGroup').innerText = isElective ? 'กลุ่มสาระการเรียนรู้' : 'ประเภทชุมนุม';
             document.getElementById('creditsFieldWrapper').style.display = isElective ? 'block' : 'none';
 
-            // เติมตัวเลือกกลุ่มสาระ / ประเภทชุมนุม
             const subSelect = document.getElementById('inpSubGroup');
             const list = isElective ? SUBGROUPS_ELECTIVE : SUBGROUPS_CLUB;
             subSelect.innerHTML = list.map(g => `<option value="${g}">${g}</option>`).join('');
@@ -690,11 +755,10 @@
                 if (editId) {
                     payload.id = editId;
                 } else {
-                    // ตั้งค่าเป็น approved ทันทีเพื่อให้ทดสอบได้ หรือเปลี่ยนเป็น 'pending' หากต้องการให้ฝ่ายวิชาการกดอนุมัติก่อน
                     payload.status = 'approved';
                 }
 
-                await saveOffering(payload);
+                await upsertOffering(payload);
                 window.closeOfferingFormModal();
                 await loadPeriodAndOfferings();
             } catch (err) {
@@ -708,20 +772,19 @@
         window.confirmDeleteOffering = async function(id, title) {
             if (!confirm(`ยืนยันการลบ "${title}" ใช่หรือไม่?\n(ข้อมูลการลงทะเบียนของนักเรียนในวิชานี้จะถูกลบด้วย)`)) return;
             try {
-                await deleteOffering(id);
+                await removeOfferingById(id);
                 await loadPeriodAndOfferings();
             } catch (err) {
                 alert('ลบข้อมูลไม่สำเร็จ: ' + err.message);
             }
         };
 
-        // ดูรายชื่อนักเรียนที่ลงทะเบียน
         window.openRosterModal = async function(offeringId) {
             activeRosterOffering = myOfferingsList.find(x => x.id === offeringId);
             if (!activeRosterOffering) return;
 
             document.getElementById('rosterModalTitle').innerText = `${activeRosterOffering.code ? activeRosterOffering.code + ' ' : ''}${activeRosterOffering.title}`;
-            document.getElementById('rosterModalSubtitle').innerText = `ครูผู้สอน: ${activeRosterOffering.teacher_name} • สถานที่: ${activeRosterOffering.room || '-'} • รับ ${activeRosterOffering.enrolled_count}/${activeRosterOffering.max_seats} คน`;
+            document.getElementById('rosterModalSubtitle').innerText = `ครูผู้สอน: ${activeRosterOffering.teacher_name} • สถานที่: ${activeRosterOffering.room || '-'} • รับ ${activeRosterOffering.enrolled_count || 0}/${activeRosterOffering.max_seats} คน`;
             document.getElementById('printRosterHeader').innerText = `${activeRosterOffering.title} | ครูผู้สอน: ${activeRosterOffering.teacher_name} | ห้องเรียน: ${activeRosterOffering.room || '-'}`;
 
             const tbody = document.getElementById('rosterTableBody');
@@ -729,7 +792,7 @@
             document.getElementById('rosterModal').style.display = 'flex';
 
             try {
-                activeRosterStudents = await getEnrolledStudentsByOffering(offeringId);
+                activeRosterStudents = await fetchEnrolledStudents(offeringId);
                 if (activeRosterStudents.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 font-bold">ยังไม่มีนักเรียนลงทะเบียนในรายการนี้</td></tr>`;
                     return;
@@ -744,7 +807,7 @@
                         <td class="p-2.5 text-center font-semibold">${stu.classroom || '-'}</td>
                         <td class="p-2.5 text-center text-xs"><span class="bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full font-bold">${typeLabel[stu.enroll_type] || 'เลือกเอง'}</span></td>
                         <td class="p-2.5 text-center no-print">
-                            <button type="button" onclick="window.removeStudentFromRoster('${stu.student_id}', '${(stu.student_name || '').replace(/'/g, "\\'")}')" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-lg font-bold cursor-pointer">
+                            <button type="button" onclick="window.removeStudentFromRoster('${stu.id}', '${(stu.student_name || '').replace(/'/g, "\\'")}')" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-lg font-bold cursor-pointer">
                                 นำออก
                             </button>
                         </td>
@@ -759,16 +822,14 @@
             document.getElementById('rosterModal').style.display = 'none';
         };
 
-        window.removeStudentFromRoster = async function(studentId, studentName) {
-            if (!confirm(`ต้องการนำ "${studentName}" ออกจากรายวิชานี้ใช่หรือไม่? (ระบบจะคืน 1 ที่นั่งว่างกลับเข้าวิชาทันที)`)) return;
+        window.removeStudentFromRoster = async function(regId, studentName) {
+            if (!confirm(`ต้องการนำ "${studentName}" ออกจากรายวิชานี้ใช่หรือไม่?`)) return;
             try {
-                const res = await cancelStudentRegistration(studentId, currentCategory, true);
-                if (res && res.success) {
-                    await loadPeriodAndOfferings();
-                    await window.openRosterModal(activeRosterOffering.id);
-                } else {
-                    alert(res?.message || 'ไม่สามารถดำเนินการได้');
-                }
+                await db.from('student_registrations').delete().eq('id', regId);
+                const newCount = Math.max(0, (activeRosterOffering.enrolled_count || 1) - 1);
+                await db.from('registration_offerings').update({ enrolled_count: newCount }).eq('id', activeRosterOffering.id);
+                await loadPeriodAndOfferings();
+                await window.openRosterModal(activeRosterOffering.id);
             } catch (err) {
                 alert('เกิดข้อผิดพลาด: ' + err.message);
             }
@@ -799,16 +860,17 @@
 
         window.handleLogout = async function() {
             if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                await db.auth.signOut();
+                if (db?.auth) await db.auth.signOut();
                 localStorage.clear();
                 sessionStorage.clear();
-                window.location.href = '../../login.html';
+                window.location.replace('../../login.html');
             }
         };
 
         // เริ่มทำงาน
         (async () => {
-            await initTeacherProfile();
+            const ok = await initTeacherProfile();
+            if (!ok) return;
             await window.switchCategory(currentCategory);
         })();
     </script>
