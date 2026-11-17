@@ -114,10 +114,9 @@
                         <i class="fa-solid fa-rotate text-sm"></i>
                     </button>
 
-                    <a href="../../landing.html" title="กลับหน้าหลักระบบ" class="w-9 h-9 md:w-10 md:h-10 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-bold transition shadow-sm flex items-center justify-center active:scale-95">
-                        <i class="fa-solid fa-house text-sm"></i>
+                    <a href="../../apps/student-app/student.html" title="กลับหน้าแอปนักเรียน" class="w-10 h-10 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center shadow-sm transition">
+                        <i class="fa-solid fa-house"></i>
                     </a>
-
                     <button type="button" onclick="window.handleLogout()" title="ออกจากระบบ" class="w-9 h-9 md:w-10 md:h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-400/50 active:scale-95 cursor-pointer">
                         <i class="fa-solid fa-right-from-bracket text-sm"></i>
                     </button>
@@ -291,7 +290,9 @@
         let selectedOfferingToEnroll = null;
 
 // 1. ดึงข้อมูลนักเรียนที่ล็อกอินอยู่ (อ่านจากทุกคีย์ Session ของระบบหลัก)
+// 1. ดึงข้อมูลและรูปโปรไฟล์นักเรียนที่ล็อกอินอยู่
         async function initStudentProfile() {
+            let studentAvatar = '';
             try {
                 const possibleKeys = ['bcw_user_session', 'bcw_user', 'user_session', 'currentUser'];
                 let storedUser = null;
@@ -309,7 +310,6 @@
                     }
                 }
 
-                // ถ้าไม่พบ Session จริงๆ ให้ถอยกลับไป ../../login.html (ไม่ใช้ /login.html ที่ Root)
                 if (!storedUser) {
                     window.location.replace('../../login.html');
                     return false;
@@ -320,12 +320,13 @@
                 ).trim();
                 currentStudent.student_name = storedUser.name || storedUser.full_name || `${storedUser.prefix || ''}${storedUser.first_name || ''} ${storedUser.last_name || ''}`.trim() || 'นักเรียน';
                 currentStudent.classroom = storedUser.classroom || storedUser.class_name || '';
+                studentAvatar = storedUser.avatar || storedUser.avatar_url || storedUser.photo_url || '';
 
-                // ค้นหาข้อมูลล่าสุดจากตาราง students ด้วยคอลัมน์ student_id
+                // ค้นหาข้อมูลล่าสุดและรูปถ่ายจากตาราง students
                 if (db && currentStudent.student_id) {
                     const { data: stu } = await db
                         .from('students')
-                        .select('student_id, prefix, first_name, last_name, classroom')
+                        .select('student_id, prefix, first_name, last_name, classroom, avatar_url, photo_url')
                         .eq('student_id', currentStudent.student_id)
                         .maybeSingle();
 
@@ -333,6 +334,7 @@
                         currentStudent.student_id = String(stu.student_id);
                         currentStudent.student_name = `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim();
                         currentStudent.classroom = stu.classroom || currentStudent.classroom;
+                        studentAvatar = stu.avatar_url || stu.photo_url || studentAvatar;
                     }
                 }
             } catch (err) {
@@ -342,10 +344,27 @@
             if (!currentStudent.student_id) currentStudent.student_id = '13174';
             currentStudent.grade = (currentStudent.classroom || '').split('/')[0];
 
+            const defaultAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+            const finalAvatar = studentAvatar || defaultAvatar;
+
             const infoEl = document.getElementById('studentDisplayInfo');
             const badgeEl = document.getElementById('studentGradeBadge');
-            if (infoEl) infoEl.innerText = `${currentStudent.student_name} (${currentStudent.student_id})`;
-            if (badgeEl) badgeEl.innerText = currentStudent.classroom ? `ชั้น ${currentStudent.classroom}` : `ภาคเรียนที่ ${DEFAULT_SEMESTER}/${DEFAULT_ACADEMIC_YEAR}`;
+
+            if (infoEl) {
+                // ซ่อนไอคอนหมวกเดิมถ้าอยู่ติดกันด้านหน้า และใส่รูปนักเรียนแทน
+                if (infoEl.previousElementSibling && infoEl.previousElementSibling.tagName === 'I') {
+                    infoEl.previousElementSibling.style.display = 'none';
+                }
+                infoEl.innerHTML = `
+                    <span class="inline-flex items-center gap-2">
+                        <img src="${finalAvatar}" alt="Student Avatar" class="w-7 h-7 rounded-full object-cover border-2 border-amber-400 shadow-xs bg-white shrink-0" onerror="this.src='${defaultAvatar}'">
+                        <span>${currentStudent.student_name} (${currentStudent.student_id})</span>
+                    </span>
+                `;
+            }
+            if (badgeEl) {
+                badgeEl.innerText = currentStudent.classroom ? `ชั้น ${currentStudent.classroom}` : `ภาคเรียนที่ ${DEFAULT_SEMESTER}/${DEFAULT_ACADEMIC_YEAR}`;
+            }
             return true;
         }
 
