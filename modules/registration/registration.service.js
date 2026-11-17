@@ -2,7 +2,7 @@
  * BCW Smart Hub - Registration Service (วิชาเลือกเสรี & กิจกรรมชุมนุม)
  * เชื่อมต่อ Supabase Database และ RPC Functions
  */
-import { db } from '../../core/supabase-client.js';
+const db = window.supabaseClient || window.db || window.supabase;
 
 export const DEFAULT_ACADEMIC_YEAR = '2569';
 export const DEFAULT_SEMESTER = '1';
