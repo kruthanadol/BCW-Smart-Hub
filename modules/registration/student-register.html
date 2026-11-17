@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script type="module" src="../../core/guard-student-parent.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../core/supabase-client.js?v=400"></script>
     <style>
         html, body {
             font-size: 16px;
@@ -259,9 +261,8 @@
         โรงเรียนบัวเชดวิทยา • BCW Smart Hub Student Registration
     </footer>
 
-    <!-- MODULE SCRIPT -->
+ <!-- MODULE SCRIPT -->
     <script type="module">
-        import { db } from '../../core/supabase-client.js';
         import {
             DEFAULT_ACADEMIC_YEAR,
             DEFAULT_SEMESTER,
@@ -271,6 +272,9 @@
             registerStudent,
             cancelStudentRegistration
         } from './registration.service.js';
+
+        // ดึงการเชื่อมต่อ Supabase จาก Global Client ของระบบ
+        const db = window.supabaseClient || window.db || window.supabase;
 
         const urlParams = new URLSearchParams(window.location.search);
         let currentCategory = (urlParams.get('type') || 'ELECTIVE').toUpperCase() === 'CLUB' ? 'CLUB' : 'ELECTIVE';
@@ -287,26 +291,32 @@
         let allApprovedOfferings = [];
         let selectedOfferingToEnroll = null;
 
-        // 1. ดึงข้อมูลนักเรียนที่ล็อกอินอยู่
+        // 1. ดึงข้อมูลนักเรียนที่ล็อกอินอยู่ (ใช้ bcw_user_session และ student_id ให้ตรงกับฐานข้อมูล)
         async function initStudentProfile() {
             try {
-                const storedUser = JSON.parse(localStorage.getItem('bcw_user') || sessionStorage.getItem('bcw_user') || 'null');
-                if (storedUser) {
-                    currentStudent.student_id = storedUser.student_code || storedUser.username || storedUser.id || '';
-                    currentStudent.student_name = storedUser.full_name || `${storedUser.prefix || ''}${storedUser.first_name || ''} ${storedUser.last_name || ''}`.trim() || 'นักเรียน';
-                    currentStudent.classroom = storedUser.classroom || '';
+                const rawSession = localStorage.getItem('bcw_user_session') || sessionStorage.getItem('bcw_user_session') || localStorage.getItem('bcw_user') || 'null';
+                const storedUser = JSON.parse(rawSession);
+
+                if (!storedUser) {
+                    const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
+                    window.location.replace(prefix + '/login.html');
+                    return false;
                 }
 
-                // ค้นหาข้อมูลล่าสุดจากตาราง students เพื่อความแม่นยำของห้องเรียนและรหัสนักเรียน
-                if (currentStudent.student_id) {
+                currentStudent.student_id = String(storedUser.studentId || storedUser.student_id || storedUser.student_code || storedUser.id || '').trim();
+                currentStudent.student_name = storedUser.name || storedUser.full_name || `${storedUser.prefix || ''}${storedUser.first_name || ''} ${storedUser.last_name || ''}`.trim() || 'นักเรียน';
+                currentStudent.classroom = storedUser.classroom || storedUser.class_name || '';
+
+                // ค้นหาข้อมูลล่าสุดจากตาราง students ด้วยคอลัมน์ student_id
+                if (db && currentStudent.student_id) {
                     const { data: stu } = await db
                         .from('students')
-                        .select('student_code, prefix, first_name, last_name, classroom')
-                        .eq('student_code', currentStudent.student_id)
+                        .select('student_id, prefix, first_name, last_name, classroom')
+                        .eq('student_id', currentStudent.student_id)
                         .maybeSingle();
 
                     if (stu) {
-                        currentStudent.student_id = stu.student_code;
+                        currentStudent.student_id = String(stu.student_id);
                         currentStudent.student_name = `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim();
                         currentStudent.classroom = stu.classroom || currentStudent.classroom;
                     }
@@ -318,8 +328,11 @@
             if (!currentStudent.student_id) currentStudent.student_id = 'STD_DEMO';
             currentStudent.grade = (currentStudent.classroom || '').split('/')[0];
 
-            document.getElementById('studentDisplayInfo').innerText = `${currentStudent.student_name} (${currentStudent.student_id})`;
-            document.getElementById('studentGradeBadge').innerText = currentStudent.classroom ? `ชั้น ${currentStudent.classroom}` : `ภาคเรียนที่ ${DEFAULT_SEMESTER}/${DEFAULT_ACADEMIC_YEAR}`;
+            const infoEl = document.getElementById('studentDisplayInfo');
+            const badgeEl = document.getElementById('studentGradeBadge');
+            if (infoEl) infoEl.innerText = `${currentStudent.student_name} (${currentStudent.student_id})`;
+            if (badgeEl) badgeEl.innerText = currentStudent.classroom ? `ชั้น ${currentStudent.classroom}` : `ภาคเรียนที่ ${DEFAULT_SEMESTER}/${DEFAULT_ACADEMIC_YEAR}`;
+            return true;
         }
 
         // 2. สลับหมวดหมู่ วิชาเลือกเสรี <-> ชุมนุม
@@ -329,16 +342,18 @@
 
             const tabE = document.getElementById('tabElective');
             const tabC = document.getElementById('tabClub');
-            if (isElective) {
-                tabE.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer bg-indigo-900 text-white shadow-sm";
-                tabC.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer text-slate-600 hover:bg-slate-100";
-                document.getElementById('bNavElective')?.classList.add('active');
-                document.getElementById('bNavClub')?.classList.remove('active');
-            } else {
-                tabC.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer bg-indigo-900 text-white shadow-sm";
-                tabE.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer text-slate-600 hover:bg-slate-100";
-                document.getElementById('bNavClub')?.classList.add('active');
-                document.getElementById('bNavElective')?.classList.remove('active');
+            if (tabE && tabC) {
+                if (isElective) {
+                    tabE.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer bg-indigo-900 text-white shadow-sm";
+                    tabC.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer text-slate-600 hover:bg-slate-100";
+                    document.getElementById('bNavElective')?.classList.add('active');
+                    document.getElementById('bNavClub')?.classList.remove('active');
+                } else {
+                    tabC.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer bg-indigo-900 text-white shadow-sm";
+                    tabE.className = "py-2.5 px-3 rounded-xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer text-slate-600 hover:bg-slate-100";
+                    document.getElementById('bNavClub')?.classList.add('active');
+                    document.getElementById('bNavElective')?.classList.remove('active');
+                }
             }
 
             await window.loadAllStudentData();
@@ -347,7 +362,9 @@
         // 3. โหลดข้อมูลทั้งหมดของหมวดหมู่ปัจจุบัน
         window.loadAllStudentData = async function() {
             const grid = document.getElementById('offeringsGrid');
-            grid.innerHTML = `<div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin text-indigo-600 mr-2"></i> กำลังอัปเดตข้อมูลล่าสุด...</div>`;
+            if (grid) {
+                grid.innerHTML = `<div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin text-indigo-600 mr-2"></i> กำลังอัปเดตข้อมูลล่าสุด...</div>`;
+            }
 
             try {
                 // 3.1 ตรวจสอบช่วงเวลาเปิด-ปิดระบบ
@@ -364,19 +381,19 @@
 
                     const startStr = start.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
                     const endStr = end.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
-                    timeEl.innerText = `${startStr} - ${endStr}`;
+                    if (timeEl) timeEl.innerText = `${startStr} - ${endStr}`;
 
                     if (isPeriodOpen) {
-                        statusEl.innerText = `เปิดระบบลงทะเบียน${currentCategory === 'ELECTIVE' ? 'วิชาเลือกเสรี' : 'กิจกรรมชุมนุม'}แล้ว`;
-                        dotEl.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0';
+                        if (statusEl) statusEl.innerText = `เปิดระบบลงทะเบียน${currentCategory === 'ELECTIVE' ? 'วิชาเลือกเสรี' : 'กิจกรรมชุมนุม'}แล้ว`;
+                        if (dotEl) dotEl.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0';
                     } else {
-                        statusEl.innerText = `ปิดรับลงทะเบียนชั่วคราว / หมดเขตลงทะเบียน`;
-                        dotEl.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
+                        if (statusEl) statusEl.innerText = `ปิดรับลงทะเบียนชั่วคราว / หมดเขตลงทะเบียน`;
+                        if (dotEl) dotEl.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
                     }
                 } else {
                     isPeriodOpen = true;
-                    statusEl.innerText = 'เปิดรับลงทะเบียน';
-                    timeEl.innerText = `ภาคเรียนที่ ${DEFAULT_SEMESTER}/${DEFAULT_ACADEMIC_YEAR}`;
+                    if (statusEl) statusEl.innerText = 'เปิดรับลงทะเบียน';
+                    if (timeEl) timeEl.innerText = `ภาคเรียนที่ ${DEFAULT_SEMESTER}/${DEFAULT_ACADEMIC_YEAR}`;
                 }
 
                 // 3.2 โหลดผลการลงทะเบียนปัจจุบันของนักเรียน
@@ -390,20 +407,23 @@
                 });
 
                 allApprovedOfferings = offerings.filter(item => {
-                    if (!currentStudent.grade) return true; // กรณีทดสอบที่ยังไม่ผูกห้องเรียนให้เห็นทั้งหมด
+                    if (!currentStudent.grade) return true;
                     return (item.target_grades || []).includes(currentStudent.grade);
                 });
 
                 window.filterOfferings();
             } catch (err) {
                 console.error(err);
-                grid.innerHTML = `<div class="col-span-full bg-rose-50 text-rose-700 p-6 rounded-2xl border border-rose-200 text-center font-bold">เกิดข้อผิดพลาด: ${err.message}</div>`;
+                if (grid) {
+                    grid.innerHTML = `<div class="col-span-full bg-rose-50 text-rose-700 p-6 rounded-2xl border border-rose-200 text-center font-bold">เกิดข้อผิดพลาด: ${err.message}</div>`;
+                }
             }
         };
 
         // 4. แสดงบัตรยืนยันผลการลงทะเบียนของนักเรียน (ด้านบน)
         function renderMyRegistrationCard() {
             const section = document.getElementById('myRegistrationSection');
+            if (!section) return;
             const isElective = currentCategory === 'ELECTIVE';
 
             if (!currentRegistration || !currentRegistration.offering) {
@@ -464,8 +484,8 @@
 
         // 5. กรองและแสดงการ์ดรายวิชา / ชุมนุม
         window.filterOfferings = function() {
-            const keyword = (document.getElementById('searchInput').value || '').trim().toLowerCase();
-            const onlyAvailable = document.getElementById('filterAvailableOnly').checked;
+            const keyword = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+            const onlyAvailable = document.getElementById('filterAvailableOnly')?.checked || false;
 
             const filtered = allApprovedOfferings.filter(item => {
                 const seatsLeft = item.max_seats - (item.enrolled_count || 0);
@@ -483,6 +503,7 @@
 
         function renderOfferingsGrid(list) {
             const grid = document.getElementById('offeringsGrid');
+            if (!grid) return;
             const isElective = currentCategory === 'ELECTIVE';
 
             if (list.length === 0) {
@@ -506,7 +527,6 @@
                 const isMyChoice = enrolledOfferingId === item.id;
                 const percent = Math.min(100, Math.round((enrolled / item.max_seats) * 100));
 
-                // สีแถบสถานะที่นั่ง
                 let seatBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-300';
                 let seatText = `ว่าง ${seatsLeft}/${item.max_seats} ที่นั่ง`;
                 let barColor = 'bg-emerald-500';
@@ -521,7 +541,6 @@
                     barColor = 'bg-amber-500';
                 }
 
-                // ปุ่มกดด้านล่างการ์ด
                 let actionBtn = '';
                 if (isMyChoice) {
                     actionBtn = `<button type="button" disabled class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 text-white font-extrabold text-sm flex items-center justify-center gap-1.5 cursor-default">
@@ -661,17 +680,25 @@
             document.getElementById('myRegistrationSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         };
 
+        // 9. ปุ่มกลับหน้าหลักนักเรียน (ใช้ Path ที่ถูกต้องทั้ง GitHub Pages และ Local)
+        window.goBackStudentPortal = function() {
+            const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
+            window.location.href = prefix + '/apps/student-app/student.html';
+        };
+
         window.handleLogout = async function() {
             if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-                await db.auth.signOut();
+                if (db?.auth) await db.auth.signOut();
                 localStorage.clear();
                 sessionStorage.clear();
-                window.location.href = '../../login.html';
+                const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
+                window.location.replace(prefix + '/login.html');
             }
         };
 
-        // 9. อัปเดตยอดที่นั่งแบบ Real-time เมื่อมีเพื่อนกดลงทะเบียนพร้อมกัน
+        // 10. อัปเดตยอดที่นั่งแบบ Real-time
         function subscribeRealtimeSeats() {
+            if (!db) return;
             db.channel('public:registration_offerings')
                 .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'registration_offerings' }, (payload) => {
                     const updated = payload.new;
@@ -686,7 +713,8 @@
 
         // เริ่มทำงาน
         (async () => {
-            await initStudentProfile();
+            const ok = await initStudentProfile();
+            if (!ok) return;
             await window.switchCategory(currentCategory);
             subscribeRealtimeSeats();
         })();
