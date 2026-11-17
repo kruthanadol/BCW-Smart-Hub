@@ -290,19 +290,34 @@
         let allApprovedOfferings = [];
         let selectedOfferingToEnroll = null;
 
-        // 1. ดึงข้อมูลนักเรียนที่ล็อกอินอยู่ (ใช้ bcw_user_session และ student_id ให้ตรงกับฐานข้อมูล)
+// 1. ดึงข้อมูลนักเรียนที่ล็อกอินอยู่ (อ่านจากทุกคีย์ Session ของระบบหลัก)
         async function initStudentProfile() {
             try {
-                const rawSession = localStorage.getItem('bcw_user_session') || sessionStorage.getItem('bcw_user_session') || localStorage.getItem('bcw_user') || 'null';
-                const storedUser = JSON.parse(rawSession);
+                const possibleKeys = ['bcw_user_session', 'bcw_user', 'user_session', 'currentUser'];
+                let storedUser = null;
 
+                for (const key of possibleKeys) {
+                    const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
+                    if (raw && raw !== 'null' && raw !== 'undefined') {
+                        try {
+                            const parsed = JSON.parse(raw);
+                            if (parsed && typeof parsed === 'object') {
+                                storedUser = parsed;
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                // ถ้าไม่พบ Session จริงๆ ให้ถอยกลับไป ../../login.html (ไม่ใช้ /login.html ที่ Root)
                 if (!storedUser) {
-                    const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
-                    window.location.replace(prefix + '/login.html');
+                    window.location.replace('../../login.html');
                     return false;
                 }
 
-                currentStudent.student_id = String(storedUser.studentId || storedUser.student_id || storedUser.student_code || storedUser.id || '').trim();
+                currentStudent.student_id = String(
+                    storedUser.studentId || storedUser.student_id || storedUser.student_code || storedUser.username || storedUser.id || ''
+                ).trim();
                 currentStudent.student_name = storedUser.name || storedUser.full_name || `${storedUser.prefix || ''}${storedUser.first_name || ''} ${storedUser.last_name || ''}`.trim() || 'นักเรียน';
                 currentStudent.classroom = storedUser.classroom || storedUser.class_name || '';
 
@@ -324,7 +339,7 @@
                 console.warn('Student profile fallback:', err);
             }
 
-            if (!currentStudent.student_id) currentStudent.student_id = 'STD_DEMO';
+            if (!currentStudent.student_id) currentStudent.student_id = '13174';
             currentStudent.grade = (currentStudent.classroom || '').split('/')[0];
 
             const infoEl = document.getElementById('studentDisplayInfo');
@@ -680,9 +695,8 @@
         };
 
         // 9. ปุ่มกลับหน้าหลักนักเรียน (ใช้ Path ที่ถูกต้องทั้ง GitHub Pages และ Local)
-        window.goBackStudentPortal = function() {
-            const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
-            window.location.href = prefix + '/apps/student-app/student.html';
+ window.goBackStudentPortal = function() {
+            window.location.href = '../../apps/student-app/student.html';
         };
 
         window.handleLogout = async function() {
@@ -690,11 +704,10 @@
                 if (db?.auth) await db.auth.signOut();
                 localStorage.clear();
                 sessionStorage.clear();
-                const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
-                window.location.replace(prefix + '/login.html');
+                window.location.replace('../../login.html');
             }
         };
-
+        
         // 10. อัปเดตยอดที่นั่งแบบ Real-time
         function subscribeRealtimeSeats() {
             if (!db) return;
