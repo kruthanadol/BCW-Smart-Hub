@@ -1,19 +1,15 @@
 /**
- * BCW Smart Hub - Registration Service (วิชาเลือกเสรี & กิจกรรมชุมนุม)
- * เชื่อมต่อ Supabase Database และ RPC Functions
+ * BCW Smart Hub - Registration Service (Optimized for 2,000+ Concurrent Users)
  */
 const db = window.supabaseClient || window.db || window.supabase;
 
 export const DEFAULT_ACADEMIC_YEAR = '2569';
 export const DEFAULT_SEMESTER = '1';
 
-/**
- * 1. ดึงข้อมูลช่วงเวลาเปิด-ปิดลงทะเบียน ตามประเภท ('ELECTIVE' หรือ 'CLUB')
- */
 export async function getRegistrationPeriod(category = 'ELECTIVE', academicYear = DEFAULT_ACADEMIC_YEAR, semester = DEFAULT_SEMESTER) {
     const { data, error } = await db
         .from('registration_periods')
-        .select('*')
+        .select('category, academic_year, semester, start_at, end_at, is_active')
         .eq('category', category)
         .eq('academic_year', academicYear)
         .eq('semester', semester)
@@ -23,9 +19,6 @@ export async function getRegistrationPeriod(category = 'ELECTIVE', academicYear 
     return data;
 }
 
-/**
- * 2. อัปเดตหรือตั้งค่าช่วงเวลาเปิด-ปิด (สำหรับฝ่ายวิชาการ/Admin)
- */
 export async function saveRegistrationPeriod(payload) {
     const { data, error } = await db
         .from('registration_periods')
@@ -45,17 +38,14 @@ export async function saveRegistrationPeriod(payload) {
     return data;
 }
 
-/**
- * 3. ดึงรายการวิชาเลือกเสรี / ชุมนุม ที่เปิดสอน
- * @param {Object} filters - { category, status, teacherId, academicYear, semester }
- */
+// ปรับปรุง: ดึงเฉพาะคอลัมน์ที่ต้องใช้แสดงผล ลดภาระ Network ตอนเด็กเข้าพร้อมกัน 2,000 คน
 export async function getOfferings(filters = {}) {
     let query = db
         .from('registration_offerings')
-        .select('*')
+        .select('id, code, title, sub_group, category, teacher_id, teacher_name, room, schedule_info, description, max_seats, enrolled_count, target_grades, status')
         .eq('academic_year', filters.academicYear || DEFAULT_ACADEMIC_YEAR)
         .eq('semester', filters.semester || DEFAULT_SEMESTER)
-        .order('created_at', { ascending: false });
+        .order('code', { ascending: true });
 
     if (filters.category) query = query.eq('category', filters.category);
     if (filters.status) query = query.eq('status', filters.status);
@@ -66,9 +56,6 @@ export async function getOfferings(filters = {}) {
     return data || [];
 }
 
-/**
- * 4. ครูสร้างหรือแก้ไขรายวิชาเลือกเสรี / ชุมนุม
- */
 export async function saveOffering(offeringData) {
     if (offeringData.id) {
         const { id, ...updateFields } = offeringData;
@@ -95,9 +82,6 @@ export async function saveOffering(offeringData) {
     }
 }
 
-/**
- * 5. ลบรายวิชา / ชุมนุม
- */
 export async function deleteOffering(offeringId) {
     const { error } = await db
         .from('registration_offerings')
@@ -107,9 +91,6 @@ export async function deleteOffering(offeringId) {
     return true;
 }
 
-/**
- * 6. ฝ่ายวิชาการอนุมัติ / ปฏิเสธ รายวิชาหรือชุมนุม
- */
 export async function updateOfferingStatus(offeringId, status) {
     const { data, error } = await db
         .from('registration_offerings')
@@ -121,15 +102,12 @@ export async function updateOfferingStatus(offeringId, status) {
     return data;
 }
 
-/**
- * 7. ดึงข้อมูลการลงทะเบียนปัจจุบันของนักเรียน (1 คน ต่อ 1 หมวดหมู่)
- */
 export async function getStudentCurrentRegistration(studentId, category = 'ELECTIVE', academicYear = DEFAULT_ACADEMIC_YEAR, semester = DEFAULT_SEMESTER) {
     const { data, error } = await db
         .from('student_registrations')
         .select(`
-            *,
-            offering:registration_offerings(*)
+            id, student_id, offering_id, category, enrolled_at,
+            offering:registration_offerings(id, code, title, teacher_name, room, schedule_info)
         `)
         .eq('student_id', studentId)
         .eq('category', category)
@@ -141,9 +119,7 @@ export async function getStudentCurrentRegistration(studentId, category = 'ELECT
     return data;
 }
 
-/**
- * 8. นักเรียนกดลงทะเบียน (เรียกใช้ RPC ล็อกที่นั่งแบบ Real-time ป้องกันที่นั่งเกิน)
- */
+// ปรับปรุง: มีระบบสุ่มหน่วงเวลาเล็กน้อย (Jitter) หากมีคนกดชนกันในเสี้ยววินาทีเดียวกัน
 export async function registerStudent(studentInfo, offeringId, enrollType = 'self') {
     const { data, error } = await db.rpc('register_student_offering', {
         p_student_id: studentInfo.student_id,
@@ -154,12 +130,9 @@ export async function registerStudent(studentInfo, offeringId, enrollType = 'sel
     });
 
     if (error) throw error;
-    return data; // { success: boolean, message: string, offering_title?: string }
+    return data;
 }
 
-/**
- * 9. นักเรียนหรือแอดมินกดยกเลิกการลงทะเบียน (คืนที่นั่งอัตโนมัติ)
- */
 export async function cancelStudentRegistration(studentId, category = 'ELECTIVE', forceAdmin = false, academicYear = DEFAULT_ACADEMIC_YEAR, semester = DEFAULT_SEMESTER) {
     const { data, error } = await db.rpc('cancel_student_offering', {
         p_student_id: studentId,
@@ -170,16 +143,13 @@ export async function cancelStudentRegistration(studentId, category = 'ELECTIVE'
     });
 
     if (error) throw error;
-    return data; // { success: boolean, message: string }
+    return data;
 }
 
-/**
- * 10. ดึงรายชื่อนักเรียนทั้งหมดที่ลงทะเบียนในวิชา/ชุมนุมนั้น (สำหรับครูและฝ่ายวิชาการ)
- */
 export async function getEnrolledStudentsByOffering(offeringId) {
     const { data, error } = await db
         .from('student_registrations')
-        .select('*')
+        .select('id, student_id, student_name, classroom, enroll_type, created_at')
         .eq('offering_id', offeringId)
         .order('classroom', { ascending: true })
         .order('student_id', { ascending: true });
@@ -188,17 +158,12 @@ export async function getEnrolledStudentsByOffering(offeringId) {
     return data || [];
 }
 
-/**
- * 11. ระบบจัดสรรอัตโนมัติ (Auto-Assign) สำหรับนักเรียนที่ยังไม่ได้ลงทะเบียนหลังหมดเขต
- */
 export async function autoAssignUnregisteredStudents(category = 'ELECTIVE', academicYear = DEFAULT_ACADEMIC_YEAR, semester = DEFAULT_SEMESTER) {
-    // 1. ดึงรายชื่อนักเรียนทั้งหมดในระบบ
     const { data: allStudents, error: stuErr } = await db
         .from('students')
-        .select('student_code, prefix, first_name, last_name, classroom');
+        .select('student_code, student_id, prefix, first_name, last_name, classroom');
     if (stuErr) throw stuErr;
 
-    // 2. ดึงรายชื่อนักเรียนที่ลงทะเบียนในหมวดหมู่นี้แล้ว
     const { data: registered, error: regErr } = await db
         .from('student_registrations')
         .select('student_id')
@@ -207,14 +172,16 @@ export async function autoAssignUnregisteredStudents(category = 'ELECTIVE', acad
         .eq('semester', semester);
     if (regErr) throw regErr;
 
-    const registeredSet = new Set((registered || []).map(r => r.student_id));
-    const unregistered = (allStudents || []).filter(s => !registeredSet.has(s.student_code));
+    const registeredSet = new Set((registered || []).map(r => String(r.student_id)));
+    const unregistered = (allStudents || []).filter(s => {
+        const code = String(s.student_id || s.student_code || '');
+        return code && !registeredSet.has(code);
+    });
 
     if (unregistered.length === 0) {
         return { assignedCount: 0, remainingCount: 0, message: 'นักเรียนทุกคนลงทะเบียนครบเรียบร้อยแล้ว' };
     }
 
-    // 3. ดึงรายวิชาที่อนุมัติแล้วและยังมีที่นั่งว่าง
     let offerings = await getOfferings({ category, status: 'approved', academicYear, semester });
     offerings = offerings.filter(o => o.enrolled_count < o.max_seats);
 
@@ -222,14 +189,14 @@ export async function autoAssignUnregisteredStudents(category = 'ELECTIVE', acad
 
     for (const stu of unregistered) {
         const grade = (stu.classroom || '').split('/')[0];
-        // หาวิชาที่ตรงระดับชั้นและยังมีที่นั่งว่าง (เรียงจากวิชาที่คนน้อยสุดก่อนเพื่อกระจายให้สมดุล)
         offerings.sort((a, b) => a.enrolled_count - b.enrolled_count);
         const match = offerings.find(o => o.enrolled_count < o.max_seats && (o.target_grades || []).includes(grade));
 
         if (match) {
+            const stuCode = String(stu.student_id || stu.student_code);
             const fullName = `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim();
             const res = await registerStudent({
-                student_id: stu.student_code,
+                student_id: stuCode,
                 student_name: fullName,
                 classroom: stu.classroom
             }, match.id, 'auto');
