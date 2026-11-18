@@ -669,8 +669,11 @@
         };
 
         // 7. ส่งคำสั่งลงทะเบียนผ่าน Supabase RPC
+ let isSubmittingEnroll = false;
+
         window.executeEnrollment = async function() {
-            if (!selectedOfferingToEnroll) return;
+            if (!selectedOfferingToEnroll || isSubmittingEnroll) return;
+            isSubmittingEnroll = true;
 
             const btn = document.getElementById('btnConfirmEnroll');
             btn.disabled = true;
@@ -684,14 +687,16 @@
                     await window.loadAllStudentData();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
-                    alert(`⚠️ ${res?.message || 'ไม่สามารถลงทะเบียนได้'}`);
+                    alert(`⚠️ ${res?.message || 'ไม่สามารถลงทะเบียนได้ (ที่นั่งอาจเต็มพอดี)'}`);
                     window.closeConfirmModal();
                     await window.loadAllStudentData();
                 }
             } catch (err) {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+                alert('ระบบมีผู้ใช้งานจำนวนมาก กรุณากดยืนยันใหม่อีกครั้ง: ' + err.message);
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-check"></i> ยืนยันลงทะเบียน`;
+            } finally {
+                isSubmittingEnroll = false;
             }
         };
 
