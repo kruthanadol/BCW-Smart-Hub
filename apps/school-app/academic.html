@@ -502,9 +502,9 @@
             </div>
         </section>
 
-        <!-- 📈 แผนภูมิแสดงจำนวนนักเรียนเสี่ยงติด มส. และเรียนซ้ำ -->
+<!-- 📈 แผนภูมิแสดงจำนวนนักเรียนเสี่ยงติด มส. และเรียนซ้ำ -->
         <section id="section-charts" class="academic-card p-2.5 md:p-4 flex-1 flex flex-col min-h-0">
-            <div class="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-100 pb-1.5 shrink-0">
+            <div class="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-100 pb-2 shrink-0">
                 <div class="min-w-0 flex items-center gap-1.5">
                     <h3 class="text-xs md:text-base font-bold text-slate-900 flex items-center gap-1.5 truncate">
                         <i class="fa-solid fa-chart-bar text-indigo-600"></i> สถิตินักเรียนเสี่ยงติด มส. และเรียนซ้ำ
@@ -512,12 +512,23 @@
                     <span id="activeGradeFilterBadge" class="hidden bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full">เฉพาะ ม.1</span>
                 </div>
                 
-                <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl text-[11px] font-semibold shrink-0">
-                    <button type="button" id="btnByRoom" onclick="window.switchChartView('room')" class="px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-xs transition cursor-pointer">
-                        รายห้องเรียน
+                <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                    <!-- ปุ่มสลับมุมมองรายห้อง / ระดับชั้น -->
+                    <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl text-[11px] font-semibold">
+                        <button type="button" id="btnByRoom" onclick="window.switchChartView('room')" class="px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-xs transition cursor-pointer">
+                            รายห้องเรียน
+                        </button>
+                        <button type="button" id="btnByGrade" onclick="window.switchChartView('grade')" class="px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer">
+                            ระดับชั้น (ม.1-ม.6)
+                        </button>
+                    </div>
+
+                    <!-- ปุ่มบันทึกรูปกราฟ & พิมพ์ติดหน้าบอร์ด -->
+                    <button type="button" onclick="window.downloadChartImage()" class="bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1 transition active:scale-95 cursor-pointer" title="บันทึกรูปกราฟความละเอียดสูง">
+                        <i class="fa-solid fa-image"></i> <span class="hidden sm:inline">รูปภาพ</span>
                     </button>
-                    <button type="button" id="btnByGrade" onclick="window.switchChartView('grade')" class="px-2 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition cursor-pointer">
-                        ระดับชั้น (ม.1-ม.6)
+                    <button type="button" onclick="window.printChartForBoard()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1 transition active:scale-95 cursor-pointer" title="พิมพ์กราฟขนาดใหญ่ติดบอร์ดประชาสัมพันธ์">
+                        <i class="fa-solid fa-thumbtack"></i> <span>พิมพ์ติดบอร์ด</span>
                     </button>
                 </div>
             </div>
@@ -526,7 +537,6 @@
                 <canvas id="riskChart"></canvas>
             </div>
         </section>
-
         <!-- 📱 APP GRID 4 รายงานวิเคราะห์วิชาการ (มือถือ) -->
         <div class="grid grid-cols-4 gap-2 shrink-0 lg:hidden no-print">
             <button type="button" onclick="openAcademicSheet('levelSummaryDrawer')" class="mobile-app-card border-indigo-200 cursor-pointer">
@@ -1274,6 +1284,105 @@
             printBox.classList.remove('hidden');
             window.print();
             printBox.classList.add('hidden');
+        };
+        // ตัวแปรเก็บสถานะมุมมองกราฟปัจจุบัน ('room' หรือ 'grade')
+        window.CURRENT_CHART_VIEW = 'room';
+
+        // อัปเดตฟังก์ชันสลับมุมมองกราฟให้จำค่าล่าสุดไว้ด้วย
+        const originalSwitchChartView = window.switchChartView;
+        window.switchChartView = function(viewType) {
+            window.CURRENT_CHART_VIEW = viewType;
+            if (originalSwitchChartView) originalSwitchChartView(viewType);
+        };
+
+        // 1. บันทึกรูปกราฟเป็นไฟล์ PNG พื้นหลังสีขาว (พร้อมนำไปใส่สไลด์หรือส่งไลน์)
+        window.downloadChartImage = function() {
+            const canvas = document.getElementById('riskChart');
+            if (!canvas) return alert('ไม่พบกราฟข้อมูล');
+
+            // สร้าง Canvas ชั่วคราวเติมพื้นหลังสีขาว (ป้องกันพื้นหลังโปร่งใสอ่านยาก)
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            ctx.drawImage(canvas, 0, 0);
+
+            const link = document.createElement('a');
+            const viewLabel = window.CURRENT_CHART_VIEW === 'grade' ? 'ระดับชั้น' : 'รายห้องเรียน';
+            link.download = `กราฟสถิติ_มส_${viewLabel}_${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = tempCanvas.toDataURL('image/png', 1.0);
+            link.click();
+        };
+
+        // 2. พิมพ์กราฟติดหน้าบอร์ดประชาสัมพันธ์ (จัดหน้า A4 แนวนอน ตัวใหญ่ อ่านง่าย พร้อมตารางสรุปใต้กราฟ)
+        window.printChartForBoard = function() {
+            const canvas = document.getElementById('riskChart');
+            const printBox = document.getElementById('single-topic-print-box');
+            if (!canvas || !printBox) return alert('ไม่สามารถสร้างหน้าพิมพ์กราฟได้');
+
+            // แปลงกราฟปัจจุบันเป็นรูปภาพความคมชัดสูง
+            const chartImgDataUrl = canvas.toDataURL('image/png', 1.0);
+            const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            const viewTitle = window.CURRENT_CHART_VIEW === 'grade'
+                ? 'จำแนกตามระดับชั้น (ม.1 – ม.6)'
+                : 'จำแนกตามห้องเรียน';
+
+            // ดึงข้อมูลตัวเลขมาสร้างตารางสรุปด้านล่างกราฟเพื่อให้อ่านง่ายขึ้นเมื่อติดบอร์ด
+            const data = window.globalProcessedData || {};
+            const summaryObj = window.CURRENT_CHART_VIEW === 'grade' ? (data.gradeSummary || {}) : (data.roomSummary || {});
+            const keys = Object.keys(summaryObj).sort();
+
+            const tableHeaders = keys.map(k => `<th style="border:1px solid #334155; padding:4px; text-align:center; background:#f1f5f9;">${k}</th>`).join('');
+            const rowWarning = keys.map(k => `<td style="border:1px solid #334155; padding:4px; text-align:center; font-weight:700; color:#a16207;">${summaryObj[k]?.warning || 0}</td>`).join('');
+            const rowRisk = keys.map(k => `<td style="border:1px solid #334155; padding:4px; text-align:center; font-weight:700; color:#c2410c;">${summaryObj[k]?.risk || 0}</td>`).join('');
+            const rowRepeat = keys.map(k => `<td style="border:1px solid #334155; padding:4px; text-align:center; font-weight:700; color:#be123c;">${summaryObj[k]?.repeat || 0}</td>`).join('');
+
+            printBox.innerHTML = `
+                <div style="font-family: 'Kanit', sans-serif; padding: 6px; text-align: center;">
+                    <!-- หัวป้ายติดบอร์ดขนาดใหญ่ -->
+                    <div style="background: #1e1b4b; color: #ffffff; padding: 10px 16px; border-radius: 12px; margin-bottom: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                        <div style="font-size: 20px; font-weight: 800; color: #facc15;">📊 สถิตินักเรียนกลุ่มเฝ้าระวัง เสี่ยงติด มส. และต้องเรียนซ้ำ</div>
+                        <div style="font-size: 14px; font-weight: 600; margin-top: 2px;">${viewTitle} • กลุ่มบริหารวิชาการ โรงเรียนบัวเชดวิทยา (ข้อมูล ณ วันที่ ${todayTH})</div>
+                    </div>
+
+                    <!-- รูปกราฟขนาดใหญ่เต็มหน้ากระดาษ -->
+                    <div style="border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 10px; background: #ffffff; margin-bottom: 12px;">
+                        <img src="${chartImgDataUrl}" style="width: 100%; max-height: 360px; object-fit: contain; margin: 0 auto;" />
+                    </div>
+
+                    <!-- ตารางตัวเลขสรุปประกอบกราฟด้านล่าง -->
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th style="border:1px solid #334155; padding:5px; text-align:left; background:#e2e8f0;">เกณฑ์เวลาเรียน / ระดับชั้น</th>
+                                ${tableHeaders}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="border:1px solid #334155; padding:4px 6px; text-align:left; font-weight:700;">🟡 เฝ้าระวัง (80% - 82%)</td>
+                                ${rowWarning}
+                            </tr>
+                            <tr>
+                                <td style="border:1px solid #334155; padding:4px 6px; text-align:left; font-weight:700;">🟠 เสี่ยงติด มส. (60% - 79%)</td>
+                                ${rowRisk}
+                            </tr>
+                            <tr>
+                                <td style="border:1px solid #334155; padding:4px 6px; text-align:left; font-weight:700;">🔴 ต้องเรียนซ้ำ (&lt; 60%)</td>
+                                ${rowRepeat}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            printBox.classList.remove('hidden');
+            setTimeout(() => {
+                window.print();
+                printBox.classList.add('hidden');
+            }, 150);
         };
 
         function updateThaiClock() {
