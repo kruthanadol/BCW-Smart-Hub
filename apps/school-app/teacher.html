@@ -347,6 +347,22 @@
                 <!-- Dynamic Mobile Student Cards -->
             </div>
 
+                <div class="flex items-center justify-between gap-1.5">
+                    <a href="ai-gate.html" class="flex-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-xl font-medium shadow-2xs flex items-center justify-center gap-1.5 transition active:scale-95">
+                        <i class="fa-solid fa-camera"></i> กล้อง AI
+                    </a>
+                    <button type="button" onclick="applyBatchLeave()" class="flex-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-800 px-2.5 py-1.5 rounded-xl border border-indigo-200 font-medium cursor-pointer text-center">⚡ ลายกห้อง</button>
+                    <button type="button" onclick="openManualLeaveModal()" class="flex-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-2.5 py-1.5 rounded-xl border border-amber-200 font-medium cursor-pointer text-center">➕ ลาผ่านครู</button>
+                </div>
+
+                <!-- แถบสรุปเปอร์เซ็นต์เวลาเรียน & แจ้งเตือนกลุ่มเสี่ยงติด มส. (< 80%) -->
+                <div id="riskAlertBanner" class="hidden rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2 transition">
+                    <div id="riskAlertText" class="flex items-center gap-1.5 min-w-0"></div>
+                    <button type="button" id="btnFilterRisk" onclick="toggleRiskOnlyFilter()" class="hidden shrink-0 px-2.5 py-1 rounded-lg font-medium text-[11px] bg-rose-600 hover:bg-rose-700 text-white cursor-pointer transition">
+                        กรองดูกลุ่มเสี่ยง
+                    </button>
+                </div>
+            
             <!-- Desktop View: One-Tap Table -->
             <div class="hidden sm:block overflow-x-auto w-full">
                 <table class="w-full text-left border-collapse text-sm font-normal">
@@ -532,8 +548,9 @@
     let ATTENDANCE_STATE = {};
     let CURRENT_NURSE_COUNT = 0;
     let CURRENT_OUT_COUNT = 0;
-    let IS_CHECKING_ACTIVE = false;
+let IS_CHECKING_ACTIVE = false;
     let DB_STATUS_SAMPLE = '';
+    let FILTER_RISK_ONLY = false;
 
     document.addEventListener('DOMContentLoaded', async () => {
         try {
@@ -736,6 +753,7 @@
         window.location.replace(prefix + '/login.html?logout=1');
     }
 
+    // โหลดทั้งตารางสอนปกติ + รายวิชาเลือกเสรี & กิจกรรมชุมนุมของครู
     async function loadRealSubjectSchedules(teacherId) {
         const modalList = document.getElementById('subjectModalList');
         const customText = document.getElementById('customSubjectText');
@@ -745,8 +763,13 @@
             const client = window.supabaseClient || window.db || window.supabase;
             if (!client) return;
 
-            const { data: allSchedules } = await client.from('schedules').select('*').limit(300);
-            const rawList = allSchedules || [];
+            const [resSched, resOfferings] = await Promise.all([
+                client.from('schedules').select('*').limit(300),
+                client.from('registration_offerings').select('*').order('created_at', { ascending: false })
+            ]);
+
+            const rawList = resSched.data || [];
+            const allOfferings = resOfferings.data || [];
 
             const targetTeacherId = String(teacherId || CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.teacherId || '').trim().toLowerCase();
             let schedules = [];
@@ -757,55 +780,84 @@
                     return rowTid === targetTeacherId;
                 });
             }
+            if (schedules.length === 0) schedules = rawList;
 
-            if (schedules.length === 0) {
-                schedules = rawList;
+            // กรองรายวิชาเลือกเสรีและชุมนุมของครูคนนี้
+            let myOfferings = allOfferings;
+            if (targetTeacherId) {
+                const matched = allOfferings.filter(o => String(o.teacher_id || '').trim().toLowerCase() === targetTeacherId);
+                if (matched.length > 0) myOfferings = matched;
             }
 
-            if (!schedules || schedules.length === 0) {
+            const uniqueOptions = [];
+            const map = new Map();
+
+            // 1. รายวิชาตารางสอนปกติ (REGULAR)
+            for (const s of schedules) {
+                const cCode = s.course_code || s.subject_code || 'วิชา';
+                const cRoom = s.classroom || s.class_name || 'ไม่ระบุ';
+                const cName = s.course_name || s.subject_name || cCode;
+                const periodNo = s.period_no || s.period || '';
+                const key = `REGULAR|${cCode}|${cRoom}`;
+                if (!map.has(key)) {
+                    map.set(key, true);
+                    uniqueOptions.push({
+                        mode: 'REGULAR',
+                        val: `${cCode}|${cRoom}|${cName}|${periodNo}|REGULAR|`,
+                        label: `${cName} (${cCode}) - ห้อง ${cRoom}`,
+                        badgeHtml: `<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium shrink-0">รายวิชา</span>`
+                    });
+                }
+            }
+
+            // 2. รายวิชาเลือกเสรี & ชุมนุม (OFFERING)
+            for (const off of myOfferings) {
+                const isClub = (off.category || '').toUpperCase() === 'CLUB';
+                const code = off.code || (isClub ? 'ชุมนุม' : 'เลือกเสรี');
+                const groupLabel = isClub ? 'กิจกรรมชุมนุม' : 'วิชาเลือกเสรี';
+                const tagHtml = isClub
+                    ? `<span class="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-medium shrink-0">ชุมนุม</span>`
+                    : `<span class="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-medium shrink-0">เลือกเสรี</span>`;
+
+                uniqueOptions.push({
+                    mode: 'OFFERING',
+                    val: `${code}|${groupLabel}|${off.title}|1|OFFERING|${off.id}`,
+                    label: `${off.title} (${groupLabel})`,
+                    badgeHtml: tagHtml
+                });
+            }
+
+            if (uniqueOptions.length === 0) {
                 if (customText) customText.innerText = "-- ไม่พบตารางสอนในระบบ --";
-                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนในฐานข้อมูล</p>`;
+                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนหรือรายวิชาที่เปิดรับสมัคร</p>`;
                 renderStudents();
                 return;
             }
 
-            const uniqueSubjects = [];
-            const map = new Map();
-            for (const s of schedules) {
-                const key = `${s.course_code || s.subject_code || ''}|${s.classroom || s.class_name || ''}`;
-                if (!map.has(key)) {
-                    map.set(key, true);
-                    uniqueSubjects.push(s);
-                }
-            }
-
             if (modalList) {
-                modalList.innerHTML = uniqueSubjects.map(s => {
-                    const cCode = s.course_code || s.subject_code || 'วิชา';
-                    const cRoom = s.classroom || s.class_name || 'ไม่ระบุ';
-                    const cName = s.course_name || s.subject_name || cCode;
-                    const periodNo = s.period_no || s.period || '';
-                    const val = `${cCode}|${cRoom}|${cName}|${periodNo}`;
-                    const label = `${cName} (${cCode}) - ห้อง ${cRoom}`;
-                    return `
-                        <button type="button" onclick="selectSubjectOption('${val}', '${label.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 font-normal transition border border-transparent hover:border-emerald-200 flex items-center justify-between cursor-pointer">
-                            <span>${label}</span>
-                            <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
-                        </button>
-                    `;
-                }).join('');
+                const listHtml = uniqueOptions.map(opt => `
+                    <button type="button" onclick="selectSubjectOption('${opt.val}', '${opt.label.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 font-normal transition border border-transparent hover:border-emerald-200 flex items-center justify-between gap-2 cursor-pointer">
+                        <div class="flex items-center gap-2 min-w-0">
+                            ${opt.badgeHtml}
+                            <span class="truncate">${opt.label}</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-400 shrink-0"></i>
+                    </button>
+                `).join('');
+
+                const manageLinkHtml = `
+                    <div class="pt-2 mt-2 border-t border-slate-100">
+                        <a href="../../modules/registration/teacher-offering.html" class="w-full p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 text-xs font-medium flex items-center justify-center gap-1.5 transition">
+                            <i class="fa-solid fa-book-open-reader"></i> จัดการเปิดวิชาเลือกเสรี & ชุมนุม
+                        </a>
+                    </div>
+                `;
+                modalList.innerHTML = listHtml + manageLinkHtml;
             }
 
-            const first = uniqueSubjects[0];
-            const firstCode = first.course_code || first.subject_code || 'วิชา';
-            const firstRoom = first.classroom || first.class_name || 'ไม่ระบุ';
-            const firstName = first.course_name || first.subject_name || firstCode;
-            const firstPeriod = first.period_no || first.period || '';
-            const defaultVal = `${firstCode}|${firstRoom}|${firstName}|${firstPeriod}`;
-            const defaultLabel = `${firstName} (${firstCode}) - ห้อง ${firstRoom}`;
-
-            if (subjectInput) subjectInput.value = defaultVal;
-            if (customText) customText.innerText = defaultLabel;
+            const first = uniqueOptions[0];
+            if (subjectInput) subjectInput.value = first.val;
+            if (customText) customText.innerText = first.label;
 
             await renderStudents();
             await loadHomeworkHistory();
@@ -813,214 +865,20 @@
             if (customText) customText.innerText = "-- เลือกวิชาและห้องเรียน --";
         }
     }
-    
-    window.toggleStatsDrawer = function() {
-        const trafficSec = document.getElementById('section-traffic');
-        const btnText = document.getElementById('btnStatsText');
-        const chevron = document.getElementById('statsChevron');
-        if (trafficSec) {
-            trafficSec.classList.toggle('hidden');
-            const isHidden = trafficSec.classList.contains('hidden');
-            if (btnText) btnText.innerText = isHidden ? 'ดูสถิติเข้าเรียนรายวิชา' : 'ซ่อนสถิติเข้าเรียนรายวิชา';
-            if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+
+    window.toggleRiskOnlyFilter = function() {
+        FILTER_RISK_ONLY = !FILTER_RISK_ONLY;
+        const btn = document.getElementById('btnFilterRisk');
+        if (btn) {
+            btn.innerText = FILTER_RISK_ONLY ? 'แสดงนักเรียนทั้งหมด' : 'กรองดูกลุ่มเสี่ยง';
+            btn.className = FILTER_RISK_ONLY
+                ? 'shrink-0 px-2.5 py-1 rounded-lg font-medium text-[11px] bg-slate-800 hover:bg-slate-900 text-white cursor-pointer transition'
+                : 'shrink-0 px-2.5 py-1 rounded-lg font-medium text-[11px] bg-rose-600 hover:bg-rose-700 text-white cursor-pointer transition';
         }
-    };
-
-    window.toggleMobileStatsDrawer = function(btnElement) {
-        const drawer = document.getElementById('mobileStatsDrawer');
-        const navBtn = btnElement || document.getElementById('btnMobileNavStats');
-        if (!drawer) return;
-
-        const isOpening = !drawer.classList.contains('open');
-        drawer.classList.toggle('open');
-
-        if (isOpening) {
-            hideMobileFloatingStats();
-            if (navBtn) {
-                document.querySelectorAll('.teacher-nav-btn:not(.action-check-btn)').forEach(btn => btn.classList.remove('active'));
-                navBtn.classList.add('active');
-            }
-        } else {
-            if (navBtn) navBtn.classList.remove('active');
-            if (IS_CHECKING_ACTIVE) showMobileFloatingStats();
-        }
-    };
-
-    function showMobileFloatingStats() {
-        const floater = document.getElementById('mobileFloatingStats');
-        if (floater) {
-            floater.classList.remove('translate-y-8', 'opacity-0');
-            floater.classList.add('translate-y-0', 'opacity-100');
-        }
-    }
-
-    window.hideMobileFloatingStats = function() {
-        const floater = document.getElementById('mobileFloatingStats');
-        if (floater) {
-            floater.classList.remove('translate-y-0', 'opacity-100');
-            floater.classList.add('translate-y-8', 'opacity-0');
-        }
-    };
-
-    window.scrollToTeacherSection = function(sectionId, btnElement) {
-        const drawer = document.getElementById('mobileStatsDrawer');
-        if (drawer && drawer.classList.contains('open')) drawer.classList.remove('open');
-
-        const target = document.getElementById(sectionId);
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            if (btnElement) {
-                document.querySelectorAll('.teacher-nav-btn:not(.action-check-btn)').forEach(btn => btn.classList.remove('active'));
-                btnElement.classList.add('active');
-            }
-        }
-    };
-
-    window.toggleSubjectModal = function() {
-        const modal = document.getElementById('subjectModal');
-        if (modal) modal.classList.toggle('hidden');
-    };
-
-    window.selectSubjectOption = async function(val, labelText) {
-        document.getElementById('subjectSelect').value = val;
-        document.getElementById('customSubjectText').innerText = labelText;
-        window.toggleSubjectModal();
-        await renderStudents();
-        await loadHomeworkHistory();
-    };
-
-    function normalizeDbStatus(raw) {
-        const s = String(raw || '').trim().toLowerCase();
-        if (s === 'present' || s === 'มา' || s === 'มาเรียน') return 'present';
-        if (s === 'late' || s === 'สาย' || s === 'มาสาย') return 'late';
-        if (s === 'leave' || s === 'ลา' || s === 'ลากิจ' || s === 'ลาป่วย') return 'leave';
-        if (s === 'absent' || s === 'ขาด' || s === 'ขาดเรียน') return 'absent';
-        if (s === 'truant' || s === 'หนี' || s === 'หนีเรียน') return 'truant';
-        return '';
-    }
-
-    window.updateLiveSubjectStats = function() {
-        const total = CURRENT_STUDENTS_CACHE.length;
-        let present = 0, late = 0, leave = 0, absent = 0, truant = 0;
-
-        CURRENT_STUDENTS_CACHE.forEach(s => {
-            const studentId = String(s.student_id || s.id).trim();
-            const val = ATTENDANCE_STATE[studentId] || 'present';
-            if (val === 'present') present++;
-            else if (val === 'late') late++;
-            else if (val === 'leave') leave++;
-            else if (val === 'absent') absent++;
-            else if (val === 'truant') truant++;
+        document.querySelectorAll('[data-risk-student]').forEach(el => {
+            const isRisk = el.getAttribute('data-risk-student') === '1';
+            el.style.display = (FILTER_RISK_ONLY && !isRisk) ? 'none' : '';
         });
-
-        const presentPct = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
-
-        if (document.getElementById('summary-present-count')) document.getElementById('summary-present-count').innerText = `${present} คน (${presentPct}%)`;
-        if (document.getElementById('summary-late-count')) document.getElementById('summary-late-count').innerText = `${late} คน`;
-        if (document.getElementById('summary-leave-count')) document.getElementById('summary-leave-count').innerText = `${leave} คน`;
-        if (document.getElementById('summary-absent-count')) document.getElementById('summary-absent-count').innerText = `${absent} คน`;
-        if (document.getElementById('summary-truant-count')) document.getElementById('summary-truant-count').innerText = `${truant} คน`;
-
-        if (document.getElementById('drawer-present-count')) document.getElementById('drawer-present-count').innerText = `${present} คน (${presentPct}%)`;
-        if (document.getElementById('drawer-late-count')) document.getElementById('drawer-late-count').innerText = `${late} คน`;
-        if (document.getElementById('drawer-leave-count')) document.getElementById('drawer-leave-count').innerText = `${leave} คน`;
-        if (document.getElementById('drawer-absent-count')) document.getElementById('drawer-absent-count').innerText = `${absent} คน`;
-        if (document.getElementById('drawer-truant-count')) document.getElementById('drawer-truant-count').innerText = `${truant} คน`;
-
-        if (document.getElementById('float-present')) document.getElementById('float-present').innerText = present;
-        if (document.getElementById('float-late')) document.getElementById('float-late').innerText = late;
-        if (document.getElementById('float-leave')) document.getElementById('float-leave').innerText = leave;
-        if (document.getElementById('float-absent')) document.getElementById('float-absent').innerText = absent;
-        if (document.getElementById('float-truant')) document.getElementById('float-truant').innerText = truant;
-
-        const hasEvents = CURRENT_NURSE_COUNT > 0 || CURRENT_OUT_COUNT > 0;
-        const deskRow = document.getElementById('desktopEventAlertsRow');
-        const deskNurse = document.getElementById('desktopNurseBadge');
-        const deskOut = document.getElementById('desktopOutBadge');
-        if (deskRow) deskRow.classList.toggle('hidden', !hasEvents);
-        if (deskNurse) {
-            deskNurse.classList.toggle('hidden', CURRENT_NURSE_COUNT === 0);
-            document.getElementById('desktop-nurse-count').innerText = CURRENT_NURSE_COUNT;
-        }
-        if (deskOut) {
-            deskOut.classList.toggle('hidden', CURRENT_OUT_COUNT === 0);
-            document.getElementById('desktop-out-count').innerText = CURRENT_OUT_COUNT;
-        }
-
-        const drawerRow = document.getElementById('drawerEventAlertsRow');
-        const drawerNurse = document.getElementById('drawerNurseCard');
-        const drawerOut = document.getElementById('drawerOutCard');
-        if (drawerRow) drawerRow.classList.toggle('hidden', !hasEvents);
-        if (drawerNurse) {
-            drawerNurse.classList.toggle('hidden', CURRENT_NURSE_COUNT === 0);
-            document.getElementById('drawer-nurse-count').innerText = `${CURRENT_NURSE_COUNT} คน`;
-        }
-        if (drawerOut) {
-            drawerOut.classList.toggle('hidden', CURRENT_OUT_COUNT === 0);
-            document.getElementById('drawer-out-count').innerText = `${CURRENT_OUT_COUNT} คน`;
-        }
-
-        const floatRow = document.getElementById('floatEventRow');
-        const floatNurse = document.getElementById('floatNurseTag');
-        const floatOut = document.getElementById('floatOutTag');
-        if (floatRow) floatRow.classList.toggle('hidden', !hasEvents);
-        if (floatNurse) {
-            floatNurse.classList.toggle('hidden', CURRENT_NURSE_COUNT === 0);
-            document.getElementById('float-nurse').innerText = CURRENT_NURSE_COUNT;
-        }
-        if (floatOut) {
-            floatOut.classList.toggle('hidden', CURRENT_OUT_COUNT === 0);
-            document.getElementById('float-out').innerText = CURRENT_OUT_COUNT;
-        }
-    };
-
-    window.toggleMobileNoteBox = function(studentId, forceShow = null) {
-        const box = document.getElementById(`note_box_mobile_${studentId}`);
-        if (!box) return;
-        if (forceShow === true) {
-            box.classList.remove('hidden');
-        } else if (forceShow === false) {
-            const inp = document.getElementById(`note_mobile_${studentId}`);
-            if (!inp || !inp.value.trim()) box.classList.add('hidden');
-        } else {
-            box.classList.toggle('hidden');
-            if (!box.classList.contains('hidden')) {
-                document.getElementById(`note_mobile_${studentId}`)?.focus();
-            }
-        }
-    };
-
-    window.setStudentStatus = function(studentId, statusValue) {
-        ATTENDANCE_STATE[studentId] = statusValue;
-
-        const statuses = ['present', 'late', 'leave', 'absent', 'truant'];
-        statuses.forEach(st => {
-            document.querySelectorAll(`[data-btn="${studentId}_${st}"]`).forEach(btn => {
-                btn.classList.remove('active-present', 'active-late', 'active-leave', 'active-absent', 'active-truant');
-                if (st === statusValue) {
-                    btn.classList.add(`active-${statusValue}`);
-                }
-            });
-        });
-
-        const card = document.getElementById(`student_card_${studentId}`);
-        if (card) {
-            card.classList.remove('card-state-present', 'card-state-late', 'card-state-leave', 'card-state-absent', 'card-state-truant');
-            card.classList.add(`card-state-${statusValue}`);
-        }
-
-        if (statusValue !== 'present') {
-            window.toggleMobileNoteBox(studentId, true);
-        } else {
-            window.toggleMobileNoteBox(studentId, false);
-        }
-
-        window.updateLiveSubjectStats();
-        IS_CHECKING_ACTIVE = true;
-        if (window.innerWidth < 768) {
-            const drawer = document.getElementById('mobileStatsDrawer');
-            if (!drawer || !drawer.classList.contains('open')) showMobileFloatingStats();
-        }
     };
 
     async function renderStudents() {
@@ -1030,19 +888,22 @@
         const selectEl = document.getElementById('subjectSelect');
         const selectedVal = selectEl?.value;
         const targetDateStr = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
-        
+        FILTER_RISK_ONLY = false;
+
         if (!selectedVal) {
             if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-sm text-slate-400 font-normal">กรุณาเลือกวิชาและห้องเรียนเพื่อเริ่มเช็กชื่อ</td></tr>';
             if (mobileList) mobileList.innerHTML = '<div class="text-center py-6 text-sm text-slate-400 font-normal">กรุณาเลือกวิชาและห้องเรียนเพื่อเริ่มเช็กชื่อ</div>';
             return;
         }
 
-        const [courseCode, className] = selectedVal.split('|');
+        const [courseCode, className, courseName, , subjectMode, offeringId] = selectedVal.split('|');
+        const isOfferingMode = subjectMode === 'OFFERING' && offeringId;
+
         const headerTitle = document.getElementById('tableHeaderTitle');
-        if (headerTitle) headerTitle.innerText = `ห้อง ${className}`;
+        if (headerTitle) headerTitle.innerText = isOfferingMode ? `${courseName}` : `ห้อง ${className}`;
 
         const hwClassTag = document.getElementById('homeworkClassTag');
-        if (hwClassTag) hwClassTag.innerText = `${courseCode} • ห้อง ${className}`;
+        if (hwClassTag) hwClassTag.innerText = isOfferingMode ? `${courseName}` : `${courseCode} • ห้อง ${className}`;
 
         if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-sm text-slate-400 font-normal">กำลังดึงข้อมูลนักเรียน Real-time จากฐานข้อมูล...</td></tr>';
         if (mobileList) mobileList.innerHTML = '<div class="text-center py-6 text-sm text-slate-400 font-normal">กำลังดึงข้อมูลนักเรียน Real-time...</div>';
@@ -1051,14 +912,52 @@
             const client = window.supabaseClient || window.db || window.supabase;
             if (!client) throw new Error("ไม่พบการเชื่อมต่อ Supabase");
 
-            const [resStudents, resNurse, resAffairs, resLogs] = await Promise.all([
-                client.from('students').select('*').eq('classroom', className).order('student_no', { ascending: true }),
+            let students = [];
+            if (isOfferingMode) {
+                const { data: regs } = await client
+                    .from('student_registrations')
+                    .select('*')
+                    .eq('offering_id', offeringId)
+                    .order('created_at', { ascending: true });
+
+                const regList = regs || [];
+                const regIds = regList.map(r => String(r.student_id).trim());
+
+                let stuMap = new Map();
+                if (regIds.length > 0) {
+                    const { data: stuDetails } = await client.from('students').select('*').in('student_id', regIds);
+                    (stuDetails || []).forEach(s => stuMap.set(String(s.student_id).trim(), s));
+                }
+
+                students = regList.map((r, i) => {
+                    const sid = String(r.student_id).trim();
+                    const detail = stuMap.get(sid);
+                    if (detail) return { ...detail, student_no: i + 1, _is_mixed_class: true };
+                    return {
+                        student_id: sid,
+                        student_no: i + 1,
+                        prefix: '',
+                        first_name: r.student_name || sid,
+                        last_name: '',
+                        classroom: r.classroom || '-',
+                        _is_mixed_class: true
+                    };
+                });
+            } else {
+                const { data: roomStudents } = await client
+                    .from('students')
+                    .select('*')
+                    .eq('classroom', className)
+                    .order('student_no', { ascending: true });
+                students = roomStudents || [];
+            }
+
+            const [resNurse, resAffairs, resLogs] = await Promise.all([
                 client.from('clinic_records').select('*'),
                 client.from('gate_pass_logs').select('*'),
-                client.from('attendance_logs').select('*').order('recorded_at', { ascending: false }).limit(500)
+                client.from('attendance_logs').select('*').order('recorded_at', { ascending: false }).limit(1500)
             ]);
 
-            const students = resStudents.data || [];
             const allLogs = resLogs.data || [];
             if (allLogs.length > 0 && allLogs[0].status) {
                 DB_STATUS_SAMPLE = String(allLogs[0].status).trim();
@@ -1071,9 +970,14 @@
             IS_CHECKING_ACTIVE = false;
             hideMobileFloatingStats();
 
+            const riskBanner = document.getElementById('riskAlertBanner');
             if (students.length === 0) {
-                if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-sm text-slate-400 font-normal">ไม่พบข้อมูลนักเรียนในห้อง ${className}</td></tr>`;
-                if (mobileList) mobileList.innerHTML = `<div class="text-center py-6 text-sm text-slate-400 font-normal">ไม่พบข้อมูลนักเรียนในห้อง ${className}</div>`;
+                if (riskBanner) riskBanner.classList.add('hidden');
+                const emptyMsg = isOfferingMode
+                    ? `ยังไม่มีนักเรียนลงทะเบียนใน "${courseName}"`
+                    : `ไม่พบข้อมูลนักเรียนในห้อง ${className}`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-sm text-slate-400 font-normal">${emptyMsg}</td></tr>`;
+                if (mobileList) mobileList.innerHTML = `<div class="text-center py-6 text-sm text-slate-400 font-normal">${emptyMsg}</div>`;
                 window.updateLiveSubjectStats();
                 return;
             }
@@ -1083,11 +987,16 @@
 
             const desktopRows = [];
             const mobileCards = [];
+            let riskStudentCount = 0;
+            let maxSubjectSessions = 0;
 
             students.forEach((s, idx) => {
                 const studentId = String(s.student_id || s.id).trim();
                 const studentNo = s.student_no || (idx + 1);
                 const fullName = `${(s.prefix || '').trim()}${(s.first_name || '').trim()} ${(s.last_name || '').trim()}`.trim() || 'นักเรียน';
+                const roomBadge = s._is_mixed_class && s.classroom
+                    ? `<span class="text-[11px] bg-slate-100 text-slate-700 border border-slate-200 px-1.5 py-0.5 rounded font-normal">${s.classroom}</span>`
+                    : '';
 
                 const nurseInfo = (resNurse.data || []).find(n => String(n.student_id).trim() === studentId);
                 const affairInfo = (resAffairs.data || []).find(a => String(a.student_id).trim() === studentId);
@@ -1097,6 +1006,40 @@
 
                 const studentLogs = allLogs.filter(l => String(l.student_id).trim() === studentId);
                 const dateLogs = studentLogs.filter(l => String(l.recorded_at || '').startsWith(targetDateStr));
+
+                // คำนวณเปอร์เซ็นต์การมาเรียนเฉพาะวิชานี้ (จับคู่จากรหัสวิชาหรือชื่อวิชา)
+                const thisSubjectLogs = studentLogs.filter(l => {
+                    if (!l.period_no || l.period_no <= 0) return false;
+                    const subjStr = String(l.subject_name || '');
+                    if (isOfferingMode) return subjStr.includes(courseName);
+                    return subjStr.includes(`(${courseCode})`) || subjStr.includes(courseCode);
+                });
+
+                const totalSubjectSessions = thisSubjectLogs.length;
+                if (totalSubjectSessions > maxSubjectSessions) maxSubjectSessions = totalSubjectSessions;
+
+                const attendedSessions = thisSubjectLogs.filter(l => {
+                    const st = normalizeDbStatus(l.status);
+                    return st === 'present' || st === 'late';
+                }).length;
+
+                let attendancePctBadge = '';
+                let isRiskStudent = false;
+
+                if (totalSubjectSessions >= 4) {
+                    const pct = Math.round((attendedSessions / totalSubjectSessions) * 100);
+                    if (pct < 80) {
+                        isRiskStudent = true;
+                        riskStudentCount++;
+                        attendancePctBadge = `<span title="เวลาเรียน ${attendedSessions}/${totalSubjectSessions} คาบ (ต่ำกว่าเกณฑ์ 80%)" class="shrink-0 bg-rose-100 text-rose-800 border border-rose-300 text-[11px] font-medium px-2 py-0.5 rounded-full">⚠️ ${pct}%</span>`;
+                    } else if (pct < 85) {
+                        attendancePctBadge = `<span title="เวลาเรียน ${attendedSessions}/${totalSubjectSessions} คาบ (ใกล้เกณฑ์ 80%)" class="shrink-0 bg-amber-50 text-amber-800 border border-amber-300 text-[11px] font-medium px-2 py-0.5 rounded-full">${pct}%</span>`;
+                    } else {
+                        attendancePctBadge = `<span title="เวลาเรียน ${attendedSessions}/${totalSubjectSessions} คาบ" class="shrink-0 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-medium px-2 py-0.5 rounded-full">${pct}%</span>`;
+                    }
+                } else if (totalSubjectSessions > 0) {
+                    attendancePctBadge = `<span title="เพิ่งเปิดเรียน ${totalSubjectSessions} คาบ" class="shrink-0 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-normal px-2 py-0.5 rounded-full">มา ${attendedSessions}/${totalSubjectSessions}</span>`;
+                }
 
                 const gateScanLog = dateLogs.find(l => {
                     const st = normalizeDbStatus(l.status);
@@ -1182,14 +1125,18 @@
                 `;
 
                 mobileCards.push(`
-                    <div id="student_card_${studentId}" class="p-3 transition-colors duration-150 card-state-${defaultStatus}">
+                    <div id="student_card_${studentId}" data-risk-student="${isRiskStudent ? '1' : '0'}" class="p-3 transition-colors duration-150 card-state-${defaultStatus}">
                         <div class="flex items-center gap-2.5">
                             <span class="w-6 text-center text-xs font-medium text-slate-500 shrink-0">${studentNo}</span>
                             <img src="${avatarUrl}" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
                             <div class="min-w-0 flex-1">
-                                <div class="font-medium text-slate-800 text-[15px] leading-snug">${fullName}</div>
+                                <div class="flex items-center justify-between gap-1.5">
+                                    <div class="font-medium text-slate-800 text-[15px] leading-snug truncate">${fullName}</div>
+                                    ${attendancePctBadge}
+                                </div>
                                 <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                     <span class="text-[11px] text-slate-500 font-normal">ID: ${studentId}</span>
+                                    ${roomBadge}
                                     ${specialTagHtml}
                                 </div>
                             </div>
@@ -1206,14 +1153,18 @@
                 `);
 
                 desktopRows.push(`
-                    <tr class="hover:bg-slate-50/80 transition ${missedPrevPeriod ? 'bg-orange-50/40' : ''}">
+                    <tr data-risk-student="${isRiskStudent ? '1' : '0'}" class="hover:bg-slate-50/80 transition ${missedPrevPeriod ? 'bg-orange-50/40' : ''}">
                         <td class="p-3 text-center font-normal text-slate-600 text-sm align-middle">${studentNo}</td>
                         <td class="p-3 align-middle">
                             <div class="flex items-center gap-2.5">
                                 <img src="${avatarUrl}" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
                                 <div class="min-w-0 flex-1">
-                                    <div class="font-medium text-slate-800 text-sm leading-snug">${fullName}</div>
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div class="font-medium text-slate-800 text-sm leading-snug truncate">${fullName}</div>
+                                        ${attendancePctBadge}
+                                    </div>
                                     <div class="flex items-center gap-1 mt-0.5 flex-wrap">
+                                        ${roomBadge}
                                         ${specialTagHtml || `<span class="text-[11px] text-slate-500 font-normal">ID: ${studentId}</span>`}
                                     </div>
                                 </div>
@@ -1233,6 +1184,27 @@
 
             if (mobileList) mobileList.innerHTML = mobileCards.join('');
             if (tbody) tbody.innerHTML = desktopRows.join('');
+
+            // อัปเดตแถบแจ้งเตือนกลุ่มเสี่ยงด้านบนตาราง
+            const riskText = document.getElementById('riskAlertText');
+            const btnRisk = document.getElementById('btnFilterRisk');
+            if (riskBanner && riskText && btnRisk) {
+                if (maxSubjectSessions >= 4) {
+                    riskBanner.classList.remove('hidden');
+                    if (riskStudentCount > 0) {
+                        riskBanner.className = 'rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2 bg-rose-50 text-rose-800 border border-rose-200';
+                        riskText.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600 shrink-0"></i> <span class="truncate">พบนักเรียนเวลาเรียนต่ำกว่า 80% จำนวน <strong>${riskStudentCount} คน</strong> (สอนไปแล้ว ${maxSubjectSessions} คาบ)</span>`;
+                        btnRisk.classList.remove('hidden');
+                        btnRisk.innerText = 'กรองดูกลุ่มเสี่ยง';
+                    } else {
+                        riskBanner.className = 'rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200';
+                        riskText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i> <span class="truncate">นักเรียนทุกคนมีเวลาเรียนผ่านเกณฑ์ 80% (สอนไปแล้ว ${maxSubjectSessions} คาบ)</span>`;
+                        btnRisk.classList.add('hidden');
+                    }
+                } else {
+                    riskBanner.classList.add('hidden');
+                }
+            }
 
             window.updateLiveSubjectStats();
         } catch (err) {
@@ -1299,7 +1271,7 @@
     window.submitAttendance = async function() {
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client) return alert('❌ ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
-        if (!CURRENT_STUDENTS_CACHE || CURRENT_STUDENTS_CACHE.length === 0) return alert('ไม่พบรายชื่อนักเรียนในห้องนี้');
+        if (!CURRENT_STUDENTS_CACHE || CURRENT_STUDENTS_CACHE.length === 0) return alert('ไม่พบรายชื่อนักเรียนในกลุ่มนี้');
 
         const btnMobile = document.getElementById('btnMobileSubmit');
         const btnDesktop = document.getElementById('btnDesktopSubmit');
@@ -1316,7 +1288,8 @@
         }
 
         const selectVal = document.getElementById('subjectSelect')?.value || '';
-        const [courseCode, className, courseName, periodStr] = selectVal.split('|');
+        const [courseCode, className, courseName, periodStr, subjectMode] = selectVal.split('|');
+        const isOfferingMode = subjectMode === 'OFFERING';
         const targetDateStr = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
         const modeStatus = checkIsRealtimeSchoolHours(targetDateStr);
 
@@ -1331,6 +1304,7 @@
             const studentId = String(s.student_id || s.id).trim();
             const rawStatus = ATTENDANCE_STATE[studentId] || 'present';
             const noteVal = document.getElementById(`note_${studentId}`)?.value || document.getElementById(`note_mobile_${studentId}`)?.value || '';
+            const roomLabel = isOfferingMode ? (s.classroom || className) : (className || '-');
 
             return {
                 student_id: studentId,
@@ -1338,7 +1312,7 @@
                 method: modeStatus.isRealtime ? 'teacher_realtime' : 'teacher_backdated',
                 period_no: Number(periodStr) || 1,
                 recorded_at: recordedTimestamp,
-                subject_name: `${courseName || courseCode || 'รายวิชา'} (${courseCode || '-'}) - ${className || '-'}${noteVal ? ' | หมายเหตุ: ' + noteVal : ''}`
+                subject_name: `${courseName || courseCode || 'รายวิชา'} (${courseCode || '-'}) - ${roomLabel}${noteVal ? ' | หมายเหตุ: ' + noteVal : ''}`
             };
         });
 
@@ -1364,7 +1338,8 @@
             window.updateLiveSubjectStats();
             IS_CHECKING_ACTIVE = false;
             hideMobileFloatingStats();
-            alert(`✅ บันทึกข้อมูลการเช็กชื่อห้อง ${className} (${CURRENT_STUDENTS_CACHE.length} คน) เรียบร้อยแล้ว!`);
+            alert(`✅ บันทึกข้อมูลการเช็กชื่อ ${isOfferingMode ? courseName : 'ห้อง ' + className} (${CURRENT_STUDENTS_CACHE.length} คน) เรียบร้อยแล้ว!`);
+            await renderStudents();
         } catch (err) {
             alert('เกิดข้อผิดพลาดในการบันทึกเช็กชื่อ: ' + (err.message || err));
         } finally {
@@ -1385,9 +1360,10 @@
 
         const client = window.supabaseClient || window.db || window.supabase;
         const selectVal = document.getElementById('subjectSelect')?.value || '';
-        const [courseCode, className] = selectVal.split('|');
+        const [courseCode, className, courseName, , subjectMode] = selectVal.split('|');
+        const targetGroup = subjectMode === 'OFFERING' ? courseName : className;
 
-        if (!client || !className) {
+        if (!client || !targetGroup) {
             listEl.innerHTML = '<p class="text-slate-400">ยังไม่มีรายการการบ้าน</p>';
             return;
         }
@@ -1400,11 +1376,11 @@
             }
 
             const filtered = (data || []).filter(h =>
-                String(h.classroom || h.class_name || '').trim() === String(className).trim()
+                String(h.classroom || h.class_name || '').trim() === String(targetGroup).trim()
             );
 
             if (filtered.length === 0) {
-                listEl.innerHTML = `<p class="text-slate-400 py-1">ยังไม่มีการบ้านที่สั่งสำหรับห้อง ${className}</p>`;
+                listEl.innerHTML = `<p class="text-slate-400 py-1">ยังไม่มีการบ้านที่สั่งสำหรับ ${targetGroup}</p>`;
                 return;
             }
 
@@ -1436,7 +1412,8 @@
         if (!title) return alert('กรุณาระบุหัวข้อการบ้าน');
 
         const selectVal = document.getElementById('subjectSelect')?.value || '';
-        const [courseCode, className, courseName] = selectVal.split('|');
+        const [courseCode, className, courseName, , subjectMode] = selectVal.split('|');
+        const targetGroup = subjectMode === 'OFFERING' ? courseName : (className || '-');
         const teacherId = CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.id || 'TEACHER';
 
         const origBtnHtml = btnSave ? btnSave.innerHTML : '';
@@ -1452,7 +1429,7 @@
                 title: title,
                 course_code: courseCode || '-',
                 subject_name: courseName || courseCode || '-',
-                classroom: className || '-',
+                classroom: targetGroup,
                 due_date: dueDate,
                 teacher_id: String(teacherId),
                 assigned_date: getLocalTodayStr()
@@ -1466,7 +1443,7 @@
 
             titleInput.value = '';
             await loadHomeworkHistory();
-            alert(`✅ ส่งการบ้าน "${title}" ให้ห้อง ${className} เรียบร้อยแล้ว!`);
+            alert(`✅ ส่งการบ้าน "${title}" ให้ ${targetGroup} เรียบร้อยแล้ว!`);
         } catch (err) {
             alert('ไม่สามารถบันทึกการบ้านลงฐานข้อมูลได้: ' + (err.message || err));
         } finally {
