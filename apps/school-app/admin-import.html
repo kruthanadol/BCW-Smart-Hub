@@ -700,10 +700,16 @@
             tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังดึงข้อมูลนักเรียน...</td></tr>`;
 
             try {
-                let query = db.from('students').select('*').order('classroom').order('no').limit(100);
+                let query = db.from('students').select('*').order('classroom').order('no').limit(150);
                 if (classroom !== 'ALL') query = query.eq('classroom', classroom);
-                if (status !== 'ALL') query = query.eq('status', status);
-                if (keyword) query = query.or(`student_id.ilike.%${keyword}%,first_name.ilike.%${keyword}%,last_name.ilike.%${keyword}%,name.ilike.%${keyword}%`);
+                if (status === 'active') {
+                    query = query.or('status.eq.active,status.is.null');
+                } else if (status !== 'ALL') {
+                    query = query.eq('status', status);
+                }
+                if (keyword) {
+                    query = query.or(`student_id.ilike.%${keyword}%,first_name.ilike.%${keyword}%,last_name.ilike.%${keyword}%,name.ilike.%${keyword}%`);
+                }
 
                 const { data, error } = await query;
                 if (error) throw error;
