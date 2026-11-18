@@ -18,8 +18,4 @@ if (!window.supabaseClient) {
     }
 }
 
-// ผูก Alias window.db เพื่อรองรับโค้ดเก่าในระบบ
 window.db = window.supabaseClient;
-
-// ✅ เพิ่มบรรทัดนี้เพื่อรองรับการ import { db } แบบ ES Module
-export const db = window.supabaseClient;
