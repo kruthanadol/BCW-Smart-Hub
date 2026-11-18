@@ -1,4 +1,4 @@
-import { db } from '../../core/supabase-client.js';
+const db = window.db;
 
 export async function getTeachersList() {
     try {
