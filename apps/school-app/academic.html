@@ -302,6 +302,47 @@
         };
     </script>
     <script src="../../core/bcw-page-transition.js?v=1"></script>
+    <!-- ไลบรารีสร้างไฟล์ Excel (.xlsx) แท้ -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+    /* ตั้งค่าการพิมพ์รายงานเสนอผู้บริหารเฉพาะการ์ดที่เลือก */
+    @page {
+        size: A4 landscape;
+        margin: 10mm 12mm;
+    }
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        /* แสดงเฉพาะกล่องรายงานที่กำลังสั่งพิมพ์ */
+        #executive-print-area, #executive-print-area * {
+            visibility: visible;
+        }
+        #executive-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white !important;
+            color: black !important;
+            padding: 0 !important;
+        }
+        .no-print-in-report {
+            display: none !important;
+        }
+        #executive-print-area table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 11px !important;
+        }
+        #executive-print-area th, #executive-print-area td {
+            border: 1px solid #334155 !important;
+            padding: 5px 8px !important;
+            color: #000 !important;
+        }
+    }
+</style>
 </head>
 <body class="academic-app-body px-3 md:p-6 relative select-none">
 
@@ -1859,5 +1900,145 @@
         await loadSubjectGroupSummary();
         await window.loadTeacherAttendanceMonitor();
     </script>
+    <!-- พื้นที่จำลองสำหรับจัดหน้าเอกสารราชการก่อนสั่งพิมพ์ PDF -->
+<div id="executive-print-area" class="hidden print:block"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    injectAcademicExportButtons();
+});
+
+function injectAcademicExportButtons() {
+    // ค้นหากล่องการ์ดทุกใบในหน้าวิชาการที่มีตารางอยู่ข้างใน
+    const cards = document.querySelectorAll('main > div, section');
+    
+    cards.forEach((card, index) => {
+        const tables = card.querySelectorAll('table');
+        if (tables.length === 0) return;
+
+        // หาหัวข้อของการ์ดใบนั้น (h2, h3 หรือ div หัวข้อแรก)
+        const titleEl = card.querySelector('h2, h3, .font-bold, .font-extrabold');
+        if (!titleEl) return;
+
+        const reportTitle = titleEl.innerText.trim();
+        // ป้องกันการสร้างปุ่มซ้ำ
+        if (card.querySelector('.academic-export-bar')) return;
+
+        // จัด Flex ให้แถวหัวข้อเพื่อวางปุ่มด้านขวา
+        const headerWrapper = titleEl.parentElement;
+        if (headerWrapper && !headerWrapper.classList.contains('flex')) {
+            headerWrapper.classList.add('flex', 'flex-wrap', 'justify-between', 'items-center', 'gap-2', 'mb-3');
+        }
+
+        // สร้างชุดปุ่ม Excel + PDF เสนอผู้บริหาร
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'academic-export-bar flex items-center gap-1.5 no-print';
+        btnGroup.innerHTML = `
+            <button type="button" class="btn-export-xlsx bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg shadow-xs flex items-center gap-1 transition active:scale-95">
+                <i class="fa-solid fa-file-excel"></i> Excel
+            </button>
+            <button type="button" class="btn-export-pdf bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg shadow-xs flex items-center gap-1 transition active:scale-95">
+                <i class="fa-solid fa-print"></i> PDF เสนอผู้บริหาร
+            </button>
+        `;
+
+        // ผูกคำสั่งดาวน์โหลด Excel (.xlsx)
+        btnGroup.querySelector('.btn-export-xlsx').addEventListener('click', () => {
+            exportAcademicCardToExcel(card, reportTitle);
+        });
+
+        // ผูกคำสั่งพิมพ์ PDF เอกสารราชการเสนอผู้บริหาร
+        btnGroup.querySelector('.btn-export-pdf').addEventListener('click', () => {
+            printAcademicExecutivePDF(card, reportTitle);
+        });
+
+        headerWrapper.appendChild(btnGroup);
+    });
+}
+
+// ฟังก์ชันส่งออก Excel (.xlsx) แท้ พร้อมหัวรายงาน
+function exportAcademicCardToExcel(cardElement, title) {
+    const tables = cardElement.querySelectorAll('table');
+    if (!tables.length) return alert('ไม่พบตารางข้อมูลในหัวข้อนี้');
+
+    const wb = XLSX.utils.book_new();
+    const todayStr = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    tables.forEach((tbl, idx) => {
+        // แปลงตารางเป็นข้อมูล Array
+        const rawData = XLSX.utils.sheet_to_json(XLSX.utils.table_to_sheet(tbl), { header: 1 });
+        
+        // แทรกหัวเอกสารราชการด้านบนสุดของไฟล์ Excel
+        const headerRows = [
+            ['รายงานสารสนเทศกลุ่มบริหารวิชาการ โรงเรียนบัวเชดวิทยา'],
+            [`เรื่อง: ${title}`],
+            [`ข้อมูล ณ วันที่: ${todayStr}`],
+            [] // เว้น 1 บรรทัด
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...rawData]);
+        ws['!pageSetup'] = { orientation: 'landscape', paperSize: 9, fitToWidth: 1, fitToHeight: 0 };
+        
+        const sheetName = tables.length > 1 ? `ตารางที่_${idx + 1}` : 'รายงานวิชาการ';
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+
+    const cleanFileName = title.replace(/[^ก-๙a-zA-Z0-9]/g, '_').slice(0, 35);
+    XLSX.writeFile(wb, `วิชาการ_${cleanFileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ฟังก์ชันจัดหน้า PDF เอกสารราชการเสนอผู้บริหาร
+function printAcademicExecutivePDF(cardElement, title) {
+    const printArea = document.getElementById('executive-print-area');
+    const todayStr = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    // คัดลอกเนื้อหาตารางในหัวข้อนั้นมาใส่ในแม่แบบรายงานราชการ
+    const clonedCard = cardElement.cloneNode(true);
+    // ลบปุ่มกดต่างๆ ออกจากฉบับพิมพ์
+    clonedCard.querySelectorAll('button, .academic-export-bar, input, select').forEach(el => el.classList.add('no-print-in-report'));
+
+    printArea.innerHTML = `
+        <div style="font-family: 'Kanit', sans-serif; padding: 10px;">
+            <!-- หัวกระดาษราชการ -->
+            <div style="text-align: center; border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-bottom: 15px;">
+                <h1 style="font-size: 18px; font-weight: 800; margin: 0;">รายงานสารสนเทศกลุ่มบริหารวิชาการ</h1>
+                <h2 style="font-size: 15px; font-weight: 700; color: #1e3a8a; margin: 4px 0;">โรงเรียนบัวเชดวิทยา สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์</h2>
+                <p style="font-size: 13px; font-weight: 600; margin: 4px 0;">เรื่อง: ${title}</p>
+                <p style="font-size: 11px; color: #475569; margin: 0;">ประมวลผลข้อมูล Real-time ณ วันที่ ${todayStr}</p>
+            </div>
+
+            <!-- เนื้อหาและตารางข้อมูล -->
+            <div style="margin-bottom: 25px;">
+                ${clonedCard.innerHTML}
+            </div>
+
+            <!-- ส่วนลงนามเสนอผู้บริหาร -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; text-align: center; font-size: 12px; margin-top: 35px; page-break-inside: avoid;">
+                <div>
+                    <p>ลงชื่อ......................................................</p>
+                    <p>(......................................................)</p>
+                    <p style="font-weight: 700;">เจ้าหน้าที่งานทะเบียนและวัดผล / ผู้รายงาน</p>
+                </div>
+                <div>
+                    <p>ลงชื่อ......................................................</p>
+                    <p>(......................................................)</p>
+                    <p style="font-weight: 700;">หัวหน้ากลุ่มบริหารวิชาการ</p>
+                </div>
+                <div>
+                    <p style="margin-bottom: 8px; font-weight: 700;">ความเห็นผู้อำนวยการสถานศึกษา</p>
+                    <p style="margin-bottom: 18px;">[ &nbsp; ] ทราบ &nbsp;&nbsp;&nbsp; [ &nbsp; ] อนุมัติดำเนินการตามเสนอ</p>
+                    <p>ลงชื่อ......................................................</p>
+                    <p>(......................................................)</p>
+                    <p style="font-weight: 700;">ผู้อำนวยการโรงเรียนบัวเชดวิทยา</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    printArea.classList.remove('hidden');
+    window.print();
+    printArea.classList.add('hidden');
+}
+</script>
 </body>
 </html>
