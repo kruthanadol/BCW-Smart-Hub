@@ -819,25 +819,54 @@
         };
 
         // 7. จัดการบุคลากรครูและสิทธิ์ผู้ใช้งาน (Roles)
+// ตัวแปรจำชื่อตารางครูจริงที่พบในฐานข้อมูล
+        window.ACTIVE_TEACHER_TABLE = null;
+
+        // 1. โหลดข้อมูลครูจริง (รหัสครูจริง + อีเมลจริง) พร้อมเชื่อมโยงสิทธิ์การใช้งาน
         window.loadStaffTable = async function() {
             const tbody = document.getElementById('staffAdminTableBody');
-            const keyword = (document.getElementById('searchStaffInput')?.value || '').trim();
+            const keyword = (document.getElementById('searchStaffInput')?.value || '').trim().toLowerCase();
             const roleFilter = document.getElementById('filterRoleSelect')?.value || 'ALL';
 
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังดึงข้อมูลบุคลากรและสิทธิ์...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังค้นหาตารางข้อมูลครูจริงในฐานข้อมูล...</td></tr>`;
 
             try {
-                let query = db.from('users').select('*').order('ref_id');
-                if (roleFilter !== 'ALL') query = query.eq('role', roleFilter);
-                if (keyword) query = query.or(`ref_id.ilike.%${keyword}%,full_name.ilike.%${keyword}%,email.ilike.%${keyword}%`);
+                // ค้นหาตารางที่เก็บข้อมูลครูจริง (ไล่เช็กตามชื่อตารางมาตรฐาน)
+                const candidateTables = ['teachers', 'staff', 'personnel', 'teacher_profiles'];
+                let realTeachers = [];
+                let foundTable = null;
 
-                const { data, error } = await query;
-                if (error) throw error;
-
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">ไม่พบข้อมูลบุคลากรตามเงื่อนไขที่ค้นหา</td></tr>`;
-                    return;
+                for (const tbl of candidateTables) {
+                    const { data, error } = await db.from(tbl).select('*');
+                    if (!error && Array.isArray(data) && data.length > 0) {
+                        realTeachers = data;
+                        foundTable = tbl;
+                        break;
+                    }
                 }
+                
+                window.ACTIVE_TEACHER_TABLE = foundTable;
+
+                // ดึงตาราง users มาประกอบด้วยเพื่ออ่าน/อัปเดตสิทธิ์ (Roles)
+                const { data: usersData } = await db.from('users').select('*');
+                const usersList = usersData || [];
+
+                // ถ้าไม่พบตารางครูแยก ให้ใช้ตาราง users เป็นหลัก
+                const sourceList = realTeachers.length > 0 ? realTeachers : usersList;
+
+                // สร้าง Map สำหรับจับคู่สิทธิ์จากตาราง users (เทียบด้วยอีเมล, รหัสครู หรือชื่อ)
+                const roleMapByEmail = new Map();
+                const roleMapByCode = new Map();
+                const roleMapByName = new Map();
+
+                usersList.forEach(u => {
+                    const uRole = u.role || u.user_role || u.roles || u.permission || '';
+                    if (u.email) roleMapByEmail.set(String(u.email).toLowerCase().trim(), u);
+                    const uCode = u.ref_id || u.teacher_id || u.code || '';
+                    if (uCode) roleMapByCode.set(String(uCode).toLowerCase().trim(), u);
+                    const uName = u.full_name || u.name || '';
+                    if (uName) roleMapByName.set(String(uName).trim(), u);
+                });
 
                 const roleLabels = {
                     admin: { text: '👑 ผู้ดูแลระบบ (Admin)', cls: 'bg-rose-100 text-rose-900 border-rose-300' },
@@ -848,24 +877,91 @@
                     teacher: { text: '👩‍🏫 ครูผู้สอน (Teacher)', cls: 'bg-slate-100 text-slate-800 border-slate-300' }
                 };
 
-                tbody.innerHTML = data.map(u => {
-                    const rInfo = roleLabels[u.role] || roleLabels.teacher;
-                    const isActive = (u.status || 'active') === 'active';
+                // แปลงข้อมูลให้แสดงรหัสครูจริง + อีเมลจริง + สิทธิ์จริง
+                let normalizedList = sourceList.map(t => {
+                    const realCode = t.teacher_id || t.teacher_code || t.employee_id || t.staff_id || t.code || t.ref_id || t.id || '-';
+                    const realName = t.full_name || t.name || `${t.prefix || ''}${t.first_name || ''} ${t.last_name || ''}`.trim() || '-';
+                    const realEmail = t.email || t.personal_email || t.google_email || '-';
+
+                    // ค้นหาสิทธิ์ที่ผูกไว้ในตารางครูเอง หรือในตาราง users
+                    const linkedUser =
+                        roleMapByEmail.get(String(realEmail).toLowerCase().trim()) ||
+                        roleMapByCode.get(String(realCode).toLowerCase().trim()) ||
+                        roleMapByName.get(String(realName).trim()) ||
+                        {};
+
+                    const rawRole = t.role || t.user_role || t.roles || linkedUser.role || linkedUser.user_role || 'teacher';
+                    const roleArray = Array.isArray(rawRole)
+                        ? rawRole.map(r => String(r).toLowerCase().trim())
+                        : String(rawRole).split(',').map(r => r.toLowerCase().trim()).filter(Boolean);
+
+                    return {
+                        rawTeacher: t,
+                        linkedUserId: linkedUser.id || null,
+                        staffCode: String(realCode),
+                        staffName: realName,
+                        email: realEmail,
+                        department: t.department || t.subject_group || t.position || '',
+                        roleArray: roleArray.length ? roleArray : ['teacher'],
+                        isActive: (t.status || linkedUser.status || 'active') === 'active'
+                    };
+                });
+
+                // กรองตามคำค้นหาและสิทธิ์
+                normalizedList = normalizedList.filter(item => {
+                    if (roleFilter !== 'ALL' && !item.roleArray.includes(roleFilter.toLowerCase())) return false;
+                    if (keyword) {
+                        const text = `${item.staffCode} ${item.staffName} ${item.email} ${item.department}`.toLowerCase();
+                        return text.includes(keyword);
+                    }
+                    return true;
+                });
+
+                normalizedList.sort((a, b) => a.staffCode.localeCompare(b.staffCode, 'th', { numeric: true }));
+
+                // อัปเดตตัวเลขจำนวนครูบนการ์ดสถิติให้ตรงกับข้อมูลจริงด้วย
+                const statTeacherEl = document.getElementById('statTeachers');
+                if (statTeacherEl && realTeachers.length > 0) {
+                    statTeacherEl.innerText = `${realTeachers.length} คน`;
+                }
+
+                if (normalizedList.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">ไม่พบข้อมูลครูตามเงื่อนไขที่ค้นหา</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = normalizedList.map(item => {
+                    const badgesHtml = item.roleArray.map(rKey => {
+                        const rInfo = roleLabels[rKey] || { text: `🔑 ${rKey}`, cls: 'bg-sky-100 text-sky-900 border-sky-300' };
+                        return `<span class="inline-block border px-2.5 py-0.5 rounded-full text-xs font-extrabold m-0.5 ${rInfo.cls}">${rInfo.text}</span>`;
+                    }).join('');
+
+                    const editPayload = JSON.stringify({
+                        teacher: item.rawTeacher,
+                        linkedUserId: item.linkedUserId,
+                        staffCode: item.staffCode,
+                        staffName: item.staffName,
+                        email: item.email,
+                        role: item.roleArray[0] || 'teacher',
+                        status: item.isActive ? 'active' : 'inactive'
+                    }).replace(/'/g, "&apos;");
+
                     return `
                         <tr class="hover:bg-slate-50">
-                            <td class="py-2.5 px-3 font-mono font-bold text-slate-700">${u.ref_id || '-'}</td>
-                            <td class="py-2.5 px-3 font-bold text-slate-900">${u.full_name || '-'}</td>
-                            <td class="py-2.5 px-3 text-slate-600">${u.email || '-'}</td>
-                            <td class="py-2.5 px-3 text-center">
-                                <span class="border px-2.5 py-0.5 rounded-full text-xs font-extrabold ${rInfo.cls}">${rInfo.text}</span>
+                            <td class="py-2.5 px-3 font-mono font-bold text-indigo-900">${item.staffCode}</td>
+                            <td class="py-2.5 px-3">
+                                <div class="font-bold text-slate-900">${item.staffName}</div>
+                                ${item.department ? `<div class="text-[11px] text-slate-500">${item.department}</div>` : ''}
                             </td>
+                            <td class="py-2.5 px-3 text-slate-700 font-medium">${item.email}</td>
+                            <td class="py-2.5 px-3 text-center">${badgesHtml}</td>
                             <td class="py-2.5 px-3 text-center">
-                                ${isActive
+                                ${item.isActive
                                     ? '<span class="text-emerald-700 font-bold text-xs">🟢 ใช้งานปกติ</span>'
                                     : '<span class="text-rose-600 font-bold text-xs">🔴 ระงับสิทธิ์</span>'}
                             </td>
                             <td class="py-2.5 px-3 text-center">
-                                <button type="button" onclick='window.openStaffFormModal(${JSON.stringify(u).replace(/'/g, "&apos;")})' class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 px-3 py-1 rounded-lg text-xs font-bold cursor-pointer">
+                                <button type="button" onclick='window.openStaffFormModal(${editPayload})' class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 px-3 py-1 rounded-lg text-xs font-bold cursor-pointer">
                                     <i class="fa-solid fa-key"></i> ตั้งค่าสิทธิ์ / แก้ไข
                                 </button>
                             </td>
@@ -877,15 +973,16 @@
             }
         };
 
-        window.openStaffFormModal = function(staff = null) {
+        // 2. เปิด Modal แก้ไขข้อมูลครูจริง และกำหนดสิทธิ์
+        window.openStaffFormModal = function(item = null) {
             const modal = document.getElementById('staffFormModal');
-            if (staff) {
-                document.getElementById('staffRecordId').value = staff.id || '';
-                document.getElementById('staffRefIdInput').value = staff.ref_id || '';
-                document.getElementById('staffFullNameInput').value = staff.full_name || '';
-                document.getElementById('staffEmailInput').value = staff.email || '';
-                document.getElementById('staffRoleInput').value = staff.role || 'teacher';
-                document.getElementById('staffStatusInput').value = staff.status || 'active';
+            if (item) {
+                document.getElementById('staffRecordId').value = item.linkedUserId || '';
+                document.getElementById('staffRefIdInput').value = item.staffCode !== '-' ? item.staffCode : '';
+                document.getElementById('staffFullNameInput').value = item.staffName !== '-' ? item.staffName : '';
+                document.getElementById('staffEmailInput').value = item.email !== '-' ? item.email : '';
+                document.getElementById('staffRoleInput').value = item.role || 'teacher';
+                document.getElementById('staffStatusInput').value = item.status || 'active';
             } else {
                 document.getElementById('staffRecordId').value = '';
                 document.getElementById('staffRefIdInput').value = '';
@@ -897,37 +994,50 @@
             modal.style.display = 'flex';
         };
 
-        window.closeStaffFormModal = function() {
-            document.getElementById('staffFormModal').style.display = 'none';
-        };
-
+        // 3. บันทึกข้อมูลครูจริง + อัปเดตสิทธิ์ลงทั้งตารางครูและตาราง users
         window.saveSingleStaff = async function(e) {
             e.preventDefault();
             const recId = document.getElementById('staffRecordId').value;
-            const payload = {
-                ref_id: document.getElementById('staffRefIdInput').value.trim(),
-                full_name: document.getElementById('staffFullNameInput').value.trim(),
-                email: document.getElementById('staffEmailInput').value.trim(),
-                role: document.getElementById('staffRoleInput').value,
-                status: document.getElementById('staffStatusInput').value,
-                updated_at: new Date().toISOString()
-            };
+            const code = document.getElementById('staffRefIdInput').value.trim();
+            const fullName = document.getElementById('staffFullNameInput').value.trim();
+            const email = document.getElementById('staffEmailInput').value.trim();
+            const role = document.getElementById('staffRoleInput').value;
+            const status = document.getElementById('staffStatusInput').value;
 
             try {
-                let res;
-                if (recId) {
-                    res = await db.from('users').update(payload).eq('id', recId);
-                } else {
-                    res = await db.from('users').upsert(payload, { onConflict: 'ref_id' });
+                // อัปเดตลงตารางครูจริง (ถ้าพบตาราง)
+                if (window.ACTIVE_TEACHER_TABLE) {
+                    await db.from(window.ACTIVE_TEACHER_TABLE).upsert({
+                        teacher_id: code,
+                        full_name: fullName,
+                        email: email,
+                        role: role,
+                        status: status
+                    });
                 }
-                if (res.error) throw res.error;
 
-                alert(`✅ บันทึกข้อมูลและสิทธิ์ของ "${payload.full_name}" เรียบร้อยแล้ว`);
+                // อัปเดตสิทธิ์ลงตาราง users เพื่อใช้ตอนล็อกอิน
+                const userPayload = {
+                    ref_id: code,
+                    full_name: fullName,
+                    email: email,
+                    role: role,
+                    status: status,
+                    updated_at: new Date().toISOString()
+                };
+
+                if (recId) {
+                    await db.from('users').update(userPayload).eq('id', recId);
+                } else {
+                    await db.from('users').upsert(userPayload, { onConflict: 'email' });
+                }
+
+                alert(`✅ บันทึกข้อมูลครูและสิทธิ์ของ "${fullName}" เรียบร้อยแล้ว`);
                 window.closeStaffFormModal();
                 window.loadStaffTable();
                 window.refreshAllAdminData();
             } catch (err) {
-                alert('❌ เกิดข้อผิดพลาดในการบันทึกสิทธิ์: ' + err.message);
+                alert('❌ เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
             }
         };
 
