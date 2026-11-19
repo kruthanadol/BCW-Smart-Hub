@@ -149,7 +149,7 @@ export async function cancelStudentRegistration(studentId, category = 'ELECTIVE'
 export async function getEnrolledStudentsByOffering(offeringId) {
     const { data, error } = await db
         .from('student_registrations')
-        .select('id, student_id, student_name, classroom, enroll_type, created_at')
+        .select('*')
         .eq('offering_id', offeringId)
         .order('classroom', { ascending: true })
         .order('student_id', { ascending: true });
