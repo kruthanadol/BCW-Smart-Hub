@@ -6,41 +6,45 @@
     <title>ระบบกิจการนักเรียนและฝ่ายปกครอง - โรงเรียนบัวเชดวิทยา (BCW)</title>
     <link rel="icon" type="image/png" href="../../assets/images/logo_bcw.png">
 
-    <!-- Tailwind CSS CDN & Chart.js -->
+    <!-- Tailwind CSS, Chart.js & SheetJS (Excel Export) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Supabase SDK & Global Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../core/supabase-client.js?v=500"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Kanit', 'Sarabun', 'sans-serif'] }
+                    fontFamily: {
+                        sans: ['Kanit', 'Sarabun', 'sans-serif'],
+                        sarabun: ['Sarabun', 'sans-serif']
+                    }
                 }
             }
         };
 
-        window.SUPABASE_DB_REF = null;
         window.handleLogout = async function() {
             try {
-                if (window.SUPABASE_DB_REF && window.SUPABASE_DB_REF.auth) {
-                    await window.SUPABASE_DB_REF.auth.signOut();
+                const client = window.supabaseClient || window.db || window.supabase;
+                if (client && client.auth) {
+                    await client.auth.signOut();
                 }
             } catch (err) {}
             try {
                 localStorage.clear();
                 sessionStorage.clear();
-                document.cookie.split(";").forEach(function(c) {
-                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-                });
             } catch (e) {}
             window.location.replace('../../login.html');
         };
     </script>
 
     <style>
-        /* 📱 เฉพาะมือถือ: ล็อกความสูงพอดี 1 หน้าจอ (One-Screen No-Scroll App Layout) */
         @media (max-width: 1023px) {
             html, body {
                 height: 100dvh !important;
@@ -58,7 +62,6 @@
                 padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
             }
         }
-        /* 💻 สำหรับคอมพิวเตอร์ให้ Scroll ดูตารางทั้งหมดได้ปกติ */
         @media (min-width: 1024px) {
             html, body {
                 height: auto !important;
@@ -120,11 +123,22 @@
             white-space: nowrap;
         }
 
-        .tab-btn.active { border-bottom: 3px solid #d97706; color: #b45309; font-weight: 700; }
+        .tab-btn {
+            border-bottom: 3px solid transparent;
+            color: #64748b;
+            transition: all 0.2s ease;
+        }
+        .tab-btn:hover { color: #0f172a; }
+        .tab-btn.active {
+            border-bottom: 3px solid #d97706;
+            color: #b45309;
+            font-weight: 800;
+        }
+
         .form-tab.active-deduct { background-color: #e11d48; color: white; }
         .form-tab.active-repair { background-color: #10b981; color: white; }
 
-        /* 📱 Bottom Sheet Drawer มาตรฐาน App */
+        /* Bottom Sheet Drawer */
         .bottom-sheet-backdrop {
             position: fixed;
             inset: 0;
@@ -188,7 +202,7 @@
         }
         .swipe-handle { width: 44px; height: 5px; background-color: #cbd5e1; border-radius: 99px; }
 
-        /* 👑 Floating Pill Bottom Navigation Bar มาตรฐาน App */
+        /* Floating Pill Bottom Navigation Bar */
         .native-bottom-nav {
             position: fixed;
             bottom: max(8px, env(safe-area-inset-bottom));
@@ -249,43 +263,62 @@
             box-shadow: 0 2px 8px rgba(217, 119, 6, 0.4);
         }
 
+        /* Official Print Mode (แสดงเฉพาะเอกสารราชการเมื่อกดพิมพ์/PDF) */
+        #officialPrintContainer { display: none; }
         @media print {
-            .no-print, .native-bottom-nav, .bottom-sheet-backdrop { display: none !important; }
-            body { background-color: white !important; color: black !important; overflow: visible !important; height: auto !important; }
+            body > *:not(#officialPrintContainer) { display: none !important; }
+            html, body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            #officialPrintContainer {
+                display: block !important;
+                font-family: 'Sarabun', sans-serif !important;
+                color: #000000 !important;
+                width: 100%;
+                padding: 12mm 14mm;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
         }
     </style>
     <script src="../../core/bcw-page-transition.js?v=1"></script>
 </head>
 <body class="affairs-app-body px-3 md:p-6 relative select-none">
 
-<!-- 1. TOP APP HEADER (แก้ชื่อตัดบรรทัด + เอาปุ่มซ้ำออก + นาฬิกาเดินทันที) -->
+    <!-- 1. TOP APP HEADER -->
     <div class="max-w-7xl mx-auto w-full shrink-0 no-print">
-<header class="w-full bg-gradient-to-r from-[#421a04] via-[#5c2406] to-[#2e1203] text-white shadow-md rounded-2xl p-2.5 md:p-4 border-b-2 border-amber-400">
+        <header class="w-full bg-gradient-to-r from-[#421a04] via-[#5c2406] to-[#2e1203] text-white shadow-md rounded-2xl p-2.5 md:p-4 border-b-2 border-amber-400">
             <div class="flex justify-between items-center gap-2">
-                <!-- โลโก้ + ข้อความ 3 บรรทัด (BCW SMART HUB / กิจการนักเรียน / โรงเรียนบัวเชดวิทยา) -->
                 <div class="flex items-center gap-2.5 min-w-0 flex-1">
                     <div class="bg-white p-1.5 rounded-xl shadow-sm shrink-0 border border-amber-300/70 flex items-center justify-center">
                         <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-11 h-11 md:w-13 md:h-13 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
                     </div>
                     <div class="min-w-0 flex-1 flex flex-col justify-center">
                         <h1 class="text-[15px] sm:text-lg md:text-2xl font-extrabold text-amber-400 tracking-tight leading-none uppercase whitespace-nowrap">BCW SMART HUB</h1>
-                        
-                        <div class="mt-1">
-                            <span class="inline-block bg-amber-400/25 text-amber-200 border border-amber-400/70 px-2 py-0.5 rounded-md text-[11px] font-bold leading-none whitespace-nowrap">กิจการนักเรียน</span>
+                        <div class="mt-1 flex items-center gap-1.5">
+                            <span class="inline-block bg-amber-400/25 text-amber-200 border border-amber-400/70 px-2 py-0.5 rounded-md text-[11px] font-bold leading-none whitespace-nowrap">กลุ่มบริหารกิจการนักเรียน</span>
                         </div>
-
                         <div class="text-xs sm:text-sm md:text-base font-semibold text-amber-100 leading-tight truncate mt-1">
-                            โรงเรียนบัวเชดวิทยา <span class="hidden sm:inline text-amber-300/80 text-xs">• STUDENT AFFAIRS CENTER</span>
+                            โรงเรียนบัวเชดวิทยา <span class="hidden sm:inline text-amber-300/80 text-xs">• STUDENT AFFAIRS &amp; DISCIPLINE CENTER</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- ปุ่มหน้าหลัก + ออกจากระบบ -->
                 <div class="flex items-center gap-1.5 shrink-0">
-                    <a href="../../landing.html" onclick="openSmartPage('landing.html'); return false;" title="กลับหน้าหลักระบบ" class="w-9 h-9 md:w-10 md:h-10 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-bold transition shadow-sm flex items-center justify-center active:scale-95">
+                    <button type="button" onclick="window.reloadAffairsData()" title="รีเฟรชข้อมูลล่าสุด" class="w-9 h-9 md:w-10 md:h-10 bg-amber-900/80 hover:bg-amber-800 text-amber-200 border border-amber-500/50 rounded-xl font-bold transition shadow-sm flex items-center justify-center active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-rotate text-sm md:text-base"></i>
+                    </button>
+                    <a href="../../landing.html" onclick="if(window.openSmartPage){openSmartPage('landing.html'); return false;}" title="กลับหน้าหลักระบบ" class="w-9 h-9 md:w-10 md:h-10 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-bold transition shadow-sm flex items-center justify-center active:scale-95">
                         <i class="fa-solid fa-house text-sm md:text-base"></i>
                     </a>
-
                     <button type="button" onclick="window.handleLogout()" title="ออกจากระบบ" class="w-9 h-9 md:w-10 md:h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center border border-rose-400/50 active:scale-95 cursor-pointer">
                         <i class="fa-solid fa-right-from-bracket text-sm md:text-base"></i>
                     </button>
@@ -296,10 +329,10 @@
             <div id="dynamicSubHeader" class="bg-[#2e1203]/90 border-t border-amber-800/70 mt-1.5 pt-1.5 px-1 flex justify-between items-center text-xs md:text-sm gap-1.5">
                 <span class="font-semibold text-emerald-400 flex items-center gap-1.5 truncate">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                    <span class="truncate">มาเรียนวันนี้: <strong id="subHeaderAttendance" class="text-amber-300 font-extrabold">100%</strong> <span class="text-amber-200 font-normal">(ปกติ)</span></span>
+                    <span class="truncate">มาเรียนวันนี้: <strong id="subHeaderAttendance" class="text-amber-300 font-extrabold">100%</strong> <span id="subHeaderStudentTotal" class="text-amber-200 font-normal">(กำลังซิงก์ข้อมูล...)</span></span>
                 </span>
 
-                <div class="flex items-center gap-1 text-amber-200 font-semibold shrink-0">
+                <div class="flex items-center gap-1.5 text-amber-200 font-semibold shrink-0">
                     <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
                     <span id="thaiDateStr" class="hidden sm:inline text-xs"></span>
                     <span id="liveClock" class="bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-700/80 font-mono text-white text-xs font-bold">00:00:00</span>
@@ -309,9 +342,9 @@
     </div>
 
     <!-- 2. MAIN CONTENT AREA -->
-    <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-between gap-2.5 my-2 min-h-0">
+    <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-between gap-2.5 my-2 min-h-0 no-print">
 
-        <!-- 📊 การ์ดสรุปสถิติกิจการนักเรียน 4 ช่องแนวนอน (คลิกแล้วเด้ง Pop-up แสดงรายชื่อนักเรียนทันที!) -->
+        <!-- KPI CARDS 4 ช่อง -->
         <section id="section-kpis" class="affairs-card p-2.5 shrink-0">
             <div class="grid grid-cols-4 gap-2 text-center">
                 <button type="button" onclick="window.openKpiModal('risk')" class="bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl py-2 px-1 cursor-pointer active:scale-95 transition flex flex-col items-center justify-center">
@@ -336,35 +369,46 @@
             </div>
         </section>
 
-<!-- 📈 แผงหลักตรงกลาง (ปรับความสูงพอดี 1 หน้าจอ เห็นครบทั้ง ม.ต้น และ ม.ปลาย ไม่โดนตัดขอบ) -->
+        <!-- แผงรายงานการเข้าแถว / มาเรียน / รายห้อง / กราฟสถิติ -->
         <section id="section-assembly" class="affairs-card p-2.5 md:p-4 flex-1 flex flex-col justify-between min-h-0">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-slate-100 pb-1.5 shrink-0">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2 shrink-0">
                 <h3 id="reportTitleText" class="text-sm md:text-lg font-extrabold text-slate-900 flex items-center gap-1.5 truncate">
                     <i class="fa-solid fa-users-rectangle text-amber-600"></i> รายงานเข้าแถวเคารพธงชาติ
                 </h3>
 
-                <div class="grid grid-cols-4 gap-1 bg-slate-100 p-0.5 rounded-xl text-xs font-bold shrink-0">
-                    <button type="button" id="btnModeAssembly" onclick="window.switchCenterPanel('assembly')" class="py-1 px-2 rounded-lg bg-amber-600 text-white shadow-xs transition cursor-pointer text-center">
-                        เข้าแถว
-                    </button>
-                    <button type="button" id="btnModeDaily" onclick="window.switchCenterPanel('daily')" class="py-1 px-2 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-center">
-                        มาเรียน
-                    </button>
-                    <button type="button" id="btnModeRooms" onclick="window.switchCenterPanel('rooms')" class="py-1 px-2 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-center">
-                        รายห้อง
-                    </button>
-                    <button type="button" id="btnModeChart" onclick="window.switchCenterPanel('chart')" class="py-1 px-2 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-center">
-                        กราฟสถิติ
-                    </button>
+                <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                    <div class="grid grid-cols-4 gap-1 bg-slate-100 p-0.5 rounded-xl text-xs font-bold">
+                        <button type="button" id="btnModeAssembly" onclick="window.switchCenterPanel('assembly')" class="py-1 px-2.5 rounded-lg bg-amber-600 text-white shadow-xs transition cursor-pointer text-center">
+                            เข้าแถว
+                        </button>
+                        <button type="button" id="btnModeDaily" onclick="window.switchCenterPanel('daily')" class="py-1 px-2.5 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-center">
+                            มาเรียน
+                        </button>
+                        <button type="button" id="btnModeRooms" onclick="window.switchCenterPanel('rooms')" class="py-1 px-2.5 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-center">
+                            รายห้อง
+                        </button>
+                        <button type="button" id="btnModeChart" onclick="window.switchCenterPanel('chart')" class="py-1 px-2.5 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-center">
+                            กราฟสถิติ
+                        </button>
+                    </div>
+
+                    <!-- ปุ่มส่งออก Excel / PDF ประจำวัน -->
+                    <div class="hidden sm:flex items-center gap-1">
+                        <button type="button" onclick="window.exportReportExcel(4)" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer shadow-xs">
+                            <i class="fa-solid fa-file-excel"></i> Excel
+                        </button>
+                        <button type="button" onclick="window.openOfficialReportModal(4)" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer shadow-xs">
+                            <i class="fa-solid fa-file-pdf"></i> PDF ทางการ
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- มุมมองสรุปยอด ม.ต้น / ม.ปลาย แบบกระชับพอดีหน้าจอ -->
+            <!-- มุมมองสรุปยอด ม.ต้น / ม.ปลาย -->
             <div id="panelViewSummary" class="flex-1 flex flex-col justify-evenly gap-1.5 my-1 min-h-0">
-                <!-- ม.ต้น -->
                 <div class="bg-slate-50 px-2.5 py-1.5 sm:p-3 rounded-xl border border-sky-200 space-y-1">
                     <div class="flex justify-between items-center">
-                        <span class="font-extrabold text-xs sm:text-sm text-sky-950">ระดับ ม.ต้น (ม.1–ม.3)</span>
+                        <span class="font-extrabold text-xs sm:text-sm text-sky-950">ระดับมัธยมศึกษาตอนต้น (ม.1–ม.3)</span>
                         <span id="badgeMtonPercent" class="bg-emerald-100 text-emerald-800 text-[11px] font-extrabold px-2 py-0.5 rounded-full">ตรงเวลา 100.0%</span>
                     </div>
                     <div class="grid grid-cols-5 gap-1 text-center font-bold">
@@ -374,13 +418,11 @@
                         <div class="bg-white py-1 rounded-lg border border-sky-200"><span class="block text-[11px] text-sky-700 leading-none">ลา</span><span id="mton-leave" class="text-sm sm:text-base text-sky-800 font-extrabold leading-tight">0</span></div>
                         <div class="bg-white py-1 rounded-lg border border-purple-200"><span class="block text-[11px] text-purple-700 leading-none">หนี</span><span id="mton-truant" class="text-sm sm:text-base text-purple-800 font-extrabold leading-tight">0</span></div>
                     </div>
-                    <p id="total-mton-text" class="hidden">0</p>
                 </div>
 
-                <!-- ม.ปลาย -->
                 <div class="bg-slate-50 px-2.5 py-1.5 sm:p-3 rounded-xl border border-indigo-200 space-y-1">
                     <div class="flex justify-between items-center">
-                        <span class="font-extrabold text-xs sm:text-sm text-indigo-950">ระดับ ม.ปลาย (ม.4–ม.6)</span>
+                        <span class="font-extrabold text-xs sm:text-sm text-indigo-950">ระดับมัธยมศึกษาตอนปลาย (ม.4–ม.6)</span>
                         <span id="badgeMplayPercent" class="bg-emerald-100 text-emerald-800 text-[11px] font-extrabold px-2 py-0.5 rounded-full">ตรงเวลา 100.0%</span>
                     </div>
                     <div class="grid grid-cols-5 gap-1 text-center font-bold">
@@ -390,11 +432,10 @@
                         <div class="bg-white py-1 rounded-lg border border-sky-200"><span class="block text-[11px] text-sky-700 leading-none">ลา</span><span id="mplay-leave" class="text-sm sm:text-base text-sky-800 font-extrabold leading-tight">0</span></div>
                         <div class="bg-white py-1 rounded-lg border border-purple-200"><span class="block text-[11px] text-purple-700 leading-none">หนี</span><span id="mplay-truant" class="text-sm sm:text-base text-purple-800 font-extrabold leading-tight">0</span></div>
                     </div>
-                    <p id="total-mplay-text" class="hidden">0</p>
                 </div>
             </div>
-            
-            <!-- มุมมองที่ 3: ตารางสรุปรายห้องเรียน (แสดงในกล่องนี้เลยเมื่อกดแท็บ "รายห้อง") -->
+
+            <!-- มุมมองที่ 3: ตารางสรุปรายห้องเรียน (มือถือ) -->
             <div id="panelViewRooms" class="hidden flex-1 overflow-y-auto table-scroll border border-slate-200 rounded-xl bg-white my-1 min-h-0">
                 <table class="w-full text-xs sm:text-sm text-left">
                     <thead class="bg-amber-950 text-white sticky top-0 z-10 font-bold">
@@ -414,7 +455,7 @@
                 </table>
             </div>
 
-            <!-- มุมมองที่ 4: กราฟสถิติพฤติกรรมและภาพรวม (แสดงในกล่องนี้เลยเมื่อกดแท็บ "กราฟสถิติ") -->
+            <!-- มุมมองที่ 4: กราฟสถิติพฤติกรรมและภาพรวม (มือถือ) -->
             <div id="panelViewChart" class="hidden flex-1 flex flex-col justify-between gap-2 my-1 min-h-0">
                 <div class="grid grid-cols-3 gap-2 text-center shrink-0">
                     <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2">
@@ -435,9 +476,9 @@
                 </div>
             </div>
 
-            <!-- 💻 ตารางรายห้องแสดงเต็มบนหน้าจอคอมพิวเตอร์ -->
+            <!-- ตารางรายห้องแสดงเต็มบนหน้าจอคอมพิวเตอร์ -->
             <div class="hidden lg:block border border-slate-200 rounded-xl overflow-hidden bg-white mt-2">
-                <div class="max-h-[340px] overflow-y-auto table-scroll">
+                <div class="max-h-[320px] overflow-y-auto table-scroll">
                     <table class="w-full text-sm text-left min-w-[540px]">
                         <thead class="bg-slate-100 text-slate-700 border-b border-slate-200 sticky top-0 z-10 font-extrabold">
                             <tr>
@@ -460,9 +501,9 @@
             </div>
         </section>
 
-        <!-- 📱 APP GRID 4 ปุ่มลัด (ไม่ซ้ำกับเมนูล่างเลย!) -->
+        <!-- APP GRID 4 ปุ่มลัดสำหรับมือถือ -->
         <div class="grid grid-cols-4 gap-2 shrink-0 lg:hidden no-print">
-            <a href="scanner.html" onclick="openSmartPage('scanner.html'); return false;" class="mobile-app-card border-amber-200">
+            <a href="scanner.html" onclick="if(window.openSmartPage){openSmartPage('scanner.html'); return false;}" class="mobile-app-card border-amber-200">
                 <div class="mobile-app-icon bg-amber-100 text-amber-700 border border-amber-200">
                     <i class="fa-solid fa-camera-retro"></i>
                 </div>
@@ -491,9 +532,9 @@
             </button>
         </div>
 
-        <!-- 💻 DESKTOP VIEW: แสดงฟอร์มบันทึกคะแนน, ประวัติ, สถิติผู้บริหาร และรายงาน 12 ชุดครบถ้วน -->
+        <!-- DESKTOP VIEW: ฟอร์มบันทึกคะแนน, ตารางแท็บ 3 หมวด, สถิติผู้บริหาร และรายงาน 12 ชุด -->
         <div id="desktopExtendedSections" class="hidden lg:block space-y-5 mt-2">
-            <!-- ฟอร์มบันทึกคะแนนความประพฤติ + ตารางประวัติ -->
+            <!-- ฟอร์มบันทึกคะแนนความประพฤติ + ตารางประวัติ/กลุ่มเสี่ยง/ขอออกนอก รร. -->
             <section id="section-form-behavior" class="grid grid-cols-3 gap-5">
                 <div class="affairs-card p-5 space-y-4">
                     <div class="border-b pb-3">
@@ -502,14 +543,14 @@
                         </h2>
                     </div>
                     <div class="flex rounded-xl bg-slate-100 p-1 text-xs font-bold gap-1">
-                        <button type="button" id="btnTabDeduct" class="form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow"><i class="fa-solid fa-minus-circle mr-1"></i> ตัดคะแนน</button>
-                        <button type="button" id="btnTabRepair" class="form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer"><i class="fa-solid fa-star mr-1"></i> ทำความดี (+คะแนน)</button>
+                        <button type="button" id="btnTabDeduct" onclick="window.switchFormMode('deduct')" class="form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow"><i class="fa-solid fa-minus-circle mr-1"></i> ตัดคะแนน</button>
+                        <button type="button" id="btnTabRepair" onclick="window.switchFormMode('repair')" class="form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer"><i class="fa-solid fa-star mr-1"></i> ทำความดี (+คะแนน)</button>
                     </div>
 
                     <form id="deductForm" class="space-y-3 text-sm">
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">กรอกรหัสนักเรียน</label>
-                            <input type="text" id="studentCodeInput" placeholder="กรอกรหัสนักเรียน เช่น 10001" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-amber-600" required autocomplete="off">
+                            <input type="text" id="studentCodeInput" placeholder="กรอกรหัสนักเรียน เช่น 13174" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-amber-600" required autocomplete="off">
                         </div>
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">ชื่อ-นามสกุล / ชั้นเรียน</label>
@@ -524,6 +565,7 @@
                                     <option value="มาสายเกินกำหนด" data-points="5">มาสายเกินกำหนด (-5 คะแนน)</option>
                                     <option value="แต่งกายผิดระเบียบ" data-points="5">แต่งกายผิดระเบียบ (-5 คะแนน)</option>
                                     <option value="ทะเลาะวิวาท" data-points="20">ทะเลาะวิวาท (-20 คะแนน)</option>
+                                    <option value="ไม่เข้าแถวเคารพธงชาติ" data-points="5">ไม่เข้าแถวเคารพธงชาติ (-5 คะแนน)</option>
                                 </select>
                             </div>
                             <div>
@@ -538,6 +580,7 @@
                                     <option value="สร้างชื่อเสียงให้กับโรงเรียน" data-points="20">สร้างชื่อเสียงให้กับโรงเรียน (+20 คะแนน)</option>
                                     <option value="เก็บของตกสูญหายนำส่งคืนเจ้าของ" data-points="10">เก็บของตกสูญหายนำส่งคืนเจ้าของ (+10 คะแนน)</option>
                                     <option value="ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน" data-points="10">ช่วยเหลือกิจกรรมสำคัญของโรงเรียน/ชุมชน (+10 คะแนน)</option>
+                                    <option value="บำเพ็ญประโยชน์ซ่อมเสริมคะแนน" data-points="15">บำเพ็ญประโยชน์ซ่อมเสริมคะแนน (+15 คะแนน)</option>
                                 </select>
                             </div>
                             <div>
@@ -555,17 +598,38 @@
                     </form>
                 </div>
 
+                <!-- แถบแท็บ 3 หมวด + ปุ่มส่งออก Excel / PDF ประจำแท็บ -->
                 <div class="col-span-2 affairs-card p-5 space-y-4">
-                    <div class="flex flex-wrap border-b gap-3 text-sm font-bold text-slate-500">
-                        <button id="tabHist" class="tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-list-check"></i> ประวัติหัก/เพิ่มคะแนน</button>
-                        <button id="tabRisk" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i> กลุ่มติดเงื่อนไข &lt; 80</button>
-                        <button id="tabGate" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-door-open text-amber-500"></i> รายงานขอออกนอกโรงเรียน</button>
+                    <div class="flex flex-wrap justify-between items-center border-b gap-2 pb-1">
+                        <div class="flex flex-wrap gap-4 text-sm font-bold">
+                            <button type="button" id="tabHist" onclick="window.switchTableTab('hist')" class="tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-list-check"></i> ประวัติหัก/เพิ่มคะแนน
+                            </button>
+                            <button type="button" id="tabRisk" onclick="window.switchTableTab('risk')" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-triangle-exclamation text-rose-500"></i> กลุ่มติดเงื่อนไข &lt; 80
+                            </button>
+                            <button type="button" id="tabGate" onclick="window.switchTableTab('gate')" class="tab-btn pb-2 flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-door-open text-amber-500"></i> รายงานขอออกนอกโรงเรียน
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="window.openGatepassModalUI()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer">
+                                <i class="fa-solid fa-plus"></i> ขออนุญาตออกนอก รร.
+                            </button>
+                            <button type="button" onclick="window.exportActiveTabExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer">
+                                <i class="fa-solid fa-file-excel"></i> Excel
+                            </button>
+                            <button type="button" onclick="window.exportActiveTabPdf()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer">
+                                <i class="fa-solid fa-file-pdf"></i> PDF
+                            </button>
+                        </div>
                     </div>
 
                     <div id="viewHistory" class="space-y-3">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left min-w-[500px]">
-                                <thead class="bg-slate-50 text-slate-600 border-b font-bold">
+                        <div class="overflow-x-auto max-h-[380px] table-scroll">
+                            <table class="w-full text-sm text-left min-w-[520px]">
+                                <thead class="bg-slate-50 text-slate-600 border-b font-bold sticky top-0">
                                     <tr>
                                         <th class="p-2.5">นักเรียน</th>
                                         <th class="p-2.5">รายการ / กิจกรรม</th>
@@ -582,9 +646,9 @@
                     </div>
 
                     <div id="viewRisk" class="space-y-3 hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left min-w-[500px]">
-                                <thead class="bg-rose-50 text-rose-800 border-b font-bold">
+                        <div class="overflow-x-auto max-h-[380px] table-scroll">
+                            <table class="w-full text-sm text-left min-w-[520px]">
+                                <thead class="bg-rose-50 text-rose-800 border-b font-bold sticky top-0">
                                     <tr>
                                         <th class="p-2.5">นักเรียน / ชั้น</th>
                                         <th class="p-2.5 text-center">คะแนนปัจจุบัน</th>
@@ -598,9 +662,9 @@
                     </div>
 
                     <div id="viewGatepass" class="space-y-3 hidden">
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto max-h-[380px] table-scroll">
                             <table class="w-full text-sm text-left min-w-[550px]">
-                                <thead class="bg-amber-50 text-amber-900 border-b font-bold">
+                                <thead class="bg-amber-50 text-amber-900 border-b font-bold sticky top-0">
                                     <tr>
                                         <th class="p-2.5">นักเรียน / ห้อง</th>
                                         <th class="p-2.5">เวลาออก-กลับ</th>
@@ -623,12 +687,17 @@
                         <div class="w-9 h-9 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center"><i class="fa-solid fa-chart-pie"></i></div>
                         <div>
                             <h2 class="text-base font-extrabold text-amber-950">รายงานสถิติพฤติกรรมเชิงลึกสำหรับผู้บริหาร</h2>
-                            <p class="text-xs text-amber-700 font-medium">สรุปแนวโน้มความประพฤติและตัวชี้วัดคุณภาพผู้เรียน</p>
+                            <p class="text-xs text-amber-700 font-medium">สรุปแนวโน้มความประพฤติและตัวชี้วัดคุณภาพผู้เรียน (ส่งออกเอกสารราชการ)</p>
                         </div>
                     </div>
-                    <button type="button" onclick="printOfficialReport('รายงานสถิติพฤติกรรมเชิงลึกสำหรับผู้บริหาร')" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer">
-                        <i class="fa-solid fa-print"></i> พิมพ์รายงานผู้บริหาร
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="window.exportReportExcel('exec')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs">
+                            <i class="fa-solid fa-file-excel"></i> ดาวน์โหลด Excel
+                        </button>
+                        <button type="button" onclick="window.openOfficialReportModal('exec')" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs">
+                            <i class="fa-solid fa-file-pdf"></i> พิมพ์ / บันทึก PDF ทางการ
+                        </button>
+                    </div>
                 </div>
 
                 <div id="execReportContentSource" class="space-y-4">
@@ -666,23 +735,23 @@
                 </div>
             </section>
 
-            <!-- 12 Standard Reports -->
+            <!-- 12 Standard Reports (แบบทางการ พร้อมปุ่ม Excel และ PDF แยกตามหัวข้อ) -->
             <section id="section-12-reports" class="affairs-card p-5 space-y-4">
                 <div class="flex flex-wrap justify-between items-center gap-3 border-b pb-3">
                     <div class="flex items-center gap-2.5">
                         <div class="w-9 h-9 bg-slate-800 text-white rounded-xl flex items-center justify-center"><i class="fa-solid fa-folder-open"></i></div>
                         <div>
-                            <h2 class="text-base font-extrabold text-slate-900">ศูนย์รวมรายงานมาตรฐาน สพฐ. (12 รายการ)</h2>
-                            <p class="text-xs text-slate-500 font-medium">คลิกพิมพ์รายงานแต่ละรายการได้ทันที</p>
+                            <h2 class="text-base font-extrabold text-slate-900">ศูนย์รวมรายงานมาตรฐาน สพฐ. และเอกสารราชการ (12 รายการ)</h2>
+                            <p class="text-xs text-slate-500 font-medium">เลือกหัวข้อที่ต้องการรายงาน สามารถดาวน์โหลดเป็นไฟล์ Excel (.xlsx) หรือพิมพ์เป็นเอกสาร PDF ทางการได้ทันที</p>
                         </div>
                     </div>
                 </div>
-                <div id="reports12GridSource" class="grid grid-cols-3 gap-4"></div>
+                <div id="reports12GridSource" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
             </section>
         </div>
     </main>
 
-    <!-- 3. FLOATING PILL BOTTOM NAVIGATION BAR (4 ปุ่มหลัก ไม่ซ้ำกับด้านบน) -->
+    <!-- 3. FLOATING PILL BOTTOM NAVIGATION BAR (Mobile) -->
     <nav class="native-bottom-nav no-print">
         <button id="navAffHome" type="button" class="nav-item-btn active" onclick="window.switchAffairsTab('home')">
             <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
@@ -692,7 +761,7 @@
             <div class="nav-icon-box"><i class="fa-solid fa-clipboard-user"></i></div>
             <span>ตัด/เพิ่มคะแนน</span>
         </button>
-        <button id="navAffGate" type="button" class="nav-item-btn highlight-gate" onclick="openGatepassModalUI()">
+        <button id="navAffGate" type="button" class="nav-item-btn highlight-gate" onclick="window.openGatepassModalUI()">
             <div class="nav-icon-box"><i class="fa-solid fa-door-open"></i></div>
             <span class="font-bold text-amber-800">ขอออกนอก</span>
         </button>
@@ -702,9 +771,41 @@
         </button>
     </nav>
 
-    <!-- ================= BOTTOM SHEET DRAWERS (สำหรับมือถือ) ================= -->
+    <!-- ================= MODAL พรีวิวและพิมพ์เอกสารราชการ PDF / EXCEL ================= -->
+    <div id="officialReportPreviewModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs hidden items-center justify-center z-[10080] p-3 sm:p-6 no-print" onclick="window.closeOfficialReportModal()">
+        <div class="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]" onclick="event.stopPropagation()">
+            <div class="bg-slate-900 text-white px-5 py-3.5 flex flex-wrap justify-between items-center gap-2 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-file-contract text-amber-400 text-lg"></i>
+                    <div>
+                        <h3 id="previewReportModalTitle" class="font-extrabold text-sm sm:text-base">ตัวอย่างเอกสารรายงานทางการ</h3>
+                        <p class="text-xs text-slate-300">รูปแบบหนังสือราชการโรงเรียนบัวเชดวิทยา (ขนาดกระดาษ A4)</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btnPreviewDownloadExcel" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-file-excel"></i> ดาวน์โหลด Excel (.xlsx)
+                    </button>
+                    <button type="button" onclick="window.executeOfficialPrint()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-print"></i> พิมพ์ / บันทึกเป็น PDF
+                    </button>
+                    <button type="button" onclick="window.closeOfficialReportModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold cursor-pointer">✕</button>
+                </div>
+            </div>
 
-    <!-- Drawer B: บันทึกตัดคะแนน / ทำความดี (สำหรับมือถือ) -->
+            <!-- พื้นที่จำลองกระดาษ A4 -->
+            <div class="p-4 sm:p-6 overflow-y-auto bg-slate-200 flex-1">
+                <div id="officialPaperPreviewArea" class="bg-white mx-auto max-w-[210mm] min-h-[260mm] p-6 sm:p-10 shadow-lg border border-slate-300 text-black font-sarabun">
+                    <!-- เติมเนื้อหาเอกสารราชการอัตโนมัติด้วย JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- พื้นที่สำหรับสั่งพิมพ์ออกเครื่องพิมพ์ / Save as PDF -->
+    <div id="officialPrintContainer"></div>
+
+    <!-- ================= BOTTOM SHEET DRAWERS (สำหรับมือถือ) ================= -->
     <div id="behaviorFormDrawer" class="bottom-sheet-backdrop" onclick="closeAffairsSheet('behaviorFormDrawer')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -727,7 +828,7 @@
                 <form id="mobileDeductForm" class="space-y-3">
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">กรอกรหัสนักเรียน</label>
-                        <input type="text" id="mStudentCodeInput" placeholder="กรอกรหัสนักเรียน เช่น 10001" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900" required autocomplete="off">
+                        <input type="text" id="mStudentCodeInput" placeholder="กรอกรหัสนักเรียน เช่น 13174" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900" required autocomplete="off">
                     </div>
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">ชื่อ-นามสกุล / ชั้นเรียน</label>
@@ -775,7 +876,6 @@
         </div>
     </div>
 
-    <!-- Drawer 1: ประวัติคะแนนความประพฤติ (สำหรับมือถือ) -->
     <div id="behaviorHistoryDrawer" class="bottom-sheet-backdrop" onclick="closeAffairsSheet('behaviorHistoryDrawer')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -803,7 +903,6 @@
         </div>
     </div>
 
-    <!-- Drawer 2: สถิติผู้บริหาร (สำหรับมือถือ) -->
     <div id="execReportDrawer" class="bottom-sheet-backdrop" onclick="closeAffairsSheet('execReportDrawer')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -834,14 +933,18 @@
                     <h4 class="font-bold text-slate-700 mb-1.5">Top 3 ฐานความผิดสูงสุด</h4>
                     <div id="mTop3OffensesList" class="text-slate-500">✨ ยังไม่มีประวัติการกระทำผิด</div>
                 </div>
-                <button type="button" onclick="printOfficialReport('รายงานสถิติพฤติกรรมเชิงลึกสำหรับผู้บริหาร')" class="w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl cursor-pointer">
-                    <i class="fa-solid fa-print mr-1"></i> พิมพ์รายงานเสนอผู้บริหาร
-                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="window.exportReportExcel('exec')" class="bg-emerald-600 text-white font-bold py-2.5 rounded-xl cursor-pointer">
+                        <i class="fa-solid fa-file-excel mr-1"></i> ดาวน์โหลด Excel
+                    </button>
+                    <button type="button" onclick="window.openOfficialReportModal('exec')" class="bg-slate-800 text-white font-bold py-2.5 rounded-xl cursor-pointer">
+                        <i class="fa-solid fa-file-pdf mr-1"></i> รายงาน PDF ทางการ
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Drawer 3: ศูนย์รายงาน 12 รายการ (สำหรับมือถือ) -->
     <div id="reports12Drawer" class="bottom-sheet-backdrop" onclick="closeAffairsSheet('reports12Drawer')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -853,7 +956,7 @@
         </div>
     </div>
 
-    <!-- OFF-CANVAS SLIDE-OVER DRAWER (สำหรับแสดงรายละเอียดรายห้อง) -->
+    <!-- OFF-CANVAS SLIDE-OVER DRAWER (รายละเอียดรายห้อง) -->
     <div id="roomDetailDrawer" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-[10050] hidden transition-opacity" onclick="closeRoomDrawer()">
         <div class="fixed inset-y-0 right-0 max-w-full flex pl-6" onclick="event.stopPropagation()">
             <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col">
@@ -891,7 +994,7 @@
         </div>
     </div>
 
-    <!-- Modal: แสดง Pop-up รายชื่อนักเรียนจาก KPI Cards ทั้ง 4 กล่อง (z-index สูงสุด กดติด 100%) -->
+    <!-- KPI Modal -->
     <div id="kpiListModal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs hidden items-center justify-center z-[10060] p-3 sm:p-6 no-print" onclick="window.closeKpiModal()">
         <div class="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-5 shadow-2xl border-2 border-amber-300 space-y-3 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b border-slate-200 pb-2 shrink-0">
@@ -917,17 +1020,17 @@
     </div>
 
     <!-- Gatepass Modal -->
-    <div id="gatepassModal" class="fixed inset-0 bg-slate-900/65 backdrop-blur-xs z-[10065] hidden items-center justify-center p-3 no-print" onclick="toggleModal('gatepassModal', false)">
+    <div id="gatepassModal" class="fixed inset-0 bg-slate-900/65 backdrop-blur-xs z-[10065] hidden items-center justify-center p-3 no-print" onclick="window.toggleModal('gatepassModal', false)">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-amber-200" onclick="event.stopPropagation()">
             <div class="bg-[#5c2406] px-5 py-3.5 text-white flex justify-between items-center">
                 <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-door-open text-amber-300"></i> ขออนุญาตออกนอกบริเวณโรงเรียน</h3>
-                <button type="button" id="btnCloseGatepassModal" class="text-amber-200 hover:text-white text-xl font-bold cursor-pointer">&times;</button>
+                <button type="button" onclick="window.toggleModal('gatepassModal', false)" class="text-amber-200 hover:text-white text-xl font-bold cursor-pointer">&times;</button>
             </div>
             <form id="gatepassForm" class="p-4 space-y-3 text-sm">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">รหัสนักเรียน <span class="text-rose-500">*</span></label>
                     <div class="flex gap-2">
-                        <input type="text" id="gateStudentId" placeholder="กรอกรหัสนักเรียน เช่น 12345" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900">
+                        <input type="text" id="gateStudentId" placeholder="กรอกรหัสนักเรียน เช่น 13174" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900">
                         <button type="button" id="btnSearchGateStudent" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 rounded-xl shrink-0 cursor-pointer">ค้นหา</button>
                     </div>
                 </div>
@@ -944,46 +1047,468 @@
                     <div><label class="block font-bold text-slate-700 mb-1">เวลาที่กลับ</label><input type="time" id="gateReturnTime" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold"></div>
                 </div>
                 <div><label class="block font-bold text-slate-700 mb-1">ผู้อนุมัติ</label><input type="text" id="gateApprovedBy" value="ครูฝ่ายปกครอง (ห้องกิจการนักเรียน)" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold"></div>
-                
+
                 <div class="flex justify-end gap-2 pt-3 border-t">
-                    <button type="button" id="btnCancelGatepass" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl cursor-pointer">ยกเลิก</button>
+                    <button type="button" onclick="window.toggleModal('gatepassModal', false)" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl cursor-pointer">ยกเลิก</button>
                     <button type="submit" id="btnSubmitGatepass" disabled class="px-5 py-2 bg-amber-600 text-white font-bold rounded-xl opacity-50 cursor-not-allowed shadow">บันทึกและซิงก์คาบเรียน</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- ================= 1. CORE UI & INTERACTION SCRIPT ================= -->
+    <!-- ================= MAIN APPLICATION SCRIPT (UNIFIED & RELIABLE) ================= -->
     <script>
+        const db = window.supabaseClient || window.db || window.supabase;
+
         window.BCW_APP_DATA = {
             students: [],
             disciplineLogs: [],
             gatePassLogs: [],
             attendanceLogs: [],
-            clinicLogs: []
+            clinicLogs: [],
+            roomStats: {}
         };
 
+        let currentFormMode = 'deduct';
+        let mobileFormMode = 'deduct';
+        let currentReportMode = 'assembly';
+        let activeDesktopTableTab = 'hist';
+        let selectedStudentForGatepass = null;
+        let currentRoomStudentsCache = [];
+        let execChartInstance = null;
+        let inlineChartInstance = null;
+
         const OBEC_12_REPORTS = [
-            { id: 1, title: "1. รายงานสรุปคะแนนพฤติกรรมรายห้อง", desc: "สรุปคะแนนคงเหลือเฉลี่ยแยกตามห้องเรียน ม.1 - ม.6" },
-            { id: 2, title: "2. รายงานรายชื่อนักเรียนกลุ่มเสี่ยง (< 80 คะแนน)", desc: "รายชื่อเด็กติดเงื่อนไขวิกฤตที่จะต้องทำกิจกรรมซ่อมแซมคะแนน" },
-            { id: 3, title: "3. รายงานประวัติการทำความดีและจิตอาสา", desc: "สรุปการเพิ่มคะแนนความประพฤติและถือเป็นยกย่องเชิดชูเกียรติ" },
-            { id: 4, title: "4. รายงานการเข้าแถวเคารพธงชาติ (ม.ต้น/ม.ปลาย)", desc: "สถิติการตรงต่อเวลา การมาสาย และการขาดแถวหน้าเสาธง" },
-            { id: 5, title: "5. รายงานการขอออกนอกสถานศึกษาประจำวัน", desc: "สถิติการออกนอกบริเวณโรงเรียนและผู้อนุมัติอนุญาต" },
-            { id: 6, title: "6. รายงานสรุปการหนีเรียนประจำคาบ", desc: "สถิตินักเรียนโดดเรียนแยกรายวิชา คาบเรียน และจุดเสี่ยง" },
-            { id: 7, title: "7. รายงาน Top 5 ฐานความผิดวินัยสูงสุด", desc: "วิเคราะห์แนวโน้มพฤติกรรมผิดระเบียบเพื่อการป้องกันในเชิงรุก" },
-            { id: 8, title: "8. รายงานสถิติการเข้าใช้ห้องพยาบาล", desc: "สรุปการป่วยและการนอนพักในห้องพยาบาลรายวัน" },
-            { id: 9, title: "9. รายงานอัตราการปรับเปลี่ยนพฤติกรรม", desc: "สรุปความสำเร็จในการซ่อมปรับพฤติกรรมของนักเรียน" },
-            { id: 10, title: "10. หนังสือแจ้งเตือนผู้ปกครอง (Official Notice)", desc: "หนังสือแจ้งเตือนเป็นทางการเมื่อเด็กติดเงื่อนไขวิกฤต" },
-            { id: 11, title: "11. รายงานสถิติการมาสายหน้าประตูโรงเรียน", desc: "สรุปการมาสายช่วงเช้าสำหรับบริหารจัดการทางพฤติกรรม" },
-            { id: 12, title: "12. แบบบันทึกการส่งต่อครูแนะแนว/เยี่ยมบ้าน", desc: "เอกสารส่งต่อระบบดูแลช่วยเหลือนักเรียนแบบบูรณาการ" }
+            { id: 1, title: "รายงานสรุปคะแนนความประพฤติรายห้องเรียน", desc: "สรุปคะแนนคงเหลือเฉลี่ยและจำนวนนักเรียนกลุ่มเสี่ยงแยกตามห้องเรียน ม.1 - ม.6" },
+            { id: 2, title: "รายงานรายชื่อนักเรียนกลุ่มเสี่ยง (< 80 คะแนน)", desc: "บัญชีรายชื่อนักเรียนติดเงื่อนไขวิกฤตที่ต้องเข้ารับการปรับเปลี่ยนพฤติกรรม" },
+            { id: 3, title: "รายงานประวัติการทำความดีและจิตอาสา", desc: "สรุปการเพิ่มคะแนนความประพฤติเพื่อยกย่องเชิดชูเกียรติ" },
+            { id: 4, title: "รายงานสถิติการเข้าแถวเคารพธงชาติประจำวัน", desc: "สรุปจำนวนนักเรียนมาตรงเวลา มาสาย ขาด ลา และหนีเรียน แยกตามระดับชั้น" },
+            { id: 5, title: "รายงานการขออนุญาตออกนอกสถานศึกษาประจำวัน", desc: "ทะเบียนคุมการออกนอกบริเวณโรงเรียน เวลาออก-กลับ และผู้อนุมัติ" },
+            { id: 6, title: "รายงานสรุปการหนีเรียน / ขาดเรียนรายคาบ", desc: "สถิตินักเรียนที่ไม่เข้าชั้นเรียนรายวิชาเพื่อแจ้งครูที่ปรึกษา" },
+            { id: 7, title: "รายงานวิเคราะห์ฐานความผิดวินัยสูงสุด (Top Offenses)", desc: "สรุปสถิติแยกตามประเภทความผิดเพื่อวางแผนป้องกันเชิงรุก" },
+            { id: 8, title: "รายงานสถิติการเข้ารับบริการห้องพยาบาล", desc: "สรุปอาการเจ็บป่วยและสถานะการดูแลนักเรียนประจำวัน" },
+            { id: 9, title: "รายงานผลการปรับเปลี่ยนพฤติกรรมและซ่อมเสริมคะแนน", desc: "เปรียบเทียบอัตราการทำผิดและอัตราการบำเพ็ญประโยชน์ซ่อมคะแนน" },
+            { id: 10, title: "หนังสือแจ้งเตือนผู้ปกครองกรณีคะแนนต่ำกว่าเกณฑ์", desc: "แบบฟอร์มหนังสือแจ้งเตือนเป็นทางการสำหรับนักเรียนคะแนนต่ำกว่า 80" },
+            { id: 11, title: "รายงานสถิติการมาสายหน้าประตูโรงเรียน", desc: "บัญชีรายชื่อนักเรียนที่มาสายในช่วงเช้าเพื่อติดตามดูแล" },
+            { id: 12, title: "แบบสรุปรายงานระบบดูแลช่วยเหลือนักเรียนเสนอผู้บริหาร", desc: "เอกสารสรุปภาพรวมกิจการนักเรียนเสนอผู้อำนวยการโรงเรียน" }
         ];
 
-        function getStudentFullNameGlobal(st) {
-            if (!st) return '-';
-            return `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim() || st.full_name || st.student_code;
+        function getStuCode(st) {
+            return String(st?.student_id || st?.student_code || '').trim();
         }
 
-        // เปิด Pop-up รายชื่อจากกล่องสถิติ 4 กล่องด้านบน (ทำงานได้ทันทีตั้งแต่เปิดหน้า)
+        function getStuFullName(st) {
+            if (!st) return '-';
+            return `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim() || st.name || st.full_name || getStuCode(st);
+        }
+
+        function getThaiFullDate(dateObj = new Date()) {
+            const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            return `${dateObj.getDate()} ${months[dateObj.getMonth()]} พ.ศ. ${dateObj.getFullYear() + 543}`;
+        }
+
+        // 1. สลับแท็บตารางฝั่งขวา (ประวัติ | กลุ่มเสี่ยง | ขออนุญาตออกนอก)
+        window.switchTableTab = function(tab) {
+            activeDesktopTableTab = tab;
+            ['hist', 'risk', 'gate'].forEach(t => {
+                const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (btn) btn.classList.toggle('active', t === tab);
+            });
+            document.getElementById('viewHistory')?.classList.toggle('hidden', tab !== 'hist');
+            document.getElementById('viewRisk')?.classList.toggle('hidden', tab !== 'risk');
+            document.getElementById('viewGatepass')?.classList.toggle('hidden', tab !== 'gate');
+        };
+
+        // 2. สลับโหมดฟอร์มบันทึกคะแนน (ตัดคะแนน / ทำความดี)
+        window.switchFormMode = function(mode) {
+            currentFormMode = mode;
+            const btnDeduct = document.getElementById('btnTabDeduct');
+            const btnRepair = document.getElementById('btnTabRepair');
+            if (btnDeduct) btnDeduct.className = mode === 'deduct' ? "form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            if (btnRepair) btnRepair.className = mode === 'repair' ? "form-tab active-repair flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            document.getElementById('deductFields')?.classList.toggle('hidden', mode !== 'deduct');
+            document.getElementById('repairFields')?.classList.toggle('hidden', mode !== 'repair');
+
+            const btnSubmit = document.getElementById('btnSubmitForm');
+            if (btnSubmit) {
+                if (mode === 'deduct') {
+                    btnSubmit.className = "w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
+                    btnSubmit.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน`;
+                } else {
+                    btnSubmit.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
+                    btnSubmit.innerHTML = `<i class="fa-solid fa-star"></i> บันทึกทำความดีและเพิ่มคะแนน`;
+                }
+            }
+        };
+
+        window.syncMobileFormMode = function(mode) {
+            mobileFormMode = mode;
+            document.getElementById('mBtnTabDeduct').className = mode === 'deduct' ? "form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            document.getElementById('mBtnTabRepair').className = mode === 'repair' ? "form-tab active-repair flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
+            document.getElementById('mDeductFields').classList.toggle('hidden', mode !== 'deduct');
+            document.getElementById('mRepairFields').classList.toggle('hidden', mode !== 'repair');
+            const btn = document.getElementById('mBtnSubmitForm');
+            if (mode === 'deduct') {
+                btn.className = "w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
+                btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน`;
+            } else {
+                btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
+                btn.innerHTML = `<i class="fa-solid fa-star"></i> บันทึกทำความดีและเพิ่มคะแนน`;
+            }
+        };
+
+        // 3. สลับแผงตรงกลาง (เข้าแถว | มาเรียน | รายห้อง | กราฟสถิติ)
+        window.switchCenterPanel = function(mode) {
+            const btns = {
+                assembly: document.getElementById('btnModeAssembly'),
+                daily: document.getElementById('btnModeDaily'),
+                rooms: document.getElementById('btnModeRooms'),
+                chart: document.getElementById('btnModeChart')
+            };
+            const titleText = document.getElementById('reportTitleText');
+            const viewSummary = document.getElementById('panelViewSummary');
+            const viewRooms = document.getElementById('panelViewRooms');
+            const viewChart = document.getElementById('panelViewChart');
+
+            Object.entries(btns).forEach(([key, btn]) => {
+                if (!btn) return;
+                btn.className = key === mode
+                    ? "py-1 px-2.5 rounded-lg bg-amber-600 text-white shadow-xs transition cursor-pointer text-center"
+                    : "py-1 px-2.5 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-center";
+            });
+
+            viewSummary.classList.add('hidden');
+            viewRooms.classList.add('hidden');
+            viewChart.classList.add('hidden');
+
+            if (mode === 'assembly') {
+                currentReportMode = 'assembly';
+                titleText.innerHTML = `<i class="fa-solid fa-users-rectangle text-amber-600"></i> รายงานเข้าแถวเคารพธงชาติ`;
+                viewSummary.classList.remove('hidden');
+                renderAssemblyReport();
+            } else if (mode === 'daily') {
+                currentReportMode = 'daily';
+                titleText.innerHTML = `<i class="fa-solid fa-school-flag text-sky-600"></i> รายงานการมาเรียนประจำวัน`;
+                viewSummary.classList.remove('hidden');
+                renderAssemblyReport();
+            } else if (mode === 'rooms') {
+                titleText.innerHTML = `<i class="fa-solid fa-table-list text-amber-600"></i> สรุปการมาเรียนแยกตามห้องเรียน`;
+                viewRooms.classList.remove('hidden');
+            } else if (mode === 'chart') {
+                titleText.innerHTML = `<i class="fa-solid fa-chart-column text-emerald-600"></i> กราฟสถิติพฤติกรรมและภาพรวม`;
+                viewChart.classList.remove('hidden');
+                window.renderInlineBehaviorChart();
+            }
+        };
+
+        // 4. สร้างชุดข้อมูลสำหรับส่งออก Excel และเอกสารราชการตามหัวข้อรายงาน
+        function buildReportDataset(reportKey) {
+            const data = window.BCW_APP_DATA;
+            const todayThai = getThaiFullDate();
+            let title = "";
+            let docCode = `ที่ ศธ ๐๔๒๖๖.๐๙/ว ${new Date().getDate()}`;
+            let headers = [];
+            let rows = [];
+            let summaryNote = "";
+
+            if (reportKey === 1) {
+                title = "รายงานสรุปคะแนนความประพฤติรายห้องเรียน";
+                headers = ["ที่", "ห้องเรียน", "จำนวนนักเรียน (คน)", "คะแนนเฉลี่ย", "นักเรียนปกติ (>=80)", "กลุ่มเสี่ยง (<80)"];
+                const roomMap = {};
+                data.students.forEach(s => {
+                    const rm = s.classroom || 'ไม่ระบุ';
+                    if (!roomMap[rm]) roomMap[rm] = { count: 0, sum: 0, normal: 0, risk: 0 };
+                    const sc = Number(s.behavior_score ?? 100);
+                    roomMap[rm].count++;
+                    roomMap[rm].sum += sc;
+                    if (sc >= 80) roomMap[rm].normal++; else roomMap[rm].risk++;
+                });
+                Object.keys(roomMap).sort((a, b) => a.localeCompare(b, 'th', { numeric: true })).forEach((rm, i) => {
+                    const r = roomMap[rm];
+                    rows.push([i + 1, rm, r.count, (r.sum / r.count).toFixed(2), r.normal, r.risk]);
+                });
+                summaryNote = `รวมทั้งหมด ${rows.length} ห้องเรียน จำนวนนักเรียนทั้งสิ้น ${data.students.length} คน`;
+            } else if (reportKey === 2 || reportKey === 'risk') {
+                title = "รายงานรายชื่อนักเรียนกลุ่มเสี่ยง (คะแนนความประพฤติต่ำกว่า 80 คะแนน)";
+                headers = ["ที่", "รหัสนักเรียน", "ชื่อ - นามสกุล", "ชั้นเรียน", "คะแนนคงเหลือ", "ต้องซ่อมเสริม (คะแนน)"];
+                const riskList = data.students.filter(s => Number(s.behavior_score ?? 100) < 80);
+                riskList.forEach((s, i) => {
+                    const sc = Number(s.behavior_score ?? 0);
+                    rows.push([i + 1, getStuCode(s), getStuFullName(s), s.classroom || '-', sc, 80 - sc]);
+                });
+                summaryNote = `พบนักเรียนกลุ่มเสี่ยงที่ต้องเข้ารับการปรับเปลี่ยนพฤติกรรม จำนวน ${riskList.length} คน`;
+            } else if (reportKey === 3) {
+                title = "รายงานประวัติการทำความดีและบำเพ็ญประโยชน์ (+คะแนนความประพฤติ)";
+                headers = ["ที่", "รหัสนักเรียน", "ชื่อ - นามสกุล", "รายการทำความดี", "คะแนนที่เพิ่ม", "คะแนนรวมใหม่"];
+                const goodLogs = data.disciplineLogs.filter(l => Number(l.points_change) > 0);
+                goodLogs.forEach((l, i) => {
+                    rows.push([i + 1, l.student_code || '-', l.student_name || '-', l.action || '-', `+${l.points_change}`, l.remaining_score ?? '-']);
+                });
+                summaryNote = `รวมรายการทำความดีที่บันทึกในระบบจำนวน ${goodLogs.length} รายการ`;
+            } else if (reportKey === 4) {
+                title = "รายงานสถิติการเข้าแถวเคารพธงชาติและการมาเรียนประจำวัน";
+                headers = ["ที่", "ห้องเรียน", "นักเรียนทั้งหมด", "มาตรงเวลา", "มาสาย", "ขาด", "ลา", "หนีเรียน", "ร้อยละการมาเรียน"];
+                const sortedRooms = Object.keys(data.roomStats).sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
+                sortedRooms.forEach((rm, i) => {
+                    const r = data.roomStats[rm];
+                    const pct = r.total > 0 ? (((r.present + r.late) / r.total) * 100).toFixed(2) + '%' : '100.00%';
+                    rows.push([i + 1, rm, r.total, r.present, r.late, r.absent, r.leave, r.truant, pct]);
+                });
+                summaryNote = `รายงานสถิติการเข้าแถวและมาเรียนประจำวันที่ ${todayThai}`;
+            } else if (reportKey === 5 || reportKey === 'gate') {
+                title = "รายงานทะเบียนคุมการขออนุญาตออกนอกสถานศึกษาประจำวัน";
+                headers = ["ที่", "รหัสนักเรียน", "ชื่อ - นามสกุล", "ชั้นเรียน", "เวลาออก - กลับ", "เหตุผลความจำเป็น", "ผู้อนุมัติ"];
+                data.gatePassLogs.forEach((g, i) => {
+                    rows.push([i + 1, g.student_code || '-', g.student_name || '-', g.classroom || '-', `${g.exit_time || '-'} - ${g.return_time || 'ยังไม่กลับ'}`, g.reason || '-', g.approved_by || 'ฝ่ายปกครอง']);
+                });
+                summaryNote = `รวมรายการขออนุญาตออกนอกบริเวณโรงเรียนจำนวน ${data.gatePassLogs.length} รายการ`;
+            } else if (reportKey === 6) {
+                title = "รายงานสรุปการหนีเรียน / ขาดเรียนรายคาบประจำวัน";
+                headers = ["ที่", "รหัสนักเรียน", "ชื่อ - นามสกุล", "ชั้นเรียน", "รายวิชา", "คาบเรียน", "สถานะ"];
+                data.attendanceLogs.forEach((t, i) => {
+                    const st = data.students.find(s => getStuCode(s) === String(t.student_id || t.student_code));
+                    rows.push([i + 1, t.student_id || t.student_code || '-', st ? getStuFullName(st) : '-', st?.classroom || t.classroom || '-', t.subject_name || t.subject_code || '-', t.period || '-', 'ขาด/หนีเรียน']);
+                });
+                summaryNote = `รวมเคสไม่เข้าเรียนรายคาบจำนวน ${data.attendanceLogs.length} รายการ`;
+            } else if (reportKey === 7) {
+                title = "รายงานวิเคราะห์สถิติฐานความผิดวินัยนักเรียน";
+                headers = ["อันดับ", "ฐานความผิด / พฤติกรรมที่ไม่พึงประสงค์", "จำนวนครั้งที่พบ (เคส)", "ร้อยละ"];
+                const offenses = data.disciplineLogs.filter(l => Number(l.points_change) < 0);
+                const mapReason = {};
+                offenses.forEach(o => { mapReason[o.action] = (mapReason[o.action] || 0) + 1; });
+                Object.entries(mapReason).sort((a, b) => b[1] - a[1]).forEach(([reason, cnt], i) => {
+                    const pct = offenses.length > 0 ? ((cnt / offenses.length) * 100).toFixed(2) + '%' : '0%';
+                    rows.push([i + 1, reason, cnt, pct]);
+                });
+                summaryNote = `รวมสถิติการทำผิดระเบียบทั้งหมด ${offenses.length} ครั้ง`;
+            } else if (reportKey === 8) {
+                title = "รายงานสถิติการเข้ารับบริการห้องพยาบาลประจำวัน";
+                headers = ["ที่", "ชื่อ - นามสกุล", "ชั้นเรียน", "อาการเบื้องต้น / สาเหตุ", "สถานะการดูแล"];
+                data.clinicLogs.forEach((c, i) => {
+                    rows.push([i + 1, c.student_name || '-', c.classroom || '-', c.symptom || '-', c.status || 'กำลังพักรักษา']);
+                });
+                summaryNote = `รวมจำนวนนักเรียนเข้ารับบริการห้องพยาบาล ${data.clinicLogs.length} คน`;
+            } else if (reportKey === 'hist') {
+                title = "รายงานทะเบียนประวัติการตัดคะแนนและเพิ่มคะแนนความประพฤติ";
+                headers = ["ที่", "รหัสนักเรียน", "ชื่อ - นามสกุล", "รายการพฤติกรรม / กิจกรรม", "คะแนนเปลี่ยนแปลง", "คะแนนคงเหลือ"];
+                data.disciplineLogs.forEach((l, i) => {
+                    const chg = Number(l.points_change) > 0 ? `+${l.points_change}` : `${l.points_change}`;
+                    rows.push([i + 1, l.student_code || '-', l.student_name || '-', l.action || '-', chg, l.remaining_score ?? '-']);
+                });
+                summaryNote = `รวมรายการบันทึกความประพฤติทั้งหมด ${data.disciplineLogs.length} รายการ`;
+            } else {
+                const found = OBEC_12_REPORTS.find(r => r.id === reportKey);
+                title = found ? found.title : "รายงานสรุปสถิติพฤติกรรมและการดำเนินงานกลุ่มบริหารกิจการนักเรียน";
+                const offenses = data.disciplineLogs.filter(l => Number(l.points_change) < 0);
+                const repairs = data.disciplineLogs.filter(l => Number(l.points_change) > 0);
+                const riskCount = data.students.filter(s => Number(s.behavior_score ?? 100) < 80).length;
+                const avgScore = data.students.length > 0
+                    ? (data.students.reduce((sum, s) => sum + Number(s.behavior_score ?? 100), 0) / data.students.length).toFixed(2)
+                    : '100.00';
+
+                headers = ["ที่", "ตัวชี้วัด / รายการดำเนินงานกลุ่มบริหารกิจการนักเรียน", "ข้อมูลสถิติปัจจุบัน", "หมายเหตุ"];
+                rows = [
+                    [1, "จำนวนนักเรียนทั้งหมดในระบบฐานข้อมูล", `${data.students.length} คน`, "ข้อมูลล่าสุด"],
+                    [2, "คะแนนความประพฤติเฉลี่ยทั้งโรงเรียน", `${avgScore} / 100 คะแนน`, "เกณฑ์มาตรฐาน >= 80"],
+                    [3, "จำนวนนักเรียนกลุ่มเสี่ยง (คะแนนต่ำกว่า 80)", `${riskCount} คน`, "ติดตามปรับพฤติกรรม"],
+                    [4, "สถิติการกระทำผิดระเบียบสะสม", `${offenses.length} ครั้ง`, "บันทึกตัดคะแนน"],
+                    [5, "สถิติการทำความดีและจิตอาสา (+คะแนน)", `${repairs.length} ครั้ง`, "ยกย่องเชิดชูเกียรติ"],
+                    [6, "การขออนุญาตออกนอกสถานศึกษาประจำวัน", `${data.gatePassLogs.length} ฉบับ`, "ผ่านการอนุมัติ"],
+                    [7, "การเข้ารับบริการห้องพยาบาลประจำวัน", `${data.clinicLogs.length} คน`, "รายงานพยาบาล"]
+                ];
+                summaryNote = `ข้อมูลสรุป ณ วันที่ ${todayThai} กลุ่มบริหารกิจการนักเรียน โรงเรียนบัวเชดวิทยา`;
+            }
+
+            if (rows.length === 0) {
+                rows.push(["-", "ยังไม่มีรายการบันทึกข้อมูลในหมวดหมู่นี้ ณ ปัจจุบัน", "-", "-"]);
+            }
+
+            return { title, docCode, todayThai, headers, rows, summaryNote };
+        }
+
+        // 5. ดาวน์โหลดไฟล์ Excel (.xlsx) แยกตามหัวข้อ
+        window.exportReportExcel = function(reportKey) {
+            if (typeof XLSX === 'undefined') return alert('กำลังโหลดไลบรารี Excel กรุณารอสักครู่ครับ');
+            const rep = buildReportDataset(reportKey);
+            const wsData = [
+                ["โรงเรียนบัวเชดวิทยา อำเภอบัวเชด จังหวัดสุรินทร์"],
+                ["สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์"],
+                [rep.title],
+                [`ข้อมูล ณ วันที่ ${rep.todayThai}`],
+                [],
+                rep.headers,
+                ...rep.rows,
+                [],
+                [rep.summaryNote]
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "รายงานทางการ");
+            const safeFileName = rep.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 50);
+            XLSX.writeFile(wb, `${safeFileName}_BCW.xlsx`);
+        };
+
+        // 6. เปิดหน้าต่างพรีวิวและพิมพ์เอกสารราชการ PDF
+        window.openOfficialReportModal = function(reportKey) {
+            const rep = buildReportDataset(reportKey);
+            const modal = document.getElementById('officialReportPreviewModal');
+            const previewArea = document.getElementById('officialPaperPreviewArea');
+            const titleEl = document.getElementById('previewReportModalTitle');
+            const btnExcel = document.getElementById('btnPreviewDownloadExcel');
+
+            titleEl.innerText = rep.title;
+            btnExcel.onclick = () => window.exportReportExcel(reportKey);
+
+            const officialHtml = `
+                <div style="font-family: 'Sarabun', sans-serif; color: #000; line-height: 1.55;">
+                    <!-- ส่วนหัวหนังสือราชการ -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <img src="../../assets/images/logo_bcw.png" alt="Logo" style="width: 64px; height: 64px; object-fit: contain;" onerror="this.style.display='none'">
+                            <div>
+                                <div style="font-size: 18pt; font-weight: 800; line-height: 1.2;">บันทึกข้อความ / รายงานผลการดำเนินงาน</div>
+                                <div style="font-size: 13pt; font-weight: 700;">กลุ่มบริหารกิจการนักเรียน โรงเรียนบัวเชดวิทยา</div>
+                                <div style="font-size: 11pt;">อำเภอบัวเชด จังหวัดสุรินทร์ • สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right; font-size: 11pt;">
+                            <div><strong>เลขที่เอกสาร:</strong> ${rep.docCode}</div>
+                            <div><strong>วันที่:</strong> ${rep.todayThai}</div>
+                        </div>
+                    </div>
+
+                    <!-- เรื่อง / เรียน -->
+                    <div style="font-size: 13pt; margin-bottom: 14px;">
+                        <div><strong>เรื่อง:</strong> ${rep.title}</div>
+                        <div><strong>เรียน:</strong> ผู้อำนวยการโรงเรียนบัวเชดวิทยา</div>
+                        <p style="text-indent: 2.5em; margin-top: 8px; text-align: justify;">
+                            กลุ่มบริหารกิจการนักเรียน โรงเรียนบัวเชดวิทยา ขอรายงานข้อมูลสารสนเทศและผลการดำเนินงานด้านกิจการนักเรียนและระบบดูแลช่วยเหลือนักเรียน ประจำวันที่ ${rep.todayThai} โดยมีรายละเอียดปรากฏตามตารางด้านล่างนี้
+                        </p>
+                    </div>
+
+                    <!-- ตารางข้อมูลทางการ -->
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11.5pt; margin-bottom: 14px;">
+                        <thead>
+                            <tr style="background-color: #f1f5f9;">
+                                ${rep.headers.map(h => `<th style="border: 1px solid #000; padding: 7px 8px; text-align: center; font-weight: 700;">${h}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rep.rows.map(row => `
+                                <tr>
+                                    ${row.map((cell, idx) => `<td style="border: 1px solid #000; padding: 6px 8px; text-align: ${idx === 0 || typeof cell === 'number' ? 'center' : 'left'};">${cell}</td>`).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div style="font-size: 12pt; font-weight: 700; margin-bottom: 24px;">
+                        สรุปผลการรายงาน: <span style="font-weight: 400;">${rep.summaryNote}</span>
+                    </div>
+
+                    <!-- ส่วนลงนามรับรองตามระเบียบงานสารบรรณ -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; font-size: 12pt; text-align: center; page-break-inside: avoid;">
+                        <div>
+                            <div>ลงชื่อ......................................................ผู้รายงาน</div>
+                            <div style="margin-top: 4px;">(......................................................)</div>
+                            <div>เจ้าหน้าที่ / ครูกลุ่มบริหารกิจการนักเรียน</div>
+                            <div>วันที่ ${rep.todayThai}</div>
+                        </div>
+                        <div>
+                            <div>ลงชื่อ......................................................ผู้รับรอง</div>
+                            <div style="margin-top: 4px;">(......................................................)</div>
+                            <div>รองผู้อำนวยการกลุ่มบริหารกิจการนักเรียน</div>
+                            <div>โรงเรียนบัวเชดวิทยา</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 32px; font-size: 12pt; text-align: center; page-break-inside: avoid;">
+                        <div><strong>ความเห็นผู้อำนวยการโรงเรียนบัวเชดวิทยา</strong></div>
+                        <div style="margin-top: 6px;">[ &nbsp; ] ทราบ &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] ดำเนินการตามเสนอ &nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp; ] อื่นๆ..................................................</div>
+                        <div style="margin-top: 26px;">ลงชื่อ......................................................</div>
+                        <div style="margin-top: 4px;">(......................................................)</div>
+                        <div>ผู้อำนวยการโรงเรียนบัวเชดวิทยา</div>
+                    </div>
+                </div>
+            `;
+
+            previewArea.innerHTML = officialHtml;
+            document.getElementById('officialPrintContainer').innerHTML = officialHtml;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeOfficialReportModal = function() {
+            const modal = document.getElementById('officialReportPreviewModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        };
+
+        window.executeOfficialPrint = function() {
+            window.print();
+        };
+
+        window.exportActiveTabExcel = function() {
+            window.exportReportExcel(activeDesktopTableTab);
+        };
+
+        window.exportActiveTabPdf = function() {
+            window.openOfficialReportModal(activeDesktopTableTab);
+        };
+
+        // 7. แสดงรายการศูนย์รายงานมาตรฐาน สพฐ. 12 รายการ
+        function render12ReportsLists() {
+            const desktopGrid = document.getElementById('reports12GridSource');
+            if (desktopGrid) {
+                desktopGrid.innerHTML = OBEC_12_REPORTS.map(r => `
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 hover:border-amber-400 transition flex flex-col justify-between space-y-3">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full">แบบรายงานที่ ${r.id}</span>
+                                <span class="text-[11px] text-slate-400 font-bold">มาตรฐาน สพฐ.</span>
+                            </div>
+                            <h4 class="font-extrabold text-sm text-slate-900 mt-2">${r.id}. ${r.title}</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed">${r.desc}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                            <button type="button" onclick="window.exportReportExcel(${r.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-2 rounded-xl transition flex items-center justify-center gap-1 cursor-pointer">
+                                <i class="fa-solid fa-file-excel"></i> Excel
+                            </button>
+                            <button type="button" onclick="window.openOfficialReportModal(${r.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 px-2 rounded-xl transition flex items-center justify-center gap-1 cursor-pointer">
+                                <i class="fa-solid fa-file-pdf"></i> PDF ทางการ
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            const mobileList = document.getElementById('mobileReports12List');
+            if (mobileList) {
+                mobileList.innerHTML = OBEC_12_REPORTS.map(r => `
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                        <div>
+                            <span class="bg-amber-100 text-amber-900 text-[11px] font-bold px-2 py-0.5 rounded">แบบรายงานที่ ${r.id}</span>
+                            <h4 class="font-bold text-xs text-slate-900 mt-1">${r.title}</h4>
+                            <p class="text-[11px] text-slate-500">${r.desc}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <button type="button" onclick="window.exportReportExcel(${r.id})" class="bg-emerald-600 text-white text-xs font-bold py-1.5 rounded-lg cursor-pointer">
+                                <i class="fa-solid fa-file-excel mr-1"></i> Excel
+                            </button>
+                            <button type="button" onclick="window.openOfficialReportModal(${r.id})" class="bg-slate-800 text-white text-xs font-bold py-1.5 rounded-lg cursor-pointer">
+                                <i class="fa-solid fa-file-pdf mr-1"></i> PDF ทางการ
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 8. KPI Pop-up Modal
         window.openKpiModal = function(type) {
             const modal = document.getElementById('kpiListModal');
             const title = document.getElementById('modalKpiTitle');
@@ -995,12 +1520,12 @@
 
             if (type === 'risk') {
                 title.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600"></i> รายชื่อนักเรียนกลุ่มเสี่ยง (< 80 คะแนน)`;
-                const list = data.students.filter(s => (s.behavior_score ?? 100) < 80);
+                const list = data.students.filter(s => Number(s.behavior_score ?? 100) < 80);
                 rowsHtml = list.length ? list.map(s => `
                     <tr>
-                        <td class="py-2.5 px-2 font-bold text-slate-900">${getStudentFullNameGlobal(s)}</td>
+                        <td class="py-2.5 px-2 font-bold text-slate-900">${getStuFullName(s)}</td>
                         <td class="py-2.5 px-2 text-center font-bold">${s.classroom || '-'}</td>
-                        <td class="py-2.5 px-2 font-extrabold text-rose-600">เหลือ ${s.behavior_score} คะแนน (ต้องซ่อมอีก ${80 - s.behavior_score} คะแนน)</td>
+                        <td class="py-2.5 px-2 font-extrabold text-rose-600">เหลือ ${s.behavior_score} คะแนน (ต้องซ่อมอีก ${80 - Number(s.behavior_score)} คะแนน)</td>
                     </tr>
                 `).join('') : `<tr><td colspan="3" class="text-center py-8 text-slate-500 font-bold">✨ ขณะนี้ไม่มีนักเรียนกลุ่มเสี่ยง (< 80 คะแนน)</td></tr>`;
             } else if (type === 'gatepass') {
@@ -1027,10 +1552,10 @@
                 title.innerHTML = `<i class="fa-solid fa-person-running text-purple-600"></i> รายชื่อนักเรียนหนีเรียน / ขาดเรียนรายคาบวันนี้`;
                 const list = data.attendanceLogs;
                 rowsHtml = list.length ? list.map(t => {
-                    const st = data.students.find(s => s.student_code === t.student_code || s.id === t.student_id);
+                    const st = data.students.find(s => getStuCode(s) === String(t.student_id || t.student_code));
                     return `
                         <tr>
-                            <td class="py-2.5 px-2 font-bold text-slate-900">${st ? getStudentFullNameGlobal(st) : (t.student_code || 'ไม่ระบุรหัส')}</td>
+                            <td class="py-2.5 px-2 font-bold text-slate-900">${st ? getStuFullName(st) : (t.student_id || t.student_code || 'ไม่ระบุรหัส')}</td>
                             <td class="py-2.5 px-2 text-center font-bold">${st?.classroom || t.classroom || '-'}</td>
                             <td class="py-2.5 px-2 text-purple-700 font-bold">วิชา: ${t.subject_name || t.subject_code || '-'} (คาบ ${t.period || '-'})</td>
                         </tr>
@@ -1051,89 +1576,15 @@
             }
         };
 
-        // สลับแท็บแสดงผลในกล่องกลาง: เข้าแถว | มาเรียน | รายห้อง | กราฟสถิติ
-        window.switchCenterPanel = function(mode) {
-            const btns = {
-                assembly: document.getElementById('btnModeAssembly'),
-                daily: document.getElementById('btnModeDaily'),
-                rooms: document.getElementById('btnModeRooms'),
-                chart: document.getElementById('btnModeChart')
-            };
-            const titleText = document.getElementById('reportTitleText');
-            const viewSummary = document.getElementById('panelViewSummary');
-            const viewRooms = document.getElementById('panelViewRooms');
-            const viewChart = document.getElementById('panelViewChart');
-
-            Object.entries(btns).forEach(([key, btn]) => {
-                if (!btn) return;
-                if (key === mode) {
-                    btn.className = "py-1.5 px-2 rounded-lg bg-amber-600 text-white shadow-xs transition cursor-pointer text-center";
-                } else {
-                    btn.className = "py-1.5 px-2 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-center";
-                }
-            });
-
-            viewSummary.classList.add('hidden');
-            viewRooms.classList.add('hidden');
-            viewChart.classList.add('hidden');
-
-            if (mode === 'assembly') {
-                titleText.innerHTML = `<i class="fa-solid fa-users-rectangle text-amber-600"></i> รายงานเข้าแถวเคารพธงชาติ`;
-                viewSummary.classList.remove('hidden');
-                if (window.updateReportModeInternal) window.updateReportModeInternal('assembly');
-            } else if (mode === 'daily') {
-                titleText.innerHTML = `<i class="fa-solid fa-school-flag text-sky-600"></i> รายงานการมาเรียนประจำวัน`;
-                viewSummary.classList.remove('hidden');
-                if (window.updateReportModeInternal) window.updateReportModeInternal('daily');
-            } else if (mode === 'rooms') {
-                titleText.innerHTML = `<i class="fa-solid fa-table-list text-amber-600"></i> สรุปการมาเรียนแยกตามห้องเรียน`;
-                viewRooms.classList.remove('hidden');
-            } else if (mode === 'chart') {
-                titleText.innerHTML = `<i class="fa-solid fa-chart-column text-emerald-600"></i> กราฟสถิติพฤติกรรมและภาพรวม`;
-                viewChart.classList.remove('hidden');
-                if (window.renderInlineBehaviorChart) window.renderInlineBehaviorChart();
-            }
+        window.openGatepassModalUI = function() {
+            window.toggleModal('gatepassModal', true);
         };
 
-        function render12ReportsLists() {
-            const desktopGrid = document.getElementById('reports12GridSource');
-            if (desktopGrid) {
-                desktopGrid.innerHTML = OBEC_12_REPORTS.map(r => `
-                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2.5">
-                        <div>
-                            <span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded">รายงานที่ ${r.id}</span>
-                            <h4 class="font-bold text-sm text-slate-800 mt-1">${r.title}</h4>
-                            <p class="text-xs text-slate-500">${r.desc}</p>
-                        </div>
-                        <button type="button" onclick="printOfficialReport('${r.title}')" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
-                            <i class="fa-solid fa-print"></i> พิมพ์รายงาน
-                        </button>
-                    </div>
-                `).join('');
-            }
-
-            const mobileList = document.getElementById('mobileReports12List');
-            if (mobileList) {
-                mobileList.innerHTML = OBEC_12_REPORTS.map(r => `
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
-                        <div class="min-w-0">
-                            <span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-1.5 py-0.5 rounded">ชุดที่ ${r.id}</span>
-                            <h4 class="font-bold text-xs text-slate-900 mt-0.5 truncate">${r.title}</h4>
-                            <p class="text-[11px] text-slate-500 truncate">${r.desc}</p>
-                        </div>
-                        <button type="button" onclick="printOfficialReport('${r.title}')" class="shrink-0 bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl cursor-pointer">
-                            <i class="fa-solid fa-print"></i> พิมพ์
-                        </button>
-                    </div>
-                `).join('');
-            }
-        }
-
-        window.printOfficialReport = function(reportTitle) {
-            const prevTitle = document.title;
-            document.title = `${reportTitle} - โรงเรียนบัวเชดวิทยา`;
-            window.print();
-            setTimeout(() => { document.title = prevTitle; }, 500);
+        window.toggleModal = function(modalId, show) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            if (show) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+            else { modal.classList.add('hidden'); modal.classList.remove('flex'); }
         };
 
         window.openAffairsSheet = function(id) {
@@ -1156,113 +1607,29 @@
             }
         };
 
-        let mobileFormMode = 'deduct';
-        window.syncMobileFormMode = function(mode) {
-            mobileFormMode = mode;
-            document.getElementById('mBtnTabDeduct').className = mode === 'deduct' ? "form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
-            document.getElementById('mBtnTabRepair').className = mode === 'repair' ? "form-tab active-repair flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
-            document.getElementById('mDeductFields').classList.toggle('hidden', mode !== 'deduct');
-            document.getElementById('mRepairFields').classList.toggle('hidden', mode !== 'repair');
-            const btn = document.getElementById('mBtnSubmitForm');
-            if (mode === 'deduct') {
-                btn.className = "w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
-                btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน`;
-            } else {
-                btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
-                btn.innerHTML = `<i class="fa-solid fa-star"></i> บันทึกทำความดีและเพิ่มคะแนน`;
-            }
-        };
-
-        function openGatepassModalUI() {
-            const modal = document.getElementById('gatepassModal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
+        // 9. แสดงผลรายงานเข้าแถว / รายห้อง
+        function getStatusBadge(status) {
+            if (status === 'late') return `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-extrabold">มาสาย</span>`;
+            if (status === 'absent') return `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ขาด</span>`;
+            if (status === 'leave') return `<span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ลา</span>`;
+            if (status === 'truant') return `<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-extrabold">หนีเรียน</span>`;
+            return `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-extrabold">มาตรงเวลา</span>`;
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            render12ReportsLists();
-
-            document.querySelectorAll('.bottom-sheet-card').forEach(card => {
-                let startY = 0, currentY = 0;
-                card.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
-                card.addEventListener('touchmove', e => {
-                    currentY = e.touches[0].clientY;
-                    const diffY = currentY - startY;
-                    if (diffY > 0 && card.scrollTop <= 0) card.style.transform = `translateY(${diffY}px)`;
-                }, { passive: true });
-                card.addEventListener('touchend', () => {
-                    const diffY = currentY - startY;
-                    card.style.transform = '';
-                    if (diffY > 80) {
-                        const parent = card.closest('.bottom-sheet-backdrop');
-                        if (parent) closeAffairsSheet(parent.id);
-                    }
-                    startY = 0; currentY = 0;
-                });
-            });
-        });
-        
-        function startRealtimeClock() {
-            const now = new Date();
-            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-            const dEl = document.getElementById('thaiDateStr');
-            const cEl = document.getElementById('liveClock');
-            if (dEl) dEl.innerText = `วันที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
-            if (cEl) cEl.innerText = now.toTimeString().split(' ')[0];
-        }
-        startRealtimeClock();
-        setInterval(startRealtimeClock, 1000);
-        
-    </script>
-
-    <!-- ================= 2. SUPABASE & BUSINESS LOGIC MODULE ================= -->
-    <script type="module">
-        import { supabase } from '../../core/supabase-client.js';
-        window.SUPABASE_DB_REF = supabase;
-
-        let currentFormMode = 'deduct';
-        let currentReportMode = 'assembly';
-        let selectedStudentForGatepass = null;
-        let currentRoomStudentsCache = [];
-        let execChartInstance = null;
-        let inlineChartInstance = null;
-
-        let appData = window.BCW_APP_DATA;
-
-        function updateThaiClock() {
-            const now = new Date();
-            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-            const dateStr = `วันที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
-            const timeStr = now.toTimeString().split(' ')[0];
-            const dateElem = document.getElementById('thaiDateStr');
-            if (dateElem) dateElem.innerText = dateStr;
-            const clockElem = document.getElementById('liveClock');
-            if (clockElem) clockElem.innerText = timeStr;
-        }
-        setInterval(updateThaiClock, 1000);
-        updateThaiClock();
-
-        window.updateReportModeInternal = function(mode) {
-            currentReportMode = mode;
-            renderAssemblyReport();
-        };
 
         window.openRoomDrawer = function(roomName) {
             document.getElementById('drawerRoomTitle').innerText = `รายละเอียดห้อง ${roomName}`;
             document.getElementById('drawerRoomSub').innerText = currentReportMode === 'assembly' ? 'สถานะการเข้าแถวรายบุคคล' : 'สถานะการมาเรียนประจำวันรายบุคคล';
-            
+
             const tbody = document.getElementById('drawerStudentList');
             const roomStudents = currentRoomStudentsCache.filter(s => s.classroom === roomName);
-            
+
             if (roomStudents.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-slate-400">ไม่มีรายชื่อนักเรียนในห้องนี้</td></tr>`;
             } else {
                 tbody.innerHTML = roomStudents.map((st, idx) => `
                     <tr class="hover:bg-slate-50">
-                        <td class="p-2 font-bold text-slate-500">${st.student_number || (idx + 1)}</td>
-                        <td class="p-2 font-bold text-slate-900">${getStudentFullName(st)} <span class="block text-[11px] text-slate-400 font-normal">รหัส: ${st.student_code}</span></td>
+                        <td class="p-2 font-bold text-slate-500">${st.no || st.student_number || (idx + 1)}</td>
+                        <td class="p-2 font-bold text-slate-900">${getStuFullName(st)} <span class="block text-[11px] text-slate-400 font-normal">รหัส: ${getStuCode(st)}</span></td>
                         <td class="p-2 text-center">${getStatusBadge(st.computedStatus)}</td>
                     </tr>
                 `).join('');
@@ -1274,37 +1641,8 @@
             document.getElementById('roomDetailDrawer').classList.add('hidden');
         };
 
-        function getStatusBadge(status) {
-            if (status === 'late') return `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-extrabold">มาสาย</span>`;
-            if (status === 'absent') return `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ขาด</span>`;
-            if (status === 'leave') return `<span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ลา</span>`;
-            if (status === 'truant') return `<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-extrabold">หนีเรียน</span>`;
-            return `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-extrabold">มาตรงเวลา</span>`;
-        }
-
-        function getStudentFullName(st) {
-            if (!st) return '-';
-            return `${st.prefix || ''}${st.first_name || ''} ${st.last_name || ''}`.trim() || st.full_name || st.student_code;
-        }
-
-        function updateAllUI() {
-            const riskStudents = appData.students.filter(s => (s.behavior_score ?? 100) < 80);
-            document.getElementById('kpiRiskCount').innerText = `${riskStudents.length} คน`;
-            document.getElementById('kpiGatePassCount').innerText = `${appData.gatePassLogs.length} คน`;
-
-            const activeClinic = appData.clinicLogs.filter(c => c.status !== 'กลับเข้าเรียนแล้ว');
-            document.getElementById('kpiInfirmaryCount').innerText = `${activeClinic.length} คน`;
-            document.getElementById('kpiTruancyCount').innerText = `${appData.attendanceLogs.length} เคส`;
-
-            renderAssemblyReport();
-            renderDisciplineTable();
-            renderRiskTable();
-            renderGatepassTable();
-            renderExecutiveDashboard();
-            window.renderInlineBehaviorChart();
-        }
-
         function renderAssemblyReport() {
+            const appData = window.BCW_APP_DATA;
             const tbody = document.getElementById('assemblyTableBody');
             const inlineTbody = document.getElementById('inlineRoomsTableBody');
             const roomStats = {};
@@ -1313,11 +1651,12 @@
 
             currentRoomStudentsCache = appData.students.map(st => {
                 const room = st.classroom || 'ไม่ระบุห้อง';
+                const sCode = getStuCode(st);
                 if (!roomStats[room]) roomStats[room] = { total: 0, present: 0, late: 0, absent: 0, leave: 0, truant: 0 };
 
                 let status = 'present';
-                const isLate = appData.disciplineLogs.some(l => l.student_code === st.student_code && (l.action || '').includes('มาสาย'));
-                const isTruant = appData.attendanceLogs.some(a => a.student_code === st.student_code || a.student_id === st.id);
+                const isLate = appData.disciplineLogs.some(l => String(l.student_code) === sCode && (l.action || '').includes('มาสาย'));
+                const isTruant = appData.attendanceLogs.some(a => String(a.student_id || a.student_code) === sCode);
 
                 if (isTruant) status = 'truant';
                 else if (isLate) status = 'late';
@@ -1336,6 +1675,8 @@
 
                 return { ...st, computedStatus: status };
             });
+
+            appData.roomStats = roomStats;
 
             const mtonPct = mtonTotal > 0 ? ((mtonPresent / mtonTotal) * 100).toFixed(1) : '100.0';
             document.getElementById('mton-present').innerText = mtonPresent;
@@ -1357,7 +1698,9 @@
             const grandPresent = mtonPresent + mplayPresent;
             const grandPct = grandTotal > 0 ? ((grandPresent / grandTotal) * 100).toFixed(1) : '100.0';
             const subHeaderAtt = document.getElementById('subHeaderAttendance');
+            const subHeaderTot = document.getElementById('subHeaderStudentTotal');
             if (subHeaderAtt) subHeaderAtt.innerText = `${grandPct}%`;
+            if (subHeaderTot) subHeaderTot.innerText = `(นักเรียน ${grandTotal} คน / ${Object.keys(roomStats).length} ห้อง)`;
 
             const sortedRooms = Object.keys(roomStats).sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
             if (sortedRooms.length === 0) {
@@ -1381,7 +1724,7 @@
                             <td class="p-2.5 text-center text-purple-700 font-bold">${r.truant}</td>
                             <td class="p-2.5 text-center font-extrabold text-slate-800">${attendPct}%</td>
                             <td class="p-2.5 text-center">
-                                <button type="button" onclick="openRoomDrawer('${room}')" class="bg-amber-100 hover:bg-amber-600 hover:text-white text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer">
+                                <button type="button" onclick="window.openRoomDrawer('${room}')" class="bg-amber-100 hover:bg-amber-600 hover:text-white text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer">
                                     รายชื่อ
                                 </button>
                             </td>
@@ -1402,7 +1745,7 @@
                             <td class="py-2 px-1.5 text-center text-rose-700 font-bold">${r.absent}</td>
                             <td class="py-2 px-1.5 text-center text-purple-700 font-bold">${r.truant}</td>
                             <td class="py-2 px-2 text-center">
-                                <button type="button" onclick="openRoomDrawer('${room}')" class="bg-amber-100 hover:bg-amber-600 hover:text-white text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer">
+                                <button type="button" onclick="window.openRoomDrawer('${room}')" class="bg-amber-100 hover:bg-amber-600 hover:text-white text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer">
                                     รายชื่อ
                                 </button>
                             </td>
@@ -1413,9 +1756,10 @@
         }
 
         window.renderInlineBehaviorChart = function() {
-            const offenses = appData.disciplineLogs.filter(l => l.points_change < 0);
-            const repairs = appData.disciplineLogs.filter(l => l.points_change > 0);
-            const totalScore = appData.students.reduce((sum, s) => sum + (s.behavior_score ?? 100), 0);
+            const appData = window.BCW_APP_DATA;
+            const offenses = appData.disciplineLogs.filter(l => Number(l.points_change) < 0);
+            const repairs = appData.disciplineLogs.filter(l => Number(l.points_change) > 0);
+            const totalScore = appData.students.reduce((sum, s) => sum + Number(s.behavior_score ?? 100), 0);
             const avgScore = appData.students.length > 0 ? (totalScore / appData.students.length).toFixed(1) : '100.0';
 
             const elAvg = document.getElementById('inlineAvgScore');
@@ -1426,7 +1770,7 @@
             if (elRep) elRep.innerText = `${repairs.length} เคส`;
 
             const ctx = document.getElementById('inlineBehaviorChart')?.getContext('2d');
-            if (!ctx) return;
+            if (!ctx || typeof Chart === 'undefined') return;
             if (inlineChartInstance) inlineChartInstance.destroy();
             inlineChartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -1455,6 +1799,7 @@
         };
 
         function renderDisciplineTable() {
+            const appData = window.BCW_APP_DATA;
             const tbody = document.getElementById('disciplineTableBody');
             const mTbody = document.getElementById('mobileDisciplineTableBody');
             if (!appData.disciplineLogs.length) {
@@ -1464,7 +1809,7 @@
             }
             if (tbody) {
                 tbody.innerHTML = appData.disciplineLogs.slice(0, 30).map(log => {
-                    const isPositive = log.points_change > 0;
+                    const isPositive = Number(log.points_change) > 0;
                     const timeStr = log.created_at ? new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.' : 'วันนี้';
                     return `
                         <tr class="hover:bg-slate-50">
@@ -1479,7 +1824,7 @@
             }
             if (mTbody) {
                 mTbody.innerHTML = appData.disciplineLogs.slice(0, 25).map(log => {
-                    const isPositive = log.points_change > 0;
+                    const isPositive = Number(log.points_change) > 0;
                     return `
                         <tr>
                             <td class="p-2 font-bold text-slate-900">${log.student_name}</td>
@@ -1495,16 +1840,16 @@
         function renderRiskTable() {
             const tbody = document.getElementById('riskTableBody');
             if (!tbody) return;
-            const riskList = appData.students.filter(s => (s.behavior_score ?? 100) < 80);
+            const riskList = window.BCW_APP_DATA.students.filter(s => Number(s.behavior_score ?? 100) < 80);
             if (!riskList.length) {
                 tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-emerald-600 font-bold">✅ ยอดเยี่ยม! ไม่มีนักเรียนคะแนนต่ำกว่าเกณฑ์มาตรฐาน (80 คะแนน)</td></tr>`;
                 return;
             }
             tbody.innerHTML = riskList.map(st => {
-                const needPoints = 80 - (st.behavior_score ?? 0);
+                const needPoints = 80 - Number(st.behavior_score ?? 0);
                 return `
                     <tr class="hover:bg-rose-50/40">
-                        <td class="p-2.5 font-bold text-slate-900">${getStudentFullName(st)} <span class="text-xs text-slate-500">(${st.classroom || '-'})</span></td>
+                        <td class="p-2.5 font-bold text-slate-900">${getStuFullName(st)} <span class="text-xs text-slate-500">(${st.classroom || '-'})</span></td>
                         <td class="p-2.5 text-center font-extrabold text-rose-600">${st.behavior_score} / 100</td>
                         <td class="p-2.5 font-bold text-amber-700">ซ่อมเสริมเพิ่มอีก +${needPoints} คะแนน</td>
                         <td class="p-2.5 text-center"><span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full text-xs font-bold">ติดเงื่อนไข</span></td>
@@ -1516,11 +1861,12 @@
         function renderGatepassTable() {
             const tbody = document.getElementById('gatepassTableBody');
             if (!tbody) return;
-            if (!appData.gatePassLogs.length) {
+            const logs = window.BCW_APP_DATA.gatePassLogs;
+            if (!logs.length) {
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 font-medium">✨ ยังไม่มีรายการขออนุญาตออกนอกสถานศึกษา</td></tr>`;
                 return;
             }
-            tbody.innerHTML = appData.gatePassLogs.map(gp => `
+            tbody.innerHTML = logs.map(gp => `
                 <tr class="hover:bg-amber-50/30">
                     <td class="p-2.5 font-bold text-slate-900">${gp.student_name} <span class="text-xs text-slate-500">(${gp.classroom || '-'})</span></td>
                     <td class="p-2.5 font-bold text-amber-800">${gp.exit_time || '-'} - ${gp.return_time || 'ยังไม่กลับ'}</td>
@@ -1532,14 +1878,15 @@
         }
 
         function renderExecutiveDashboard() {
-            const offenses = appData.disciplineLogs.filter(l => l.points_change < 0);
-            const repairs = appData.disciplineLogs.filter(l => l.points_change > 0);
-            
+            const appData = window.BCW_APP_DATA;
+            const offenses = appData.disciplineLogs.filter(l => Number(l.points_change) < 0);
+            const repairs = appData.disciplineLogs.filter(l => Number(l.points_change) > 0);
+
             const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
             setTxt('execTotalOffenseCount', `${offenses.length} ครั้ง`);
             setTxt('mExecTotalOffenseCount', `${offenses.length} ครั้ง`);
 
-            const totalScore = appData.students.reduce((sum, s) => sum + (s.behavior_score ?? 100), 0);
+            const totalScore = appData.students.reduce((sum, s) => sum + Number(s.behavior_score ?? 100), 0);
             const avgScore = appData.students.length > 0 ? (totalScore / appData.students.length).toFixed(1) : '100.0';
             setTxt('execSchoolAvgScore', `${avgScore} / 100`);
             setTxt('mExecSchoolAvgScore', `${avgScore} / 100`);
@@ -1554,7 +1901,7 @@
             const countByReason = {};
             offenses.forEach(o => { countByReason[o.action] = (countByReason[o.action] || 0) + 1; });
             const sortedOffenses = Object.entries(countByReason).sort((a, b) => b[1] - a[1]).slice(0, 3);
-            
+
             const top3Html = sortedOffenses.length ? sortedOffenses.map(([reason, count], i) => `
                 <div class="flex justify-between items-center py-1.5 border-b border-slate-200 last:border-0 text-left">
                     <span class="font-bold text-slate-800">${i + 1}. ${reason}</span>
@@ -1568,7 +1915,7 @@
             });
 
             const ctx = document.getElementById('execBehaviorTrendChart')?.getContext('2d');
-            if (ctx) {
+            if (ctx && typeof Chart !== 'undefined') {
                 if (execChartInstance) execChartInstance.destroy();
                 execChartInstance = new Chart(ctx, {
                     type: 'bar',
@@ -1592,14 +1939,61 @@
             }
         }
 
-        function bindEvents() {
-            document.getElementById('tabHist')?.addEventListener('click', () => switchTableTab('hist'));
-            document.getElementById('tabRisk')?.addEventListener('click', () => switchTableTab('risk'));
-            document.getElementById('tabGate')?.addEventListener('click', () => switchTableTab('gate'));
+        function updateAllUI() {
+            const appData = window.BCW_APP_DATA;
+            const riskStudents = appData.students.filter(s => Number(s.behavior_score ?? 100) < 80);
+            document.getElementById('kpiRiskCount').innerText = `${riskStudents.length} คน`;
+            document.getElementById('kpiGatePassCount').innerText = `${appData.gatePassLogs.length} คน`;
 
-            document.getElementById('btnTabDeduct')?.addEventListener('click', () => switchFormMode('deduct'));
-            document.getElementById('btnTabRepair')?.addEventListener('click', () => switchFormMode('repair'));
+            const activeClinic = appData.clinicLogs.filter(c => c.status !== 'กลับเข้าเรียนแล้ว');
+            document.getElementById('kpiInfirmaryCount').innerText = `${activeClinic.length} คน`;
+            document.getElementById('kpiTruancyCount').innerText = `${appData.attendanceLogs.length} เคส`;
 
+            renderAssemblyReport();
+            renderDisciplineTable();
+            renderRiskTable();
+            renderGatepassTable();
+            renderExecutiveDashboard();
+            window.renderInlineBehaviorChart();
+        }
+
+        // 10. บันทึกคะแนนความประพฤติ (รองรับทั้ง student_id และ student_code)
+        async function submitBehaviorRecord({ studentCode, action, points, note, onSuccess }) {
+            const st = window.BCW_APP_DATA.students.find(s => getStuCode(s) === studentCode);
+            if (!st) return alert(`ไม่พบรหัสนักเรียน "${studentCode}" กรุณาตรวจสอบอีกครั้ง`);
+
+            const currentScore = Number(st.behavior_score ?? 100);
+            const newScore = Math.max(0, Math.min(100, currentScore + points));
+            st.behavior_score = newScore;
+
+            const logRecord = {
+                student_code: getStuCode(st),
+                student_name: getStuFullName(st),
+                action: note ? `${action} (${note})` : action,
+                points_change: points,
+                remaining_score: newScore,
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                if (db) {
+                    if (st.student_id) {
+                        await db.from('students').update({ behavior_score: newScore }).eq('student_id', st.student_id);
+                    } else if (st.student_code) {
+                        await db.from('students').update({ behavior_score: newScore }).eq('student_code', st.student_code);
+                    }
+                    await db.from('discipline_logs').insert([logRecord]);
+                }
+            } catch (err) { console.warn('Sync discipline error:', err); }
+
+            window.BCW_APP_DATA.disciplineLogs.unshift(logRecord);
+            updateAllUI();
+            if (onSuccess) onSuccess();
+            alert(`✅ บันทึกข้อมูลเรียบร้อย! คะแนนคงเหลือของ ${logRecord.student_name} คือ ${newScore} คะแนน`);
+        }
+
+        // 11. ผูก Event Listeners ทั้งหมด
+        function bindAllEvents() {
             document.getElementById('reasonSelect')?.addEventListener('change', (e) => {
                 const pts = e.target.options[e.target.selectedIndex].dataset.points;
                 const input = document.getElementById('deductPoints');
@@ -1615,12 +2009,12 @@
             const bindStudentLookup = (codeInputId, nameDisplayId, scorePreviewId) => {
                 document.getElementById(codeInputId)?.addEventListener('input', (e) => {
                     const code = e.target.value.trim();
-                    const st = appData.students.find(s => s.student_code === code);
+                    const st = window.BCW_APP_DATA.students.find(s => getStuCode(s) === code);
                     const nameDisplay = document.getElementById(nameDisplayId);
                     const scorePreview = document.getElementById(scorePreviewId);
                     if (st) {
-                        nameDisplay.value = `${getStudentFullName(st)} (${st.classroom || '-'})`;
-                        const sc = st.behavior_score ?? 100;
+                        nameDisplay.value = `${getStuFullName(st)} (${st.classroom || '-'})`;
+                        const sc = Number(st.behavior_score ?? 100);
                         scorePreview.innerText = `คะแนนปัจจุบัน: ${sc} / 100 คะแนน ${sc >= 80 ? '🟢 (ปกติ)' : '🔴 (ติดเงื่อนไข)'}`;
                         scorePreview.className = `text-xs font-bold mt-1 ${sc >= 80 ? 'text-emerald-600' : 'text-rose-600'}`;
                     } else {
@@ -1637,7 +2031,6 @@
                 e.preventDefault();
                 await submitBehaviorRecord({
                     studentCode: document.getElementById('studentCodeInput').value.trim(),
-                    mode: currentFormMode,
                     action: currentFormMode === 'deduct' ? document.getElementById('reasonSelect').value : document.getElementById('repairReasonSelect').value,
                     points: currentFormMode === 'deduct' ? -Math.abs(Number(document.getElementById('deductPoints').value || 10)) : Math.abs(Number(document.getElementById('addPoints').value || 10)),
                     note: document.getElementById('noteInput').value,
@@ -1652,7 +2045,6 @@
                 e.preventDefault();
                 await submitBehaviorRecord({
                     studentCode: document.getElementById('mStudentCodeInput').value.trim(),
-                    mode: mobileFormMode,
                     action: mobileFormMode === 'deduct' ? document.getElementById('mReasonSelect').value : document.getElementById('mRepairReasonSelect').value,
                     points: mobileFormMode === 'deduct' ? -Math.abs(Number(document.getElementById('mDeductPoints').value || 10)) : Math.abs(Number(document.getElementById('mAddPoints').value || 10)),
                     note: document.getElementById('mNoteInput').value,
@@ -1664,18 +2056,15 @@
                 });
             });
 
-            document.getElementById('btnCloseGatepassModal')?.addEventListener('click', () => window.toggleModal('gatepassModal', false));
-            document.getElementById('btnCancelGatepass')?.addEventListener('click', () => window.toggleModal('gatepassModal', false));
-
             document.getElementById('btnSearchGateStudent')?.addEventListener('click', () => {
                 const code = document.getElementById('gateStudentId').value.trim();
-                const st = appData.students.find(s => s.student_code === code);
+                const st = window.BCW_APP_DATA.students.find(s => getStuCode(s) === code);
                 const infoBox = document.getElementById('modalStudentInfoBox');
                 const btnSubmit = document.getElementById('btnSubmitGatepass');
 
                 if (st) {
                     selectedStudentForGatepass = st;
-                    document.getElementById('modalStudentName').innerText = getStudentFullName(st);
+                    document.getElementById('modalStudentName').innerText = getStuFullName(st);
                     document.getElementById('modalStudentClass').innerText = `ชั้น ${st.classroom || '-'}`;
                     infoBox.classList.remove('hidden');
                     btnSubmit.disabled = false;
@@ -1692,29 +2081,24 @@
             document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!selectedStudentForGatepass) return;
-                const reason = document.getElementById('gateReason').value;
-                const exitTime = document.getElementById('gateExitTime').value;
-                const returnTime = document.getElementById('gateReturnTime').value;
-                const approvedBy = document.getElementById('gateApprovedBy').value;
 
                 const newRecord = {
-                    student_code: selectedStudentForGatepass.student_code,
-                    student_name: getStudentFullName(selectedStudentForGatepass),
+                    student_code: getStuCode(selectedStudentForGatepass),
+                    student_name: getStuFullName(selectedStudentForGatepass),
                     classroom: selectedStudentForGatepass.classroom || '-',
-                    reason,
-                    exit_time: exitTime,
-                    return_time: returnTime,
-                    approved_by: approvedBy,
+                    reason: document.getElementById('gateReason').value,
+                    exit_time: document.getElementById('gateExitTime').value,
+                    return_time: document.getElementById('gateReturnTime').value,
+                    approved_by: document.getElementById('gateApprovedBy').value,
                     status: 'อนุมัติแล้ว',
                     created_at: new Date().toISOString()
                 };
 
                 try {
-                    const { error } = await supabase.from('gatepass_logs').insert([newRecord]);
-                    if (error) console.warn(error);
+                    if (db) await db.from('gatepass_logs').insert([newRecord]);
                 } catch (err) {}
 
-                appData.gatePassLogs.unshift(newRecord);
+                window.BCW_APP_DATA.gatePassLogs.unshift(newRecord);
                 updateAllUI();
                 window.toggleModal('gatepassModal', false);
                 document.getElementById('gatepassForm').reset();
@@ -1722,95 +2106,58 @@
             });
         }
 
-        async function submitBehaviorRecord({ studentCode, mode, action, points, note, onSuccess }) {
-            const st = appData.students.find(s => s.student_code === studentCode);
-            if (!st) return alert(`ไม่พบรหัสนักเรียน "${studentCode}" กรุณาตรวจสอบอีกครั้ง`);
-
-            const currentScore = st.behavior_score ?? 100;
-            const newScore = Math.max(0, Math.min(100, currentScore + points));
-            st.behavior_score = newScore;
-
-            const logRecord = {
-                student_code: st.student_code,
-                student_name: getStudentFullName(st),
-                action: note ? `${action} (${note})` : action,
-                points_change: points,
-                remaining_score: newScore,
-                created_at: new Date().toISOString()
-            };
-
-            try {
-                await supabase.from('students').update({ behavior_score: newScore }).eq('student_code', st.student_code);
-                await supabase.from('discipline_logs').insert([logRecord]);
-            } catch (err) { console.warn(err); }
-
-            appData.disciplineLogs.unshift(logRecord);
-            updateAllUI();
-            if (onSuccess) onSuccess();
-            alert(`✅ บันทึกข้อมูลเรียบร้อย! คะแนนคงเหลือของ ${logRecord.student_name} คือ ${newScore} คะแนน`);
-        }
-
-        function switchTableTab(tab) {
-            document.getElementById('tabHist').className = tab === 'hist' ? "tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer" : "tab-btn pb-2 flex items-center gap-1.5 cursor-pointer";
-            document.getElementById('tabRisk').className = tab === 'risk' ? "tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer" : "tab-btn pb-2 flex items-center gap-1.5 cursor-pointer";
-            document.getElementById('tabGate').className = tab === 'gate' ? "tab-btn active pb-2 flex items-center gap-1.5 cursor-pointer" : "tab-btn pb-2 flex items-center gap-1.5 cursor-pointer";
-
-            document.getElementById('viewHistory').classList.toggle('hidden', tab !== 'hist');
-            document.getElementById('viewRisk').classList.toggle('hidden', tab !== 'risk');
-            document.getElementById('viewGatepass').classList.toggle('hidden', tab !== 'gate');
-        }
-
-        function switchFormMode(mode) {
-            currentFormMode = mode;
-            document.getElementById('btnTabDeduct').className = mode === 'deduct' ? "form-tab active-deduct flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
-            document.getElementById('btnTabRepair').className = mode === 'repair' ? "form-tab active-repair flex-1 py-2 rounded-lg text-center transition cursor-pointer shadow" : "form-tab flex-1 py-2 rounded-lg text-center text-slate-600 transition cursor-pointer";
-            document.getElementById('deductFields').classList.toggle('hidden', mode !== 'deduct');
-            document.getElementById('repairFields').classList.toggle('hidden', mode !== 'repair');
-
-            const btnSubmit = document.getElementById('btnSubmitForm');
-            if (mode === 'deduct') {
-                btnSubmit.className = "w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
-                btnSubmit.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> บันทึกตัดคะแนนและแจ้งเตือน`;
-            } else {
-                btnSubmit.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-1.5 cursor-pointer";
-                btnSubmit.innerHTML = `<i class="fa-solid fa-star"></i> บันทึกทำความดีและเพิ่มคะแนน`;
+        // 12. ดึงข้อมูลนักเรียนครบทุกห้อง (ทะลุขีดจำกัด 1,000 แถวของ Supabase)
+        window.reloadAffairsData = async function() {
+            if (!db) {
+                console.warn('Supabase client not found.');
+                updateAllUI();
+                return;
             }
-        }
-
-        window.toggleModal = function(modalId, show) {
-            const modal = document.getElementById(modalId);
-            if (!modal) return;
-            if (show) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-            else { modal.classList.add('hidden'); modal.classList.remove('flex'); }
-        };
-
-        async function loadInitialData() {
             try {
                 const todayStr = new Date().toISOString().split('T')[0];
 
-                const [stRes, discRes, gpRes, attRes, clinicRes] = await Promise.all([
-                    supabase.from('students').select('*').order('classroom', { ascending: true }),
-                    supabase.from('discipline_logs').select('*').order('created_at', { ascending: false }).limit(50),
-                    supabase.from('gatepass_logs').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false }),
-                    supabase.from('attendance_records').select('*').eq('date', todayStr).in('status', ['absent', 'truant', 'หนีเรียน']),
-                    supabase.from('clinic_logs').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false })
+                const [s1, s2, s3, discRes, gpRes, attRes, clinicRes] = await Promise.all([
+                    db.from('students').select('*').range(0, 999),
+                    db.from('students').select('*').range(1000, 1999),
+                    db.from('students').select('*').range(2000, 2999),
+                    db.from('discipline_logs').select('*').order('created_at', { ascending: false }).limit(100),
+                    db.from('gatepass_logs').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false }),
+                    db.from('attendance_records').select('*').eq('date', todayStr).in('status', ['absent', 'truant', 'หนีเรียน']),
+                    db.from('clinic_logs').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false })
                 ]);
 
-                if (stRes.data) appData.students = stRes.data;
-                if (discRes.data) appData.disciplineLogs = discRes.data;
-                if (gpRes.data) appData.gatePassLogs = gpRes.data;
-                if (attRes.data) appData.attendanceLogs = attRes.data;
-                if (clinicRes.data) appData.clinicLogs = clinicRes.data;
+                const mergedStudents = [...(s1.data || []), ...(s2.data || []), ...(s3.data || [])]
+                    .filter(s => (s.status || 'active') === 'active');
+
+                window.BCW_APP_DATA.students = mergedStudents;
+                if (discRes.data) window.BCW_APP_DATA.disciplineLogs = discRes.data;
+                if (gpRes.data) window.BCW_APP_DATA.gatePassLogs = gpRes.data;
+                if (attRes.data) window.BCW_APP_DATA.attendanceLogs = attRes.data;
+                if (clinicRes.data) window.BCW_APP_DATA.clinicLogs = clinicRes.data;
 
                 updateAllUI();
             } catch (err) {
                 console.warn('Supabase sync notice:', err.message);
                 updateAllUI();
             }
+        };
+
+        function startRealtimeClock() {
+            const now = new Date();
+            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            const dEl = document.getElementById('thaiDateStr');
+            const cEl = document.getElementById('liveClock');
+            if (dEl) dEl.innerText = `วันที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
+            if (cEl) cEl.innerText = now.toTimeString().split(' ')[0];
         }
 
-        bindEvents();
-        loadInitialData();
+        document.addEventListener('DOMContentLoaded', () => {
+            startRealtimeClock();
+            setInterval(startRealtimeClock, 1000);
+            render12ReportsLists();
+            bindAllEvents();
+            window.reloadAffairsData();
+        });
     </script>
 </body>
 </html>
