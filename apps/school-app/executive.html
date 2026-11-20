@@ -8,24 +8,29 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="../../assets/images/logo_bcw.png">
 
-    <!-- Tailwind CSS CDN & Chart.js -->
+    <!-- Tailwind CSS, Chart.js & SheetJS (Excel Export) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
-    <!-- Google Fonts: Kanit & Sarabun -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Kanit & Sarabun (ฟอนต์มาตรฐานราชการ) -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../../core/bcw-page-transition.js?v=5"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Kanit', 'Sarabun', 'sans-serif'] }
+                    fontFamily: { 
+                        sans: ['Kanit', 'Sarabun', 'sans-serif'],
+                        sarabun: ['Sarabun', 'sans-serif']
+                    }
                 }
             }
         }
     </script>
-<style>
+    <style>
         html, body {
             font-size: 16px;
             font-family: 'Kanit', 'Sarabun', sans-serif;
@@ -35,24 +40,73 @@
             max-width: 100vw;
             min-height: 100vh;
             overflow-x: hidden;
-            overflow-y: auto !important; /* บังคับให้หน้าหลักเลื่อนขึ้น-ลงได้เสมอ */
+            overflow-y: auto !important;
             margin: 0;
             padding: 0;
             -webkit-text-size-adjust: 100%;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* บล็อกการดึงรีเฟรชเฉพาะตอนปัดบนแผ่น Bottom Sheet และ Drawer เท่านั้น */
         .bottom-sheet-content, .drawer-content-glass {
             overscroll-behavior-y: contain;
             -webkit-overflow-scrolling: touch;
             will-change: transform;
             touch-action: pan-y;
         }
-    
+
+        /* ==================== OFFICIAL GOVERNMENT PRINT LAYOUT (A4) ==================== */
+        #officialPrintArea {
+            display: none;
+        }
+
         @media print {
-            .no-print, .executive-bottom-nav { display: none !important; }
-            body { background: white !important; color: black !important; padding: 0 !important; }
+            @page {
+                size: A4 portrait;
+                margin: 15mm 15mm 15mm 18mm;
+            }
+            html, body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-family: 'Sarabun', sans-serif !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            .no-print, .executive-bottom-nav, header, main, footer,
+            .drawer-overlay, .bottom-sheet-overlay, #studentModal, #academicHomeworkModal, #officialReportModal {
+                display: none !important;
+            }
+            #officialPrintArea {
+                display: block !important;
+                width: 100% !important;
+                font-family: 'Sarabun', sans-serif !important;
+                color: #000000 !important;
+                font-size: 14pt !important;
+                line-height: 1.45 !important;
+            }
+            #officialPrintArea table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                font-size: 12pt !important;
+            }
+            #officialPrintArea th, #officialPrintArea td {
+                border: 1px solid #000000 !important;
+                padding: 6px 8px !important;
+                color: #000000 !important;
+            }
+            #officialPrintArea th {
+                background-color: #f1f5f9 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                font-weight: 700 !important;
+                text-align: center;
+            }
+            .page-break-inside-avoid {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
         }
 
         /* DESKTOP ONLY STYLES */
@@ -86,7 +140,6 @@
                 border-top: none !important;
             }
 
-            /* 👑 Floating Pill Bottom Navigation Bar (ล็อกติดกึ่งกลางหน้าจอเสมอ) */
             .executive-bottom-nav {
                 position: fixed !important;
                 bottom: max(10px, env(safe-area-inset-bottom)) !important;
@@ -155,7 +208,8 @@
                 box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
             }
         }
-    /* FROSTED GLASS DRAWER & BOTTOM SHEET (ซ่อนไว้จนกว่าจะกดปุ่มเปิด) */
+
+        /* FROSTED GLASS DRAWER & BOTTOM SHEET */
         .drawer-overlay, .bottom-sheet-overlay {
             position: fixed;
             inset: 0;
@@ -173,12 +227,11 @@
             pointer-events: auto !important; 
         }
 
-        /* Side Drawer สไลด์ข้าง */
         .drawer-content-glass {
             position: fixed;
             top: 0; right: 0;
-            width: 300px; max-width: 85vw; height: 100%;
-            background: rgba(255, 255, 255, 0.96);
+            width: 310px; max-width: 85vw; height: 100%;
+            background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(25px);
             -webkit-backdrop-filter: blur(25px);
             border-left: 1.5px solid #e2e8f0;
@@ -191,7 +244,6 @@
         }
         .drawer-overlay.active .drawer-content-glass { transform: translateX(0); }
 
-        /* Bottom Sheet สไลด์ขึ้นล่างจอ */
         .bottom-sheet-content {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -235,18 +287,19 @@
             border: 1px solid #e2e8f0;
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
+        .glass-item-btn:hover { background: #eef2ff; border-color: #c7d2fe; }
         .glass-item-btn:active { transform: scale(0.97); background: #e0e7ff; }
     </style>
-    
-    <script src="../../core/bcw-page-transition.js?v=1"></script>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
+    <!-- ==================== OFFICIAL PRINT AREA (เอกสารราชการ A4) ==================== -->
+    <div id="officialPrintArea"></div>
+
     <!-- 1. TOP APP HEADER -->
     <div class="max-w-7xl mx-auto w-full px-3 lg:px-6 pt-2 lg:pt-4 no-print sticky top-0 lg:static z-40">
-    <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-2.5 md:p-4 border-b-2 border-indigo-400">
+        <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-2.5 md:p-4 border-b-2 border-indigo-400">
             <div class="flex justify-between items-center gap-1.5">
-                <!-- โลโก้ + ชื่อระบบขนาดใหญ่เด่นชัด -->
                 <div class="flex items-center gap-2.5 min-w-0 flex-1">
                     <div class="bg-white p-1.5 rounded-xl shadow-sm shrink-0 border border-indigo-300/60 flex items-center justify-center">
                         <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-11 h-11 md:w-14 md:h-14 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
@@ -255,21 +308,24 @@
                         <h1 class="text-[17px] sm:text-xl md:text-2xl font-extrabold text-amber-400 tracking-tight leading-none uppercase truncate">
                             BCW SMART HUB
                         </h1>
-                        
                         <div class="mt-1 max-w-full">
                             <span class="inline-block max-w-full truncate bg-indigo-400/25 text-indigo-200 border border-indigo-400/70 px-2 py-0.5 rounded-md text-[11px] sm:text-xs font-bold leading-none">
                                 👑 ศูนย์สารสนเทศผู้บริหาร
                             </span>
                         </div>
-
                         <div class="text-[13px] sm:text-base md:text-lg font-bold text-white leading-tight truncate mt-1">
                             โรงเรียนบัวเชดวิทยา
                         </div>
                     </div>
                 </div>
 
-                <!-- ปุ่มควบคุมด้านขวา 3 ปุ่ม -->
-                <div class="flex items-center gap-1 shrink-0">
+                <!-- ปุ่มควบคุมด้านขวา -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="window.openOfficialReportModal()" title="ศูนย์ออกรายงานราชการ PDF / Excel" class="hidden sm:flex bg-emerald-600 hover:bg-emerald-500 text-white px-3 h-9 md:h-10 rounded-xl text-xs md:text-sm font-extrabold border border-emerald-400/60 transition items-center gap-1.5 cursor-pointer shadow-sm">
+                        <i class="fa-solid fa-file-contract text-amber-300"></i>
+                        <span>รายงานราชการ</span>
+                    </button>
+
                     <button type="button" onclick="toggleExecutiveDrawer()" title="เมนูผู้บริหาร" class="relative w-8 h-8 sm:w-9 sm:h-9 md:w-auto md:px-3.5 md:h-10 bg-indigo-800/90 hover:bg-indigo-700 text-indigo-100 rounded-xl text-xs md:text-sm font-bold border border-indigo-400/70 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95">
                         <i class="fa-solid fa-bars-staggered text-amber-400 text-xs sm:text-sm"></i>
                         <span class="hidden md:inline">เมนูผู้บริหาร</span>
@@ -290,10 +346,10 @@
             <div id="dynamicSubHeader" class="dynamic-subheader bg-indigo-950/90 border-t border-indigo-800/70 mt-1.5 pt-1.5 px-1 flex justify-between items-center text-xs md:text-sm gap-1.5">
                 <span class="font-semibold text-emerald-400 flex items-center gap-1.5 truncate">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                    <span class="truncate">เช็คชื่อเข้าสอน: <strong id="subHeaderAttendance" class="text-amber-300 font-extrabold">92.5%</strong></span>
+                    <span class="truncate">อัตรามาเรียนรวมวันนี้: <strong id="subHeaderAttendance" class="text-amber-300 font-extrabold">--%</strong></span>
                 </span>
 
-                <div class="flex items-center gap-1 text-amber-200 font-semibold shrink-0">
+                <div class="flex items-center gap-1.5 text-amber-200 font-semibold shrink-0">
                     <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
                     <span id="header-date-display" class="hidden sm:inline text-xs"></span>
                     <span id="liveClock" class="bg-indigo-900/90 px-2 py-0.5 rounded-md border border-indigo-700/80 font-mono text-white text-xs font-bold">00:00:00</span>
@@ -302,8 +358,8 @@
         </header>
     </div>
 
-    <!-- Side Drawer Menu (รวมตารางติดตามภาระงานวิชาการไว้ที่นี่) -->
-    <div id="drawerOverlay" class="drawer-overlay" onclick="toggleExecutiveDrawer()">
+    <!-- Side Drawer Menu (ตรวจสอบและเชื่อมลิงก์ครบทุกระบบ) -->
+    <div id="drawerOverlay" class="drawer-overlay no-print" onclick="toggleExecutiveDrawer()">
         <div id="drawerContent" class="drawer-content-glass p-4 space-y-4" onclick="event.stopPropagation()">
             <div class="w-12 h-1.5 bg-slate-300 rounded-full mx-auto lg:hidden mb-1"></div>
 
@@ -314,7 +370,7 @@
                     </div>
                     <div>
                         <h3 class="font-extrabold text-slate-900 text-sm">คำสั่งและบริการบริหาร</h3>
-                        <p class="text-xs text-slate-500 font-medium">เอานิ้วปัดขวา 👉 เพื่อสไลด์เก็บได้</p>
+                        <p class="text-xs text-slate-500 font-medium">เข้าถึงทุกระบบและออกรายงานราชการ</p>
                     </div>
                 </div>
                 <button type="button" onclick="toggleExecutiveDrawer()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
@@ -324,15 +380,23 @@
                 <button type="button" onclick="triggerRefreshDataFromDrawer()" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
                     <span class="flex items-center gap-2.5">
                         <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm"><i class="fa-solid fa-rotate"></i></span>
-                        <span>ประมวลผลข้อมูลใหม่</span>
+                        <span>ประมวลผลข้อมูลใหม่ (Real-time)</span>
                     </span>
                     <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+                </button>
+
+                <button type="button" onclick="window.openOfficialReportModal(); toggleExecutiveDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer border-indigo-300 bg-indigo-50/70">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm"><i class="fa-solid fa-file-signature"></i></span>
+                        <span class="text-indigo-950">ศูนย์ออกรายงานราชการ (PDF / Excel)</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-xs text-indigo-600"></i>
                 </button>
 
                 <button type="button" onclick="toggleAffairsBottomSheet(); toggleExecutiveDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
                     <span class="flex items-center gap-2.5">
                         <span class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm"><i class="fa-solid fa-shield-halved"></i></span>
-                        <span>ดูรายงานกิจการนักเรียน</span>
+                        <span>สรุปรายงานกิจการนักเรียน</span>
                     </span>
                     <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
                 </button>
@@ -340,7 +404,7 @@
                 <button type="button" onclick="toggleAcademicBottomSheet(); toggleExecutiveDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
                     <span class="flex items-center gap-2.5">
                         <span class="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-sm"><i class="fa-solid fa-graduation-cap"></i></span>
-                        <span>ดูรายงานสรุปวิชาการ</span>
+                        <span>สรุปรายงานฝ่ายวิชาการ</span>
                     </span>
                     <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
                 </button>
@@ -353,23 +417,41 @@
                     <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
                 </button>
 
-                <button type="button" onclick="window.print(); toggleExecutiveDrawer();" class="glass-item-btn w-full text-left p-3 rounded-2xl flex items-center justify-between cursor-pointer">
+                <div class="pt-2 pb-1 text-[11px] font-extrabold text-slate-400 uppercase tracking-wider px-1">เชื่อมโยงระบบงานย่อย</div>
+
+                <a href="student-affairs.html" class="glass-item-btn w-full text-left p-2.5 rounded-2xl flex items-center justify-between">
                     <span class="flex items-center gap-2.5">
-                        <span class="w-8 h-8 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center text-sm"><i class="fa-solid fa-file-pdf"></i></span>
-                        <span>พิมพ์รายงาน PDF</span>
+                        <span class="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs"><i class="fa-solid fa-user-shield"></i></span>
+                        <span class="text-xs">เปิดระบบกิจการนักเรียนเต็มรูปแบบ</span>
                     </span>
-                    <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
-                </button>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[11px] text-slate-400"></i>
+                </a>
+
+                <a href="academic.html" class="glass-item-btn w-full text-left p-2.5 rounded-2xl flex items-center justify-between">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs"><i class="fa-solid fa-school"></i></span>
+                        <span class="text-xs">เปิดระบบบริหารงานวิชาการ</span>
+                    </span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[11px] text-slate-400"></i>
+                </a>
+
+                <a href="ai-gate.html" class="glass-item-btn w-full text-left p-2.5 rounded-2xl flex items-center justify-between">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs"><i class="fa-solid fa-camera"></i></span>
+                        <span class="text-xs">ระบบกล้อง AI สแกนหน้าประตู</span>
+                    </span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[11px] text-slate-400"></i>
+                </a>
             </div>
 
-            <div class="pt-4 border-t border-slate-200 text-xs text-slate-500 font-semibold text-center">
+            <div class="pt-3 border-t border-slate-200 text-xs text-slate-500 font-semibold text-center">
                 โรงเรียนบัวเชดวิทยา &bull; Executive System
             </div>
         </div>
     </div>
 
-    <!-- 🛡️ BOTTOM SHEET 1: รายงานสรุปงานกิจการนักเรียน -->
-    <div id="affairsBottomSheetOverlay" class="bottom-sheet-overlay" onclick="toggleAffairsBottomSheet()">
+    <!-- 🛡️ BOTTOM SHEET 1: รายงานสรุปงานกิจการนักเรียน (ดึงข้อมูลจริง) -->
+    <div id="affairsBottomSheetOverlay" class="bottom-sheet-overlay no-print" onclick="toggleAffairsBottomSheet()">
         <div id="affairsBottomSheetContent" class="bottom-sheet-content p-4 sm:p-6 space-y-4" onclick="event.stopPropagation()">
             <div class="w-14 h-1.5 bg-slate-300 rounded-full mx-auto cursor-grab active:cursor-grabbing mb-1"></div>
 
@@ -380,68 +462,70 @@
                     </span>
                     <div>
                         <h3 class="font-extrabold text-slate-900 text-sm sm:text-base">รายงานสรุปงานกิจการนักเรียน</h3>
-                        <p class="text-xs text-slate-500 font-medium">เอานิ้วปัดสไลด์ลง 👇 เพื่อเก็บหน้าต่างนี้ได้</p>
+                        <p class="text-xs text-slate-500 font-medium">ข้อมูลสถิติจริงประจำวัน พร้อมส่งออกเอกสารราชการ</p>
                     </div>
                 </div>
                 <button type="button" onclick="toggleAffairsBottomSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-sm font-bold cursor-pointer">✕</button>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                <div class="bg-sky-50 border border-sky-200 p-3.5 rounded-2xl space-y-2">
+                <div onclick="window.openExecStatModal('clinic'); toggleAffairsBottomSheet();" class="bg-sky-50 border border-sky-200 hover:border-sky-400 p-3.5 rounded-2xl space-y-2 cursor-pointer transition">
                     <div class="flex justify-between items-center">
                         <span class="text-xs sm:text-sm font-extrabold text-sky-900 flex items-center gap-1.5"><i class="fa-solid fa-hospital-user text-sky-600"></i> ห้องพยาบาลวันนี้</span>
-                        <span id="bsClinicBadge" class="bg-sky-200 text-sky-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">18 คน</span>
+                        <span id="bsClinicBadge" class="bg-sky-200 text-sky-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">0 คน</span>
                     </div>
-                    <div class="text-xs text-slate-700 font-bold space-y-1 pt-1">
-                        <p class="flex justify-between"><span>ปวดหัว / มีไข้:</span> <strong class="text-sky-800">11 คน (60%)</strong></p>
-                        <p class="flex justify-between"><span>ปวดท้อง:</span> <strong class="text-sky-800">5 คน (28%)</strong></p>
-                    </div>
-                </div>
-
-                <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-extrabold text-amber-900 flex items-center gap-1.5"><i class="fa-solid fa-door-open text-amber-600"></i> ขอออกนอกโรงเรียน</span>
-                        <span class="bg-amber-200 text-amber-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">8 คน</span>
-                    </div>
-                    <div class="text-xs text-slate-700 font-bold space-y-1 pt-1">
-                        <p class="flex justify-between"><span>ป่วยกลับบ้าน:</span> <strong class="text-amber-800">5 คน</strong></p>
-                        <p class="flex justify-between"><span>ช่วงเวลาวิกฤต:</span> <strong class="text-rose-700">คาบ 4 (11:00 น.)</strong></p>
+                    <div id="bsClinicDetail" class="text-xs text-slate-700 font-bold space-y-1 pt-1">
+                        <p class="flex justify-between"><span>สถานะข้อมูล:</span> <strong class="text-sky-800">คลิกดูรายชื่อทั้งหมด ➔</strong></p>
                     </div>
                 </div>
 
-                <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl space-y-2">
+                <div onclick="window.openExecStatModal('truancy'); toggleAffairsBottomSheet();" class="bg-purple-50 border border-purple-200 hover:border-purple-400 p-3.5 rounded-2xl space-y-2 cursor-pointer transition">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-extrabold text-emerald-900 flex items-center gap-1.5"><i class="fa-solid fa-award text-emerald-600"></i> คนดีเด่นประจำเดือน</span>
-                        <span class="bg-emerald-200 text-emerald-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">540 คะแนน</span>
+                        <span class="text-xs sm:text-sm font-extrabold text-purple-900 flex items-center gap-1.5"><i class="fa-solid fa-user-ninja text-purple-600"></i> หนีเรียนรายวิชา</span>
+                        <span id="bsTruancyBadge" class="bg-purple-200 text-purple-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">0 ครั้ง</span>
                     </div>
                     <div class="text-xs text-slate-700 font-bold space-y-1 pt-1">
-                        <p class="flex justify-between"><span>อันดับ 1:</span> <strong class="text-emerald-800">ม.3/1 (กิจกรรมจิตอาสา)</strong></p>
-                        <p class="flex justify-between"><span>อันดับ 2:</span> <strong class="text-emerald-800">ม.5/2 (บำเพ็ญประโยชน์)</strong></p>
+                        <p class="flex justify-between"><span>การติดตาม:</span> <strong class="text-purple-800">คลิกดูรายชื่อและรายวิชา ➔</strong></p>
                     </div>
                 </div>
 
-                <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-2xl space-y-2">
+                <div onclick="window.openExecStatModal('risk'); toggleAffairsBottomSheet();" class="bg-rose-50 border border-rose-200 hover:border-rose-400 p-3.5 rounded-2xl space-y-2 cursor-pointer transition">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-extrabold text-rose-900 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> 3 อันดับฐานความผิด</span>
-                        <span class="bg-rose-200 text-rose-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">เฝ้าระวัง</span>
+                        <span class="text-xs sm:text-sm font-extrabold text-rose-900 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> กลุ่มเสี่ยงติด มส. (&lt;80%)</span>
+                        <span id="bsRiskBadge" class="bg-rose-200 text-rose-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">0 คน</span>
                     </div>
                     <div class="text-xs text-slate-700 font-bold space-y-1 pt-1">
-                        <p class="flex justify-between"><span>1. มาสายหน้าประตู:</span> <strong class="text-rose-700">45%</strong></p>
-                        <p class="flex justify-between"><span>2. หนีเรียนรายวิชา:</span> <strong class="text-purple-700">30%</strong></p>
+                        <p class="flex justify-between"><span>การแก้ไข:</span> <strong class="text-rose-700">คลิกดูรายชื่อกลุ่มเสี่ยง ➔</strong></p>
+                    </div>
+                </div>
+
+                <div onclick="window.openExecStatModal('notif'); toggleAffairsBottomSheet();" class="bg-amber-50 border border-amber-200 hover:border-amber-400 p-3.5 rounded-2xl space-y-2 cursor-pointer transition">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs sm:text-sm font-extrabold text-amber-900 flex items-center gap-1.5"><i class="fa-solid fa-bell text-amber-600"></i> แจ้งเตือนผู้ปกครอง</span>
+                        <span id="bsNotifBadge" class="bg-amber-200 text-amber-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">0 ครั้ง</span>
+                    </div>
+                    <div class="text-xs text-slate-700 font-bold space-y-1 pt-1">
+                        <p class="flex justify-between"><span>ประวัติการแจ้ง:</span> <strong class="text-amber-800">คลิกดูบันทึกแจ้งเตือน ➔</strong></p>
                     </div>
                 </div>
             </div>
 
-            <div class="pt-2">
-                <button type="button" onclick="toggleAffairsBottomSheet()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition cursor-pointer">
-                    ปิดหน้าต่างรายงาน
+            <div class="pt-2 flex flex-wrap gap-2">
+                <button type="button" onclick="window.generateOfficialReport('affairs'); toggleAffairsBottomSheet();" class="flex-1 bg-indigo-900 hover:bg-indigo-800 text-white py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition cursor-pointer flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-print"></i> พิมพ์รายงานราชการ PDF
+                </button>
+                <button type="button" onclick="window.exportOfficialExcel('affairs');" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition cursor-pointer flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-file-excel"></i> Excel
+                </button>
+                <button type="button" onclick="toggleAffairsBottomSheet()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition cursor-pointer">
+                    ปิด
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- 🎓 BOTTOM SHEET 2: รายงานสรุปงานวิชาการ (Academic Bottom Sheet) -->
-    <div id="academicBottomSheetOverlay" class="bottom-sheet-overlay" onclick="toggleAcademicBottomSheet()">
+    <!-- 🎓 BOTTOM SHEET 2: รายงานสรุปงานวิชาการ (เชื่อมข้อมูลจริง) -->
+    <div id="academicBottomSheetOverlay" class="bottom-sheet-overlay no-print" onclick="toggleAcademicBottomSheet()">
         <div id="academicBottomSheetContent" class="bottom-sheet-content p-4 sm:p-6 space-y-4" onclick="event.stopPropagation()">
             <div class="w-14 h-1.5 bg-slate-300 rounded-full mx-auto cursor-grab active:cursor-grabbing mb-1"></div>
 
@@ -452,108 +536,89 @@
                     </span>
                     <div>
                         <h3 class="font-extrabold text-slate-900 text-sm sm:text-base">รายงานสรุปผลงานวิชาการ</h3>
-                        <p class="text-xs text-slate-500 font-medium">เอานิ้วปัดสไลด์ลง 👇 เพื่อเก็บหน้าต่างนี้ได้</p>
+                        <p class="text-xs text-slate-500 font-medium">ข้อมูลภาระงานการสอนและสถิติการเข้าเรียนรายวิชา</p>
                     </div>
                 </div>
                 <button type="button" onclick="toggleAcademicBottomSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-sm font-bold cursor-pointer">✕</button>
             </div>
 
-            <!-- การ์ดสรุปรายงานฝ่ายวิชาการ 4 ด้าน -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
                 <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl space-y-2">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-extrabold text-indigo-900 flex items-center gap-1.5"><i class="fa-solid fa-book-open text-indigo-600"></i> สถิติการสั่งการบ้าน</span>
-                        <span class="bg-indigo-200 text-indigo-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">48 รายการ</span>
+                        <span class="text-xs sm:text-sm font-extrabold text-indigo-900 flex items-center gap-1.5"><i class="fa-solid fa-book-open text-indigo-600"></i> ภาระงาน/การบ้านในระบบ</span>
+                        <span id="bsTotalHwBadge" class="bg-indigo-200 text-indigo-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">0 รายการ</span>
                     </div>
                     <div class="text-xs text-slate-700 font-bold space-y-1 pt-1">
-                        <p class="flex justify-between"><span>วิทยาศาสตร์/คณิตฯ:</span> <strong class="text-indigo-800">22 งาน</strong></p>
-                        <p class="flex justify-between"><span>ภาษาต่างประเทศ:</span> <strong class="text-indigo-800">14 งาน</strong></p>
+                        <p class="flex justify-between"><span>กลุ่มสาระฯ ที่บันทึก:</span> <strong id="bsActiveSubjectsText" class="text-indigo-800">ครบทุกกลุ่มสาระฯ</strong></p>
                     </div>
                 </div>
 
                 <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl space-y-2">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-extrabold text-emerald-900 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> อัตราการส่งงานนักเรียน</span>
-                        <span class="bg-emerald-200 text-emerald-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">88.5%</span>
+                        <span class="text-xs sm:text-sm font-extrabold text-emerald-900 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> อัตราเข้าเรียนรายคาบ</span>
+                        <span id="bsAcadAttendBadge" class="bg-emerald-200 text-emerald-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">--%</span>
                     </div>
                     <div class="text-xs text-slate-700 font-bold space-y-1 pt-1">
-                        <p class="flex justify-between"><span>ระดับ ม.ต้น:</span> <strong class="text-emerald-800">91.2% (ตรงเวลา)</strong></p>
-                        <p class="flex justify-between"><span>ระดับ ม.ปลาย:</span> <strong class="text-emerald-800">85.8% (ตรงเวลา)</strong></p>
-                    </div>
-                </div>
-
-                <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-2xl space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-extrabold text-rose-900 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> วิชาติดขัด/ค้างส่ง</span>
-                        <span class="bg-rose-200 text-rose-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">3 วิชา</span>
-                    </div>
-                    <div class="text-xs text-slate-700 font-bold space-y-1 pt-1">
-                        <p class="flex justify-between"><span>คณิตศาสตร์ ม.3:</span> <strong class="text-rose-700">ค้างส่ง 15%</strong></p>
-                        <p class="flex justify-between"><span>ภาษาอังกฤษ ม.2:</span> <strong class="text-rose-700">ค้างส่ง 12%</strong></p>
-                    </div>
-                </div>
-
-                <div class="bg-sky-50 border border-sky-200 p-3.5 rounded-2xl space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs sm:text-sm font-extrabold text-sky-900 flex items-center gap-1.5"><i class="fa-solid fa-chalkboard-user text-sky-600"></i> กำกับติดตามรายสาระฯ</span>
-                        <span class="bg-sky-200 text-sky-900 text-xs font-extrabold px-2.5 py-0.5 rounded-full">ครบ 8 สาระ</span>
-                    </div>
-                    <div class="text-xs text-slate-700 font-bold space-y-1 pt-1">
-                        <p class="flex justify-between"><span>ครูส่งแผนฯ ครบ:</span> <strong class="text-sky-800">95%</strong></p>
-                        <p class="flex justify-between"><span>บันทึกหลังสอน:</span> <strong class="text-sky-800">92%</strong></p>
+                        <p class="flex justify-between"><span>นักเรียนทั้งหมด:</span> <strong id="bsAcadStudentsText" class="text-emerald-800">-- คน</strong></p>
                     </div>
                 </div>
             </div>
 
-            <div class="pt-2 flex gap-2">
-                <button type="button" onclick="openAcademicHomeworkModal(); toggleAcademicBottomSheet();" class="flex-1 bg-sky-700 hover:bg-sky-800 text-white py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition cursor-pointer flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-list-check"></i> ดูตารางภาระงานทั้งหมด
+            <div class="pt-2 flex flex-wrap gap-2">
+                <button type="button" onclick="openAcademicHomeworkModal(); toggleAcademicBottomSheet();" class="flex-1 bg-sky-700 hover:bg-sky-800 text-white py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition cursor-pointer flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-list-check"></i> ตารางภาระงาน 8 กลุ่มสาระฯ
                 </button>
-                <button type="button" onclick="toggleAcademicBottomSheet()" class="px-4 bg-slate-200 hover:bg-slate-300 text-slate-800 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition cursor-pointer">
-                    ปิด
+                <button type="button" onclick="window.generateOfficialReport('academic'); toggleAcademicBottomSheet();" class="bg-indigo-900 hover:bg-indigo-800 text-white py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-extrabold transition cursor-pointer flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-print"></i> PDF ราชการ
+                </button>
+                <button type="button" onclick="window.exportOfficialExcel('academic');" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-extrabold transition cursor-pointer flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-file-excel"></i> Excel
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Sub-Header Desktop -->
-    <div class="bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 no-print shadow-xs hidden lg:block mt-3">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2.5">
+    <!-- ==================== DESKTOP SUB-HEADER ACTION BAR (แสดงครบทุกฟังก์ชันบนคอมพิวเตอร์) ==================== -->
+    <div class="bg-white border-b border-slate-200 px-3 sm:px-6 py-3 no-print shadow-xs hidden lg:block mt-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
             <div class="flex items-center gap-2">
                 <span class="bg-amber-50 text-amber-800 border border-amber-300 px-3 py-1 rounded-full text-xs font-extrabold">
-                    ศูนย์สารสนเทศผู้บริหาร
+                    ศูนย์สารสนเทศผู้บริหาร (Desktop Control)
                 </span>
-                <span class="text-xs text-slate-600 font-bold">โรงเรียนบัวเชดวิทยา</span>
+                <span class="text-xs text-slate-600 font-bold">โรงเรียนบัวเชดวิทยา สพม.สุรินทร์</span>
             </div>
             
-            <div class="flex items-center justify-end gap-2">
-                <button type="button" id="btnRefreshData" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow transition flex items-center gap-1.5 touch-btn border border-emerald-600 cursor-pointer">
+            <div class="flex flex-wrap items-center justify-end gap-2">
+                <button type="button" id="btnRefreshData" onclick="window.refreshAllExecutiveData()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
                     <i class="fa-solid fa-rotate"></i>
                     <span>ประมวลผลข้อมูลใหม่</span>
                 </button>
-                <button type="button" onclick="toggleAffairsBottomSheet()" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow transition flex items-center gap-1.5 touch-btn border border-indigo-700 cursor-pointer">
+                <button type="button" onclick="toggleAffairsBottomSheet()" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
                     <i class="fa-solid fa-shield-halved"></i>
                     <span>รายงานกิจการนักเรียน</span>
                 </button>
-                <button type="button" onclick="toggleAcademicBottomSheet()" class="bg-sky-700 hover:bg-sky-800 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow transition flex items-center gap-1.5 touch-btn border border-sky-700 cursor-pointer">
+                <button type="button" onclick="toggleAcademicBottomSheet()" class="bg-sky-700 hover:bg-sky-800 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
                     <i class="fa-solid fa-graduation-cap"></i>
                     <span>รายงานวิชาการ</span>
                 </button>
-                <button type="button" id="btnPrintPDF" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl text-xs font-extrabold shadow transition flex items-center gap-1.5 touch-btn border border-slate-800 cursor-pointer">
-                    <i class="fa-solid fa-file-pdf"></i>
-                    <span>พิมพ์รายงาน PDF</span>
+                <button type="button" onclick="openAcademicHomeworkModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>ติดตามภาระงาน/การบ้าน</span>
+                </button>
+                <button type="button" onclick="window.openOfficialReportModal()" class="bg-slate-900 hover:bg-slate-800 text-amber-300 px-4 py-2 rounded-xl text-xs font-extrabold shadow-xs transition flex items-center gap-1.5 border border-slate-700 cursor-pointer">
+                    <i class="fa-solid fa-print"></i>
+                    <span>พิมพ์รายงานราชการ (PDF / Excel)</span>
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto w-full px-3 lg:px-6 py-3 sm:py-5 flex-1 space-y-3.5 sm:space-y-5 overflow-x-hidden">
+    <main class="max-w-7xl mx-auto w-full px-3 lg:px-6 py-3 sm:py-5 flex-1 space-y-3.5 sm:space-y-5 overflow-x-hidden no-print">
 
-    <!-- 1. Executive Summary Cards (6 กล่องสถิติขนาดกระชับ กดเปิด Pop-up ได้ทันที) -->
+        <!-- 1. Executive Summary Cards (6 กล่องสถิติ) -->
         <section id="section-summary-cards" class="grid grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
-            
-            <div onclick="window.openExecStatModal('students')" class="bg-white px-3 py-2.5 rounded-2xl border-2 border-indigo-100 hover:border-indigo-300 active:scale-[0.98] transition cursor-pointer shadow-xs flex flex-col justify-between min-h-[78px]">
+            <div onclick="window.openExecStatModal('students')" class="bg-white px-3 py-2.5 rounded-2xl border-2 border-indigo-100 hover:border-indigo-400 active:scale-[0.98] transition cursor-pointer shadow-xs flex flex-col justify-between min-h-[78px]">
                 <div class="flex justify-between items-center gap-1">
                     <span class="text-xs text-slate-700 font-extrabold leading-tight">นักเรียนทั้งหมด</span>
                     <span class="w-6 h-6 shrink-0 flex items-center justify-center bg-indigo-50 text-indigo-700 rounded-lg text-[11px] border border-indigo-200"><i class="fa-solid fa-users"></i></span>
@@ -564,7 +629,7 @@
                 </div>
             </div>
 
-            <div onclick="window.openExecStatModal('attendance')" class="bg-white px-3 py-2.5 rounded-2xl border-2 border-emerald-100 hover:border-emerald-300 active:scale-[0.98] transition cursor-pointer shadow-xs flex flex-col justify-between min-h-[78px]">
+            <div onclick="window.openExecStatModal('attendance')" class="bg-white px-3 py-2.5 rounded-2xl border-2 border-emerald-100 hover:border-emerald-400 active:scale-[0.98] transition cursor-pointer shadow-xs flex flex-col justify-between min-h-[78px]">
                 <div class="flex justify-between items-center gap-1">
                     <span class="text-xs text-slate-700 font-extrabold leading-tight">อัตรามาเรียนรวม</span>
                     <span class="w-6 h-6 shrink-0 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-lg text-[11px] border border-emerald-200"><i class="fa-solid fa-chart-line"></i></span>
@@ -597,7 +662,7 @@
                 </div>
             </div>
 
-            <div onclick="window.openExecStatModal('clinic')" class="bg-white px-3 py-2.5 rounded-2xl border-2 border-sky-100 hover:border-sky-300 active:scale-[0.98] transition shadow-xs flex flex-col justify-between min-h-[78px] cursor-pointer">
+            <div onclick="window.openExecStatModal('clinic')" class="bg-white px-3 py-2.5 rounded-2xl border-2 border-sky-100 hover:border-sky-400 active:scale-[0.98] transition shadow-xs flex flex-col justify-between min-h-[78px] cursor-pointer">
                 <div class="flex justify-between items-center gap-1">
                     <span class="text-xs text-slate-700 font-extrabold leading-tight">เข้าห้องพยาบาล</span>
                     <span class="w-6 h-6 shrink-0 flex items-center justify-center bg-sky-50 text-sky-700 rounded-lg text-[11px] border border-sky-200"><i class="fa-solid fa-hospital-user"></i></span>
@@ -608,7 +673,7 @@
                 </div>
             </div>
 
-            <div onclick="window.openExecStatModal('notif')" class="bg-white px-3 py-2.5 rounded-2xl border-2 border-amber-100 hover:border-amber-300 active:scale-[0.98] transition shadow-xs flex flex-col justify-between min-h-[78px] cursor-pointer">
+            <div onclick="window.openExecStatModal('notif')" class="bg-white px-3 py-2.5 rounded-2xl border-2 border-amber-100 hover:border-amber-400 active:scale-[0.98] transition shadow-xs flex flex-col justify-between min-h-[78px] cursor-pointer">
                 <div class="flex justify-between items-center gap-1">
                     <span class="text-xs text-slate-700 font-extrabold leading-tight">แจ้งเตือนผู้ปกครอง</span>
                     <span class="w-6 h-6 shrink-0 flex items-center justify-center bg-amber-50 text-amber-700 rounded-lg text-[11px] border border-amber-200"><i class="fa-solid fa-bell"></i></span>
@@ -631,9 +696,12 @@
                         <h3 class="text-sm sm:text-base font-extrabold text-white leading-snug">
                             5 อันดับห้องเรียนกลุ่มเฝ้าระวังสูงสุด (สถิติขาดเรียนและหนีเรียนสูงสุด)
                         </h3>
-                        <p class="text-xs text-slate-300 mt-0.5 font-medium">คัดเลือกจากตารางข้อมูลจริง เพื่อให้ผู้บริหารติดตามและสั่งการฝ่ายกิจการนักเรียนได้ตรงจุด</p>
+                        <p class="text-xs text-slate-300 mt-0.5 font-medium">คลิกที่การ์ดห้องเรียนเพื่อดูรายชื่อนักเรียนในห้องนั้นได้ทันที</p>
                     </div>
                 </div>
+                <button type="button" onclick="window.generateOfficialReport('watchrooms')" class="self-start md:self-auto bg-white/15 hover:bg-white/25 text-amber-300 border border-amber-400/40 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition">
+                    <i class="fa-solid fa-print mr-1"></i> พิมพ์รายงานห้องเฝ้าระวัง
+                </button>
             </div>
 
             <div id="top-watch-rooms-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -676,7 +744,7 @@
                         <i class="fa-solid fa-chart-pie text-emerald-600"></i>
                         สัดส่วนสถานะการเข้าเรียน จำแนกรายระดับชั้น (ม.1 - ม.6)
                     </h3>
-                    <p class="text-xs text-slate-500 mt-0.5 font-medium">แตะที่ชิ้นกราฟเพื่อเปิดดูรายชื่อนักเรียนรายชั้นได้ทันที</p>
+                    <p class="text-xs text-slate-500 mt-0.5 font-medium">คลิกที่ชิ้นกราฟเพื่อเปิดดูรายชื่อนักเรียนรายชั้นและพิมพ์รายงานราชการได้ทันที</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>มาเรียน</span>
@@ -715,30 +783,76 @@
             </div>
         </section>
 
+        <!-- 5. ตารางสรุปติดตามภาระงานวิชาการบนหน้าหลัก (แสดงบน Desktop เพื่อไม่ต้องกดหาใน Drawer) -->
+        <section id="section-academic-overview" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                <div>
+                    <h3 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-book-open text-sky-600"></i>
+                        สรุปการกำกับติดตามภาระงานและจัดการเรียนการสอน (8 กลุ่มสาระการเรียนรู้)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5 font-medium">ข้อมูลภาระงาน/การบ้านที่ครูมอบหมายในระบบ BCW Smart Hub</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.exportOfficialExcel('academic')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-excel"></i> ดาวน์โหลด Excel
+                    </button>
+                    <button type="button" onclick="window.generateOfficialReport('academic')" class="bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> พิมพ์รายงานราชการ PDF
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[640px]">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-800 border-b border-slate-300 font-extrabold">
+                            <th class="p-3">กลุ่มสาระการเรียนรู้</th>
+                            <th class="p-3 text-center">จำนวนรายการงานที่สั่ง</th>
+                            <th class="p-3 text-center">งานที่เปิดรับส่งอยู่</th>
+                            <th class="p-3 text-center">สถานะการกำกับติดตาม</th>
+                            <th class="p-3 text-center">ตรวจสอบรายละเอียด</th>
+                        </tr>
+                    </thead>
+                    <tbody id="main-academic-summary-body" class="divide-y divide-slate-200 font-medium text-slate-800">
+                        <tr><td colspan="5" class="p-4 text-center text-slate-400 font-bold">กำลังโหลดข้อมูลกลุ่มสาระการเรียนรู้...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
     </main>
 
-<!-- Modal Pop-up 1: แสดงรายชื่อนักเรียนรายบุคคล (เปิดติด 100% ทุกกล่อง) -->
+    <!-- ==================== MODAL 1: รายชื่อนักเรียนรายบุคคล + ส่งออก Excel / พิมพ์ราชการ PDF ==================== -->
     <div id="studentModal" style="display: none;" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-[10070] items-center justify-center p-3 sm:p-6 no-print" onclick="window.closeExecStatModal()">
-        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden border-2 border-indigo-200" onclick="event.stopPropagation()">
-            <div id="modalHeaderBg" class="p-4 text-white flex justify-between items-center bg-indigo-900 shrink-0">
+        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden border-2 border-indigo-200" onclick="event.stopPropagation()">
+            <div id="modalHeaderBg" class="p-4 text-white flex justify-between items-center bg-indigo-900 shrink-0 gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                     <i id="modalIcon" class="fa-solid fa-users text-lg sm:text-xl shrink-0"></i>
                     <h3 id="modalTitle" class="font-extrabold text-sm sm:text-base truncate">สรุปข้อมูล</h3>
                 </div>
-                <button type="button" id="btnCloseStudentModal" onclick="window.closeExecStatModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white text-lg font-extrabold flex items-center justify-center shrink-0 cursor-pointer">&times;</button>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="window.exportCurrentModalExcel()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-2.5 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1">
+                        <i class="fa-solid fa-file-excel"></i> <span class="hidden sm:inline">Excel</span>
+                    </button>
+                    <button type="button" onclick="window.printCurrentModalOfficial()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-2.5 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1">
+                        <i class="fa-solid fa-print"></i> <span class="hidden sm:inline">พิมพ์ PDF ราชการ</span>
+                    </button>
+                    <button type="button" id="btnCloseStudentModal" onclick="window.closeExecStatModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white text-lg font-extrabold flex items-center justify-center cursor-pointer">&times;</button>
+                </div>
             </div>
             
             <div class="p-3 sm:p-5 overflow-y-auto flex-1">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[540px]">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[560px]">
                         <thead id="modalTableHeader">
                             <tr class="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
+                                <th class="p-2.5">ที่</th>
                                 <th class="p-2.5">รหัสนักเรียน</th>
                                 <th class="p-2.5">ชื่อ - สกุล</th>
                                 <th class="p-2.5">ระดับชั้น/ห้อง</th>
                                 <th class="p-2.5">รายละเอียด/สถานะ</th>
-                                <th class="p-2.5 text-center">ผู้บันทึก</th>
-                                <th class="p-2.5 text-center">จัดการ</th>
+                                <th class="p-2.5 text-center">ผู้บันทึก/ครูที่ปรึกษา</th>
                             </tr>
                         </thead>
                         <tbody id="modalTableBody" class="divide-y divide-slate-200 font-medium text-slate-800"></tbody>
@@ -746,24 +860,40 @@
                 </div>
             </div>
 
-            <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center gap-2 shrink-0">
-                <span class="text-xs text-slate-500 font-medium">ข้อมูลอัปเดตแบบเรียลไทม์จากฐานข้อมูล</span>
-                <button type="button" id="btnCloseStudentModalBottom" onclick="window.closeExecStatModal()" class="text-xs sm:text-sm bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-1.5 rounded-xl font-bold cursor-pointer">
-                    ปิดหน้าต่าง
-                </button>
+            <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-wrap justify-between items-center gap-2 shrink-0">
+                <span id="modalRecordCountText" class="text-xs text-slate-600 font-bold">ข้อมูลอัปเดตแบบเรียลไทม์จากฐานข้อมูล</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.exportCurrentModalExcel()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold cursor-pointer">
+                        <i class="fa-solid fa-file-excel mr-1"></i> ดาวน์โหลด Excel
+                    </button>
+                    <button type="button" onclick="window.printCurrentModalOfficial()" class="text-xs bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-xl font-bold cursor-pointer">
+                        <i class="fa-solid fa-print mr-1"></i> พิมพ์รายงานราชการ PDF
+                    </button>
+                    <button type="button" id="btnCloseStudentModalBottom" onclick="window.closeExecStatModal()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 px-3.5 py-1.5 rounded-xl font-bold cursor-pointer">
+                        ปิด
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Pop-up 2: ตารางติดตามภาระงานวิชาการ (เปิดจาก Side Drawer) -->
+    <!-- ==================== MODAL 2: ตารางติดตามภาระงานวิชาการ ==================== -->
     <div id="academicHomeworkModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-[10060] hidden items-center justify-center p-3 sm:p-6 no-print" onclick="closeAcademicHomeworkModal()">
         <div class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden border border-slate-200" onclick="event.stopPropagation()">
-            <div class="p-4 text-white flex justify-between items-center bg-sky-900 border-b border-sky-700">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-graduation-cap text-lg sm:text-xl"></i>
-                    <h3 class="font-extrabold text-sm sm:text-base">รายงานติดตามภาระงาน/การบ้าน แยกตามกลุ่มสาระฯ</h3>
+            <div class="p-4 text-white flex justify-between items-center bg-sky-900 border-b border-sky-700 gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <i class="fa-solid fa-graduation-cap text-lg sm:text-xl shrink-0"></i>
+                    <h3 class="font-extrabold text-sm sm:text-base truncate">รายงานติดตามภาระงาน/การบ้าน แยกตามกลุ่มสาระฯ</h3>
                 </div>
-                <button type="button" onclick="closeAcademicHomeworkModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white text-lg font-extrabold flex items-center justify-center cursor-pointer">&times;</button>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="window.exportOfficialExcel('academic')" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-2.5 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer">
+                        <i class="fa-solid fa-file-excel mr-1"></i> Excel
+                    </button>
+                    <button type="button" onclick="window.generateOfficialReport('academic'); closeAcademicHomeworkModal();" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-2.5 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer">
+                        <i class="fa-solid fa-print mr-1"></i> PDF ราชการ
+                    </button>
+                    <button type="button" onclick="closeAcademicHomeworkModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white text-lg font-extrabold flex items-center justify-center cursor-pointer">&times;</button>
+                </div>
             </div>
             
             <div class="p-3 sm:p-5 overflow-y-auto flex-1">
@@ -772,15 +902,14 @@
                         <thead>
                             <tr class="bg-slate-100 text-slate-800 border-b border-slate-200 font-extrabold">
                                 <th class="p-3">กลุ่มสาระการเรียนรู้</th>
-                                <th class="p-3 text-center">จำนวนครูผู้สอน</th>
                                 <th class="p-3 text-center">การบ้านที่สั่ง (งาน)</th>
-                                <th class="p-3 text-center">ส่งงานครบถ้วน (%)</th>
+                                <th class="p-3 text-center">กำลังเปิดรับส่ง</th>
                                 <th class="p-3 text-center">สถานะการกำกับติดตาม</th>
                                 <th class="p-3 text-center">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="academic-summary-body" class="divide-y divide-slate-200 font-medium text-slate-800">
-                            <tr><td colspan="6" class="p-4 text-center text-slate-400 font-bold">กำลังโหลดข้อมูลวิชาการ...</td></tr>
+                            <tr><td colspan="5" class="p-4 text-center text-slate-400 font-bold">กำลังโหลดข้อมูลวิชาการ...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -795,12 +924,101 @@
         </div>
     </div>
 
+    <!-- ==================== MODAL 3: ศูนย์ออกรายงานราชการผู้บริหาร (PDF & Excel) ==================== -->
+    <div id="officialReportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-[10080] hidden items-center justify-center p-3 sm:p-6 no-print" onclick="window.closeOfficialReportModal()">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border-2 border-indigo-300" onclick="event.stopPropagation()">
+            <div class="p-4 bg-gradient-to-r from-indigo-950 to-slate-900 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-base font-extrabold">
+                        <i class="fa-solid fa-file-contract"></i>
+                    </span>
+                    <div>
+                        <h3 class="font-extrabold text-sm sm:text-base text-amber-300">ศูนย์ออกรายงานราชการสำหรับผู้บริหาร</h3>
+                        <p class="text-[11px] text-slate-300">รูปแบบหนังสือราชการ A4 (ฟอนต์ Sarabun พร้อมช่องลงนาม) และไฟล์ Excel</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.closeOfficialReportModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white text-lg font-extrabold flex items-center justify-center cursor-pointer">&times;</button>
+            </div>
+
+            <div class="p-4 sm:p-5 space-y-3">
+                <!-- เลขที่หนังสือ / ภาคเรียน / ปีการศึกษา -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">ที่ / เลขที่เอกสาร</label>
+                        <input type="text" id="docRefNumber" value="บว. 01/2569" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">ภาคเรียน / ปีการศึกษา</label>
+                        <input type="text" id="docSemesterYear" value="ภาคเรียนที่ 2 ปีการศึกษา 2569" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">ผู้ลงนามรับรองรายงาน</label>
+                        <input type="text" id="docSignerTitle" value="ผู้อำนวยการโรงเรียนบัวเชดวิทยา" class="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900">
+                    </div>
+                </div>
+
+                <!-- รายการรายงานราชการ 4 ประเภท -->
+                <div class="space-y-2.5">
+                    <div class="p-3 rounded-2xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <div class="text-xs sm:text-sm font-extrabold text-indigo-950">1. รายงานสรุปสถิติการมาเรียนและภาพรวมสารสนเทศประจำวัน</div>
+                            <div class="text-[11px] text-slate-500">แสดงจำนวนนักเรียนทั้งหมด อัตรามาเรียนแยกชั้น ม.1–ม.6 และห้องเฝ้าระวัง</div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="window.exportOfficialExcel('summary')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"><i class="fa-solid fa-file-excel mr-1"></i> Excel</button>
+                            <button type="button" onclick="window.generateOfficialReport('summary')" class="bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"><i class="fa-solid fa-print mr-1"></i> พิมพ์ PDF</button>
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-2xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <div class="text-xs sm:text-sm font-extrabold text-rose-900">2. รายงานรายชื่อนักเรียนกลุ่มเสี่ยงเวลาเรียนไม่ถึงเกณฑ์ (เสี่ยงติด มส. &lt; 80%)</div>
+                            <div class="text-[11px] text-slate-500">สรุปรายชื่อนักเรียน รหัส ห้องเรียน ร้อยละเวลาเรียน และครูที่ปรึกษา</div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="window.exportOfficialExcel('risk')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"><i class="fa-solid fa-file-excel mr-1"></i> Excel</button>
+                            <button type="button" onclick="window.generateOfficialReport('risk')" class="bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"><i class="fa-solid fa-print mr-1"></i> พิมพ์ PDF</button>
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-2xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <div class="text-xs sm:text-sm font-extrabold text-purple-900">3. รายงานสถิติและรายชื่อนักเรียนหนีเรียนรายวิชา / กิจการนักเรียน</div>
+                            <div class="text-[11px] text-slate-500">แสดงรายการหนีเรียนรายคาบ ห้องพยาบาล และ 5 อันดับห้องเรียนเฝ้าระวัง</div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="window.exportOfficialExcel('affairs')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"><i class="fa-solid fa-file-excel mr-1"></i> Excel</button>
+                            <button type="button" onclick="window.generateOfficialReport('affairs')" class="bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"><i class="fa-solid fa-print mr-1"></i> พิมพ์ PDF</button>
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-2xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <div class="text-xs sm:text-sm font-extrabold text-sky-900">4. รายงานกำกับติดตามการจัดการเรียนการสอนและภาระงาน (8 กลุ่มสาระฯ)</div>
+                            <div class="text-[11px] text-slate-500">สรุปจำนวนภาระงานที่ครูมอบหมายแยกตามกลุ่มสาระการเรียนรู้</div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="window.exportOfficialExcel('academic')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"><i class="fa-solid fa-file-excel mr-1"></i> Excel</button>
+                            <button type="button" onclick="window.generateOfficialReport('academic')" class="bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"><i class="fa-solid fa-print mr-1"></i> พิมพ์ PDF</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button type="button" onclick="window.closeOfficialReportModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer (แสดงเฉพาะบน Desktop) -->
     <footer class="hidden lg:block bg-slate-950 text-slate-400 text-center text-xs py-3 border-t border-slate-800 no-print">
         © 2026 โรงเรียนบัวเชดวิทยา (BCW Smart Hub) • Executive Decision Support System
     </footer>
 
-    <!-- 📱 FLOATING PILL BOTTOM NAVIGATION BAR (มาตรฐานเดียวกับหน้ากิจการนักเรียน) -->
+    <!-- 📱 FLOATING PILL BOTTOM NAVIGATION BAR -->
     <nav class="executive-bottom-nav no-print">
         <button type="button" class="executive-nav-btn active" onclick="scrollToExecutiveSection('section-summary-cards', this)">
             <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
@@ -814,15 +1032,14 @@
             <div class="nav-icon-box"><i class="fa-solid fa-graduation-cap"></i></div>
             <span class="font-bold text-sky-900">งานวิชาการ</span>
         </button>
-        <button type="button" class="executive-nav-btn" onclick="scrollToExecutiveSection('section-overall-charts', this)">
-            <div class="nav-icon-box"><i class="fa-solid fa-chart-pie"></i></div>
-            <span>กราฟสถิติ</span>
+        <button type="button" class="executive-nav-btn" onclick="window.openOfficialReportModal()">
+            <div class="nav-icon-box"><i class="fa-solid fa-print"></i></div>
+            <span>รายงานราชการ</span>
         </button>
     </nav>
 
-<!-- Global Navigation Control Scripts, Real-time Clock & Smooth Touch Gesture Support -->
+    <!-- ==================== UI & GESTURE SCRIPTS ==================== -->
     <script>
-        // 1. นาฬิกา Real-time
         function startExecutiveClock() {
             const now = new Date();
             const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
@@ -837,13 +1054,11 @@
         startExecutiveClock();
         setInterval(startExecutiveClock, 1000);
 
-        // 2. ควบคุม Side Drawer & Bottom Sheets
         window.syncBodyScrollLock = function() {
             const anyOpen =
                 document.getElementById('drawerOverlay')?.classList.contains('active') ||
                 document.getElementById('affairsBottomSheetOverlay')?.classList.contains('active') ||
                 document.getElementById('academicBottomSheetOverlay')?.classList.contains('active');
-            
             document.documentElement.style.overflowY = anyOpen ? 'hidden' : 'auto';
             document.body.style.overflowY = anyOpen ? 'hidden' : 'auto';
         };
@@ -899,14 +1114,22 @@
             if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
         };
 
+        window.openOfficialReportModal = function() {
+            const modal = document.getElementById('officialReportModal');
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        };
+
+        window.closeOfficialReportModal = function() {
+            const modal = document.getElementById('officialReportModal');
+            if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+        };
+
         window.triggerRefreshDataFromDrawer = function() {
             window.toggleExecutiveDrawer();
-            const btn = document.getElementById('btnRefreshData');
-            if (btn) btn.click();
+            if (window.refreshAllExecutiveData) window.refreshAllExecutiveData();
         };
 
         window.scrollToExecutiveSection = function(sectionId, btnElement) {
-            // ปิด Bottom Sheet ที่อาจเปิดค้างอยู่ก่อนเลื่อนหน้า
             document.getElementById('affairsBottomSheetOverlay')?.classList.remove('active');
             document.getElementById('academicBottomSheetOverlay')?.classList.remove('active');
             window.syncBodyScrollLock();
@@ -921,7 +1144,6 @@
             }
         };
 
-        // 3. ควบคุม Modal สถิติ 6 กล่อง
         window.openStudentModal = function() {
             const modal = document.getElementById('studentModal');
             if (modal) {
@@ -937,163 +1159,6 @@
             }
         };
 
-        window.openExecStatModal = function(type) {
-            const title = document.getElementById('modalTitle');
-            const headerBg = document.getElementById('modalHeaderBg');
-            const tbody = document.getElementById('modalTableBody');
-            if (!tbody) return;
-
-            const titleMap = {
-                students: { text: 'สรุปจำนวนนักเรียนทั้งหมดแยกตามระดับชั้น', bg: 'bg-indigo-900' },
-                attendance: { text: 'สรุปสถิติการมาเรียนภาพรวมวันนี้', bg: 'bg-emerald-800' },
-                truancy: { text: 'รายชื่อนักเรียนหนีเรียนรายวิชาทั้งหมด', bg: 'bg-purple-900' },
-                risk: { text: 'รายชื่อนักเรียนกลุ่มเสี่ยงติด มส. (< 80%)', bg: 'bg-rose-900' },
-                clinic: { text: 'รายชื่อนักเรียนเข้าใช้บริการห้องพยาบาลวันนี้', bg: 'bg-sky-900' },
-                notif: { text: 'ประวัติการส่งแจ้งเตือนผู้ปกครองอัตโนมัติ', bg: 'bg-amber-800' }
-            };
-
-            const cfg = titleMap[type] || titleMap.students;
-            if (title) title.innerText = cfg.text;
-            if (headerBg) headerBg.className = `p-4 text-white flex justify-between items-center shrink-0 ${cfg.bg}`;
-            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2 text-indigo-600"></i> กำลังดึงข้อมูลล่าสุดจากระบบ...</td></tr>`;
-
-            window.openStudentModal();
-
-            if (window.loadExecModalData) {
-                window.loadExecModalData(type);
-            } else {
-                setTimeout(() => {
-                    if (window.loadExecModalData) {
-                        window.loadExecModalData(type);
-                    } else {
-                        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 font-bold">✨ ขณะนี้ยังไม่มีรายการข้อมูลในหมวดหมู่นี้</td></tr>`;
-                    }
-                }, 400);
-            }
-        };
-
-        // 4. SMOOTH TOUCH GESTURES (ปัดสไลด์เก็บ Side Drawer และ Bottom Sheets)
-        document.addEventListener('DOMContentLoaded', () => {
-            // 4.1 ปัดสไลด์เก็บ Side Drawer ฝั่งขวา
-            const drawer = document.getElementById('drawerContent');
-            if (drawer) {
-                let startX = 0, currentX = 0, startTime = 0, isSwipingDrawer = false;
-                drawer.addEventListener('touchstart', (e) => {
-                    startX = e.touches[0].clientX;
-                    currentX = startX;
-                    startTime = Date.now();
-                    isSwipingDrawer = true;
-                    drawer.style.transition = 'none';
-                }, { passive: true });
-
-                drawer.addEventListener('touchmove', (e) => {
-                    if (!isSwipingDrawer) return;
-                    currentX = e.touches[0].clientX;
-                    const diffX = currentX - startX;
-                    if (diffX > 0) {
-                        drawer.style.transform = `translate3d(${diffX}px, 0, 0)`;
-                    }
-                }, { passive: true });
-
-                drawer.addEventListener('touchend', () => {
-                    if (!isSwipingDrawer) return;
-                    isSwipingDrawer = false;
-                    const diffX = currentX - startX;
-                    const velocity = diffX / (Date.now() - startTime || 1);
-                    drawer.style.transition = 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)';
-
-                    if (diffX > 70 || velocity > 0.45) {
-                        drawer.style.transform = 'translate3d(100%, 0, 0)';
-                        setTimeout(() => {
-                            document.getElementById('drawerOverlay')?.classList.remove('active');
-                            drawer.style.transform = '';
-                            window.syncBodyScrollLock();
-                        }, 280);
-                    } else {
-                        drawer.style.transform = 'translate3d(0, 0, 0)';
-                    }
-                }, { passive: true });
-            }
-
-            // 4.2 ปัดสไลด์เก็บ Bottom Sheets ด้านล่าง
-            const setupSmoothSheetSwipe = (sheetId, overlayId) => {
-                const sheet = document.getElementById(sheetId);
-                const overlay = document.getElementById(overlayId);
-                if (!sheet || !overlay) return;
-
-                let startY = 0;
-                let currentY = 0;
-                let startTime = 0;
-                let isSwiping = false;
-                let rafId = null;
-
-                sheet.addEventListener('touchstart', (e) => {
-                    if (e.touches.length > 1) return;
-                    if (sheet.scrollTop <= 2) {
-                        startY = e.touches[0].clientY;
-                        currentY = startY;
-                        startTime = performance.now();
-                        isSwiping = true;
-                        sheet.style.transition = 'none';
-                    } else {
-                        isSwiping = false;
-                    }
-                }, { passive: true });
-
-                sheet.addEventListener('touchmove', (e) => {
-                    if (!isSwiping) return;
-                    currentY = e.touches[0].clientY;
-                    const diffY = currentY - startY;
-
-                    if (diffY > 0 && sheet.scrollTop <= 2) {
-                        if (e.cancelable) e.preventDefault();
-                        if (rafId) cancelAnimationFrame(rafId);
-                        rafId = requestAnimationFrame(() => {
-                            sheet.style.transform = `translate3d(0, ${diffY}px, 0)`;
-                        });
-                    } else if (diffY < 0) {
-                        isSwiping = false;
-                        sheet.style.transform = '';
-                    }
-                }, { passive: false });
-
-                const finishSwipe = () => {
-                    if (!isSwiping) return;
-                    isSwiping = false;
-                    if (rafId) cancelAnimationFrame(rafId);
-
-                    const diffY = currentY - startY;
-                    const elapsed = performance.now() - startTime || 1;
-                    const velocity = diffY / elapsed;
-
-                    sheet.style.transition = 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)';
-
-                    if (diffY > 85 || (diffY > 25 && velocity > 0.45)) {
-                        sheet.style.transform = 'translate3d(0, 105%, 0)';
-                        setTimeout(() => {
-                            overlay.classList.remove('active');
-                            sheet.style.transform = '';
-                            window.syncBodyScrollLock();
-                        }, 300);
-                    } else {
-                        sheet.style.transform = 'translate3d(0, 0, 0)';
-                        setTimeout(() => {
-                            sheet.style.transform = '';
-                        }, 340);
-                    }
-                    startY = 0;
-                    currentY = 0;
-                };
-
-                sheet.addEventListener('touchend', finishSwipe, { passive: true });
-                sheet.addEventListener('touchcancel', finishSwipe, { passive: true });
-            };
-
-            setupSmoothSheetSwipe('affairsBottomSheetContent', 'affairsBottomSheetOverlay');
-            setupSmoothSheetSwipe('academicBottomSheetContent', 'academicBottomSheetOverlay');
-        });
-
-        // Dynamic Sub-Header Hide/Show
         window.addEventListener('scroll', () => {
             if (window.innerWidth > 1023) return;
             const subHeader = document.getElementById('dynamicSubHeader');
@@ -1102,16 +1167,50 @@
         });
     </script>
 
-    <!-- Module Integration Script (ฐานข้อมูลและกราฟครบ 100%) -->
+    <!-- ==================== REAL-TIME DATABASE + OFFICIAL GOVERNMENT REPORT ENGINE ==================== -->
     <script type="module">
         import { db } from '../../core/supabase-client.js';
-        import { getExecutiveStats } from '../../modules/executive/executive-dashboard.service.js';
 
         let pieChartInstance = null;
         let barChartInstance = null;
         const gradeChartInstances = {};
         const chartColors = ['#10b981', '#f59e0b', '#0284c7', '#ef4444', '#9333ea'];
         const chartLabels = ['มาเรียน', 'สาย', 'ลา', 'ขาดเรียน', 'หนีเรียน'];
+
+        // เก็บข้อมูลล่าสุดไว้สำหรับสร้างรายงานราชการ PDF และ Excel
+        const EXEC_CACHE = {
+            students: [],
+            logsToday: [],
+            truancyLogs: [],
+            riskStudents: [],
+            clinicRecords: [],
+            notifRecords: [],
+            homeworks: [],
+            gradeStats: {
+                'ม.1': [0, 0, 0, 0, 0],
+                'ม.2': [0, 0, 0, 0, 0],
+                'ม.3': [0, 0, 0, 0, 0],
+                'ม.4': [0, 0, 0, 0, 0],
+                'ม.5': [0, 0, 0, 0, 0],
+                'ม.6': [0, 0, 0, 0, 0]
+            },
+            totalStatus: [0, 0, 0, 0, 0],
+            watchRooms: [],
+            academicGroups: [],
+            currentModalTitle: 'รายงานสรุปสารสนเทศผู้บริหาร',
+            currentModalRows: []
+        };
+
+        const SUBJECT_GROUPS_8 = [
+            'ภาษาไทย',
+            'คณิตศาสตร์',
+            'วิทยาศาสตร์และเทคโนโลยี',
+            'สังคมศึกษา ศาสนา และวัฒนธรรม',
+            'สุขศึกษาและพลศึกษา',
+            'ศิลปะ',
+            'การงานอาชีพ',
+            'ภาษาต่างประเทศ'
+        ];
 
         window.handleLogout = async function() {
             if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
@@ -1126,110 +1225,164 @@
             }
         };
 
-        window.loadExecModalData = async function(type) {
+        // ดึงข้อมูลนักเรียนครบทั้งโรงเรียน (เกิน 1,000 แถว)
+        async function fetchAllStudentsComplete() {
+            let all = [];
+            let from = 0;
+            const step = 1000;
+            while (true) {
+                const { data, error } = await db.from('students').select('*').range(from, from + step - 1);
+                if (error || !data || data.length === 0) break;
+                all = all.concat(data);
+                if (data.length < step) break;
+                from += step;
+            }
+            return all.filter(s => !s.status || s.status === 'active' || s.status === 'กำลังศึกษา');
+        }
+
+        // ประมวลผลข้อมูลผู้บริหารแบบ Real-time ครบทุกส่วน (ไม่พึ่งพาไฟล์นอกที่อาจ Error)
+        window.refreshAllExecutiveData = async function(showNotify = true) {
             try {
-                if (type === 'truancy') {
-                    await showTruancyModal();
-                } else if (type === 'risk') {
-                    await showRiskModal();
-                } else if (type === 'clinic') {
-                    const { data } = await db.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(30);
-                    const formatted = (data || []).map(x => ({
-                        id: x.student_id || '-',
-                        name: x.student_name || 'นักเรียน',
-                        room: x.classroom || '-',
-                        detail: x.symptom || 'เข้าพักรักษาอาการ',
-                        teacher: x.recorded_by || 'ครูห้องพยาบาล'
-                    }));
-                    renderModalTable(formatted);
-                } else if (type === 'notif') {
-                    const { data } = await db.from('parent_notifications').select('*').order('created_at', { ascending: false }).limit(30);
-                    const formatted = (data || []).map(x => ({
-                        id: x.student_id || '-',
-                        name: x.student_name || 'นักเรียน',
-                        room: x.classroom || '-',
-                        detail: x.message || 'แจ้งเตือนสถานะการมาเรียน',
-                        teacher: 'ระบบอัตโนมัติ'
-                    }));
-                    renderModalTable(formatted);
-                } else if (type === 'students') {
-                    const { data } = await db.from('students').select('student_code, prefix, first_name, last_name, classroom').order('classroom', { ascending: true }).limit(50);
-                    const formatted = (data || []).map(x => ({
-                        id: x.student_code || '-',
-                        name: `${x.prefix || ''}${x.first_name || ''} ${x.last_name || ''}`.trim() || 'นักเรียน',
-                        room: x.classroom || '-',
-                        detail: 'กำลังศึกษา (สถานะปกติ)',
-                        teacher: 'งานทะเบียน'
-                    }));
-                    renderModalTable(formatted);
-                } else if (type === 'attendance') {
-                    const todayStr = new Date().toISOString().split('T')[0];
-                    const { data } = await db.from('attendance_logs').select('student_id, classroom, status, recorded_by, students(first_name, last_name)').eq('date', todayStr).limit(50);
-                    const statusTh = { PRESENT: 'มาเรียน', LATE: 'มาสาย', LEAVE: 'ลา', ABSENT: 'ขาดเรียน', TRUANT: 'หนีเรียน' };
-                    const formatted = (data || []).map(x => ({
-                        id: x.student_id || '-',
-                        name: x.students ? `${x.students.first_name} ${x.students.last_name}` : 'นักเรียน',
-                        room: x.classroom || '-',
-                        detail: statusTh[x.status] || x.status || 'บันทึกแล้ว',
-                        teacher: x.recorded_by || 'ครูประจำวิชา'
-                    }));
-                    renderModalTable(formatted);
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                const [students, logsRes, truancyRes, riskRes, clinicRes, notifRes, hwRes] = await Promise.all([
+                    fetchAllStudentsComplete(),
+                    db.from('attendance_logs').select('*').eq('date', todayStr).limit(3000),
+                    db.from('attendance_logs').select('*, students(prefix, first_name, last_name, classroom)').eq('status', 'TRUANT').order('created_at', { ascending: false }).limit(200),
+                    db.from('v_academic_attendance_risk').select('*').limit(200),
+                    db.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(100),
+                    db.from('parent_notifications').select('*').order('created_at', { ascending: false }).limit(100),
+                    db.from('homeworks').select('*').limit(1000)
+                ]);
+
+                EXEC_CACHE.students = students;
+                EXEC_CACHE.logsToday = logsRes.data || [];
+                EXEC_CACHE.truancyLogs = truancyRes.data || [];
+                EXEC_CACHE.riskStudents = riskRes.data || [];
+                EXEC_CACHE.clinicRecords = clinicRes.data || [];
+                EXEC_CACHE.notifRecords = notifRes.data || [];
+                EXEC_CACHE.homeworks = hwRes.data || [];
+
+                // สร้าง Map ค้นหาชื่อนักเรียนเร็ว
+                const stuMap = new Map();
+                students.forEach(s => {
+                    const id = String(s.student_id || s.student_code || s.id || '').trim();
+                    if (id) stuMap.set(id, s);
+                });
+                EXEC_CACHE.stuMap = stuMap;
+
+                // คำนวณสถิติสถานะการเข้าเรียนแยกตามชั้น ม.1 - ม.6
+                const gCounts = {
+                    'ม.1': [0, 0, 0, 0, 0],
+                    'ม.2': [0, 0, 0, 0, 0],
+                    'ม.3': [0, 0, 0, 0, 0],
+                    'ม.4': [0, 0, 0, 0, 0],
+                    'ม.5': [0, 0, 0, 0, 0],
+                    'ม.6': [0, 0, 0, 0, 0]
+                };
+                const totalCounts = [0, 0, 0, 0, 0];
+                const roomWatchMap = {};
+
+                const statusIdxMap = { PRESENT: 0, LATE: 1, LEAVE: 2, ABSENT: 3, TRUANT: 4 };
+
+                EXEC_CACHE.logsToday.forEach(log => {
+                    const st = String(log.status || '').toUpperCase();
+                    const idx = statusIdxMap[st] !== undefined ? statusIdxMap[st] : 0;
+                    totalCounts[idx]++;
+
+                    const stu = stuMap.get(String(log.student_id || '').trim());
+                    const room = String(log.classroom || (stu ? stu.classroom : '') || '').trim();
+                    const gradeMatch = room.match(/ม\.[1-6]/);
+                    if (gradeMatch && gCounts[gradeMatch[0]]) {
+                        gCounts[gradeMatch[0]][idx]++;
+                    }
+
+                    if (room && (idx === 3 || idx === 4)) {
+                        if (!roomWatchMap[room]) roomWatchMap[room] = { room, absent: 0, truant: 0 };
+                        if (idx === 3) roomWatchMap[room].absent++;
+                        if (idx === 4) roomWatchMap[room].truant++;
+                    }
+                });
+
+                EXEC_CACHE.gradeStats = gCounts;
+                EXEC_CACHE.totalStatus = totalCounts;
+
+                const totalLogs = totalCounts.reduce((a, b) => a + b, 0);
+                const presentAndLate = totalCounts[0] + totalCounts[1];
+                const attendRate = totalLogs > 0 ? ((presentAndLate / totalLogs) * 100).toFixed(1) : '100.0';
+
+                // อัปเดตการ์ดตัวเลขหน้าหลักและ Sub-header
+                document.getElementById('stat-total-students').innerText = `${students.length.toLocaleString()} คน`;
+                document.getElementById('stat-attendance-rate').innerText = `${attendRate}%`;
+                document.getElementById('subHeaderAttendance').innerText = `${attendRate}%`;
+                document.getElementById('stat-truancy-count').innerText = `${EXEC_CACHE.truancyLogs.length} ครั้ง`;
+                document.getElementById('stat-risk-count').innerText = `${EXEC_CACHE.riskStudents.length} คน`;
+                document.getElementById('stat-clinic-count').innerText = `${EXEC_CACHE.clinicRecords.length} คน`;
+                document.getElementById('stat-notif-count').innerText = `${EXEC_CACHE.notifRecords.length} ครั้ง`;
+
+                // อัปเดตตัวเลขใน Bottom Sheet กิจการและวิชาการ
+                document.getElementById('bsClinicBadge').innerText = `${EXEC_CACHE.clinicRecords.length} คน`;
+                document.getElementById('bsTruancyBadge').innerText = `${EXEC_CACHE.truancyLogs.length} ครั้ง`;
+                document.getElementById('bsRiskBadge').innerText = `${EXEC_CACHE.riskStudents.length} คน`;
+                document.getElementById('bsNotifBadge').innerText = `${EXEC_CACHE.notifRecords.length} ครั้ง`;
+                document.getElementById('bsTotalHwBadge').innerText = `${EXEC_CACHE.homeworks.length} รายการ`;
+                document.getElementById('bsAcadAttendBadge').innerText = `${attendRate}%`;
+                document.getElementById('bsAcadStudentsText').innerText = `${students.length.toLocaleString()} คน`;
+
+                // วาดกราฟทั้งหมด
+                renderOverallPieChart(totalCounts);
+                renderTruancyBarChart([
+                    gCounts['ม.1'][4], gCounts['ม.2'][4], gCounts['ม.3'][4],
+                    gCounts['ม.4'][4], gCounts['ม.5'][4], gCounts['ม.6'][4]
+                ]);
+                ['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'].forEach((g, i) => {
+                    renderGradePieChart(`chartGradeM${i + 1}`, g, gCounts[g]);
+                });
+
+                // ประมวลผล Top 5 ห้องเฝ้าระวัง
+                EXEC_CACHE.watchRooms = Object.values(roomWatchMap)
+                    .map(r => ({ ...r, score: r.absent + (r.truant * 2) }))
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 5);
+                renderTopWatchRooms(EXEC_CACHE.watchRooms);
+
+                // ประมวลผล 8 กลุ่มสาระการเรียนรู้
+                EXEC_CACHE.academicGroups = SUBJECT_GROUPS_8.map(groupName => {
+                    const shortKey = groupName.split(' ')[0];
+                    const matched = EXEC_CACHE.homeworks.filter(hw => {
+                        const txt = `${hw.subject_group || ''} ${hw.subject_name || ''} ${hw.subject_code || ''} ${hw.title || ''}`;
+                        return txt.includes(shortKey);
+                    });
+                    const activeCount = matched.filter(m => m.status !== 'closed').length;
+                    return {
+                        groupName,
+                        totalHw: matched.length,
+                        activeHw: activeCount,
+                        statusText: matched.length > 0 ? 'ดำเนินการปกติ' : 'รออัปเดตภาระงาน'
+                    };
+                });
+                renderAcademicTables(EXEC_CACHE.academicGroups);
+
+                if (showNotify) {
+                    alert('✅ ประมวลผลดึงข้อมูลเรียลไทม์จากฐานข้อมูลทั้งโรงเรียนเรียบร้อยแล้ว');
                 }
             } catch (err) {
-                console.warn('Modal load error:', err);
-                renderModalTable([]);
+                console.error('Executive Dashboard Load Error:', err);
             }
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadDashboard();
-            setupEventListeners();
+            window.refreshAllExecutiveData(false);
         });
-
-        async function loadDashboard() {
-            try {
-                const stats = await getExecutiveStats();
-
-                document.getElementById('stat-total-students').innerText = `${stats.totalStudents.toLocaleString()} คน`;
-                document.getElementById('stat-attendance-rate').innerText = `${stats.attendanceRate}%`;
-                document.getElementById('stat-truancy-count').innerText = `${stats.truancyCount} ครั้ง`;
-                document.getElementById('stat-risk-count').innerText = `${stats.riskCount} คน`;
-
-                const { count: clinicCount } = await db.from('clinic_records').select('*', { count: 'exact', head: true });
-                const { count: notifCount } = await db.from('parent_notifications').select('*', { count: 'exact', head: true });
-
-                const cCount = clinicCount || 0;
-                document.getElementById('stat-clinic-count').innerText = `${cCount} คน`;
-                const bsClinic = document.getElementById('bsClinicBadge');
-                if (bsClinic) bsClinic.innerText = `${cCount} คน`;
-
-                document.getElementById('stat-notif-count').innerText = `${notifCount || 0} ครั้ง`;
-
-                renderOverallPieChart(stats.totalStatusCounts);
-                renderTruancyBarChart([
-                    stats.gradeStatusCounts['ม.1'][4], stats.gradeStatusCounts['ม.2'][4], stats.gradeStatusCounts['ม.3'][4],
-                    stats.gradeStatusCounts['ม.4'][4], stats.gradeStatusCounts['ม.5'][4], stats.gradeStatusCounts['ม.6'][4]
-                ]);
-
-                ['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'].forEach((g, i) => {
-                    renderGradePieChart(`chartGradeM${i + 1}`, g, stats.gradeStatusCounts[g]);
-                });
-
-                renderTopWatchRooms(stats.roomWatchlistMap);
-                renderAcademicTable(stats.homeworks);
-
-            } catch (err) {
-                console.error('Error loading dashboard:', err);
-            }
-        }
 
         function renderOverallPieChart(dataArr) {
             const ctx = document.getElementById('attendancePieChart')?.getContext('2d');
             if (!ctx) return;
             if (pieChartInstance) pieChartInstance.destroy();
+            const safeData = dataArr.some(v => v > 0) ? dataArr : [1, 0, 0, 0, 0];
             pieChartInstance = new Chart(ctx, {
                 type: 'doughnut',
-                data: { labels: chartLabels, datasets: [{ data: dataArr, backgroundColor: chartColors, borderWidth: 2, borderColor: '#ffffff' }] },
+                data: { labels: chartLabels, datasets: [{ data: safeData, backgroundColor: chartColors, borderWidth: 2, borderColor: '#ffffff' }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#0f172a', font: { family: 'Kanit', size: 12 } } } } }
             });
         }
@@ -1241,14 +1394,14 @@
             barChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: { labels: ['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'], datasets: [{ label: 'จำนวนครั้งที่หนีเรียน', data: dataArr, backgroundColor: '#9333ea', borderRadius: 8 }] },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    scales: { 
-                        y: { beginAtZero: true, ticks: { color: '#475569' }, grid: { color: '#e2e8f0' } },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: '#475569', stepSize: 1 }, grid: { color: '#e2e8f0' } },
                         x: { ticks: { color: '#475569' }, grid: { display: false } }
-                    }, 
-                    plugins: { legend: { display: false } } 
+                    },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
@@ -1258,58 +1411,51 @@
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
             if (gradeChartInstances[canvasId]) gradeChartInstances[canvasId].destroy();
+            const safeData = dataArr.some(v => v > 0) ? dataArr : [1, 0, 0, 0, 0];
 
             gradeChartInstances[canvasId] = new Chart(ctx, {
                 type: 'doughnut',
-                data: { labels: chartLabels, datasets: [{ data: dataArr, backgroundColor: chartColors, borderWidth: 1.5, borderColor: '#ffffff' }] },
+                data: { labels: chartLabels, datasets: [{ data: safeData, backgroundColor: chartColors, borderWidth: 1.5, borderColor: '#ffffff' }] },
                 options: {
-                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
                     onClick: (e, activeElements) => {
                         if (activeElements.length > 0) {
                             const index = activeElements[0].index;
-                            if (chartLabels[index] === 'หนีเรียน') showTruancyModal(gradeName);
-                            else showStatusModalByGrade(gradeName, chartLabels[index]);
+                            window.openGradeStatusModal(gradeName, chartLabels[index]);
                         }
                     }
                 }
             });
         }
 
-        function renderTopWatchRooms(roomMap) {
+        function renderTopWatchRooms(sortedRooms) {
             const container = document.getElementById('top-watch-rooms-container');
             if (!container) return;
 
-            if (!roomMap || Object.keys(roomMap).length === 0) {
-                container.innerHTML = `<div class="col-span-5 text-center text-slate-300 text-xs sm:text-sm py-4 font-bold">🎉 สภาพแวดล้อมปกติ ไม่พบห้องเรียนที่ต้องเฝ้าระวัง</div>`;
+            if (!sortedRooms || sortedRooms.length === 0) {
+                container.innerHTML = `<div class="col-span-5 text-center text-slate-300 text-xs sm:text-sm py-4 font-bold">🎉 สภาพแวดล้อมปกติ ไม่พบห้องเรียนที่มียอดขาดเรียนหรือหนีเรียนในวันนี้</div>`;
                 return;
             }
 
-            const sortedRooms = Object.keys(roomMap)
-                .map(room => ({
-                    room,
-                    grade: roomMap[room].grade,
-                    absent: roomMap[room].absent,
-                    truant: roomMap[room].truant,
-                    score: roomMap[room].absent + (roomMap[room].truant * 2)
-                }))
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 5);
-
-            let html = '';
-            sortedRooms.forEach((item, index) => {
+            container.innerHTML = sortedRooms.map((item, index) => {
                 const isCritical = index < 2;
                 const badgeText = isCritical ? '🔴 ระดับวิกฤต' : '🟠 เฝ้าระวัง';
                 const rankBadgeClass = isCritical ? 'bg-rose-600' : 'bg-amber-600';
                 const borderClass = isCritical ? 'border-rose-500/50' : 'border-amber-500/40';
 
-                html += `
-                    <div class="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border ${borderClass} flex flex-col justify-between space-y-2 hover:bg-white/15 transition shadow-sm">
+                return `
+                    <div onclick="window.openRoomDetailModal('${item.room}')" class="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border ${borderClass} flex flex-col justify-between space-y-2 hover:bg-white/20 transition shadow-sm cursor-pointer">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-extrabold ${rankBadgeClass} text-white px-2 py-0.5 rounded-md">อันดับ ${index + 1}</span>
                             <span class="text-xs text-rose-300 font-bold">${badgeText}</span>
                         </div>
                         <div>
-                            <div class="text-base font-extrabold text-white">ห้อง ${item.room}</div>
+                            <div class="text-base font-extrabold text-white flex items-center justify-between">
+                                <span>ห้อง ${item.room}</span>
+                                <span class="text-[11px] text-amber-300 font-normal">ดูรายชื่อ ➔</span>
+                            </div>
                             <div class="text-xs text-slate-300 mt-1 space-y-0.5 font-medium">
                                 <p class="flex justify-between"><span>ขาดเรียน:</span> <strong class="text-rose-400 font-bold">${item.absent} คน</strong></p>
                                 <p class="flex justify-between"><span>หนีเรียน:</span> <strong class="text-purple-300 font-bold">${item.truant} ครั้ง</strong></p>
@@ -1317,143 +1463,470 @@
                         </div>
                     </div>
                 `;
-            });
-            container.innerHTML = html;
+            }).join('');
         }
 
-        function renderAcademicTable(hwList) {
-            const subjects = ['คณิตศาสตร์', 'วิทยาศาสตร์', 'ภาษาไทย', 'ภาษาต่างประเทศ'];
-            const tbody = document.getElementById('academic-summary-body');
-            if (!tbody) return;
-            let html = '';
+        function renderAcademicTables(groups) {
+            const modalTbody = document.getElementById('academic-summary-body');
+            const mainTbody = document.getElementById('main-academic-summary-body');
 
-            subjects.forEach(subj => {
-                const items = (hwList || []).filter(x => 
-                    (x.subject_code && x.subject_code.includes(subj)) || 
-                    (x.title && x.title.includes(subj))
-                );
-                const hwCount = items.length;
-                const statusBadge = hwCount > 0 
-                    ? `<span class="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full text-xs font-bold">ปกติ</span>`
-                    : `<span class="bg-amber-50 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-full text-xs font-bold">เฝ้าระวัง</span>`;
+            const rowsHtml = groups.map(g => {
+                const badge = g.totalHw > 0
+                    ? `<span class="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full text-xs font-bold">ปกติ (${g.totalHw} งาน)</span>`
+                    : `<span class="bg-amber-50 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-full text-xs font-bold">รออัปเดต</span>`;
 
-                html += `
-                    <tr class="hover:bg-slate-50 cursor-pointer transition border-b border-slate-200">
-                        <td class="p-3 text-slate-900 font-bold">${subj}</td>
-                        <td class="p-3 text-center text-slate-600">ครูประจำวิชา</td>
-                        <td class="p-3 text-center text-sky-700 font-extrabold">${hwCount} งาน</td>
-                        <td class="p-3 text-center text-emerald-700 font-bold">ติดตามแล้ว</td>
-                        <td class="p-3 text-center">${statusBadge}</td>
+                return `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-200">
+                        <td class="p-3 text-slate-900 font-bold">${g.groupName}</td>
+                        <td class="p-3 text-center text-sky-700 font-extrabold">${g.totalHw} งาน</td>
+                        <td class="p-3 text-center text-emerald-700 font-bold">${g.activeHw} งาน</td>
+                        <td class="p-3 text-center">${badge}</td>
                         <td class="p-3 text-center">
-                            <button type="button" class="bg-indigo-50 text-indigo-900 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold px-2.5 py-1 rounded-lg cursor-pointer">
-                                <i class="fa-solid fa-search mr-1"></i> ดูภาระงาน
+                            <button type="button" onclick="window.openSubjectHomeworkDetail('${g.groupName}')" class="bg-indigo-50 text-indigo-900 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold px-2.5 py-1 rounded-lg cursor-pointer">
+                                <i class="fa-solid fa-search mr-1"></i> ดูรายการงาน
                             </button>
                         </td>
                     </tr>
                 `;
-            });
-            tbody.innerHTML = html;
+            }).join('');
+
+            if (modalTbody) modalTbody.innerHTML = rowsHtml;
+            if (mainTbody) mainTbody.innerHTML = rowsHtml;
         }
 
-        async function showTruancyModal(filterGrade = null) {
-            document.getElementById('modalTitle').innerText = filterGrade ? `รายชื่อนักเรียนหนีเรียน ระดับชั้น ${filterGrade}` : 'รายชื่อนักเรียนหนีเรียนทั้งหมด';
-            document.getElementById('modalHeaderBg').className = "p-4 text-white flex justify-between items-center bg-purple-900 border-b border-purple-700 shrink-0";
+        // ==================== MODAL HANDLERS (ใช้งานได้จริงทุกปุ่ม) ====================
+        function setModalData(titleText, headerClass, rows) {
+            EXEC_CACHE.currentModalTitle = titleText;
+            EXEC_CACHE.currentModalRows = rows;
 
-            let query = db.from('attendance_logs').select('student_id, classroom, period_number, recorded_by, students(first_name, last_name)').eq('status', 'TRUANT');
-            if (filterGrade) query = query.like('classroom', `${filterGrade}%`);
+            document.getElementById('modalTitle').innerText = titleText;
+            document.getElementById('modalHeaderBg').className = `p-4 text-white flex justify-between items-center shrink-0 gap-2 ${headerClass}`;
+            document.getElementById('modalRecordCountText').innerText = `พบข้อมูลทั้งหมด ${rows.length} รายการ (ข้อมูลจริงจากระบบ)`;
 
-            const { data } = await query;
-            const formatted = (data || []).map(x => ({
-                id: x.student_id,
-                name: x.students ? `${x.students.first_name} ${x.students.last_name}` : 'นักเรียน',
-                room: x.classroom,
-                detail: `หนีเรียน (คาบที่ ${x.period_number || 1})`,
-                teacher: x.recorded_by || 'ครูผู้บันทึก'
-            }));
-
-            renderModalTable(formatted);
+            const tbody = document.getElementById('modalTableBody');
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 font-bold">✨ ไม่พบรายการข้อมูลในหมวดหมู่นี้</td></tr>`;
+            } else {
+                tbody.innerHTML = rows.map((r, idx) => `
+                    <tr class="hover:bg-slate-50 border-b border-slate-200">
+                        <td class="p-2.5 text-center text-slate-500 font-bold">${idx + 1}</td>
+                        <td class="p-2.5 font-bold text-sky-700 font-mono">${r.id}</td>
+                        <td class="p-2.5 font-bold text-slate-900">${r.name}</td>
+                        <td class="p-2.5 text-slate-700 font-semibold">${r.room}</td>
+                        <td class="p-2.5 font-medium text-amber-800">${r.detail}</td>
+                        <td class="p-2.5 text-center text-slate-600">${r.teacher}</td>
+                    </tr>
+                `).join('');
+            }
             window.openStudentModal();
         }
 
-        async function showStatusModalByGrade(gradeName, statusName) {
-            document.getElementById('modalHeaderBg').className = "p-4 text-white flex justify-between items-center bg-indigo-900 border-b border-indigo-700 shrink-0";
-            document.getElementById('modalTitle').innerText = `รายชื่อนักเรียน ระดับชั้น ${gradeName} (สถานะ: ${statusName})`;
+        window.openExecStatModal = function(type) {
+            if (type === 'students') {
+                const rows = EXEC_CACHE.students.slice(0, 150).map(s => ({
+                    id: s.student_id || s.student_code || '-',
+                    name: `${s.prefix || ''}${s.first_name || ''} ${s.last_name || ''}`.trim() || s.name || '-',
+                    room: s.classroom || '-',
+                    detail: 'กำลังศึกษา (สถานะปกติ)',
+                    teacher: 'งานทะเบียนนักเรียน'
+                }));
+                setModalData(`รายชื่อนักเรียนทั้งหมดในระบบ (${EXEC_CACHE.students.length} คน)`, 'bg-indigo-900', rows);
+            } else if (type === 'attendance') {
+                const statusTh = { PRESENT: 'มาเรียน', LATE: 'มาสาย', LEAVE: 'ลา', ABSENT: 'ขาดเรียน', TRUANT: 'หนีเรียน' };
+                const rows = EXEC_CACHE.logsToday.slice(0, 150).map(x => {
+                    const stu = EXEC_CACHE.stuMap?.get(String(x.student_id || '').trim());
+                    const name = stu ? `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim() : (x.student_name || 'นักเรียน');
+                    return {
+                        id: x.student_id || '-',
+                        name,
+                        room: x.classroom || (stu ? stu.classroom : '-'),
+                        detail: statusTh[String(x.status).toUpperCase()] || x.status || '-',
+                        teacher: x.recorded_by || 'ครูผู้สอน / ระบบ AI'
+                    };
+                });
+                setModalData(`บันทึกการเข้าเรียนประจำวันนี้ (${EXEC_CACHE.logsToday.length} รายการ)`, 'bg-emerald-800', rows);
+            } else if (type === 'truancy') {
+                const rows = EXEC_CACHE.truancyLogs.map(x => {
+                    const stu = x.students || EXEC_CACHE.stuMap?.get(String(x.student_id || '').trim());
+                    const name = stu ? `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim() : 'นักเรียน';
+                    return {
+                        id: x.student_id || '-',
+                        name,
+                        room: x.classroom || (stu ? stu.classroom : '-'),
+                        detail: `หนีเรียน ${x.subject_name || ''} (คาบที่ ${x.period_no || x.period_number || '-'})`,
+                        teacher: x.recorded_by || 'ครูผู้บันทึก'
+                    };
+                });
+                setModalData(`รายชื่อนักเรียนหนีเรียนรายวิชา (${rows.length} ครั้ง)`, 'bg-purple-900', rows);
+            } else if (type === 'risk') {
+                const rows = EXEC_CACHE.riskStudents.map(x => ({
+                    id: x.student_id || '-',
+                    name: `${x.prefix || ''}${x.first_name || ''} ${x.last_name || ''}`.trim(),
+                    room: x.classroom || '-',
+                    detail: `เวลาเรียน ${x.attendance_percentage || 0}% (ต่ำกว่าเกณฑ์ 80%)`,
+                    teacher: x.advisor_name || 'ครูประจำชั้น'
+                }));
+                setModalData(`รายชื่อนักเรียนกลุ่มเสี่ยงติด มส. (< 80%)`, 'bg-rose-900', rows);
+            } else if (type === 'clinic') {
+                const rows = EXEC_CACHE.clinicRecords.map(x => ({
+                    id: x.student_id || '-',
+                    name: x.student_name || 'นักเรียน',
+                    room: x.classroom || '-',
+                    detail: x.symptom || 'เข้าพักรักษาอาการ',
+                    teacher: x.recorded_by || 'ครูห้องพยาบาล'
+                }));
+                setModalData(`รายชื่อนักเรียนเข้าใช้บริการห้องพยาบาล`, 'bg-sky-900', rows);
+            } else if (type === 'notif') {
+                const rows = EXEC_CACHE.notifRecords.map(x => ({
+                    id: x.student_id || '-',
+                    name: x.student_name || 'นักเรียน',
+                    room: x.classroom || '-',
+                    detail: x.message || 'แจ้งเตือนสถานะการมาเรียน',
+                    teacher: 'ระบบแจ้งเตือนอัตโนมัติ'
+                }));
+                setModalData(`ประวัติการส่งแจ้งเตือนผู้ปกครองอัตโนมัติ`, 'bg-amber-800', rows);
+            }
+        };
 
+        window.openGradeStatusModal = function(gradeName, statusName) {
             const reverseMap = { 'มาเรียน': 'PRESENT', 'สาย': 'LATE', 'ลา': 'LEAVE', 'ขาดเรียน': 'ABSENT', 'หนีเรียน': 'TRUANT' };
             const statusKey = reverseMap[statusName] || 'PRESENT';
 
-            const { data } = await db
-                .from('attendance_logs')
-                .select('student_id, classroom, recorded_by, students(first_name, last_name)')
-                .eq('status', statusKey)
-                .like('classroom', `${gradeName}%`);
+            const rows = EXEC_CACHE.logsToday
+                .filter(x => {
+                    const stu = EXEC_CACHE.stuMap?.get(String(x.student_id || '').trim());
+                    const room = String(x.classroom || (stu ? stu.classroom : '') || '');
+                    return room.startsWith(gradeName) && String(x.status).toUpperCase() === statusKey;
+                })
+                .map(x => {
+                    const stu = EXEC_CACHE.stuMap?.get(String(x.student_id || '').trim());
+                    const name = stu ? `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim() : 'นักเรียน';
+                    return {
+                        id: x.student_id || '-',
+                        name,
+                        room: x.classroom || (stu ? stu.classroom : '-'),
+                        detail: `สถานะ: ${statusName}`,
+                        teacher: x.recorded_by || 'ครูผู้สอน'
+                    };
+                });
 
-            const formatted = (data || []).map(x => ({
-                id: x.student_id,
-                name: x.students ? `${x.students.first_name} ${x.students.last_name}` : 'นักเรียน',
-                room: x.classroom,
-                detail: `สถานะ: ${statusName}`,
-                teacher: x.recorded_by || 'ครูประจำชั้น'
-            }));
+            setModalData(`รายชื่อนักเรียนชั้น ${gradeName} (สถานะ: ${statusName})`, 'bg-indigo-900', rows);
+        };
 
-            renderModalTable(formatted);
-            window.openStudentModal();
+        window.openRoomDetailModal = function(roomName) {
+            const statusTh = { PRESENT: 'มาเรียน', LATE: 'มาสาย', LEAVE: 'ลา', ABSENT: 'ขาดเรียน', TRUANT: 'หนีเรียน' };
+            const rows = EXEC_CACHE.logsToday
+                .filter(x => {
+                    const stu = EXEC_CACHE.stuMap?.get(String(x.student_id || '').trim());
+                    const room = String(x.classroom || (stu ? stu.classroom : '') || '').trim();
+                    const st = String(x.status).toUpperCase();
+                    return room === roomName && (st === 'ABSENT' || st === 'TRUANT' || st === 'LATE');
+                })
+                .map(x => {
+                    const stu = EXEC_CACHE.stuMap?.get(String(x.student_id || '').trim());
+                    const name = stu ? `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim() : 'นักเรียน';
+                    return {
+                        id: x.student_id || '-',
+                        name,
+                        room: roomName,
+                        detail: statusTh[String(x.status).toUpperCase()] || x.status,
+                        teacher: x.recorded_by || 'ครูประจำวิชา'
+                    };
+                });
+
+            setModalData(`รายชื่อนักเรียนกลุ่มเฝ้าระวัง ห้อง ${roomName}`, 'bg-rose-900', rows);
+        };
+
+        window.openSubjectHomeworkDetail = function(groupName) {
+            const shortKey = groupName.split(' ')[0];
+            const rows = EXEC_CACHE.homeworks
+                .filter(hw => `${hw.subject_group || ''} ${hw.subject_name || ''} ${hw.subject_code || ''} ${hw.title || ''}`.includes(shortKey))
+                .map((hw, i) => ({
+                    id: hw.subject_code || `HW-${i + 1}`,
+                    name: hw.title || hw.subject_name || 'ภาระงาน/การบ้าน',
+                    room: hw.classroom || 'ทุกระดับชั้น',
+                    detail: `กำหนดส่ง: ${hw.due_date || '-'}`,
+                    teacher: hw.teacher_name || 'ครูประจำวิชา'
+                }));
+
+            window.closeAcademicHomeworkModal();
+            setModalData(`รายการภาระงาน/การบ้าน กลุ่มสาระฯ ${groupName}`, 'bg-sky-900', rows);
+        };
+
+        // ==================== OFFICIAL GOVERNMENT REPORT GENERATOR (A4 PDF & EXCEL) ====================
+        function getThaiOfficialDate() {
+            const now = new Date();
+            const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            return `วันที่ ${now.getDate()} เดือน ${months[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
         }
 
-        async function showRiskModal() {
-            document.getElementById('modalHeaderBg').className = "p-4 text-white flex justify-between items-center bg-rose-900 border-b border-rose-700 shrink-0";
-            document.getElementById('modalTitle').innerText = `รายชื่อนักเรียนกลุ่มเสี่ยงติด มส. (< 80%)`;
+        function buildOfficialPrintShell(reportTitle, summaryBoxHtml, tableHeaders, tableRowsHtml) {
+            const docNo = document.getElementById('docRefNumber')?.value || 'บว. 01/2569';
+            const semYear = document.getElementById('docSemesterYear')?.value || 'ภาคเรียนที่ 2 ปีการศึกษา 2569';
+            const signerTitle = document.getElementById('docSignerTitle')?.value || 'ผู้อำนวยการโรงเรียนบัวเชดวิทยา';
 
-            const { data } = await db.from('v_academic_attendance_risk').select('*');
+            return `
+                <div style="width: 100%; font-family: 'Sarabun', sans-serif; color: #000;">
+                    <!-- ส่วนหัวหนังสือราชการ -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="../../assets/images/logo_bcw.png" style="width: 58px; height: 58px; object-fit: contain;" onerror="this.style.display='none'">
+                            <div>
+                                <div style="font-size: 16pt; font-weight: 800; line-height: 1.2;">โรงเรียนบัวเชดวิทยา</div>
+                                <div style="font-size: 12pt; font-weight: 600;">สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์</div>
+                                <div style="font-size: 11pt;">ระบบสารสนเทศเพื่อการบริหารงานสถานศึกษา (BCW Smart Hub)</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right; font-size: 11pt;">
+                            <div><strong>ที่เอกสาร:</strong> ${docNo}</div>
+                            <div><strong>ประจำ:</strong> ${semYear}</div>
+                            <div>${getThaiOfficialDate()}</div>
+                        </div>
+                    </div>
 
-            const formatted = (data || []).map(x => ({
-                id: x.student_id,
-                name: `${x.prefix || ''}${x.first_name || ''} ${x.last_name || ''}`,
-                room: x.classroom,
-                detail: `เวลาเรียน ${x.attendance_percentage}%`,
-                teacher: x.advisor_name || 'ครูประจำชั้น'
-            }));
+                    <!-- ชื่อเรื่องรายงาน -->
+                    <div style="text-align: center; margin-bottom: 14px;">
+                        <div style="font-size: 15pt; font-weight: 800; text-decoration: underline;">${reportTitle}</div>
+                    </div>
 
-            renderModalTable(formatted);
-            window.openStudentModal();
+                    <!-- กล่องสรุปข้อมูลสำคัญ -->
+                    ${summaryBoxHtml}
+
+                    <!-- ตารางข้อมูลราชการ -->
+                    <table>
+                        <thead>
+                            <tr>${tableHeaders.map(h => `<th>${h}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>
+                            ${tableRowsHtml}
+                        </tbody>
+                    </table>
+
+                    <!-- ส่วนลงนามรับรองตามระเบียบงานสารบรรณ -->
+                    <div class="page-break-inside-avoid" style="margin-top: 32px; display: flex; justify-content: space-between; font-size: 13pt;">
+                        <div style="width: 45%; text-align: center;">
+                            <div>ลงชื่อ .................................................... ผู้รายงาน</div>
+                            <div style="margin-top: 6px;">( .................................................... )</div>
+                            <div>เจ้าหน้าที่สารสนเทศ / หัวหน้ากลุ่มบริหารงาน</div>
+                            <div>${getThaiOfficialDate()}</div>
+                        </div>
+                        <div style="width: 48%; text-align: center;">
+                            <div>ทราบ / อนุมัติตามเสนอ</div>
+                            <div style="margin-top: 18px;">ลงชื่อ ....................................................</div>
+                            <div style="margin-top: 6px;">( .................................................... )</div>
+                            <div>${signerTitle}</div>
+                            <div>วันที่ ......... เดือน .................... พ.ศ. ..........</div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
-        function renderModalTable(dataList) {
-            const tbody = document.getElementById('modalTableBody');
-            if (!tbody) return;
-            if (!dataList || dataList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-bold">✨ ไม่พบรายการข้อมูลในกลุ่มนี้</td></tr>`;
+        window.generateOfficialReport = function(category) {
+            window.closeOfficialReportModal();
+            const printArea = document.getElementById('officialPrintArea');
+            if (!printArea) return;
+
+            let title = '';
+            let summaryHtml = '';
+            let headers = [];
+            let rowsHtml = '';
+
+            if (category === 'summary') {
+                title = 'รายงานสรุปสถิติการมาเรียนและข้อมูลสารสนเทศผู้บริหาร';
+                const totalLogs = EXEC_CACHE.totalStatus.reduce((a, b) => a + b, 0);
+                const rate = totalLogs > 0 ? (((EXEC_CACHE.totalStatus[0] + EXEC_CACHE.totalStatus[1]) / totalLogs) * 100).toFixed(2) : '100.00';
+
+                summaryHtml = `
+                    <div style="border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 12pt;">
+                        <strong>สรุปภาพรวม:</strong> นักเรียนทั้งหมด <strong>${EXEC_CACHE.students.length.toLocaleString()} คน</strong> | 
+                        อัตรามาเรียนรวม <strong>ร้อยละ ${rate}</strong> | 
+                        เสี่ยงติด มส. <strong>${EXEC_CACHE.riskStudents.length} คน</strong> | 
+                        หนีเรียนรายวิชา <strong>${EXEC_CACHE.truancyLogs.length} ครั้ง</strong>
+                    </div>
+                `;
+                headers = ['ที่', 'ระดับชั้น', 'มาเรียน (คน)', 'มาสาย (คน)', 'ลา (คน)', 'ขาดเรียน (คน)', 'หนีเรียน (ครั้ง)', 'รวมบันทึก'];
+                rowsHtml = ['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'].map((g, i) => {
+                    const arr = EXEC_CACHE.gradeStats[g] || [0, 0, 0, 0, 0];
+                    const sum = arr.reduce((a, b) => a + b, 0);
+                    return `
+                        <tr>
+                            <td style="text-align:center;">${i + 1}</td>
+                            <td style="text-align:center; font-weight:700;">ชั้นมัธยมศึกษาปีที่ ${i + 1} (${g})</td>
+                            <td style="text-align:center;">${arr[0]}</td>
+                            <td style="text-align:center;">${arr[1]}</td>
+                            <td style="text-align:center;">${arr[2]}</td>
+                            <td style="text-align:center;">${arr[3]}</td>
+                            <td style="text-align:center;">${arr[4]}</td>
+                            <td style="text-align:center; font-weight:700;">${sum}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else if (category === 'risk') {
+                title = 'รายงานรายชื่อนักเรียนกลุ่มเสี่ยงเวลาเรียนไม่ถึงเกณฑ์ (เสี่ยงติด มส. ต่ำกว่าร้อยละ 80)';
+                summaryHtml = `<div style="border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 12pt;"><strong>จำนวนนักเรียนกลุ่มเสี่ยงทั้งหมด:</strong> ${EXEC_CACHE.riskStudents.length} คน (เสนอฝ่ายวิชาการและครูที่ปรึกษาดำเนินการแก้ไขตามระเบียบ)</div>`;
+                headers = ['ที่', 'รหัสนักเรียน', 'ชื่อ - สกุล', 'ชั้น/ห้อง', 'ร้อยละเวลาเรียน', 'ครูที่ปรึกษา'];
+                rowsHtml = EXEC_CACHE.riskStudents.length > 0
+                    ? EXEC_CACHE.riskStudents.map((x, i) => `
+                        <tr>
+                            <td style="text-align:center;">${i + 1}</td>
+                            <td style="text-align:center;">${x.student_id || '-'}</td>
+                            <td>${x.prefix || ''}${x.first_name || ''} ${x.last_name || ''}</td>
+                            <td style="text-align:center;">${x.classroom || '-'}</td>
+                            <td style="text-align:center; font-weight:700;">${x.attendance_percentage || 0}%</td>
+                            <td>${x.advisor_name || 'ครูประจำชั้น'}</td>
+                        </tr>
+                    `).join('')
+                    : `<tr><td colspan="6" style="text-align:center;">ไม่พบนักเรียนกลุ่มเสี่ยงเวลาเรียนต่ำกว่าร้อยละ 80</td></tr>`;
+            } else if (category === 'affairs' || category === 'watchrooms') {
+                title = 'รายงานสถิติกลุ่มบริหารงานกิจการนักเรียน (หนีเรียนรายวิชา / ห้องเรียนเฝ้าระวัง)';
+                summaryHtml = `<div style="border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 12pt;"><strong>สถิติประจำวัน:</strong> หนีเรียนรายวิชา ${EXEC_CACHE.truancyLogs.length} ครั้ง | เข้าห้องพยาบาล ${EXEC_CACHE.clinicRecords.length} คน | แจ้งเตือนผู้ปกครอง ${EXEC_CACHE.notifRecords.length} ครั้ง</div>`;
+                headers = ['ที่', 'รหัสนักเรียน', 'ชื่อ - สกุล', 'ชั้น/ห้อง', 'พฤติกรรม / รายวิชาที่พบ', 'ผู้บันทึกข้อมูล'];
+                rowsHtml = EXEC_CACHE.truancyLogs.length > 0
+                    ? EXEC_CACHE.truancyLogs.map((x, i) => {
+                        const stu = x.students || EXEC_CACHE.stuMap?.get(String(x.student_id || '').trim());
+                        const name = stu ? `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim() : 'นักเรียน';
+                        return `
+                            <tr>
+                                <td style="text-align:center;">${i + 1}</td>
+                                <td style="text-align:center;">${x.student_id || '-'}</td>
+                                <td>${name}</td>
+                                <td style="text-align:center;">${x.classroom || '-'}</td>
+                                <td>หนีเรียน ${x.subject_name || ''} (คาบ ${x.period_no || x.period_number || '-'})</td>
+                                <td>${x.recorded_by || 'ครูผู้สอน'}</td>
+                            </tr>
+                        `;
+                    }).join('')
+                    : `<tr><td colspan="6" style="text-align:center;">ไม่พบรายการหนีเรียนรายวิชาในระบบ</td></tr>`;
+            } else if (category === 'academic') {
+                title = 'รายงานกำกับติดตามการจัดการเรียนการสอนและภาระงาน (8 กลุ่มสาระการเรียนรู้)';
+                summaryHtml = `<div style="border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 12pt;"><strong>จำนวนภาระงาน/การบ้านทั้งหมดในระบบ:</strong> ${EXEC_CACHE.homeworks.length} รายการ ครอบคลุม 8 กลุ่มสาระการเรียนรู้</div>`;
+                headers = ['ที่', 'กลุ่มสาระการเรียนรู้', 'จำนวนงานที่มอบหมาย', 'งานที่เปิดรับส่งอยู่', 'ผลการกำกับติดตาม'];
+                rowsHtml = EXEC_CACHE.academicGroups.map((g, i) => `
+                    <tr>
+                        <td style="text-align:center;">${i + 1}</td>
+                        <td>${g.groupName}</td>
+                        <td style="text-align:center; font-weight:700;">${g.totalHw} งาน</td>
+                        <td style="text-align:center;">${g.activeHw} งาน</td>
+                        <td style="text-align:center;">${g.statusText}</td>
+                    </tr>
+                `).join('');
+            }
+
+            printArea.innerHTML = buildOfficialPrintShell(title, summaryHtml, headers, rowsHtml);
+            setTimeout(() => window.print(), 200);
+        };
+
+        window.printCurrentModalOfficial = function() {
+            const printArea = document.getElementById('officialPrintArea');
+            if (!printArea) return;
+            const title = EXEC_CACHE.currentModalTitle || 'รายงานข้อมูลสารสนเทศโรงเรียนบัวเชดวิทยา';
+            const rows = EXEC_CACHE.currentModalRows || [];
+            const summaryHtml = `<div style="border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 12pt;"><strong>จำนวนรายการทั้งหมด:</strong> ${rows.length} รายการ</div>`;
+            const headers = ['ที่', 'รหัสนักเรียน', 'ชื่อ - สกุล', 'ระดับชั้น/ห้อง', 'รายละเอียด/สถานะ', 'ผู้บันทึก/ครูที่ปรึกษา'];
+            const rowsHtml = rows.length > 0
+                ? rows.map((r, i) => `
+                    <tr>
+                        <td style="text-align:center;">${i + 1}</td>
+                        <td style="text-align:center;">${r.id}</td>
+                        <td>${r.name}</td>
+                        <td style="text-align:center;">${r.room}</td>
+                        <td>${r.detail}</td>
+                        <td>${r.teacher}</td>
+                    </tr>
+                `).join('')
+                : `<tr><td colspan="6" style="text-align:center;">ไม่พบรายการข้อมูล</td></tr>`;
+
+            printArea.innerHTML = buildOfficialPrintShell(title, summaryHtml, headers, rowsHtml);
+            setTimeout(() => window.print(), 200);
+        };
+
+        // ==================== EXCEL EXPORT ENGINE (.XLSX) ====================
+        window.exportOfficialExcel = function(category) {
+            if (typeof XLSX === 'undefined') {
+                alert('กำลังโหลดไลบรารี Excel กรุณารอสักครู่แล้วกดอีกครั้ง');
                 return;
             }
-            let html = '';
-            dataList.forEach(item => {
-                html += `
-                    <tr class="hover:bg-slate-50 border-b border-slate-200">
-                        <td class="p-2.5 font-bold text-sky-700">${item.id}</td>
-                        <td class="p-2.5 font-bold text-slate-900">${item.name}</td>
-                        <td class="p-2.5 text-slate-700 font-semibold">${item.room}</td>
-                        <td class="p-2.5 font-medium text-amber-700">${item.detail}</td>
-                        <td class="p-2.5 text-center text-slate-600">${item.teacher}</td>
-                        <td class="p-2.5 text-center">
-                            <button type="button" class="bg-indigo-50 text-indigo-900 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold px-2.5 py-1 rounded-lg cursor-pointer">
-                                ติดตาม
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = html;
-        }
 
-        function setupEventListeners() {
-            document.getElementById('btnRefreshData')?.addEventListener('click', () => {
-                alert('🔄 ประมวลผลดึงข้อมูล Real-time จากทุกระบบเรียบร้อยแล้ว');
-                loadDashboard();
-            });
-            document.getElementById('btnPrintPDF')?.addEventListener('click', () => window.print());
-            document.getElementById('btnCloseStudentModal')?.addEventListener('click', window.closeExecStatModal);
-            document.getElementById('btnCloseStudentModalBottom')?.addEventListener('click', window.closeExecStatModal);
-        }
+            let sheetData = [];
+            let fileName = 'BCW_Executive_Report.xlsx';
+
+            if (category === 'summary') {
+                fileName = 'รายงานสรุปสถิติการมาเรียน_โรงเรียนบัวเชดวิทยา.xlsx';
+                sheetData = [
+                    ['โรงเรียนบัวเชดวิทยา - รายงานสรุปสถิติการมาเรียนแยกตามระดับชั้น'],
+                    [getThaiOfficialDate()],
+                    [],
+                    ['ระดับชั้น', 'มาเรียน (คน)', 'มาสาย (คน)', 'ลา (คน)', 'ขาดเรียน (คน)', 'หนีเรียน (ครั้ง)', 'รวมทั้งหมด'],
+                    ...['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'].map(g => {
+                        const a = EXEC_CACHE.gradeStats[g] || [0, 0, 0, 0, 0];
+                        return [g, a[0], a[1], a[2], a[3], a[4], a.reduce((x, y) => x + y, 0)];
+                    })
+                ];
+            } else if (category === 'risk') {
+                fileName = 'รายชื่อนักเรียนกลุ่มเสี่ยงติด_มส_โรงเรียนบัวเชดวิทยา.xlsx';
+                sheetData = [
+                    ['โรงเรียนบัวเชดวิทยา - รายชื่อนักเรียนกลุ่มเสี่ยงเวลาเรียนต่ำกว่า 80%'],
+                    [getThaiOfficialDate()],
+                    [],
+                    ['ที่', 'รหัสนักเรียน', 'ชื่อ - สกุล', 'ห้องเรียน', 'ร้อยละเวลาเรียน', 'ครูที่ปรึกษา'],
+                    ...EXEC_CACHE.riskStudents.map((x, i) => [
+                        i + 1,
+                        x.student_id || '-',
+                        `${x.prefix || ''}${x.first_name || ''} ${x.last_name || ''}`.trim(),
+                        x.classroom || '-',
+                        `${x.attendance_percentage || 0}%`,
+                        x.advisor_name || 'ครูประจำชั้น'
+                    ])
+                ];
+            } else if (category === 'affairs') {
+                fileName = 'รายงานกิจการนักเรียนและหนีเรียนรายวิชา_โรงเรียนบัวเชดวิทยา.xlsx';
+                sheetData = [
+                    ['โรงเรียนบัวเชดวิทยา - รายงานสถิติหนีเรียนรายวิชาและกิจการนักเรียน'],
+                    [getThaiOfficialDate()],
+                    [],
+                    ['ที่', 'รหัสนักเรียน', 'ชื่อ - สกุล', 'ห้องเรียน', 'รายละเอียด', 'ผู้บันทึก'],
+                    ...EXEC_CACHE.truancyLogs.map((x, i) => {
+                        const stu = x.students || EXEC_CACHE.stuMap?.get(String(x.student_id || '').trim());
+                        const name = stu ? `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim() : 'นักเรียน';
+                        return [i + 1, x.student_id || '-', name, x.classroom || '-', `หนีเรียน ${x.subject_name || ''}`, x.recorded_by || '-'];
+                    })
+                ];
+            } else if (category === 'academic') {
+                fileName = 'รายงานติดตามภาระงาน_8กลุ่มสาระ_โรงเรียนบัวเชดวิทยา.xlsx';
+                sheetData = [
+                    ['โรงเรียนบัวเชดวิทยา - รายงานติดตามภาระงานและจัดการเรียนการสอน 8 กลุ่มสาระการเรียนรู้'],
+                    [getThaiOfficialDate()],
+                    [],
+                    ['ที่', 'กลุ่มสาระการเรียนรู้', 'จำนวนงานที่สั่ง', 'กำลังเปิดรับส่ง', 'สถานะการติดตาม'],
+                    ...EXEC_CACHE.academicGroups.map((g, i) => [i + 1, g.groupName, g.totalHw, g.activeHw, g.statusText])
+                ];
+            }
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
+            ws['!cols'] = [{ wch: 8 }, { wch: 28 }, { wch: 28 }, { wch: 16 }, { wch: 22 }, { wch: 22 }];
+            XLSX.utils.book_append_sheet(wb, ws, 'Official_Report');
+            XLSX.writeFile(wb, fileName);
+        };
+
+        window.exportCurrentModalExcel = function() {
+            if (typeof XLSX === 'undefined') return;
+            const title = EXEC_CACHE.currentModalTitle || 'รายงานข้อมูลผู้บริหาร';
+            const rows = EXEC_CACHE.currentModalRows || [];
+            const sheetData = [
+                [`โรงเรียนบัวเชดวิทยา - ${title}`],
+                [getThaiOfficialDate()],
+                [],
+                ['ที่', 'รหัสนักเรียน', 'ชื่อ - สกุล', 'ระดับชั้น/ห้อง', 'รายละเอียด/สถานะ', 'ผู้บันทึก/ครูที่ปรึกษา'],
+                ...rows.map((r, i) => [i + 1, r.id, r.name, r.room, r.detail, r.teacher])
+            ];
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
+            ws['!cols'] = [{ wch: 6 }, { wch: 15 }, { wch: 28 }, { wch: 14 }, { wch: 28 }, { wch: 22 }];
+            XLSX.utils.book_append_sheet(wb, ws, 'Data_Export');
+            XLSX.writeFile(wb, `${title.replace(/[\\/:*?"<>|]/g, '_')}.xlsx`);
+        };
     </script>
 </body>
 </html>
