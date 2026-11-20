@@ -34,13 +34,18 @@
             border: 2px solid #10b981;
             box-shadow: 0 0 35px rgba(16, 185, 129, 0.18);
         }
+        #videoWrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .mirror-mode {
+            transform: scaleX(-1);
+        }
         #webcamVideo {
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-        .mirror-mode {
-            transform: scaleX(-1);
         }
         #overlayCanvas {
             position: absolute;
@@ -69,11 +74,11 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-sm sm:text-lg font-extrabold text-emerald-400 tracking-wide">BCW AI FACE &amp; QR SCANNER</h1>
-                    <span id="hikvisionBadge" class="hidden bg-sky-500/20 text-sky-300 border border-sky-400/50 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        <i class="fa-solid fa-video mr-1"></i> HIKVISION READY
+                    <span id="usbCamBadge" class="hidden bg-sky-500/20 text-sky-300 border border-sky-400/50 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        <i class="fa-solid fa-video mr-1"></i> USB CAM READY
                     </span>
                 </div>
-                <p class="text-[11px] text-slate-400">ระบบสแกนใบหน้าและบัตรประจำตัวนักเรียน (รองรับกล้อง Hikvision UVC / มือถือ)</p>
+                <p class="text-[11px] text-slate-400">ระบบสแกนใบหน้าและบัตรประจำตัวนักเรียน (รองรับกล้อง USB ทุกรุ่น / Hikvision / มือถือ)</p>
             </div>
         </div>
 
@@ -93,14 +98,14 @@
     <!-- 2. MAIN SCANNER STAGE -->
     <main class="max-w-5xl mx-auto w-full my-3 grid grid-cols-1 lg:grid-cols-3 gap-4 items-start flex-1">
 
-        <!-- ฝั่งซ้าย (2 ส่วน): หน้าจอกล้อง Hikvision + แผงควบคุม -->
+        <!-- ฝั่งซ้าย (2 ส่วน): หน้าจอกล้อง + แผงควบคุม -->
         <div class="lg:col-span-2 space-y-3">
-            <!-- แถบเลือกกล้อง USB / Hikvision และห้องเรียน -->
+            <!-- แถบเลือกกล้อง USB และห้องเรียน -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-900/90 p-2.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-camera text-emerald-400 text-xs pl-1"></i>
                     <select id="cameraDeviceSelect" onchange="window.switchSelectedCamera(this.value)" class="w-full bg-slate-950 border border-slate-700 text-slate-100 text-xs font-bold p-2 rounded-xl outline-none">
-                        <option value="">กำลังค้นหากล้อง Hikvision / USB...</option>
+                        <option value="">กำลังค้นหากล้อง USB / กล้องในเครื่อง...</option>
                     </select>
                 </div>
                 <div class="flex items-center gap-2">
@@ -113,8 +118,10 @@
 
             <!-- จอแสดงภาพจากกล้อง -->
             <div class="camera-stage" id="cameraStageBox">
-                <video id="webcamVideo" autoplay muted playsinline></video>
-                <canvas id="overlayCanvas"></canvas>
+                <div id="videoWrapper">
+                    <video id="webcamVideo" autoplay muted playsinline></video>
+                    <canvas id="overlayCanvas"></canvas>
+                </div>
                 <div class="scan-guide-box"></div>
 
                 <!-- ป้ายสถานะ AI มุมซ้ายบน -->
@@ -145,8 +152,8 @@
 
             <!-- แถบปุ่มควบคุมกล้อง -->
             <div class="flex items-center gap-2">
-                <button type="button" id="btnToggleCamera" onclick="window.startHikvisionCamera()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-extrabold py-3 px-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
-                    <i class="fa-solid fa-video"></i> <span>เริ่มเปิดกล้อง Hikvision / สแกน</span>
+                <button type="button" id="btnToggleCamera" onclick="window.startUniversalCamera()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-extrabold py-3 px-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
+                    <i class="fa-solid fa-video"></i> <span>เริ่มเปิดกล้อง / สแกน</span>
                 </button>
 
                 <button type="button" onclick="window.toggleMirrorVideo()" title="กลับด้านภาพซ้าย-ขวา (Mirror)" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 p-3.5 rounded-2xl transition cursor-pointer">
@@ -161,7 +168,7 @@
 
         <!-- ฝั่งขวา (1 ส่วน): เช็คชื่อสำรองด้วยรหัส + รายชื่อที่สแกนติดล่าสุด -->
         <div class="space-y-3">
-            <!-- ช่องกรอกรหัสเช็คชื่อสำรอง (กรณีนักเรียนยังไม่มีรูปในระบบ) -->
+            <!-- ช่องกรอกรหัสเช็คชื่อสำรอง -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2">
                 <h2 class="text-xs font-extrabold text-amber-400 flex items-center gap-1.5">
                     <i class="fa-solid fa-keyboard"></i> เช็คชื่อด่วนด้วยรหัสนักเรียน / ยิงบาร์โค้ด
@@ -190,7 +197,7 @@
         </div>
     </main>
 
-    <!-- ==================== SCRIPT: HIKVISION CAMERA + AI FACE & QR ENGINE ==================== -->
+    <!-- ==================== SCRIPT: UNIVERSAL USB CAMERA + AI FACE & QR ENGINE ==================== -->
     <script>
         const db = window.supabaseClient || window.db || window.supabase;
         const MODEL_CDN_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
@@ -198,17 +205,18 @@
         let currentStream = null;
         let availableCameras = [];
         let activeDeviceId = '';
+        let activeCameraLabel = 'Camera';
         let isMirrored = false;
         let isModelsLoaded = false;
+        let isStartingCamera = false;
         let faceMatcher = null;
         let scanIntervalId = null;
         let allStudentsCache = [];
 
-        // ป้องกันการสแกนคนเดิมซ้ำถี่เกินไป (เก็บเวลาสแกนล่าสุดของแต่ละรหัส)
         const recentScannedMap = new Map();
         const sessionCheckedList = [];
 
-        // 1. โหลดโมเดล AI (ใช้ TinyFaceDetector ที่ไวและแม่นสำหรับกล้อง Hikvision)
+        // 1. โหลดโมเดล AI
         async function loadFaceAiModels() {
             const statusText = document.getElementById('aiStatusText');
             const statusDot = document.getElementById('aiStatusDot');
@@ -225,17 +233,17 @@
             } catch (err) {
                 console.error('Model load error:', err);
                 statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
-                statusText.innerText = 'โหลดโมเดล AI ไม่สำเร็จ (ตรวจสอบอินเทอร์เน็ต)';
+                statusText.innerText = 'โหลดโมเดล AI ไม่สำเร็จ (ตรวจสอบเน็ต)';
             }
         }
 
-        // 2. ค้นหากล้องทั้งหมดในเครื่อง และเลือกกล้อง Hikvision ให้อัตโนมัติ
+        // 2. ค้นหากล้อง USB ทุกรุ่น/ทุกยี่ห้อ และจัดลำดับเลือกกล้องภายนอกก่อนกล้องโน้ตบุ๊ก
         async function detectAndPopulateCameras() {
             const selectEl = document.getElementById('cameraDeviceSelect');
             if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
 
             try {
-                // ขออนุญาตเบื้องต้นเพื่อให้เบราว์เซอร์เปิดเผยชื่อรุ่นกล้อง (เช่น Hikvision DS-UC4)
+                // ขออนุญาตเบื้องต้นเพื่อให้เบราว์เซอร์แสดงชื่อรุ่นกล้อง USB ครบถ้วน
                 const tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }).catch(() => null);
                 if (tempStream) tempStream.getTracks().forEach(t => t.stop());
 
@@ -247,22 +255,32 @@
                     return;
                 }
 
-                // ค้นหากล้อง Hikvision หรือกล้อง USB ภายนอกก่อนเป็นอันดับแรก
-                const hikCam = availableCameras.find(c =>
-                    /hikvision|ds-u|usb camera|web\s?cam|hd pro/i.test(c.label)
-                );
-                const defaultCam = hikCam || availableCameras[0];
-                activeDeviceId = defaultCam.deviceId;
+                // คัดแยกกล้อง USB ภายนอก (Hikvision, Logitech, Fantech, Oker, UVC, หรือกล้องที่ไม่ใช่ Integrated/Built-in)
+                const isExternalUsbCam = (label) => {
+                    if (!label) return false;
+                    const isBuiltIn = /integrated|built-in|facetime|internal|front|back/i.test(label);
+                    const isUsbKeyword = /hikvision|ds-u|logitech|fantech|oker|anitech|usb|web\s?cam|hd|uvc|camera/i.test(label);
+                    return isUsbKeyword && !isBuiltIn;
+                };
 
-                if (hikCam) {
-                    document.getElementById('hikvisionBadge')?.classList.remove('hidden');
+                const externalCam = availableCameras.find(c => isExternalUsbCam(c.label));
+                const defaultCam = externalCam || availableCameras[0];
+                activeDeviceId = defaultCam.deviceId;
+                activeCameraLabel = defaultCam.label || 'USB Camera';
+
+                if (externalCam) {
+                    const badge = document.getElementById('usbCamBadge');
+                    if (badge) {
+                        badge.innerHTML = `<i class="fa-solid fa-video mr-1"></i> USB CAM READY`;
+                        badge.classList.remove('hidden');
+                    }
                 }
 
                 selectEl.innerHTML = availableCameras.map((cam, idx) => {
                     const label = cam.label || `กล้องตัวที่ ${idx + 1}`;
-                    const isHik = /hikvision|ds-u/i.test(label);
+                    const ext = isExternalUsbCam(label);
                     return `<option value="${cam.deviceId}" ${cam.deviceId === activeDeviceId ? 'selected' : ''}>
-                        ${isHik ? '🎥 [Hikvision] ' : '📷 '}${label}
+                        ${ext ? '🎥 [USB] ' : '📷 '}${label}
                     </option>`;
                 }).join('');
             } catch (err) {
@@ -270,63 +288,92 @@
             }
         }
 
-        // 3. เปิดกล้อง Hikvision / USB ด้วยความละเอียดที่เหมาะสมกับการจับภาพเคลื่อนไหว
-        window.startHikvisionCamera = async function(deviceIdOverride = null) {
+        // 3. เปิดกล้อง USB ทุกรุ่น / กล้องมือถือ พร้อมตัวป้องกัน AbortError
+        window.startUniversalCamera = async function(deviceIdOverride = null) {
+            if (isStartingCamera) return; // ป้องกันการกดซ้ำหรือคำสั่งเปิดกล้องชนกัน
+            isStartingCamera = true;
+
             const videoEl = document.getElementById('webcamVideo');
             const btn = document.getElementById('btnToggleCamera');
-            if (!videoEl) return;
-
-            if (currentStream) {
-                currentStream.getTracks().forEach(t => t.stop());
-                currentStream = null;
-            }
-            if (scanIntervalId) {
-                clearInterval(scanIntervalId);
-                scanIntervalId = null;
-            }
-
-            const targetId = deviceIdOverride || activeDeviceId || document.getElementById('cameraDeviceSelect')?.value;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>กำลังเชื่อมต่อกล้อง...</span>`;
-
-            // ลำดับ Constraints สำหรับกล้อง Hikvision (1280x720 @ 30fps จับคนเดินผ่านได้ลื่นไม่กระตุก)
-            const constraintsOrder = targetId
-                ? [
-                    { video: { deviceId: { exact: targetId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false },
-                    { video: { deviceId: { exact: targetId } }, audio: false },
-                    { video: true, audio: false }
-                  ]
-                : [
-                    { video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
-                    { video: true, audio: false }
-                  ];
-
-            let stream = null;
-            for (const c of constraintsOrder) {
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia(c);
-                    if (stream) break;
-                } catch (e) {}
-            }
-
-            if (!stream) {
-                btn.innerHTML = `<i class="fa-solid fa-video-slash"></i> <span>ไม่พบกล้อง (คลิกเพื่อลองใหม่)</span>`;
-                alert('⚠️ ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบว่าเสียบสาย USB กล้อง Hikvision แน่นดีแล้ว และกดอนุญาตสิทธิ์กล้องในเบราว์เซอร์');
+            if (!videoEl) {
+                isStartingCamera = false;
                 return;
             }
 
-            currentStream = stream;
-            videoEl.srcObject = stream;
-            await videoEl.play();
+            try {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(t => t.stop());
+                    currentStream = null;
+                }
+                if (scanIntervalId) {
+                    clearInterval(scanIntervalId);
+                    scanIntervalId = null;
+                }
 
-            btn.className = "flex-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-3 px-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer";
-            btn.innerHTML = `<i class="fa-solid fa-circle-dot animate-ping"></i> <span>กำลังสแกนอัตโนมัติ (กล้องทำงานอยู่)</span>`;
+                videoEl.pause();
+                videoEl.srcObject = null;
 
-            startDetectionLoop();
+                const targetId = deviceIdOverride || activeDeviceId || document.getElementById('cameraDeviceSelect')?.value;
+                const foundCam = availableCameras.find(c => c.deviceId === targetId);
+                if (foundCam && foundCam.label) activeCameraLabel = foundCam.label;
+
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>กำลังเชื่อมต่อกล้อง...</span>`;
+
+                // ลำดับ Fallback Constraints: รองรับทั้งกล้อง 1080p, 720p, และกล้อง USB รุ่นประหยัด 480p
+                const constraintsOrder = targetId
+                    ? [
+                        { video: { deviceId: { exact: targetId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false },
+                        { video: { deviceId: { exact: targetId }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+                        { video: { deviceId: { exact: targetId } }, audio: false },
+                        { video: true, audio: false }
+                      ]
+                    : [
+                        { video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+                        { video: true, audio: false }
+                      ];
+
+                let stream = null;
+                for (const c of constraintsOrder) {
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia(c);
+                        if (stream) break;
+                    } catch (e) {}
+                }
+
+                if (!stream) {
+                    btn.innerHTML = `<i class="fa-solid fa-video-slash"></i> <span>ไม่พบกล้อง (คลิกเพื่อลองใหม่)</span>`;
+                    alert('⚠️ ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบสาย USB หรือกดอนุญาตสิทธิ์กล้องในเบราว์เซอร์');
+                    return;
+                }
+
+                currentStream = stream;
+                videoEl.srcObject = stream;
+
+                // รอให้ข้อมูลเฟรมภาพพร้อมก่อนสั่ง play() ป้องกัน AbortError บนมือถือและคอมพิวเตอร์
+                await new Promise((resolve) => {
+                    if (videoEl.readyState >= 1) return resolve();
+                    videoEl.onloadedmetadata = () => resolve();
+                });
+
+                await videoEl.play();
+
+                btn.className = "flex-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-3 px-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer";
+                btn.innerHTML = `<i class="fa-solid fa-circle-dot animate-ping"></i> <span>กำลังสแกนอัตโนมัติ (กล้องทำงานอยู่)</span>`;
+
+                startDetectionLoop();
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error('Camera start error:', err);
+                    btn.innerHTML = `<i class="fa-solid fa-video-slash"></i> <span>เปิดกล้องไม่สำเร็จ (คลิกลองใหม่)</span>`;
+                }
+            } finally {
+                isStartingCamera = false;
+            }
         };
 
         window.switchSelectedCamera = function(deviceId) {
             activeDeviceId = deviceId;
-            window.startHikvisionCamera(deviceId);
+            window.startUniversalCamera(deviceId);
         };
 
         window.cycleNextCamera = function() {
@@ -335,12 +382,12 @@
             const nextCam = availableCameras[(curIdx + 1) % availableCameras.length];
             activeDeviceId = nextCam.deviceId;
             document.getElementById('cameraDeviceSelect').value = activeDeviceId;
-            window.startHikvisionCamera(activeDeviceId);
+            window.startUniversalCamera(activeDeviceId);
         };
 
         window.toggleMirrorVideo = function() {
             isMirrored = !isMirrored;
-            document.getElementById('webcamVideo')?.classList.toggle('mirror-mode', isMirrored);
+            document.getElementById('videoWrapper')?.classList.toggle('mirror-mode', isMirrored);
         };
 
         // 4. ดึงข้อมูลนักเรียน + สร้างตัวเปรียบเทียบใบหน้า (FaceMatcher)
@@ -356,7 +403,6 @@
                 allStudentsCache = [...(r1.data || []), ...(r2.data || []), ...(r3.data || [])]
                     .filter(s => (s.status || 'active') === 'active');
 
-                // เติมรายชื่อห้องเรียนใน Dropdown
                 const rooms = [...new Set(allStudentsCache.map(s => String(s.classroom || '').trim()).filter(Boolean))];
                 rooms.sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
 
@@ -385,7 +431,6 @@
                 const sid = String(stu.student_id || '').trim();
                 if (!sid) continue;
 
-                // วิธีที่ 1: ใช้ค่า face_descriptor ที่บันทึกไว้ในฐานข้อมูล (เร็วที่สุด)
                 if (stu.face_descriptor && Array.isArray(stu.face_descriptor) && stu.face_descriptor.length === 128) {
                     labeledDescriptors.push(
                         new faceapi.LabeledFaceDescriptors(sid, [new Float32Array(stu.face_descriptor)])
@@ -393,7 +438,6 @@
                     continue;
                 }
 
-                // วิธีที่ 2: หากเลือกเฉพาะห้องเรียนและยังไม่มี descriptor ให้ดึงจากรูป avatar_url มาแปลงสด
                 if (selectedRoom !== 'ALL' && stu.avatar_url) {
                     try {
                         const img = await faceapi.fetchImage(stu.avatar_url);
@@ -403,7 +447,6 @@
                             .withFaceDescriptor();
                         if (det) {
                             labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(sid, [det.descriptor]));
-                            // บันทึกเก็บลงฐานข้อมูลไว้เลย ครั้งต่อไปจะได้ไม่ต้องโหลดรูปซ้ำ
                             db.from('students').update({ face_descriptor: Array.from(det.descriptor) }).eq('student_id', sid).then(() => {});
                         }
                     } catch (e) {}
@@ -411,19 +454,17 @@
             }
 
             document.getElementById('loadedFaceCount').innerText = labeledDescriptors.length;
-            // ตั้งค่าความคลาดเคลื่อน 0.58 เหมาะกับสภาพแสงห้องเรียนและการเดินผ่านหน้ากล้อง Hikvision
             faceMatcher = labeledDescriptors.length > 0
                 ? new faceapi.FaceMatcher(labeledDescriptors, 0.58)
                 : null;
         };
 
-        // 5. ลูปตรวจจับใบหน้า (ปรับ inputSize: 416 จับระยะ 1-2 เมตร) และสแกน QR Code
+        // 5. ลูปตรวจจับใบหน้าและสแกน QR Code
         function startDetectionLoop() {
             const videoEl = document.getElementById('webcamVideo');
             const canvas = document.getElementById('overlayCanvas');
             const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.45 });
 
-            // รองรับการอ่าน QR Code บัตรนักเรียนควบคู่ไปด้วย (หากเบราว์เซอร์รองรับ)
             const barcodeDetector = ('BarcodeDetector' in window)
                 ? new BarcodeDetector({ formats: ['qr_code', 'code_128'] })
                 : null;
@@ -431,7 +472,7 @@
             scanIntervalId = setInterval(async () => {
                 if (!videoEl || videoEl.paused || videoEl.ended || videoEl.readyState < 2) return;
 
-                // 5.1 ตรวจจับ QR Code บัตรนักเรียน (ถ้ามี)
+                // 5.1 ตรวจจับ QR Code บัตรนักเรียน
                 if (barcodeDetector) {
                     try {
                         const codes = await barcodeDetector.detect(videoEl);
@@ -476,28 +517,41 @@
                             labelText = `${fullName} (${confidence}%)`;
                             boxColor = '#10b981';
 
-                            await recordStudentAttendance(sid, 'AI Face Scan (Hikvision)', confidence);
+                            await recordStudentAttendance(sid, 'AI Face Scan', confidence);
                         } else {
-                            labelText = 'ไม่พบใบหน้าในฐานข้อมูล (ใช้บัตร QR / กรอกรหัส)';
+                            labelText = 'ไม่พบใบหน้าในระบบ (ใช้บัตร QR / กรอกรหัส)';
                             boxColor = '#f43f5e';
                         }
                     }
 
-                    // วาดกรอบสีรอบใบหน้าบนจอ
+                    // วาดกรอบสีรอบใบหน้า
                     ctx.strokeStyle = boxColor;
                     ctx.lineWidth = 3;
                     ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-                    ctx.fillStyle = boxColor;
-                    ctx.fillRect(box.x, Math.max(0, box.y - 26), Math.max(box.width, 180), 26);
-                    ctx.fillStyle = '#020617';
-                    ctx.font = 'bold 14px Kanit, sans-serif';
-                    ctx.fillText(labelText, box.x + 6, Math.max(18, box.y - 8));
+                    // วาดแถบชื่อ (กลับด้านตัวหนังสือเฉพาะตอนเปิด Mirror เพื่อให้อ่านออกปกติ)
+                    ctx.save();
+                    if (isMirrored) {
+                        ctx.translate(box.x + box.width, box.y);
+                        ctx.scale(-1, 1);
+                        ctx.fillStyle = boxColor;
+                        ctx.fillRect(0, -26, Math.max(box.width, 190), 26);
+                        ctx.fillStyle = '#020617';
+                        ctx.font = 'bold 14px Kanit, sans-serif';
+                        ctx.fillText(labelText, 6, -8);
+                    } else {
+                        ctx.fillStyle = boxColor;
+                        ctx.fillRect(box.x, Math.max(0, box.y - 26), Math.max(box.width, 190), 26);
+                        ctx.fillStyle = '#020617';
+                        ctx.font = 'bold 14px Kanit, sans-serif';
+                        ctx.fillText(labelText, box.x + 6, Math.max(18, box.y - 8));
+                    }
+                    ctx.restore();
                 }
             }, 450);
         }
 
-        // 6. บันทึกผลการเช็คชื่อลง Supabase (ป้องกันการยิงซ้ำภายใน 8 วินาที)
+        // 6. บันทึกผลการเช็คชื่อลง Supabase
         async function recordStudentAttendance(studentId, method, confidence = 100) {
             const sid = String(studentId).trim();
             const now = Date.now();
@@ -518,15 +572,12 @@
             const todayStr = new Date().toISOString().split('T')[0];
             const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-            // เล่นเสียงติ๊ดยืนยัน
             playBeepSuccess();
             showScanFeedback(true, `✅ ${fullName} (${classroom})`, `รหัส ${sid} • บันทึกเวลา ${timeStr} น. (${method})`);
 
-            // เพิ่มขึ้นรายการฝั่งขวา
             sessionCheckedList.unshift({ sid, fullName, classroom, timeStr, method });
             renderSessionCheckedList();
 
-            // บันทึกลงฐานข้อมูล Supabase
             if (db) {
                 try {
                     await db.from('attendance_records').insert([{
@@ -622,7 +673,7 @@
             await loadFaceAiModels();
             await detectAndPopulateCameras();
             await fetchAllStudentsAndClassrooms();
-            await window.startHikvisionCamera();
+            await window.startUniversalCamera();
         });
     </script>
 </body>
