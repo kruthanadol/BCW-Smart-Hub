@@ -7,8 +7,10 @@
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="../../core/bcw-page-transition.js?v=5"></script>
+
     <style>
         html, body {
             font-family: 'Kanit', sans-serif;
@@ -20,6 +22,28 @@
             padding: 0;
             overflow: hidden;
             -webkit-text-size-adjust: 100%;
+        }
+        #videoWrapper {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        .mirror-mode {
+            transform: scaleX(-1);
+        }
+        #gateVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #gateCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
         }
         @keyframes aiScanBeam {
             0% { top: 8%; opacity: 0.25; }
@@ -46,8 +70,11 @@
 </head>
 <body class="relative w-full h-[100dvh] overflow-hidden select-none">
 
-    <!-- FULLSCREEN CAMERA VIDEO LAYER (ไม่ใส่ hidden เพื่อให้เบราว์เซอร์มือถือพร้อมเล่นภาพทันที) -->
-    <video id="gateVideo" autoplay playsinline muted webkit-playsinline class="absolute inset-0 w-full h-full object-cover z-0 opacity-0 transition-opacity duration-300"></video>
+    <!-- FULLSCREEN CAMERA VIDEO + AI OVERLAY LAYER -->
+    <div id="videoWrapper" class="opacity-0 transition-opacity duration-300">
+        <video id="gateVideo" autoplay playsinline muted webkit-playsinline></video>
+        <canvas id="gateCanvas"></canvas>
+    </div>
 
     <!-- พื้นหลังเมื่อยังไม่เปิดกล้อง -->
     <div id="cameraIdleBg" class="absolute inset-0 bg-gradient-to-b from-emerald-950 via-slate-950 to-emerald-950 z-0 pointer-events-none"></div>
@@ -64,10 +91,10 @@
                 </a>
                 <div class="min-w-0">
                     <div class="flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                        <span id="statusDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
                         <h1 class="text-base sm:text-lg font-extrabold text-amber-400 tracking-wide leading-tight truncate">BCW AI GATE SCAN</h1>
                     </div>
-                    <p id="cameraStatusSub" class="text-[11px] text-emerald-100/90 font-normal truncate">โหมดกล้อง AI ตรวจจับอัตโนมัติ</p>
+                    <p id="cameraStatusSub" class="text-[11px] text-emerald-100/90 font-normal truncate">กำลังโหลดฐานข้อมูล ม.1 - ม.6...</p>
                 </div>
             </div>
 
@@ -76,7 +103,6 @@
                     <span id="scannedCountText">0</span> คน
                 </span>
 
-                <!-- ปุ่มเลือกห้องเรียนแบบ Custom (แทน select เดิมที่ใหญ่เต็มจอ) -->
                 <button type="button" onclick="toggleRoomPickerModal()" class="bg-emerald-900/95 hover:bg-emerald-800 border border-emerald-500/60 text-white text-xs font-medium rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 active:scale-95 transition cursor-pointer">
                     <span id="selectedRoomLabel">ทุกห้อง</span>
                     <i class="fa-solid fa-chevron-down text-[10px] text-amber-300"></i>
@@ -96,12 +122,12 @@
                 <div id="laserBar" class="ai-scan-beam hidden"></div>
 
                 <!-- ข้อความแนะนำเมื่อกล้องยังไม่เปิด -->
-                <div id="cameraPlaceholderContent" class="flex flex-col items-center gap-2.5 bg-slate-950/80 backdrop-blur-sm p-4 rounded-2xl border border-emerald-500/30">
+                <div id="cameraPlaceholderContent" class="flex flex-col items-center gap-2.5 bg-slate-950/85 backdrop-blur-sm p-4 rounded-2xl border border-emerald-500/30">
                     <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-emerald-950 flex items-center justify-center text-xl shadow-lg">
                         <i class="fa-solid fa-camera"></i>
                     </div>
                     <p id="cameraGuideText" class="text-xs sm:text-sm font-normal text-white leading-relaxed">
-                        กดปุ่ม "เปิดกล้อง AI" ด้านล่างเพื่อเริ่มสแกน
+                        กดปุ่ม "เปิดกล้อง AI" ด้านล่างเพื่อเริ่มสแกนใบหน้าหรือ QR Code
                     </p>
                 </div>
             </div>
@@ -109,7 +135,7 @@
             <!-- การ์ดแจ้งผลลอยตัวเมื่อสแกนติด -->
             <div id="scanResultToast" class="hidden absolute bottom-1 left-0 right-0 z-30 bg-emerald-950/95 backdrop-blur-md border-2 border-amber-400 rounded-2xl p-2.5 shadow-2xl flex items-center justify-between gap-2">
                 <div class="min-w-0">
-                    <div class="text-[11px] text-amber-300 font-medium">✅ AI บันทึกเข้าเรียนสำเร็จ</div>
+                    <div id="toastMethodLabel" class="text-[11px] text-amber-300 font-medium">✅ AI บันทึกเข้าเรียนสำเร็จ</div>
                     <div id="toastStudentName" class="text-sm font-bold text-white truncate">-</div>
                 </div>
                 <span id="toastStudentTime" class="text-xs bg-emerald-900 text-emerald-200 px-2.5 py-1 rounded-lg font-mono shrink-0">00:00</span>
@@ -131,14 +157,14 @@
                     <span id="btnCameraLabel">เปิดกล้อง AI</span>
                 </button>
 
-                <button type="button" onclick="switchGateCamera()" title="สลับกล้องหน้า/หลัง" class="w-12 h-12 bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/50 text-amber-300 rounded-2xl flex items-center justify-center text-base shadow-xl active:scale-95 transition cursor-pointer shrink-0">
+                <button type="button" onclick="switchGateCamera()" title="สลับกล้อง (USB / หน้า / หลัง)" class="w-12 h-12 bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/50 text-amber-300 rounded-2xl flex items-center justify-center text-base shadow-xl active:scale-95 transition cursor-pointer shrink-0">
                     <i class="fa-solid fa-camera-rotate"></i>
                 </button>
             </div>
         </footer>
     </div>
 
-    <!-- CUSTOM ROOM PICKER MODAL (ขนาดตัวอักษรมาตรฐาน ไม่ใหญ่เต็มจอ) -->
+    <!-- CUSTOM ROOM PICKER MODAL (ดึงห้องเรียนจริงครบทั้ง ม.1 - ม.6) -->
     <div id="roomPickerModal" onclick="if(event.target===this) toggleRoomPickerModal()" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 hidden">
         <div class="bg-white text-slate-800 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
             <div class="px-4 py-3 bg-emerald-950 text-white flex items-center justify-between">
@@ -150,49 +176,185 @@
                 </button>
             </div>
 
-            <div id="roomPickerGrid" class="p-3 grid grid-cols-3 gap-2 max-h-[50dvh] overflow-y-auto">
+            <div id="roomPickerGrid" class="p-3 grid grid-cols-3 gap-2 max-h-[55dvh] overflow-y-auto">
                 <button type="button" onclick="selectGateClassroom('ALL')" data-room="ALL" class="room-chip-btn col-span-3 py-2 px-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold text-xs text-center cursor-pointer transition">
-                    🌐 สแกนทุกห้องเรียน
+                    🌐 สแกนทุกห้องเรียน (<span id="totalStudentBadge">0</span> คน)
                 </button>
             </div>
         </div>
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../core/supabase-client.js?v=400"></script>
-<script src="../../core/auth-service.js?v=400"></script>
-<script src="../../core/auth-manager.js?v=400"></script>
+<script src="../../core/supabase-client.js?v=600"></script>
+<script src="../../core/auth-service.js?v=600"></script>
+<script src="../../core/auth-manager.js?v=600"></script>
 <script>
+    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
     let GATE_STREAM = null;
-    let FACING_MODE = 'environment';
+    let CAMERA_DEVICES = [];
+    let CURRENT_CAM_IDX = 0;
+    let IS_STARTING_CAM = false;
+    let IS_MIRRORED = false;
+
     let ALL_STUDENTS = [];
     let SCANNED_SET = new Set();
     let SCAN_LOOP_ID = null;
-    let LAST_SCANNED_CODE = '';
-    let LAST_SCANNED_TIME = 0;
+    let FACE_MATCHER = null;
+    let IS_MODELS_READY = false;
+    const RECENT_SCAN_MAP = new Map();
 
     document.addEventListener('DOMContentLoaded', async () => {
         try {
-            await loadStudentsAndClassrooms();
+            await Promise.all([
+                initFaceModels(),
+                loadAllStudentsComplete()
+            ]);
             await startGateCamera(true);
         } finally {
             if (window.hideBCWCurtain) window.hideBCWCurtain();
         }
     });
 
-    function toggleRoomPickerModal() {
-        const modal = document.getElementById('roomPickerModal');
-        if (modal) modal.classList.toggle('hidden');
+    async function initFaceModels() {
+        try {
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            ]);
+            IS_MODELS_READY = true;
+        } catch (e) {
+            console.warn('Face AI Model Load Warning:', e);
+        }
     }
 
-    function selectGateClassroom(roomVal) {
-        const input = document.getElementById('classroomFilter');
-        const label = document.getElementById('selectedRoomLabel');
+    // จัดมาตรฐานชื่อห้องเรียน (รองรับทั้ง ม.1/1 - ม.6/12, 4/1, หรือแยกคอลัมน์ grade/level + room)
+    function normalizeRoomName(s) {
+        let raw = String(s.classroom || s.class_room || s.class || '').trim();
+        const grade = String(s.grade || s.level || s.class_level || '').trim();
+        const roomNo = String(s.room || s.room_no || '').trim();
+        if (!raw && grade) {
+            raw = roomNo ? `${grade}/${roomNo}` : grade;
+        }
+        if (/^[1-6]\//.test(raw)) raw = 'ม.' + raw;
+        return raw;
+    }
+
+    // ดึงข้อมูลนักเรียนแบบวนลูปทีละ 1,000 แถวจนครบทั้งโรงเรียน (แก้ปัญหาได้แค่ ม.ต้น เพราะติดเพดาน 1,000 แถวของ Supabase)
+    async function loadAllStudentsComplete() {
+        const client = window.supabaseClient || window.db || window.supabase;
+        const sub = document.getElementById('cameraStatusSub');
+        const dot = document.getElementById('statusDot');
+        if (!client) return;
+
+        try {
+            let fetched = [];
+            let from = 0;
+            const pageSize = 1000;
+
+            while (true) {
+                const { data, error } = await client
+                    .from('students')
+                    .select('*')
+                    .range(from, from + pageSize - 1);
+
+                if (error) throw error;
+                if (!data || data.length === 0) break;
+
+                fetched = fetched.concat(data);
+                if (data.length < pageSize) break;
+                from += pageSize;
+            }
+
+            ALL_STUDENTS = fetched
+                .filter(s => !s.status || s.status === 'active' || s.status === 'กำลังศึกษา')
+                .map(s => ({ ...s, _room: normalizeRoomName(s) }));
+
+            const totalBadge = document.getElementById('totalStudentBadge');
+            if (totalBadge) totalBadge.innerText = ALL_STUDENTS.length;
+
+            const rooms = [...new Set(ALL_STUDENTS.map(s => s._room).filter(Boolean))].sort((a, b) =>
+                a.localeCompare(b, 'th', { numeric: true })
+            );
+
+            const grid = document.getElementById('roomPickerGrid');
+            if (grid && rooms.length > 0) {
+                const roomButtons = rooms.map(r => `
+                    <button type="button" onclick="selectGateClassroom('${r.replace(/'/g, "\\'")}')" data-room="${r}" class="room-chip-btn py-2 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs text-center cursor-pointer transition">
+                        ${r}
+                    </button>
+                `).join('');
+                grid.insertAdjacentHTML('beforeend', roomButtons);
+            }
+
+            await buildFaceMatcher('ALL');
+            if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0';
+            if (sub) sub.innerText = `พร้อมใช้งาน • นักเรียน ${ALL_STUDENTS.length} คน (${rooms.length} ห้อง)`;
+        } catch (e) {
+            console.error('Load Students Error:', e);
+            if (sub) sub.innerText = 'โหลดฐานข้อมูลไม่สำเร็จ';
+        }
+    }
+
+    async function buildFaceMatcher(roomVal) {
+        if (!IS_MODELS_READY) await initFaceModels();
+        const client = window.supabaseClient || window.db || window.supabase;
         const sub = document.getElementById('cameraStatusSub');
 
-        if (input) input.value = roomVal;
-        if (label) label.innerText = roomVal === 'ALL' ? 'ทุกห้อง' : roomVal;
-        if (sub) sub.innerText = roomVal === 'ALL' ? 'AI พร้อมสแกนทุกห้องเรียน' : `AI กรองเฉพาะห้อง ${roomVal}`;
+        const targetStudents = roomVal === 'ALL'
+            ? ALL_STUDENTS
+            : ALL_STUDENTS.filter(s => s._room === roomVal);
+
+        const descriptors = [];
+        for (const stu of targetStudents) {
+            const sid = String(stu.student_id || stu.student_code || stu.id || '').trim();
+            if (!sid) continue;
+
+            // 1. ใช้ค่า face_descriptor ที่เก็บไว้แล้วในฐานข้อมูล
+            let desc = stu.face_descriptor;
+            if (typeof desc === 'string') {
+                try { desc = JSON.parse(desc); } catch (e) { desc = null; }
+            }
+            if (Array.isArray(desc) && desc.length === 128) {
+                descriptors.push(new faceapi.LabeledFaceDescriptors(sid, [new Float32Array(desc)]));
+                continue;
+            }
+
+            // 2. ถ้าเลือกเจาะจงห้องเรียน และนักเรียนมีรูปถ่ายในฐานข้อมูล ให้แปลงเป็นค่าใบหน้าอัตโนมัติ
+            const photoUrl = stu.avatar_url || stu.photo_url || stu.image_url || stu.profile_image || stu.picture_url;
+            if (roomVal !== 'ALL' && photoUrl && String(photoUrl).startsWith('http')) {
+                if (sub) sub.innerText = `กำลังเตรียมข้อมูลใบหน้าห้อง ${roomVal}... (${descriptors.length}/${targetStudents.length})`;
+                try {
+                    const img = await faceapi.fetchImage(photoUrl);
+                    const det = await faceapi
+                        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 }))
+                        .withFaceLandmarks(true)
+                        .withFaceDescriptor();
+                    if (det) {
+                        descriptors.push(new faceapi.LabeledFaceDescriptors(sid, [det.descriptor]));
+                        if (client) {
+                            client.from('students').update({ face_descriptor: Array.from(det.descriptor) }).eq('student_id', sid).then(() => {});
+                        }
+                    }
+                } catch (e) {}
+            }
+        }
+
+        FACE_MATCHER = descriptors.length > 0 ? new faceapi.FaceMatcher(descriptors, 0.58) : null;
+        if (sub) {
+            sub.innerText = descriptors.length > 0
+                ? `AI พร้อมสแกนใบหน้า (${descriptors.length} ใบหน้า) + QR`
+                : `พร้อมสแกน QR / รหัสนักเรียน (${targetStudents.length} คน)`;
+        }
+    }
+
+    function toggleRoomPickerModal() {
+        document.getElementById('roomPickerModal')?.classList.toggle('hidden');
+    }
+
+    async function selectGateClassroom(roomVal) {
+        document.getElementById('classroomFilter').value = roomVal;
+        document.getElementById('selectedRoomLabel').innerText = roomVal === 'ALL' ? 'ทุกห้อง' : roomVal;
 
         document.querySelectorAll('.room-chip-btn').forEach(btn => {
             const isAll = btn.getAttribute('data-room') === 'ALL';
@@ -203,69 +365,16 @@
         });
 
         toggleRoomPickerModal();
+        await buildFaceMatcher(roomVal);
     }
 
-    async function loadStudentsAndClassrooms() {
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (!client) return;
-        try {
-            const { data } = await client.from('students').select('*').order('classroom', { ascending: true });
-            ALL_STUDENTS = data || [];
-            const rooms = [...new Set(ALL_STUDENTS.map(s => s.classroom).filter(Boolean))].sort((a, b) =>
-                String(a).localeCompare(String(b), 'th', { numeric: true })
-            );
-            const grid = document.getElementById('roomPickerGrid');
-            if (grid && rooms.length > 0) {
-                const roomButtons = rooms.map(r => `
-                    <button type="button" onclick="selectGateClassroom('${String(r).replace(/'/g, "\\'")}')" data-room="${r}" class="room-chip-btn py-2 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs text-center cursor-pointer transition">
-                        ${r}
-                    </button>
-                `).join('');
-                grid.insertAdjacentHTML('beforeend', roomButtons);
-            }
-        } catch (e) {}
-    }
+    // เปิดกล้องแบบปลอดภัย (รองรับทั้งกล้อง USB Hikvision / Logitech และกล้องมือถือ ป้องกัน AbortError และ NotFoundError)
+    async function startGateCamera(isSilentAuto = false, specificDeviceId = null) {
+        if (IS_STARTING_CAM) return;
+        IS_STARTING_CAM = true;
 
-    async function acquireCameraStream(preferredFacing) {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error('เบราว์เซอร์ไม่รองรับ getUserMedia (กรุณาเปิดผ่าน HTTPS บน Chrome หรือ Safari)');
-        }
-
-        // ขั้นที่ 1: ลองเปิดตามกล้องที่เลือก (environment / user)
-        try {
-            return await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: preferredFacing } },
-                audio: false
-            });
-        } catch (e1) {}
-
-        // ขั้นที่ 2: ลองเปิดกล้องทั่วไปโดยไม่ระบุ facingMode
-        try {
-            return await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false
-            });
-        } catch (e2) {
-            // ขั้นที่ 3: ค้นหา deviceId ของกล้องในเครื่องโดยตรงแล้วบังคับเปิด
-            if (navigator.mediaDevices.enumerateDevices) {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoInputs = devices.filter(d => d.kind === 'videoinput');
-                if (videoInputs.length > 0) {
-                    const targetDevice = preferredFacing === 'environment'
-                        ? (videoInputs[videoInputs.length - 1] || videoInputs[0])
-                        : videoInputs[0];
-                    return await navigator.mediaDevices.getUserMedia({
-                        video: { deviceId: { exact: targetDevice.deviceId } },
-                        audio: false
-                    });
-                }
-            }
-            throw e2;
-        }
-    }
-
-    async function startGateCamera(isSilentAuto = false) {
         const video = document.getElementById('gateVideo');
+        const wrapper = document.getElementById('videoWrapper');
         const idleBg = document.getElementById('cameraIdleBg');
         const placeholder = document.getElementById('cameraPlaceholderContent');
         const guideText = document.getElementById('cameraGuideText');
@@ -274,21 +383,74 @@
         const btnToggle = document.getElementById('btnToggleCamera');
         const statusSub = document.getElementById('cameraStatusSub');
 
-        stopGateCamera();
-
         try {
+            stopGateCamera(true);
             if (guideText) guideText.innerText = 'กำลังเชื่อมต่อกล้อง AI...';
 
-            GATE_STREAM = await acquireCameraStream(FACING_MODE);
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('เบราว์เซอร์ไม่รองรับการเปิดกล้อง (กรุณาเปิดผ่าน HTTPS)');
+            }
 
-            video.srcObject = GATE_STREAM;
+            // ค้นหากล้องทั้งหมดที่มีจริงในเครื่องก่อน (ป้องกัน NotFoundError บน PC)
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            CAMERA_DEVICES = devices.filter(d => d.kind === 'videoinput');
+
+            if (CAMERA_DEVICES.length === 0) {
+                throw new Error('ไม่พบอุปกรณ์กล้องในเครื่องนี้ (กรุณาเสียบสายกล้อง USB หรือเปิดผ่านมือถือ)');
+            }
+
+            // จัดลำดับเลือกกล้อง USB ภายนอก (Hikvision / Logitech ฯลฯ) ก่อนกล้องโน้ตบุ๊ก
+            if (!specificDeviceId) {
+                const usbIdx = CAMERA_DEVICES.findIndex(c => /hikvision|ds-u|logitech|usb|web\s?cam|uvc|back|environment/i.test(c.label));
+                if (usbIdx >= 0) CURRENT_CAM_IDX = usbIdx;
+            }
+
+            const chosenCam = specificDeviceId
+                ? CAMERA_DEVICES.find(c => c.deviceId === specificDeviceId)
+                : CAMERA_DEVICES[CURRENT_CAM_IDX];
+
+            const constraintsList = [];
+            if (chosenCam && chosenCam.deviceId) {
+                constraintsList.push({ video: { deviceId: { exact: chosenCam.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+                constraintsList.push({ video: { deviceId: { exact: chosenCam.deviceId } }, audio: false });
+            }
+            constraintsList.push({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+            constraintsList.push({ video: true, audio: false });
+
+            let stream = null;
+            let lastErr = null;
+            for (const c of constraintsList) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(c);
+                    if (stream) break;
+                } catch (e) {
+                    lastErr = e;
+                }
+            }
+            if (!stream) throw lastErr || new Error('ไม่สามารถเข้าถึงกล้องได้');
+
+            // อัปเดตรายชื่อกล้องหลังได้สิทธิ์
+            const updatedDevices = await navigator.mediaDevices.enumerateDevices();
+            CAMERA_DEVICES = updatedDevices.filter(d => d.kind === 'videoinput');
+
+            GATE_STREAM = stream;
+            video.srcObject = stream;
             video.setAttribute('playsinline', 'true');
             video.setAttribute('webkit-playsinline', 'true');
             video.muted = true;
-            video.classList.remove('opacity-0');
-            video.classList.add('opacity-100');
 
+            // รอข้อมูลเฟรมวิดีโอพร้อมก่อนสั่ง play() เพื่อป้องกัน AbortError บน Chrome มือถือ
+            await new Promise((resolve) => {
+                if (video.readyState >= 1) return resolve();
+                video.onloadedmetadata = () => resolve();
+            });
             await video.play();
+
+            const trackLabel = stream.getVideoTracks()[0]?.label || '';
+            IS_MIRRORED = /front|user|integrated/i.test(trackLabel);
+            wrapper.classList.toggle('mirror-mode', IS_MIRRORED);
+            wrapper.classList.remove('opacity-0');
+            wrapper.classList.add('opacity-100');
 
             if (idleBg) idleBg.classList.add('hidden');
             if (placeholder) placeholder.classList.add('hidden');
@@ -300,86 +462,121 @@
             }
             if (statusSub) statusSub.innerText = 'AI กำลังตรวจจับ • เล็งใบหน้าหรือ QR บัตร';
 
-            startBarcodeLoop(video);
+            startUnifiedScanLoop(video);
         } catch (err) {
-            console.error('AI Gate Camera Error:', err);
-            let msg = '';
-            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                msg = 'ถูกบล็อกสิทธิ์กล้อง: กรุณากดรูปแม่กุญแจบนแถบ URL แล้วเลือก "อนุญาตกล้อง" (หากเปิดใน LINE ให้กดจุด 3 จุดแล้วเลือกเปิดใน Chrome/Safari)';
-            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-                msg = 'กล้องถูกใช้งานโดยแอปอื่นอยู่ กรุณาปิดแอปอื่นแล้วกดเปิดกล้องใหม่';
-            } else {
-                msg = `ไม่สามารถเปิดกล้องได้ (${err.name || 'Error'}: ${err.message || 'กรุณาอนุญาตสิทธิ์กล้อง'})`;
+            if (err.name !== 'AbortError') {
+                console.error('AI Gate Camera Error:', err);
+                const msg = err.name === 'NotAllowedError'
+                    ? 'ถูกบล็อกสิทธิ์กล้อง: กรุณากดรูปแม่กุญแจบนแถบ URL แล้วเลือก "อนุญาตกล้อง"'
+                    : `ไม่สามารถเปิดกล้องได้ (${err.message || err.name})`;
+                if (guideText) guideText.innerText = msg;
+                if (!isSilentAuto) alert(msg);
             }
-
-            if (guideText) guideText.innerText = msg;
-            if (!isSilentAuto) alert(msg);
+        } finally {
+            IS_STARTING_CAM = false;
         }
     }
 
-    function stopGateCamera() {
+    function stopGateCamera(keepState = false) {
         clearInterval(SCAN_LOOP_ID);
         if (GATE_STREAM) {
             GATE_STREAM.getTracks().forEach(track => track.stop());
             GATE_STREAM = null;
         }
         const video = document.getElementById('gateVideo');
-        const idleBg = document.getElementById('cameraIdleBg');
-        const placeholder = document.getElementById('cameraPlaceholderContent');
-        const laser = document.getElementById('laserBar');
-        const btnLabel = document.getElementById('btnCameraLabel');
-        const btnToggle = document.getElementById('btnToggleCamera');
-        const statusSub = document.getElementById('cameraStatusSub');
-
+        const wrapper = document.getElementById('videoWrapper');
         if (video) {
             video.pause();
             video.srcObject = null;
-            video.classList.remove('opacity-100');
-            video.classList.add('opacity-0');
         }
-        if (idleBg) idleBg.classList.remove('hidden');
-        if (placeholder) placeholder.classList.remove('hidden');
-        if (laser) laser.classList.add('hidden');
-        if (btnLabel) btnLabel.innerText = 'เปิดกล้อง AI';
-        if (btnToggle) {
-            btnToggle.classList.remove('bg-rose-600', 'text-white');
-            btnToggle.classList.add('bg-emerald-500', 'text-emerald-950');
+        if (wrapper) {
+            wrapper.classList.remove('opacity-100');
+            wrapper.classList.add('opacity-0');
         }
-        if (statusSub) statusSub.innerText = 'โหมดกล้อง AI พร้อมใช้งาน';
+        if (!keepState) {
+            document.getElementById('cameraIdleBg')?.classList.remove('hidden');
+            document.getElementById('cameraPlaceholderContent')?.classList.remove('hidden');
+            document.getElementById('laserBar')?.classList.add('hidden');
+            document.getElementById('btnCameraLabel').innerText = 'เปิดกล้อง AI';
+            const btnToggle = document.getElementById('btnToggleCamera');
+            if (btnToggle) {
+                btnToggle.classList.remove('bg-rose-600', 'text-white');
+                btnToggle.classList.add('bg-emerald-500', 'text-emerald-950');
+            }
+        }
     }
 
     async function toggleGateCamera() {
-        if (GATE_STREAM) {
-            stopGateCamera();
-        } else {
-            await startGateCamera(false);
-        }
+        if (GATE_STREAM) stopGateCamera(false);
+        else await startGateCamera(false);
     }
 
     async function switchGateCamera() {
-        FACING_MODE = (FACING_MODE === 'environment') ? 'user' : 'environment';
-        await startGateCamera(false);
+        if (CAMERA_DEVICES.length <= 1) {
+            IS_MIRRORED = !IS_MIRRORED;
+            document.getElementById('videoWrapper')?.classList.toggle('mirror-mode', IS_MIRRORED);
+            return;
+        }
+        CURRENT_CAM_IDX = (CURRENT_CAM_IDX + 1) % CAMERA_DEVICES.length;
+        await startGateCamera(false, CAMERA_DEVICES[CURRENT_CAM_IDX].deviceId);
     }
 
-    function startBarcodeLoop(video) {
-        if (!('BarcodeDetector' in window)) return;
-        const detector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'code_39', 'ean_13'] });
+    // ลูปสแกนทั้งใบหน้า AI (face-api.js) และ QR Code (BarcodeDetector) พร้อมกัน
+    function startUnifiedScanLoop(video) {
+        const canvas = document.getElementById('gateCanvas');
+        const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.45 });
+        const barcodeDetector = ('BarcodeDetector' in window)
+            ? new BarcodeDetector({ formats: ['qr_code', 'code_128', 'code_39', 'ean_13'] })
+            : null;
+
         clearInterval(SCAN_LOOP_ID);
         SCAN_LOOP_ID = setInterval(async () => {
-            if (!GATE_STREAM || video.readyState < 2) return;
-            try {
-                const codes = await detector.detect(video);
-                if (codes && codes.length > 0) {
-                    const raw = String(codes[0].rawValue || '').trim();
-                    const now = Date.now();
-                    if (raw && (raw !== LAST_SCANNED_CODE || now - LAST_SCANNED_TIME > 3500)) {
-                        LAST_SCANNED_CODE = raw;
-                        LAST_SCANNED_TIME = now;
-                        await recordStudentScan(raw);
+            if (!GATE_STREAM || video.readyState < 2 || video.paused) return;
+
+            // 1. สแกน QR Code บัตรนักเรียน
+            if (barcodeDetector) {
+                try {
+                    const codes = await barcodeDetector.detect(video);
+                    if (codes && codes.length > 0) {
+                        const raw = String(codes[0].rawValue || '').trim();
+                        if (raw) await recordStudentScan(raw, 'QR Code');
+                    }
+                } catch (e) {}
+            }
+
+            // 2. สแกนใบหน้า AI
+            if (!IS_MODELS_READY || video.videoWidth === 0) return;
+            const size = { width: video.videoWidth, height: video.videoHeight };
+            faceapi.matchDimensions(canvas, size);
+
+            const detections = await faceapi
+                .detectAllFaces(video, detectorOptions)
+                .withFaceLandmarks(true)
+                .withFaceDescriptors();
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const resized = faceapi.resizeResults(detections, size);
+            for (const det of resized) {
+                const box = det.detection.box;
+                let color = '#fbbf24';
+
+                if (FACE_MATCHER) {
+                    const match = FACE_MATCHER.findBestMatch(det.descriptor);
+                    if (match && match.label !== 'unknown') {
+                        color = '#34d399';
+                        await recordStudentScan(match.label, 'Face AI');
+                    } else {
+                        color = '#f43f5e';
                     }
                 }
-            } catch (e) {}
-        }, 500);
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
+            }
+        }, 450);
     }
 
     async function handleManualScan() {
@@ -387,45 +584,55 @@
         const val = input?.value.trim();
         if (!val) return;
         input.value = '';
-        await recordStudentScan(val);
+        await recordStudentScan(val, 'พิมพ์รหัส');
     }
 
-    async function recordStudentScan(rawCode) {
+    async function recordStudentScan(rawCode, method = 'ai_gate') {
+        const cleanCode = String(rawCode).trim();
+        const now = Date.now();
+        if (RECENT_SCAN_MAP.has(cleanCode) && (now - RECENT_SCAN_MAP.get(cleanCode)) < 6000) return;
+        RECENT_SCAN_MAP.set(cleanCode, now);
+
         const roomFilter = document.getElementById('classroomFilter')?.value || 'ALL';
         const student = ALL_STUDENTS.find(s => {
-            const matchId = String(s.student_id || s.id).trim() === rawCode;
-            const matchRoom = roomFilter === 'ALL' || String(s.classroom).trim() === roomFilter;
+            const matchId = String(s.student_id || s.student_code || s.id).trim() === cleanCode;
+            const matchRoom = roomFilter === 'ALL' || s._room === roomFilter;
             return matchId && matchRoom;
         });
 
         if (!student) {
-            alert(`ไม่พบรหัสนักเรียน "${rawCode}" ${roomFilter !== 'ALL' ? `ในห้อง ${roomFilter}` : 'ในระบบ'}`);
+            if (method === 'พิมพ์รหัส') {
+                alert(`ไม่พบรหัสนักเรียน "${cleanCode}" ${roomFilter !== 'ALL' ? `ในห้อง ${roomFilter}` : 'ในระบบ'}`);
+            }
             return;
         }
 
-        const sid = String(student.student_id || student.id).trim();
-        const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+        const sid = String(student.student_id || student.student_code || student.id).trim();
+        const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim() || student.name || sid;
+        const room = student._room || '-';
         const client = window.supabaseClient || window.db || window.supabase;
 
         if (client) {
-            await client.from('attendance_logs').insert([{
+            // บันทึกลง attendance_logs (ตารางหลักของระบบ AI Gate)
+            client.from('attendance_logs').insert([{
                 student_id: sid,
                 status: 'PRESENT',
-                method: 'ai_gate',
+                method: method,
                 period_no: 0,
                 recorded_at: new Date().toISOString(),
-                subject_name: `สแกนกล้อง AI (${student.classroom || '-'})`
-            }]);
+                subject_name: `สแกนกล้อง AI (${room})`
+            }]).then(() => {});
         }
 
         SCANNED_SET.add(sid);
         document.getElementById('scannedCountText').innerText = SCANNED_SET.size;
 
         const toast = document.getElementById('scanResultToast');
-        document.getElementById('toastStudentName').innerText = `${fullName} (${student.classroom || '-'})`;
+        document.getElementById('toastMethodLabel').innerText = `✅ บันทึกเข้าเรียนสำเร็จ [${method}]`;
+        document.getElementById('toastStudentName').innerText = `${fullName} (${room})`;
         document.getElementById('toastStudentTime').innerText = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
         toast.classList.remove('hidden');
-        setTimeout(() => toast.classList.add('hidden'), 3000);
+        setTimeout(() => toast.classList.add('hidden'), 3500);
     }
 </script>
 </body>
