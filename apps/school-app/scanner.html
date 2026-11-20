@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบสแกนใบหน้าและบัตรนักเรียน AI - โรงเรียนบัวเชดวิทยา (BCW Smart Hub)</title>
+    <title>BCW AI GATE SCAN - โรงเรียนบัวเชดวิทยา</title>
     <link rel="icon" type="image/png" href="../../assets/images/logo_bcw.png">
 
-    <!-- Tailwind CSS, FontAwesome & face-api.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -14,25 +13,15 @@
 
     <!-- Supabase SDK & Global Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../core/supabase-client.js?v=500"></script>
+    <script src="../../core/supabase-client.js?v=600"></script>
 
     <style>
         body {
             font-family: 'Kanit', sans-serif;
-            background-color: #020617;
+            background-color: #02120e;
             color: #f8fafc;
-            overflow-x: hidden;
-        }
-        .camera-stage {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16 / 10;
-            max-height: 62vh;
-            background: #090d16;
-            border-radius: 24px;
             overflow: hidden;
-            border: 2px solid #10b981;
-            box-shadow: 0 0 35px rgba(16, 185, 129, 0.18);
+            height: 100dvh;
         }
         #videoWrapper {
             position: relative;
@@ -42,541 +31,488 @@
         .mirror-mode {
             transform: scaleX(-1);
         }
-        #webcamVideo {
+        #gateVideo {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        #overlayCanvas {
+        #gateCanvas {
             position: absolute;
             inset: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
         }
-        .scan-guide-box {
-            position: absolute;
-            inset: 10% 18%;
-            border: 2px dashed rgba(52, 211, 153, 0.55);
-            border-radius: 24px;
-            pointer-events: none;
-        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-3 sm:p-5">
+<body class="flex flex-col justify-between p-3 sm:p-4 select-none">
 
-    <!-- 1. TOP BAR -->
-    <header class="max-w-5xl mx-auto w-full flex flex-wrap justify-between items-center gap-2 pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-2.5">
-            <div class="bg-white p-1.5 rounded-xl shrink-0">
-                <img src="../../assets/images/logo_bcw.png" alt="BCW" class="w-8 h-8 object-contain" onerror="this.style.display='none'">
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-sm sm:text-lg font-extrabold text-emerald-400 tracking-wide">BCW AI FACE &amp; QR SCANNER</h1>
-                    <span id="usbCamBadge" class="hidden bg-sky-500/20 text-sky-300 border border-sky-400/50 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        <i class="fa-solid fa-video mr-1"></i> USB CAM READY
-                    </span>
+    <!-- 1. TOP HEADER BAR -->
+    <header class="max-w-xl mx-auto w-full bg-[#06241c]/90 border border-emerald-800/60 rounded-2xl p-2.5 flex items-center justify-between gap-2 shadow-lg z-20">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <a href="../../landing.html" class="w-9 h-9 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 border border-emerald-700/60 flex items-center justify-center text-emerald-300 shrink-0">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                    <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                    <h1 class="text-sm sm:text-base font-extrabold text-amber-400 tracking-wide truncate">BCW AI GATE SCAN</h1>
                 </div>
-                <p class="text-[11px] text-slate-400">ระบบสแกนใบหน้าและบัตรประจำตัวนักเรียน (รองรับกล้อง USB ทุกรุ่น / Hikvision / มือถือ)</p>
+                <p id="statusSubText" class="text-[11px] text-slate-300 truncate">กำลังเชื่อมต่อฐานข้อมูลนักเรียน...</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
-            <!-- เลือกโหมดการเช็คชื่อ -->
-            <select id="scanSessionMode" class="bg-slate-900 border border-slate-700 text-amber-300 text-xs font-bold px-3 py-2 rounded-xl outline-none">
-                <option value="assembly">🇹🇭 เช็คชื่อเข้าแถว / หน้าประตู</option>
-                <option value="classroom">📚 เช็คชื่อในคาบเรียน</option>
-            </select>
-
-            <a href="../../landing.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
-                <i class="fa-solid fa-house"></i> <span class="hidden sm:inline">หน้าหลัก</span>
-            </a>
+        <div class="flex items-center gap-1.5 shrink-0">
+            <!-- แสดงจำนวนใบหน้าที่โหลดจากฐานข้อมูลจริง -->
+            <div id="faceCountBadge" class="bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-extrabold px-2.5 py-1.5 rounded-xl">
+                0 คน
+            </div>
+            <!-- ปุ่มเลือกห้องเรียนจากฐานข้อมูลจริง -->
+            <button type="button" onclick="window.openRoomModal()" id="btnSelectedRoom" class="bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-600/50 text-emerald-200 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer">
+                <span id="selectedRoomText">ทุกห้อง</span>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </button>
         </div>
     </header>
 
-    <!-- 2. MAIN SCANNER STAGE -->
-    <main class="max-w-5xl mx-auto w-full my-3 grid grid-cols-1 lg:grid-cols-3 gap-4 items-start flex-1">
-
-        <!-- ฝั่งซ้าย (2 ส่วน): หน้าจอกล้อง + แผงควบคุม -->
-        <div class="lg:col-span-2 space-y-3">
-            <!-- แถบเลือกกล้อง USB และห้องเรียน -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-900/90 p-2.5 rounded-2xl border border-slate-800">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-camera text-emerald-400 text-xs pl-1"></i>
-                    <select id="cameraDeviceSelect" onchange="window.switchSelectedCamera(this.value)" class="w-full bg-slate-950 border border-slate-700 text-slate-100 text-xs font-bold p-2 rounded-xl outline-none">
-                        <option value="">กำลังค้นหากล้อง USB / กล้องในเครื่อง...</option>
-                    </select>
-                </div>
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-users text-amber-400 text-xs pl-1"></i>
-                    <select id="targetClassroomSelect" onchange="window.loadStudentsForMatcher()" class="w-full bg-slate-950 border border-slate-700 text-slate-100 text-xs font-bold p-2 rounded-xl outline-none">
-                        <option value="ALL">โหลดข้อมูลนักเรียนทั้งหมด (ทุกห้อง)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- จอแสดงภาพจากกล้อง -->
-            <div class="camera-stage" id="cameraStageBox">
-                <div id="videoWrapper">
-                    <video id="webcamVideo" autoplay muted playsinline></video>
-                    <canvas id="overlayCanvas"></canvas>
-                </div>
-                <div class="scan-guide-box"></div>
-
-                <!-- ป้ายสถานะ AI มุมซ้ายบน -->
-                <div class="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-xs border border-slate-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-2">
-                    <span id="aiStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                    <span id="aiStatusText" class="text-slate-200">กำลังโหลดโมเดล AI...</span>
-                </div>
-
-                <!-- ป้ายบอกจำนวนใบหน้าในฐานข้อมูลมุมขวาบน -->
-                <div class="absolute top-3 right-3 bg-slate-950/80 backdrop-blur-xs border border-slate-700 px-3 py-1 rounded-full text-[11px] font-bold text-emerald-300">
-                    <i class="fa-solid fa-database mr-1"></i> ฐานข้อมูลใบหน้า: <span id="loadedFaceCount">0</span> คน
-                </div>
-
-                <!-- ข้อความแนะนำด้านล่างจอ -->
-                <div class="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none">
-                    <span class="bg-slate-950/85 text-slate-200 border border-slate-700/80 px-4 py-1 rounded-full text-xs font-bold">
-                        ส่องใบหน้า (ระยะ 0.5–2.0 ม.) หรือ QR Code บัตรนักเรียน
-                    </span>
-                </div>
-            </div>
-
-            <!-- กล่องแสดงสถานะสแกนล่าสุด -->
-            <div id="latestScanBanner" class="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 text-center transition-all">
-                <div class="text-[11px] font-bold text-slate-400">สถานะสแกนล่าสุด (AI Detection)</div>
-                <div id="latestScanMain" class="text-lg sm:text-xl font-extrabold text-emerald-400 mt-0.5">พร้อมสแกน...</div>
-                <div id="latestScanSub" class="text-xs text-slate-400 mt-0.5">กรุณาส่องกล้องไปที่ใบหน้าหรือบัตรนักเรียน</div>
-            </div>
-
-            <!-- แถบปุ่มควบคุมกล้อง -->
-            <div class="flex items-center gap-2">
-                <button type="button" id="btnToggleCamera" onclick="window.startUniversalCamera()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-extrabold py-3 px-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
-                    <i class="fa-solid fa-video"></i> <span>เริ่มเปิดกล้อง / สแกน</span>
-                </button>
-
-                <button type="button" onclick="window.toggleMirrorVideo()" title="กลับด้านภาพซ้าย-ขวา (Mirror)" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 p-3.5 rounded-2xl transition cursor-pointer">
-                    <i class="fa-solid fa-left-right"></i>
-                </button>
-
-                <button type="button" onclick="window.cycleNextCamera()" title="สลับกล้องถัดไป" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-3.5 rounded-2xl transition cursor-pointer">
-                    <i class="fa-solid fa-camera-rotate"></i>
-                </button>
-            </div>
+    <!-- 2. CAMERA VIEWPORT -->
+    <main class="max-w-xl mx-auto w-full flex-1 my-3 relative rounded-3xl overflow-hidden bg-[#041a14] border border-emerald-900/70 flex items-center justify-center">
+        <div id="videoWrapper" class="hidden">
+            <video id="gateVideo" autoplay muted playsinline></video>
+            <canvas id="gateCanvas"></canvas>
         </div>
 
-        <!-- ฝั่งขวา (1 ส่วน): เช็คชื่อสำรองด้วยรหัส + รายชื่อที่สแกนติดล่าสุด -->
-        <div class="space-y-3">
-            <!-- ช่องกรอกรหัสเช็คชื่อสำรอง -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2">
-                <h2 class="text-xs font-extrabold text-amber-400 flex items-center gap-1.5">
-                    <i class="fa-solid fa-keyboard"></i> เช็คชื่อด่วนด้วยรหัสนักเรียน / ยิงบาร์โค้ด
-                </h2>
-                <form onsubmit="window.handleManualCheckIn(event)" class="flex gap-2">
-                    <input type="text" id="manualStudentIdInput" placeholder="กรอกรหัส เช่น 13174" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-white outline-none focus:border-emerald-500" autocomplete="off">
-                    <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-4 py-2 rounded-xl text-xs shrink-0 cursor-pointer">
-                        เช็คชื่อ
-                    </button>
-                </form>
-            </div>
+        <!-- กรอบเล็งสแกน 4 มุม -->
+        <div class="absolute inset-8 sm:inset-12 pointer-events-none z-10">
+            <div class="absolute top-0 left-0 w-9 h-9 border-t-4 border-l-4 border-amber-400 rounded-tl-2xl"></div>
+            <div class="absolute top-0 right-0 w-9 h-9 border-t-4 border-r-4 border-amber-400 rounded-tr-2xl"></div>
+            <div class="absolute bottom-0 left-0 w-9 h-9 border-b-4 border-l-4 border-amber-400 rounded-bl-2xl"></div>
+            <div class="absolute bottom-0 right-0 w-9 h-9 border-b-4 border-r-4 border-amber-400 rounded-br-2xl"></div>
+        </div>
 
-            <!-- รายการนักเรียนที่สแกนสำเร็จในรอบนี้ -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <h2 class="text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-circle-check"></i> บันทึกสำเร็จล่าสุด (<span id="sessionCheckedCount">0</span> คน)
-                    </h2>
-                    <button type="button" onclick="window.clearSessionLog()" class="text-[11px] text-slate-400 hover:text-rose-400 cursor-pointer">ล้างรายการ</button>
-                </div>
-
-                <div id="checkedInListContainer" class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-                    <div class="text-center py-8 text-xs text-slate-500">ยังไม่มีรายการสแกนในรอบนี้</div>
-                </div>
+        <!-- กล่องแจ้งเตือนตรงกลางเมื่อยังไม่เปิดกล้องหรือพบข้อผิดพลาด -->
+        <div id="cameraPlaceholderBox" class="relative z-10 bg-[#0b1926]/95 border border-slate-700/80 rounded-2xl p-6 mx-6 text-center max-w-xs shadow-2xl">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center mx-auto mb-3 text-xl shadow-lg">
+                <i class="fa-solid fa-camera"></i>
             </div>
+            <p id="cameraErrorText" class="text-xs sm:text-sm font-bold text-slate-200 leading-relaxed">
+                กดปุ่ม "เปิดกล้อง AI" ด้านล่างเพื่อเริ่มสแกนใบหน้าหรือ QR Code
+            </p>
+        </div>
+
+        <!-- แถบแจ้งผลเมื่อสแกนติด -->
+        <div id="scanResultToast" class="hidden absolute bottom-4 inset-x-4 z-20 bg-emerald-950/95 border-2 border-emerald-400 rounded-2xl p-3 text-center shadow-2xl">
+            <div id="toastName" class="text-base font-extrabold text-emerald-300">-</div>
+            <div id="toastDetail" class="text-xs text-slate-200 mt-0.5">-</div>
         </div>
     </main>
 
-    <!-- ==================== SCRIPT: UNIVERSAL USB CAMERA + AI FACE & QR ENGINE ==================== -->
+    <!-- 3. BOTTOM CONTROLS -->
+    <footer class="max-w-xl mx-auto w-full space-y-2.5 z-20">
+        <!-- ช่องพิมพ์รหัสนักเรียน / ยิงบาร์โค้ด -->
+        <form onsubmit="window.handleManualSubmit(event)" class="bg-[#06241c] border border-emerald-800/70 rounded-2xl p-1.5 flex items-center gap-2">
+            <input type="text" id="manualCodeInput" placeholder="สแกน หรือพิมพ์รหัสนักเรียน..." class="w-full bg-transparent px-3 py-2 text-sm text-white placeholder-slate-400 outline-none font-bold" autocomplete="off">
+            <button type="submit" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-5 py-2.5 rounded-xl text-xs shrink-0 cursor-pointer transition">
+                เช็คชื่อ
+            </button>
+        </form>
+
+        <!-- ปุ่มเปิดกล้อง AI + ปุ่มสลับกล้อง -->
+        <div class="flex items-center gap-2">
+            <button type="button" id="btnStartCamera" onclick="window.toggleAiCamera()" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer transition">
+                <i class="fa-solid fa-camera"></i>
+                <span id="btnStartCameraText">เปิดกล้อง AI</span>
+            </button>
+
+            <button type="button" onclick="window.switchNextCamera()" title="สลับกล้อง (USB / หน้า / หลัง)" class="w-13 h-13 bg-[#06241c] hover:bg-emerald-900 border border-emerald-700/60 text-amber-400 rounded-2xl flex items-center justify-center text-lg cursor-pointer transition">
+                <i class="fa-solid fa-camera-rotate"></i>
+            </button>
+        </div>
+    </footer>
+
+    <!-- MODAL เลือกห้องเรียนจากฐานข้อมูลจริง -->
+    <div id="roomSelectModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-end sm:items-center justify-center p-3">
+        <div class="bg-white text-slate-900 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
+            <div class="bg-[#06241c] text-white px-4 py-3.5 flex items-center justify-between">
+                <div class="font-extrabold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-door-open text-amber-400"></i>
+                    <span>เลือกห้องเรียนที่ต้องการสแกน (ข้อมูลจริง)</span>
+                </div>
+                <button type="button" onclick="window.closeRoomModal()" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+                <button type="button" onclick="window.selectClassroom('ALL')" class="w-full py-2.5 px-4 rounded-xl border-2 border-emerald-600 text-emerald-800 font-extrabold text-sm hover:bg-emerald-50 cursor-pointer">
+                    🌐 สแกนทุกห้องเรียน (<span id="totalRealStudents">0</span> คน)
+                </button>
+                <div id="realRoomsGrid" class="grid grid-cols-3 gap-2">
+                    <div class="col-span-3 text-center py-6 text-xs text-slate-400">กำลังโหลดรายชื่อห้องจากฐานข้อมูล...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const db = window.supabaseClient || window.db || window.supabase;
-        const MODEL_CDN_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+
+        let allStudents = [];
+        let selectedRoom = 'ALL';
+        let faceMatcher = null;
+        let isModelsReady = false;
 
         let currentStream = null;
-        let availableCameras = [];
-        let activeDeviceId = '';
-        let activeCameraLabel = 'Camera';
+        let cameraList = [];
+        let currentCamIndex = 0;
+        let isStartingCam = false;
         let isMirrored = false;
-        let isModelsLoaded = false;
-        let isStartingCamera = false;
-        let faceMatcher = null;
-        let scanIntervalId = null;
-        let allStudentsCache = [];
-
-        const recentScannedMap = new Map();
-        const sessionCheckedList = [];
+        let detectTimer = null;
+        const recentCheckMap = new Map();
 
         // 1. โหลดโมเดล AI
-        async function loadFaceAiModels() {
-            const statusText = document.getElementById('aiStatusText');
-            const statusDot = document.getElementById('aiStatusDot');
+        async function initAiModels() {
             try {
-                statusText.innerText = 'กำลังโหลดโมเดลตรวจจับใบหน้า AI...';
                 await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_CDN_URL),
-                    faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_CDN_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_CDN_URL)
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
-                isModelsLoaded = true;
-                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
-                statusText.innerText = 'ระบบ AI พร้อมทำงาน';
-            } catch (err) {
-                console.error('Model load error:', err);
-                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
-                statusText.innerText = 'โหลดโมเดล AI ไม่สำเร็จ (ตรวจสอบเน็ต)';
+                isModelsReady = true;
+            } catch (e) {
+                console.error('AI Model Error:', e);
             }
         }
 
-        // 2. ค้นหากล้อง USB ทุกรุ่น/ทุกยี่ห้อ และจัดลำดับเลือกกล้องภายนอกก่อนกล้องโน้ตบุ๊ก
-        async function detectAndPopulateCameras() {
-            const selectEl = document.getElementById('cameraDeviceSelect');
-            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
-
-            try {
-                // ขออนุญาตเบื้องต้นเพื่อให้เบราว์เซอร์แสดงชื่อรุ่นกล้อง USB ครบถ้วน
-                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }).catch(() => null);
-                if (tempStream) tempStream.getTracks().forEach(t => t.stop());
-
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                availableCameras = devices.filter(d => d.kind === 'videoinput');
-
-                if (availableCameras.length === 0) {
-                    selectEl.innerHTML = `<option value="">❌ ไม่พบอุปกรณ์กล้องในเครื่องนี้</option>`;
-                    return;
-                }
-
-                // คัดแยกกล้อง USB ภายนอก (Hikvision, Logitech, Fantech, Oker, UVC, หรือกล้องที่ไม่ใช่ Integrated/Built-in)
-                const isExternalUsbCam = (label) => {
-                    if (!label) return false;
-                    const isBuiltIn = /integrated|built-in|facetime|internal|front|back/i.test(label);
-                    const isUsbKeyword = /hikvision|ds-u|logitech|fantech|oker|anitech|usb|web\s?cam|hd|uvc|camera/i.test(label);
-                    return isUsbKeyword && !isBuiltIn;
-                };
-
-                const externalCam = availableCameras.find(c => isExternalUsbCam(c.label));
-                const defaultCam = externalCam || availableCameras[0];
-                activeDeviceId = defaultCam.deviceId;
-                activeCameraLabel = defaultCam.label || 'USB Camera';
-
-                if (externalCam) {
-                    const badge = document.getElementById('usbCamBadge');
-                    if (badge) {
-                        badge.innerHTML = `<i class="fa-solid fa-video mr-1"></i> USB CAM READY`;
-                        badge.classList.remove('hidden');
-                    }
-                }
-
-                selectEl.innerHTML = availableCameras.map((cam, idx) => {
-                    const label = cam.label || `กล้องตัวที่ ${idx + 1}`;
-                    const ext = isExternalUsbCam(label);
-                    return `<option value="${cam.deviceId}" ${cam.deviceId === activeDeviceId ? 'selected' : ''}>
-                        ${ext ? '🎥 [USB] ' : '📷 '}${label}
-                    </option>`;
-                }).join('');
-            } catch (err) {
-                console.warn('Enumerate cameras warning:', err);
-            }
-        }
-
-        // 3. เปิดกล้อง USB ทุกรุ่น / กล้องมือถือ พร้อมตัวป้องกัน AbortError
-        window.startUniversalCamera = async function(deviceIdOverride = null) {
-            if (isStartingCamera) return; // ป้องกันการกดซ้ำหรือคำสั่งเปิดกล้องชนกัน
-            isStartingCamera = true;
-
-            const videoEl = document.getElementById('webcamVideo');
-            const btn = document.getElementById('btnToggleCamera');
-            if (!videoEl) {
-                isStartingCamera = false;
+        // 2. ดึงฐานข้อมูลนักเรียนจริงจาก Supabase (แบ่งดึงทีละ 1,000 แถวให้ครบทุกคน)
+        async function loadRealStudentsFromSupabase() {
+            const subText = document.getElementById('statusSubText');
+            const dot = document.getElementById('statusDot');
+            if (!db) {
+                subText.innerText = 'ไม่พบการเชื่อมต่อ Supabase';
                 return;
             }
 
             try {
-                if (currentStream) {
-                    currentStream.getTracks().forEach(t => t.stop());
-                    currentStream = null;
-                }
-                if (scanIntervalId) {
-                    clearInterval(scanIntervalId);
-                    scanIntervalId = null;
-                }
-
-                videoEl.pause();
-                videoEl.srcObject = null;
-
-                const targetId = deviceIdOverride || activeDeviceId || document.getElementById('cameraDeviceSelect')?.value;
-                const foundCam = availableCameras.find(c => c.deviceId === targetId);
-                if (foundCam && foundCam.label) activeCameraLabel = foundCam.label;
-
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>กำลังเชื่อมต่อกล้อง...</span>`;
-
-                // ลำดับ Fallback Constraints: รองรับทั้งกล้อง 1080p, 720p, และกล้อง USB รุ่นประหยัด 480p
-                const constraintsOrder = targetId
-                    ? [
-                        { video: { deviceId: { exact: targetId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false },
-                        { video: { deviceId: { exact: targetId }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
-                        { video: { deviceId: { exact: targetId } }, audio: false },
-                        { video: true, audio: false }
-                      ]
-                    : [
-                        { video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
-                        { video: true, audio: false }
-                      ];
-
-                let stream = null;
-                for (const c of constraintsOrder) {
-                    try {
-                        stream = await navigator.mediaDevices.getUserMedia(c);
-                        if (stream) break;
-                    } catch (e) {}
-                }
-
-                if (!stream) {
-                    btn.innerHTML = `<i class="fa-solid fa-video-slash"></i> <span>ไม่พบกล้อง (คลิกเพื่อลองใหม่)</span>`;
-                    alert('⚠️ ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบสาย USB หรือกดอนุญาตสิทธิ์กล้องในเบราว์เซอร์');
-                    return;
-                }
-
-                currentStream = stream;
-                videoEl.srcObject = stream;
-
-                // รอให้ข้อมูลเฟรมภาพพร้อมก่อนสั่ง play() ป้องกัน AbortError บนมือถือและคอมพิวเตอร์
-                await new Promise((resolve) => {
-                    if (videoEl.readyState >= 1) return resolve();
-                    videoEl.onloadedmetadata = () => resolve();
-                });
-
-                await videoEl.play();
-
-                btn.className = "flex-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-3 px-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer";
-                btn.innerHTML = `<i class="fa-solid fa-circle-dot animate-ping"></i> <span>กำลังสแกนอัตโนมัติ (กล้องทำงานอยู่)</span>`;
-
-                startDetectionLoop();
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.error('Camera start error:', err);
-                    btn.innerHTML = `<i class="fa-solid fa-video-slash"></i> <span>เปิดกล้องไม่สำเร็จ (คลิกลองใหม่)</span>`;
-                }
-            } finally {
-                isStartingCamera = false;
-            }
-        };
-
-        window.switchSelectedCamera = function(deviceId) {
-            activeDeviceId = deviceId;
-            window.startUniversalCamera(deviceId);
-        };
-
-        window.cycleNextCamera = function() {
-            if (availableCameras.length <= 1) return alert('พบกล้องในอุปกรณ์นี้เพียง 1 ตัวครับ');
-            const curIdx = availableCameras.findIndex(c => c.deviceId === activeDeviceId);
-            const nextCam = availableCameras[(curIdx + 1) % availableCameras.length];
-            activeDeviceId = nextCam.deviceId;
-            document.getElementById('cameraDeviceSelect').value = activeDeviceId;
-            window.startUniversalCamera(activeDeviceId);
-        };
-
-        window.toggleMirrorVideo = function() {
-            isMirrored = !isMirrored;
-            document.getElementById('videoWrapper')?.classList.toggle('mirror-mode', isMirrored);
-        };
-
-        // 4. ดึงข้อมูลนักเรียน + สร้างตัวเปรียบเทียบใบหน้า (FaceMatcher)
-        async function fetchAllStudentsAndClassrooms() {
-            if (!db) return;
-            try {
                 const [r1, r2, r3] = await Promise.all([
-                    db.from('students').select('student_id, prefix, first_name, last_name, name, classroom, avatar_url, face_descriptor, status').range(0, 999),
-                    db.from('students').select('student_id, prefix, first_name, last_name, name, classroom, avatar_url, face_descriptor, status').range(1000, 1999),
-                    db.from('students').select('student_id, prefix, first_name, last_name, name, classroom, avatar_url, face_descriptor, status').range(2000, 2999)
+                    db.from('students').select('*').range(0, 999),
+                    db.from('students').select('*').range(1000, 1999),
+                    db.from('students').select('*').range(2000, 2999)
                 ]);
 
-                allStudentsCache = [...(r1.data || []), ...(r2.data || []), ...(r3.data || [])]
-                    .filter(s => (s.status || 'active') === 'active');
+                const raw = [...(r1.data || []), ...(r2.data || []), ...(r3.data || [])];
+                allStudents = raw.filter(s => !s.status || s.status === 'active' || s.status === 'กำลังศึกษา');
 
-                const rooms = [...new Set(allStudentsCache.map(s => String(s.classroom || '').trim()).filter(Boolean))];
-                rooms.sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
+                document.getElementById('totalRealStudents').innerText = allStudents.length;
 
-                const roomSelect = document.getElementById('targetClassroomSelect');
-                if (roomSelect) {
-                    roomSelect.innerHTML = `<option value="ALL">ทุกห้องเรียน (${allStudentsCache.length} คน)</option>` +
-                        rooms.map(rm => `<option value="${rm}">เฉพาะห้อง ${rm}</option>`).join('');
+                // สร้างปุ่มห้องเรียนจริงจากคอลัมน์ classroom / class_room / room
+                const rooms = [...new Set(
+                    allStudents
+                        .map(s => String(s.classroom || s.class_room || s.room || '').trim())
+                        .filter(Boolean)
+                )].sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
+
+                const grid = document.getElementById('realRoomsGrid');
+                if (rooms.length > 0) {
+                    grid.innerHTML = rooms.map(rm => `
+                        <button type="button" onclick="window.selectClassroom('${rm}')" class="py-2 px-2 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-xs font-extrabold text-slate-700 cursor-pointer transition">
+                            ${rm}
+                        </button>
+                    `).join('');
+                } else {
+                    grid.innerHTML = `<div class="col-span-3 text-center py-4 text-xs text-rose-500">ไม่พบข้อมูลห้องเรียนในตาราง students</div>`;
                 }
 
-                await window.loadStudentsForMatcher();
+                await buildFaceMatcherForRoom('ALL');
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0';
+                subText.innerText = `พร้อมใช้งาน • นักเรียนในระบบ ${allStudents.length} คน`;
             } catch (err) {
-                console.warn('Fetch students warning:', err);
+                console.error('Load students error:', err);
+                subText.innerText = 'โหลดฐานข้อมูลไม่สำเร็จ: ' + err.message;
             }
         }
 
-        window.loadStudentsForMatcher = async function() {
-            if (!isModelsLoaded) await loadFaceAiModels();
-            const selectedRoom = document.getElementById('targetClassroomSelect')?.value || 'ALL';
-            const targetStudents = selectedRoom === 'ALL'
-                ? allStudentsCache
-                : allStudentsCache.filter(s => s.classroom === selectedRoom);
+        // 3. สร้างตัวเทียบใบหน้าจากข้อมูลจริง (รองรับทั้ง face_descriptor และลิงก์รูปภาพทุกชื่อคอลัมน์)
+        async function buildFaceMatcherForRoom(roomName) {
+            if (!isModelsReady) await initAiModels();
+            const targetList = roomName === 'ALL'
+                ? allStudents
+                : allStudents.filter(s => String(s.classroom || s.class_room || s.room || '').trim() === roomName);
 
-            const labeledDescriptors = [];
+            const descriptors = [];
+            const subText = document.getElementById('statusSubText');
 
-            for (const stu of targetStudents) {
-                const sid = String(stu.student_id || '').trim();
+            for (const stu of targetList) {
+                const sid = String(stu.student_id || stu.student_code || stu.id || '').trim();
                 if (!sid) continue;
 
-                if (stu.face_descriptor && Array.isArray(stu.face_descriptor) && stu.face_descriptor.length === 128) {
-                    labeledDescriptors.push(
-                        new faceapi.LabeledFaceDescriptors(sid, [new Float32Array(stu.face_descriptor)])
-                    );
+                // กรณีที่ 1: มีค่า face_descriptor (128 ค่า) เก็บไว้ในฐานข้อมูลแล้ว
+                let desc = stu.face_descriptor;
+                if (typeof desc === 'string') {
+                    try { desc = JSON.parse(desc); } catch (e) { desc = null; }
+                }
+                if (Array.isArray(desc) && desc.length === 128) {
+                    descriptors.push(new faceapi.LabeledFaceDescriptors(sid, [new Float32Array(desc)]));
                     continue;
                 }
 
-                if (selectedRoom !== 'ALL' && stu.avatar_url) {
+                // กรณีที่ 2: ดึงจากรูปโปรไฟล์ในฐานข้อมูล (เช็กทุกชื่อคอลัมน์ที่เป็นไปได้)
+                const photoUrl = stu.avatar_url || stu.photo_url || stu.image_url || stu.profile_image || stu.picture_url;
+                if (roomName !== 'ALL' && photoUrl && String(photoUrl).startsWith('http')) {
+                    subText.innerText = `กำลังอ่านใบหน้านักเรียนห้อง ${roomName}... (${descriptors.length}/${targetList.length})`;
                     try {
-                        const img = await faceapi.fetchImage(stu.avatar_url);
+                        const img = await faceapi.fetchImage(photoUrl);
                         const det = await faceapi
                             .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 }))
                             .withFaceLandmarks(true)
                             .withFaceDescriptor();
                         if (det) {
-                            labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(sid, [det.descriptor]));
+                            descriptors.push(new faceapi.LabeledFaceDescriptors(sid, [det.descriptor]));
+                            // บันทึกเก็บลงฐานข้อมูลอัตโนมัติ ครั้งต่อไปจะได้ไม่ต้องโหลดรูปซ้ำ
                             db.from('students').update({ face_descriptor: Array.from(det.descriptor) }).eq('student_id', sid).then(() => {});
                         }
                     } catch (e) {}
                 }
             }
 
-            document.getElementById('loadedFaceCount').innerText = labeledDescriptors.length;
-            faceMatcher = labeledDescriptors.length > 0
-                ? new faceapi.FaceMatcher(labeledDescriptors, 0.58)
-                : null;
+            // อัปเดตตัวเลขจำนวนคนบนมุมขวาบน
+            const badge = document.getElementById('faceCountBadge');
+            badge.innerText = descriptors.length > 0 ? `${descriptors.length} ใบหน้า` : `${targetList.length} คน`;
+
+            faceMatcher = descriptors.length > 0 ? new faceapi.FaceMatcher(descriptors, 0.58) : null;
+            subText.innerText = descriptors.length > 0
+                ? `พร้อมสแกนใบหน้า (${descriptors.length} คน) และ QR Code`
+                : `พร้อมสแกน QR / พิมพ์รหัส (${targetList.length} คน ในระบบ)`;
+        }
+
+        // 4. เปิดกล้องแบบปลอดภัย (รองรับทั้ง USB Hikvision, กล้องโน้ตบุ๊ก และมือถือ ไม่พังด้วย NotFoundError / AbortError)
+        window.toggleAiCamera = async function() {
+            if (currentStream) {
+                stopCamera();
+                return;
+            }
+            await startCameraSafe();
         };
 
-        // 5. ลูปตรวจจับใบหน้าและสแกน QR Code
-        function startDetectionLoop() {
-            const videoEl = document.getElementById('webcamVideo');
-            const canvas = document.getElementById('overlayCanvas');
-            const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.45 });
+        function stopCamera() {
+            if (detectTimer) {
+                clearInterval(detectTimer);
+                detectTimer = null;
+            }
+            if (currentStream) {
+                currentStream.getTracks().forEach(t => t.stop());
+                currentStream = null;
+            }
+            const video = document.getElementById('gateVideo');
+            video.pause();
+            video.srcObject = null;
+            document.getElementById('videoWrapper').classList.add('hidden');
+            document.getElementById('cameraPlaceholderBox').classList.remove('hidden');
+            document.getElementById('btnStartCameraText').innerText = 'เปิดกล้อง AI';
+            document.getElementById('btnStartCamera').className = 'flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer transition';
+        }
 
-            const barcodeDetector = ('BarcodeDetector' in window)
-                ? new BarcodeDetector({ formats: ['qr_code', 'code_128'] })
-                : null;
+        async function startCameraSafe(specificDeviceId = null) {
+            if (isStartingCam) return;
+            isStartingCam = true;
 
-            scanIntervalId = setInterval(async () => {
-                if (!videoEl || videoEl.paused || videoEl.ended || videoEl.readyState < 2) return;
+            const video = document.getElementById('gateVideo');
+            const errText = document.getElementById('cameraErrorText');
+            const btnText = document.getElementById('btnStartCameraText');
 
-                // 5.1 ตรวจจับ QR Code บัตรนักเรียน
-                if (barcodeDetector) {
+            try {
+                btnText.innerText = 'กำลังเชื่อมต่อกล้อง...';
+
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('เบราว์เซอร์ไม่รองรับการเปิดกล้อง (ต้องเปิดผ่าน HTTPS)');
+                }
+
+                // ค้นหารายชื่อกล้องทั้งหมดที่มีอยู่จริงในอุปกรณ์นี้ก่อน (ป้องกัน NotFoundError: Requested device not found)
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                cameraList = devices.filter(d => d.kind === 'videoinput');
+
+                if (cameraList.length === 0) {
+                    throw new Error('ไม่พบอุปกรณ์กล้องในเครื่องนี้ (กรุณาเสียบสายกล้อง USB หรือเปิดผ่านมือถือ)');
+                }
+
+                // เลือกกล้อง USB ภายนอก (Hikvision / Logitech ฯลฯ) ก่อนเป็นอันดับแรกถ้ามี
+                if (!specificDeviceId && cameraList.length > 0) {
+                    const usbIdx = cameraList.findIndex(c => /hikvision|ds-u|logitech|usb|web\s?cam|uvc|back|environment/i.test(c.label));
+                    if (usbIdx >= 0) currentCamIndex = usbIdx;
+                }
+
+                const chosenCam = specificDeviceId
+                    ? cameraList.find(c => c.deviceId === specificDeviceId)
+                    : cameraList[currentCamIndex];
+
+                // ลองขอสิทธิ์กล้องจากเจาะจงไปหาทั่วไป (ไม่บังคับ exact facingMode ที่ทำให้ PC พัง)
+                const tryConstraints = [];
+                if (chosenCam && chosenCam.deviceId) {
+                    tryConstraints.push({ video: { deviceId: { exact: chosenCam.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+                    tryConstraints.push({ video: { deviceId: { exact: chosenCam.deviceId } }, audio: false });
+                }
+                tryConstraints.push({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+                tryConstraints.push({ video: true, audio: false });
+
+                let stream = null;
+                let lastErr = null;
+                for (const c of tryConstraints) {
                     try {
-                        const codes = await barcodeDetector.detect(videoEl);
-                        if (codes && codes.length > 0) {
-                            const rawCode = String(codes[0].rawValue || '').trim();
-                            if (rawCode) await recordStudentAttendance(rawCode, 'QR Code บัตรนักเรียน', 100);
+                        stream = await navigator.mediaDevices.getUserMedia(c);
+                        if (stream) break;
+                    } catch (e) {
+                        lastErr = e;
+                    }
+                }
+
+                if (!stream) throw lastErr || new Error('ไม่สามารถเข้าถึงกล้องได้');
+
+                // อัปเดตรายชื่อกล้องอีกครั้งหลังได้สิทธิ์ (เพื่อให้เห็นชื่อรุ่นกล้องครบ)
+                const updatedDevices = await navigator.mediaDevices.enumerateDevices();
+                cameraList = updatedDevices.filter(d => d.kind === 'videoinput');
+
+                currentStream = stream;
+                video.srcObject = stream;
+
+                // รอให้เฟรมภาพพร้อมก่อนสั่ง play() ป้องกัน AbortError
+                await new Promise((resolve) => {
+                    if (video.readyState >= 1) return resolve();
+                    video.onloadedmetadata = () => resolve();
+                });
+                await video.play();
+
+                // กลับด้านอัตโนมัติถ้าเป็นกล้องหน้า
+                const activeTrack = stream.getVideoTracks()[0];
+                const trackLabel = activeTrack ? activeTrack.label : '';
+                isMirrored = /front|user|integrated/i.test(trackLabel);
+                document.getElementById('videoWrapper').classList.toggle('mirror-mode', isMirrored);
+
+                document.getElementById('cameraPlaceholderBox').classList.add('hidden');
+                document.getElementById('videoWrapper').classList.remove('hidden');
+                btnText.innerText = 'ปิดกล้อง';
+                document.getElementById('btnStartCamera').className = 'flex-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-3.5 px-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer transition';
+
+                startAiDetectionLoop();
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error('AI Gate Camera Error:', err);
+                    errText.innerText = `ไม่สามารถเปิดกล้องได้ (${err.message || err.name})`;
+                    document.getElementById('cameraPlaceholderBox').classList.remove('hidden');
+                    btnText.innerText = 'เปิดกล้อง AI';
+                }
+            } finally {
+                isStartingCam = false;
+            }
+        }
+
+        window.switchNextCamera = async function() {
+            if (cameraList.length <= 1) {
+                isMirrored = !isMirrored;
+                document.getElementById('videoWrapper').classList.toggle('mirror-mode', isMirrored);
+                return;
+            }
+            currentCamIndex = (currentCamIndex + 1) % cameraList.length;
+            const nextId = cameraList[currentCamIndex].deviceId;
+            if (currentStream) {
+                currentStream.getTracks().forEach(t => t.stop());
+                currentStream = null;
+            }
+            await startCameraSafe(nextId);
+        };
+
+        // 5. ตรวจจับใบหน้า + QR Code และบันทึกลง Supabase
+        function startAiDetectionLoop() {
+            const video = document.getElementById('gateVideo');
+            const canvas = document.getElementById('gateCanvas');
+            const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.45 });
+            const qrReader = ('BarcodeDetector' in window) ? new BarcodeDetector({ formats: ['qr_code', 'code_128'] }) : null;
+
+            detectTimer = setInterval(async () => {
+                if (!video || video.paused || video.readyState < 2) return;
+
+                // อ่าน QR Code บัตรนักเรียน
+                if (qrReader) {
+                    try {
+                        const codes = await qrReader.detect(video);
+                        if (codes && codes.length > 0 && codes[0].rawValue) {
+                            await processStudentCheckIn(codes[0].rawValue.trim(), 'QR Code');
                         }
                     } catch (e) {}
                 }
 
-                // 5.2 ตรวจจับใบหน้า AI
-                if (!isModelsLoaded) return;
-                const displaySize = { width: videoEl.videoWidth, height: videoEl.videoHeight };
-                if (displaySize.width === 0) return;
+                // ตรวจจับใบหน้า
+                if (!isModelsReady || video.videoWidth === 0) return;
+                const size = { width: video.videoWidth, height: video.videoHeight };
+                faceapi.matchDimensions(canvas, size);
 
-                faceapi.matchDimensions(canvas, displaySize);
                 const detections = await faceapi
-                    .detectAllFaces(videoEl, detectorOptions)
+                    .detectAllFaces(video, options)
                     .withFaceLandmarks(true)
                     .withFaceDescriptors();
 
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                if (!detections || detections.length === 0) return;
-
-                const resizedDetections = faceapi.resizeResults(detections, displaySize);
-
-                for (const det of resizedDetections) {
+                const resized = faceapi.resizeResults(detections, size);
+                for (const det of resized) {
                     const box = det.detection.box;
-                    let labelText = 'กำลังวิเคราะห์ใบหน้า...';
-                    let boxColor = '#f59e0b';
+                    let text = 'กำลังตรวจจับใบหน้า...';
+                    let color = '#fbbf24';
 
                     if (faceMatcher) {
-                        const bestMatch = faceMatcher.findBestMatch(det.descriptor);
-                        if (bestMatch && bestMatch.label !== 'unknown') {
-                            const sid = bestMatch.label;
-                            const confidence = Math.round((1 - bestMatch.distance) * 100);
-                            const stu = allStudentsCache.find(s => String(s.student_id) === sid);
-                            const fullName = stu ? `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim() : sid;
-
-                            labelText = `${fullName} (${confidence}%)`;
-                            boxColor = '#10b981';
-
-                            await recordStudentAttendance(sid, 'AI Face Scan', confidence);
+                        const match = faceMatcher.findBestMatch(det.descriptor);
+                        if (match && match.label !== 'unknown') {
+                            const stu = findStudentById(match.label);
+                            const name = formatStudentName(stu) || match.label;
+                            text = `${name} (${Math.round((1 - match.distance) * 100)}%)`;
+                            color = '#34d399';
+                            await processStudentCheckIn(match.label, 'Face AI');
                         } else {
-                            labelText = 'ไม่พบใบหน้าในระบบ (ใช้บัตร QR / กรอกรหัส)';
-                            boxColor = '#f43f5e';
+                            text = 'ไม่พบข้อมูลใบหน้า (สแกนบัตร/พิมพ์รหัส)';
+                            color = '#f43f5e';
                         }
                     }
 
-                    // วาดกรอบสีรอบใบหน้า
-                    ctx.strokeStyle = boxColor;
+                    ctx.strokeStyle = color;
                     ctx.lineWidth = 3;
                     ctx.strokeRect(box.x, box.y, box.width, box.height);
-
-                    // วาดแถบชื่อ (กลับด้านตัวหนังสือเฉพาะตอนเปิด Mirror เพื่อให้อ่านออกปกติ)
-                    ctx.save();
-                    if (isMirrored) {
-                        ctx.translate(box.x + box.width, box.y);
-                        ctx.scale(-1, 1);
-                        ctx.fillStyle = boxColor;
-                        ctx.fillRect(0, -26, Math.max(box.width, 190), 26);
-                        ctx.fillStyle = '#020617';
-                        ctx.font = 'bold 14px Kanit, sans-serif';
-                        ctx.fillText(labelText, 6, -8);
-                    } else {
-                        ctx.fillStyle = boxColor;
-                        ctx.fillRect(box.x, Math.max(0, box.y - 26), Math.max(box.width, 190), 26);
-                        ctx.fillStyle = '#020617';
-                        ctx.font = 'bold 14px Kanit, sans-serif';
-                        ctx.fillText(labelText, box.x + 6, Math.max(18, box.y - 8));
-                    }
-                    ctx.restore();
                 }
             }, 450);
         }
 
-        // 6. บันทึกผลการเช็คชื่อลง Supabase
-        async function recordStudentAttendance(studentId, method, confidence = 100) {
-            const sid = String(studentId).trim();
+        function findStudentById(id) {
+            const cleanId = String(id).trim();
+            return allStudents.find(s =>
+                String(s.student_id || '').trim() === cleanId ||
+                String(s.student_code || '').trim() === cleanId
+            );
+        }
+
+        function formatStudentName(stu) {
+            if (!stu) return '';
+            return `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim() || stu.name || '';
+        }
+
+        async function processStudentCheckIn(rawId, method) {
+            const sid = String(rawId).trim();
+            if (!sid) return;
+
             const now = Date.now();
-            if (recentScannedMap.has(sid) && (now - recentScannedMap.get(sid)) < 8000) {
-                return;
-            }
-            recentScannedMap.set(sid, now);
+            if (recentCheckMap.has(sid) && (now - recentCheckMap.get(sid)) < 8000) return;
+            recentCheckMap.set(sid, now);
 
-            const stu = allStudentsCache.find(s => String(s.student_id) === sid);
+            const stu = findStudentById(sid);
             if (!stu) {
-                showScanFeedback(false, `ไม่พบรหัสนักเรียน "${sid}"`, 'กรุณาตรวจสอบรหัสหรือลงทะเบียนนักเรียนในระบบ');
+                showToast(`❌ ไม่พบรหัสนักเรียน "${sid}" ในฐานข้อมูล`, 'กรุณาตรวจสอบรหัสนักเรียนอีกครั้ง', false);
                 return;
             }
 
-            const fullName = `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim() || stu.name || sid;
-            const classroom = stu.classroom || '-';
-            const mode = document.getElementById('scanSessionMode')?.value || 'assembly';
-            const todayStr = new Date().toISOString().split('T')[0];
+            const fullName = formatStudentName(stu);
+            const room = stu.classroom || stu.class_room || '-';
             const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const todayStr = new Date().toISOString().split('T')[0];
 
-            playBeepSuccess();
-            showScanFeedback(true, `✅ ${fullName} (${classroom})`, `รหัส ${sid} • บันทึกเวลา ${timeStr} น. (${method})`);
-
-            sessionCheckedList.unshift({ sid, fullName, classroom, timeStr, method });
-            renderSessionCheckedList();
+            showToast(`✅ ${fullName} (${room})`, `รหัส ${sid} • เช็คชื่อสำเร็จเวลา ${timeStr} น. [${method}]`, true);
 
             if (db) {
                 try {
@@ -584,96 +520,50 @@
                         student_id: sid,
                         student_code: sid,
                         student_name: fullName,
-                        classroom: classroom,
-                        subject_code: mode === 'assembly' ? 'ASSEMBLY' : 'CLASSROOM',
-                        subject_name: mode === 'assembly' ? 'เข้าแถวเคารพธงชาติ' : 'เช็คชื่อในคาบเรียน',
+                        classroom: room,
+                        subject_code: 'GATE',
+                        subject_name: 'สแกนประตูโรงเรียน',
                         date: todayStr,
                         status: 'present',
-                        scan_method: method,
-                        confidence: confidence
+                        scan_method: method
                     }]);
-                } catch (err) {
-                    console.warn('Attendance DB insert warning:', err.message);
-                }
+                } catch (e) {}
             }
         }
 
-        window.handleManualCheckIn = async function(e) {
+        window.handleManualSubmit = async function(e) {
             e.preventDefault();
-            const input = document.getElementById('manualStudentIdInput');
-            const sid = input.value.trim();
-            if (!sid) return;
-            await recordStudentAttendance(sid, 'กรอกรหัสเช็คชื่อ', 100);
-            input.value = '';
-            input.focus();
+            const inp = document.getElementById('manualCodeInput');
+            const val = inp.value.trim();
+            if (!val) return;
+            await processStudentCheckIn(val, 'พิมพ์รหัส');
+            inp.value = '';
         };
 
-        function showScanFeedback(isSuccess, mainText, subText) {
-            const banner = document.getElementById('latestScanBanner');
-            const mainEl = document.getElementById('latestScanMain');
-            const subEl = document.getElementById('latestScanSub');
-            if (!banner || !mainEl || !subEl) return;
-
-            banner.className = isSuccess
-                ? 'bg-emerald-950/90 border-2 border-emerald-400 rounded-2xl p-3.5 text-center transition-all'
-                : 'bg-rose-950/90 border-2 border-rose-500 rounded-2xl p-3.5 text-center transition-all';
-            mainEl.className = isSuccess ? 'text-lg sm:text-xl font-extrabold text-emerald-300 mt-0.5' : 'text-lg sm:text-xl font-extrabold text-rose-300 mt-0.5';
-            mainEl.innerText = mainText;
-            subEl.innerText = subText;
+        function showToast(title, detail, isOk) {
+            const box = document.getElementById('scanResultToast');
+            box.className = isOk
+                ? 'absolute bottom-4 inset-x-4 z-20 bg-emerald-950/95 border-2 border-emerald-400 rounded-2xl p-3 text-center shadow-2xl'
+                : 'absolute bottom-4 inset-x-4 z-20 bg-rose-950/95 border-2 border-rose-500 rounded-2xl p-3 text-center shadow-2xl';
+            document.getElementById('toastName').innerText = title;
+            document.getElementById('toastDetail').innerText = detail;
+            box.classList.remove('hidden');
+            setTimeout(() => box.classList.add('hidden'), 4500);
         }
 
-        function renderSessionCheckedList() {
-            const container = document.getElementById('checkedInListContainer');
-            const countEl = document.getElementById('sessionCheckedCount');
-            if (countEl) countEl.innerText = sessionCheckedList.length;
-            if (!container) return;
-
-            if (sessionCheckedList.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">ยังไม่มีรายการสแกนในรอบนี้</div>`;
-                return;
-            }
-
-            container.innerHTML = sessionCheckedList.map(item => `
-                <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex justify-between items-center gap-2">
-                    <div class="min-w-0">
-                        <div class="text-xs font-extrabold text-white truncate">${item.fullName}</div>
-                        <div class="text-[11px] text-slate-400">รหัส: ${item.sid} • ชั้น ${item.classroom}</div>
-                    </div>
-                    <div class="text-right shrink-0">
-                        <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full text-[10px] font-bold block">${item.timeStr} น.</span>
-                        <span class="text-[10px] text-slate-500">${item.method}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        window.clearSessionLog = function() {
-            sessionCheckedList.length = 0;
-            recentScannedMap.clear();
-            renderSessionCheckedList();
+        // Modal เลือกห้องเรียน
+        window.openRoomModal = () => document.getElementById('roomSelectModal').classList.remove('hidden');
+        window.closeRoomModal = () => document.getElementById('roomSelectModal').classList.add('hidden');
+        window.selectClassroom = async function(room) {
+            selectedRoom = room;
+            document.getElementById('selectedRoomText').innerText = room === 'ALL' ? 'ทุกห้อง' : room;
+            window.closeRoomModal();
+            await buildFaceMatcherForRoom(room);
         };
 
-        function playBeepSuccess() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.14);
-            } catch (e) {}
-        }
-
-        // เริ่มทำงานอัตโนมัติเมื่อเปิดหน้า
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadFaceAiModels();
-            await detectAndPopulateCameras();
-            await fetchAllStudentsAndClassrooms();
-            await window.startUniversalCamera();
+            await initAiModels();
+            await loadRealStudentsFromSupabase();
         });
     </script>
 </body>
