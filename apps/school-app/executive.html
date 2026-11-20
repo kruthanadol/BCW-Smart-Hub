@@ -1177,6 +1177,128 @@
             if (!subHeader) return;
             subHeader.classList.toggle('is-scrolled', window.scrollY > 50);
         });
+        // ==================== SMOOTH TOUCH GESTURES (ปัดสไลด์เก็บ Side Drawer & Bottom Sheets) ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. ปัดขวา 👉 เพื่อสไลด์เก็บ Side Drawer เมนูด้านข้าง
+            const drawer = document.getElementById('drawerContent');
+            if (drawer) {
+                let startX = 0, currentX = 0, startTime = 0, isSwipingDrawer = false;
+
+                drawer.addEventListener('touchstart', (e) => {
+                    if (e.touches.length > 1) return;
+                    startX = e.touches[0].clientX;
+                    currentX = startX;
+                    startTime = performance.now();
+                    isSwipingDrawer = true;
+                    drawer.style.transition = 'none';
+                }, { passive: true });
+
+                drawer.addEventListener('touchmove', (e) => {
+                    if (!isSwipingDrawer) return;
+                    currentX = e.touches[0].clientX;
+                    const diffX = currentX - startX;
+                    if (diffX > 0) {
+                        drawer.style.transform = `translate3d(${diffX}px, 0, 0)`;
+                    }
+                }, { passive: true });
+
+                const finishDrawerSwipe = () => {
+                    if (!isSwipingDrawer) return;
+                    isSwipingDrawer = false;
+                    const diffX = currentX - startX;
+                    const velocity = diffX / (performance.now() - startTime || 1);
+                    drawer.style.transition = 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)';
+
+                    if (diffX > 65 || (diffX > 20 && velocity > 0.45)) {
+                        drawer.style.transform = 'translate3d(100%, 0, 0)';
+                        setTimeout(() => {
+                            document.getElementById('drawerOverlay')?.classList.remove('active');
+                            drawer.style.transform = '';
+                            window.syncBodyScrollLock();
+                        }, 280);
+                    } else {
+                        drawer.style.transform = 'translate3d(0, 0, 0)';
+                        setTimeout(() => { drawer.style.transform = ''; }, 340);
+                    }
+                    startX = 0;
+                    currentX = 0;
+                };
+
+                drawer.addEventListener('touchend', finishDrawerSwipe, { passive: true });
+                drawer.addEventListener('touchcancel', finishDrawerSwipe, { passive: true });
+            }
+
+            // 2. ปัดลง 👇 เพื่อสไลด์เก็บ Bottom Sheet ด้านล่าง (งานกิจการ และ งานวิชาการ)
+            const setupSmoothSheetSwipe = (sheetId, overlayId) => {
+                const sheet = document.getElementById(sheetId);
+                const overlay = document.getElementById(overlayId);
+                if (!sheet || !overlay) return;
+
+                let startY = 0, currentY = 0, startTime = 0, isSwiping = false, rafId = null;
+
+                sheet.addEventListener('touchstart', (e) => {
+                    if (e.touches.length > 1) return;
+                    if (sheet.scrollTop <= 2) {
+                        startY = e.touches[0].clientY;
+                        currentY = startY;
+                        startTime = performance.now();
+                        isSwiping = true;
+                        sheet.style.transition = 'none';
+                    } else {
+                        isSwiping = false;
+                    }
+                }, { passive: true });
+
+                sheet.addEventListener('touchmove', (e) => {
+                    if (!isSwiping) return;
+                    currentY = e.touches[0].clientY;
+                    const diffY = currentY - startY;
+
+                    if (diffY > 0 && sheet.scrollTop <= 2) {
+                        if (e.cancelable) e.preventDefault();
+                        if (rafId) cancelAnimationFrame(rafId);
+                        rafId = requestAnimationFrame(() => {
+                            sheet.style.transform = `translate3d(0, ${diffY}px, 0)`;
+                        });
+                    } else if (diffY < 0) {
+                        isSwiping = false;
+                        sheet.style.transform = '';
+                    }
+                }, { passive: false });
+
+                const finishSwipe = () => {
+                    if (!isSwiping) return;
+                    isSwiping = false;
+                    if (rafId) cancelAnimationFrame(rafId);
+
+                    const diffY = currentY - startY;
+                    const elapsed = performance.now() - startTime || 1;
+                    const velocity = diffY / elapsed;
+
+                    sheet.style.transition = 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)';
+
+                    if (diffY > 80 || (diffY > 25 && velocity > 0.45)) {
+                        sheet.style.transform = 'translate3d(0, 105%, 0)';
+                        setTimeout(() => {
+                            overlay.classList.remove('active');
+                            sheet.style.transform = '';
+                            window.syncBodyScrollLock();
+                        }, 300);
+                    } else {
+                        sheet.style.transform = 'translate3d(0, 0, 0)';
+                        setTimeout(() => { sheet.style.transform = ''; }, 340);
+                    }
+                    startY = 0;
+                    currentY = 0;
+                };
+
+                sheet.addEventListener('touchend', finishSwipe, { passive: true });
+                sheet.addEventListener('touchcancel', finishSwipe, { passive: true });
+            };
+
+            setupSmoothSheetSwipe('affairsBottomSheetContent', 'affairsBottomSheetOverlay');
+            setupSmoothSheetSwipe('academicBottomSheetContent', 'academicBottomSheetOverlay');
+        });
     </script>
 
     <!-- ==================== REAL-TIME DATABASE + OFFICIAL GOVERNMENT REPORT ENGINE ==================== -->
