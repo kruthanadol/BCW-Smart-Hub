@@ -13,6 +13,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+    <!-- PDF.js & Tesseract.js สำหรับอ่านตารางเรียน/ตารางสอนจาก PDF และรูปภาพ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <!-- Supabase SDK & Global Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../core/supabase-client.js?v=500"></script>
@@ -45,9 +49,9 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-base sm:text-xl font-extrabold text-amber-400 tracking-wide uppercase">BCW ADMIN CONSOLE</h1>
-                        <span class="bg-amber-400/20 text-amber-300 border border-amber-400/50 text-[10px] font-bold px-2 py-0.5 rounded-full">v2.0 Live DB</span>
+                        <span class="bg-amber-400/20 text-amber-300 border border-amber-400/50 text-[10px] font-bold px-2 py-0.5 rounded-full">v2.5 Smart Schedule</span>
                     </div>
-                    <p class="text-xs text-indigo-200">ศูนย์นำเข้าข้อมูล Excel/CSV • จัดการรายชื่อนักเรียน/ครู • กำหนดสิทธิ์ผู้ใช้งาน</p>
+                    <p class="text-xs text-indigo-200">ศูนย์นำเข้าข้อมูล Excel/PDF/รูปภาพ • จัดการตารางสอนกลางเทอม • กำหนดสิทธิ์ผู้ใช้งาน</p>
                 </div>
             </div>
 
@@ -88,10 +92,10 @@
 
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
                 <div>
-                    <span class="text-xs font-bold text-slate-500 block">รายวิชาเปิดสอน</span>
+                    <span class="text-xs font-bold text-slate-500 block">คาบสอนในตาราง</span>
                     <span id="statCourses" class="text-2xl font-extrabold text-sky-700 mt-0.5 block">...</span>
                 </div>
-                <div class="w-11 h-11 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-book"></i></div>
+                <div class="w-11 h-11 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-calendar-days"></i></div>
             </div>
 
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
@@ -103,24 +107,157 @@
             </div>
         </section>
 
-        <!-- แถบเมนูหลัก 4 โหมดการทำงาน -->
+        <!-- แถบเมนูหลัก 5 โหมดการทำงาน -->
         <nav class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            <button type="button" id="btnTabImport" onclick="window.switchAdminTab('import')" class="tab-btn active shrink-0 px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer">
-                <i class="fa-solid fa-file-excel text-emerald-500"></i> 1. นำเข้า Excel / CSV
+            <button type="button" id="btnTabSchedules" onclick="window.switchAdminTab('schedules')" class="tab-btn active shrink-0 px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer">
+                <i class="fa-solid fa-file-pdf text-rose-500"></i> 1. ตารางเรียน/สอน (PDF &amp; รูปภาพ)
+            </button>
+            <button type="button" id="btnTabImport" onclick="window.switchAdminTab('import')" class="tab-btn shrink-0 px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer">
+                <i class="fa-solid fa-file-excel text-emerald-500"></i> 2. นำเข้า Excel / CSV
             </button>
             <button type="button" id="btnTabStudents" onclick="window.switchAdminTab('students')" class="tab-btn shrink-0 px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer">
-                <i class="fa-solid fa-users-gear text-indigo-500"></i> 2. จัดการนักเรียน (เพิ่ม/แก้ไข/ย้ายห้อง)
+                <i class="fa-solid fa-users-gear text-indigo-500"></i> 3. จัดการนักเรียน &amp; ครูที่ปรึกษา
             </button>
             <button type="button" id="btnTabStaff" onclick="window.switchAdminTab('staff')" class="tab-btn shrink-0 px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer">
-                <i class="fa-solid fa-user-shield text-amber-500"></i> 3. จัดการครู &amp; สิทธิ์ผู้ใช้งาน
+                <i class="fa-solid fa-user-shield text-amber-500"></i> 4. จัดการครู &amp; สิทธิ์ผู้ใช้งาน
             </button>
             <button type="button" id="btnTabAvatars" onclick="window.switchAdminTab('avatars')" class="tab-btn shrink-0 px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer">
-                <i class="fa-solid fa-camera text-rose-500"></i> 4. อัปโหลดรูปโปรไฟล์ (Bulk)
+                <i class="fa-solid fa-camera text-sky-500"></i> 5. อัปโหลดรูปโปรไฟล์
             </button>
         </nav>
 
-        <!-- ==================== TAB 1: นำเข้าข้อมูล EXCEL / CSV ==================== -->
-        <section id="panelImport" class="bg-white rounded-3xl border border-slate-200 p-5 sm:p-8 shadow-sm space-y-6">
+        <!-- ==================== TAB 1 (NEW): ตารางเรียน/สอนจาก PDF & รูปภาพ + เปลี่ยนครูกลางเทอม ==================== -->
+        <section id="panelSchedules" class="space-y-6">
+
+            <!-- ส่วนที่ 1A: อัปโหลด PDF หรือรูปภาพตารางสอน/ตารางเรียน -->
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 sm:p-8 shadow-sm space-y-5">
+                <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i> นำเข้าตารางสอนครู / ตารางเรียนห้อง จากไฟล์ PDF หรือรูปภาพ
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">ระบบอ่านตาราง 5 วัน x 9 คาบอัตโนมัติ • แก้ไขรหัสวิชาเพี้ยน (722104 ➔ ว22104) • จับคู่รหัสครู 4 หลัก (`0326`) และชื่อห้อง (`ม.2/2`)</p>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs font-bold">
+                        <span class="bg-indigo-50 text-indigo-800 border border-indigo-200 px-3 py-1.5 rounded-xl">ปีการศึกษา: 2569 / เทอม 2</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">1. ประเภทใบตารางที่อัปโหลด</label>
+                        <select id="scheduleDocMode" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 outline-none focus:border-indigo-600">
+                            <option value="AUTO">🤖 ตรวจจับอัตโนมัติ (แนะนำ)</option>
+                            <option value="TEACHER">👩‍🏫 ใบตารางสอนครู (มีรหัสครู 4 หลัก เช่น 0326)</option>
+                            <option value="STUDENT">🏫 ใบตารางเรียนนักเรียน (เช่น ชั้น ม. 2/2)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">2. โหมดการบันทึกเข้าฐานข้อมูล</label>
+                        <select id="scheduleSaveMode" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 outline-none focus:border-indigo-600">
+                            <option value="SCOPED_REPLACE">🔄 อัปเดตเฉพาะครู/ห้องนี้ (ปลอดภัย ไม่กระทบห้องอื่น)</option>
+                            <option value="APPEND_ONLY">➕ เพิ่มเฉพาะคาบใหม่ (ไม่ลบคาบเดิม)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">3. เลือกไฟล์ PDF หรือ รูปภาพ (.jpg, .png)</label>
+                        <input type="file" id="scheduleFileInput" accept=".pdf,image/jpeg,image/png,image/webp" onchange="window.handleScheduleFileUpload()" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-2xl text-xs text-slate-700 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- แถบสถานะการประมวลผล PDF / OCR -->
+                <div id="scheduleParseStatus" class="hidden bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl text-xs font-bold text-indigo-900 flex items-center gap-2.5">
+                    <i class="fa-solid fa-spinner fa-spin text-base text-indigo-600"></i>
+                    <span id="scheduleParseStatusText">กำลังอ่านโครงสร้างตาราง...</span>
+                </div>
+
+                <!-- ตารางตรวจสอบข้อมูลก่อนกดบันทึก (Interactive Preview) -->
+                <div id="schedulePreviewContainer" class="hidden space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <div>
+                            <span id="scheduleDetectedHeader" class="text-sm font-extrabold text-indigo-950 block">หัวตารางที่ตรวจพบ: -</span>
+                            <span id="scheduleDetectedSub" class="text-xs text-slate-600">ตรวจสอบความถูกต้องด้านล่าง สามารถคลิกแก้ไขข้อความในช่องได้ทันทีก่อนกดบันทึก</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="window.addBlankScheduleRow()" class="bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
+                                + เพิ่มคาบ
+                            </button>
+                            <button type="button" onclick="window.clearSchedulePreview()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
+                                ล้างข้อมูล
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl bg-white max-h-[420px]">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-indigo-950 text-white font-bold sticky top-0">
+                                <tr>
+                                    <th class="p-2.5">วัน</th>
+                                    <th class="p-2.5 text-center">คาบ</th>
+                                    <th class="p-2.5">รหัสวิชา</th>
+                                    <th class="p-2.5">ชื่อวิชา (ดึงอัตโนมัติ)</th>
+                                    <th class="p-2.5">ห้องเรียน (ม.X/Y)</th>
+                                    <th class="p-2.5">ครูผู้สอน (รหัสระบบ)</th>
+                                    <th class="p-2.5">ห้อง/สถานที่</th>
+                                    <th class="p-2.5 text-center">ลบ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedulePreviewBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+
+                    <button type="button" id="btnSaveParsedSchedules" onclick="window.saveParsedSchedulesToDB()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 px-5 rounded-2xl shadow-md transition text-sm flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>ยืนยันบันทึกตารางเรียน/ตารางสอนลง Supabase</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ส่วนที่ 1B: เครื่องมือโอนย้ายรายวิชา / เปลี่ยนครูผู้สอนกลางเทอม -->
+            <div class="bg-white rounded-3xl border border-amber-300/80 p-5 sm:p-7 shadow-sm space-y-4">
+                <div class="flex items-start gap-3 border-b border-slate-100 pb-3">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-right-left"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-extrabold text-slate-900">โอนย้ายรายวิชา / เปลี่ยนครูผู้สอนกลางเทอม (Mid-Term Teacher Transfer)</h3>
+                        <p class="text-xs text-slate-600">กรณีครูลาคลอด ครูย้าย หรือเปลี่ยนผู้สอนกลางเทอม ระบบจะย้ายตารางสอนให้ครูคนใหม่ทันที <strong>โดยประวัติการเช็กชื่อเดิมของนักเรียนตามไปด้วยครบ 100%</strong></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">1. เลือกครูผู้สอนเดิม</label>
+                        <select id="transferFromTeacher" onchange="window.loadTeacherSubjectsForTransfer()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold text-slate-800 outline-none">
+                            <option value="">-- กำลังโหลดรายชื่อครู --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">2. เลือกรายวิชา / ห้องที่ต้องการโอน</label>
+                        <select id="transferScopeSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold text-slate-800 outline-none">
+                            <option value="ALL">โอนย้ายทุกรายวิชาและทุกห้องเรียน</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">3. เลือกครูผู้สอนคนใหม่ (มารับช่วงต่อ)</label>
+                        <select id="transferToTeacher" class="w-full p-2.5 bg-indigo-50 border border-indigo-300 rounded-xl text-xs sm:text-sm font-extrabold text-indigo-950 outline-none">
+                            <option value="">-- เลือกครูผู้สอนคนใหม่ --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="button" onclick="window.executeTeacherTransfer()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-2.5 px-4 rounded-xl text-xs sm:text-sm shadow-sm transition cursor-pointer flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-arrows-rotate"></i> ยืนยันโอนย้ายตารางสอน
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ==================== TAB 2: นำเข้าข้อมูล EXCEL / CSV ==================== -->
+        <section id="panelImport" class="hidden bg-white rounded-3xl border border-slate-200 p-5 sm:p-8 shadow-sm space-y-6">
             <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-4">
                 <div>
                     <h2 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
@@ -137,18 +274,16 @@
                 <div class="space-y-2">
                     <label class="block text-xs font-bold text-slate-700">1. เลือกประเภทข้อมูลที่ต้องการนำเข้า</label>
                     <select id="importCategory" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-2xl text-sm font-bold text-slate-800 focus:border-indigo-600 outline-none">
+                        <optgroup label="ข้อมูลอ้างอิงตารางเรียน &amp; ครูที่ปรึกษา">
+                            <option value="subjects">📚 ทะเบียนรายวิชา (subjects: course_code, subject_name, subject_group)</option>
+                            <option value="teacher_schedule_codes">🔢 รหัสตารางสอนครู 4 หลัก (teacher_id, schedule_code)</option>
+                            <option value="class_advisors">🏫 ครูที่ปรึกษาประจำห้อง (classroom, advisor_name)</option>
+                        </optgroup>
                         <optgroup label="บุคลากร &amp; นักเรียน">
                             <option value="students">👨‍🎓 รายชื่อนักเรียน (students)</option>
                             <option value="teachers">👩‍🏫 บัญชีบุคลากร/ครู และสิทธิ์ (users)</option>
-                            <option value="class_advisors">🏫 ครูที่ปรึกษาประจำห้อง (class_advisors)</option>
-                        </optgroup>
-                        <optgroup label="วิชาการ &amp; ตารางสอน">
-                            <option value="courses">📚 รายวิชาที่เปิดสอน (courses)</option>
-                            <option value="course_assignments">👨‍🏫 มอบหมายงานสอน (course_assignments)</option>
-                            <option value="schedules">🗓️ ตารางเรียนประจำวัน (schedules)</option>
                         </optgroup>
                         <optgroup label="งานปกครอง &amp; สถานะ">
-                            <option value="discipline_catalog">👮‍♂️ เกณฑ์ตัดคะแนนพฤติกรรม (discipline_catalog)</option>
                             <option value="students_transfer_out">⛔ จำหน่ายนักเรียนย้ายออก (mark transferred_out)</option>
                             <option value="teachers_transfer_out">⛔ จำหน่ายครูย้ายออก (mark inactive)</option>
                         </optgroup>
@@ -180,11 +315,11 @@
             </button>
         </section>
 
-        <!-- ==================== TAB 2: จัดการนักเรียนรายบุคคล & ย้ายห้อง ==================== -->
+        <!-- ==================== TAB 3: จัดการนักเรียนรายบุคคล & ครูที่ปรึกษา ==================== -->
         <section id="panelStudents" class="hidden bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
             <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-4">
                 <div>
-                    <h2 class="text-lg font-extrabold text-slate-900">👨‍🎓 จัดการรายชื่อนักเรียนรายบุคคล / ย้ายห้อง / จำหน่าย</h2>
+                    <h2 class="text-lg font-extrabold text-slate-900">👨‍🎓 จัดการรายชื่อนักเรียนรายบุคคล / ย้ายห้อง / ครูที่ปรึกษา</h2>
                     <p class="text-xs text-slate-500">ดึงห้องเรียนจริงทั้งหมดจากฐานข้อมูล • เพิ่ม/แก้ไขรายบุคคล • ย้ายห้องเรียน</p>
                 </div>
                 <button type="button" onclick="window.openStudentFormModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold shadow-sm flex items-center gap-2 cursor-pointer">
@@ -192,7 +327,6 @@
                 </button>
             </div>
 
-            <!-- ตัวกรองค้นหานักเรียน (ดึงห้องจริงอัตโนมัติ) -->
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <div class="sm:col-span-2 relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
@@ -220,7 +354,7 @@
                             <th class="py-3 px-3">ชื่อ - นามสกุล</th>
                             <th class="py-3 px-3 text-center">ห้องเรียน</th>
                             <th class="py-3 px-3 text-center">เลขที่</th>
-                            <th class="py-3 px-3 text-center">สถานะ</th>
+                            <th class="py-3 px-3">ครูที่ปรึกษา</th>
                             <th class="py-3 px-3 text-center">จัดการ</th>
                         </tr>
                     </thead>
@@ -231,12 +365,12 @@
             </div>
         </section>
 
-        <!-- ==================== TAB 3: จัดการครูและสิทธิ์ผู้ใช้งาน ==================== -->
+        <!-- ==================== TAB 4: จัดการครูและสิทธิ์ผู้ใช้งาน ==================== -->
         <section id="panelStaff" class="hidden bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
             <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-4">
                 <div>
                     <h2 class="text-lg font-extrabold text-slate-900">🛡️ จัดการบุคลากรครู และกำหนดสิทธิ์การเข้าถึงระบบ (Roles)</h2>
-                    <p class="text-xs text-slate-500">ดึงรหัสครูและอีเมลจริงจากฐานข้อมูล พร้อมกำหนดบทบาทหน้าที่</p>
+                    <p class="text-xs text-slate-500">ดึงรหัสครูและอีเมลจริงจากฐานข้อมูล พร้อมกำหนดบทบาทหน้าที่และรหัสตารางสอน</p>
                 </div>
                 <button type="button" onclick="window.openStaffFormModal()" class="bg-indigo-900 hover:bg-indigo-800 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold shadow-sm flex items-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-user-plus"></i> เพิ่มครู / บุคลากรใหม่
@@ -265,7 +399,7 @@
                 <table class="w-full text-left border-collapse text-xs sm:text-sm">
                     <thead>
                         <tr class="bg-slate-900 text-white font-bold">
-                            <th class="py-3 px-3">รหัสบุคลากร</th>
+                            <th class="py-3 px-3">รหัสระบบ / ตารางสอน</th>
                             <th class="py-3 px-3">ชื่อ - นามสกุล</th>
                             <th class="py-3 px-3">อีเมลจริง</th>
                             <th class="py-3 px-3 text-center">สิทธิ์เข้าถึงระบบ (Role)</th>
@@ -280,7 +414,7 @@
             </div>
         </section>
 
-        <!-- ==================== TAB 4: อัปโหลดรูปโปรไฟล์ (BULK AVATARS) ==================== -->
+        <!-- ==================== TAB 5: อัปโหลดรูปโปรไฟล์ (BULK AVATARS) ==================== -->
         <section id="panelAvatars" class="hidden bg-white rounded-3xl border border-slate-200 p-5 sm:p-8 shadow-sm space-y-5">
             <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-xs sm:text-sm space-y-1">
                 <p class="font-extrabold text-amber-900"><i class="fa-solid fa-lightbulb mr-1"></i> คำแนะนำในการอัปโหลดรูปภาพโปรไฟล์จำนวนมาก</p>
@@ -312,7 +446,7 @@
     <div id="studentFormModal" style="display: none;" class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs z-50 items-center justify-center p-4" onclick="window.closeStudentFormModal()">
         <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200" onclick="event.stopPropagation()">
             <div class="bg-indigo-950 text-white p-4 flex justify-between items-center">
-                <h3 id="studentModalTitle" class="font-extrabold text-base flex items-center gap-2">
+                <h3 class="font-extrabold text-base flex items-center gap-2">
                     <i class="fa-solid fa-user-graduate text-amber-400"></i> เพิ่ม / แก้ไขข้อมูลนักเรียน
                 </h3>
                 <button type="button" onclick="window.closeStudentFormModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold cursor-pointer">&times;</button>
@@ -353,11 +487,8 @@
                         <input type="number" id="stuNoInput" value="1" min="1" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold outline-none">
                     </div>
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">สถานะการศึกษา</label>
-                        <select id="stuStatusInput" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold outline-none">
-                            <option value="active">กำลังศึกษา (Active)</option>
-                            <option value="transferred_out">ย้ายออก / จำหน่าย</option>
-                        </select>
+                        <label class="font-bold text-slate-700 block mb-1">ครูที่ปรึกษา</label>
+                        <input type="text" id="stuAdvisorInput" placeholder="เช่น นายธนดล คำเสมอ" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium outline-none">
                     </div>
                 </div>
                 <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
@@ -372,44 +503,48 @@
     <div id="staffFormModal" style="display: none;" class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs z-50 items-center justify-center p-4" onclick="window.closeStaffFormModal()">
         <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200" onclick="event.stopPropagation()">
             <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
-                <h3 id="staffModalTitle" class="font-extrabold text-base flex items-center gap-2">
+                <h3 class="font-extrabold text-base flex items-center gap-2">
                     <i class="fa-solid fa-user-shield text-amber-400"></i> เพิ่ม / แก้ไขบุคลากรและสิทธิ์ใช้งาน
                 </h3>
                 <button type="button" onclick="window.closeStaffFormModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold cursor-pointer">&times;</button>
             </div>
             <form onsubmit="window.saveSingleStaff(event)" class="p-5 space-y-3 text-xs sm:text-sm">
                 <input type="hidden" id="staffRecordId" value="">
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-3 gap-2">
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">รหัสบุคลากร / ครู *</label>
-                        <input type="text" id="staffRefIdInput" required placeholder="เช่น T001" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold outline-none focus:border-indigo-600">
+                        <label class="font-bold text-slate-700 block mb-1">รหัสระบบ *</label>
+                        <input type="text" id="staffRefIdInput" required placeholder="เช่น T024" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold outline-none focus:border-indigo-600">
                     </div>
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">สิทธิ์การเข้าถึง (Role) *</label>
+                        <label class="font-bold text-slate-700 block mb-1">รหัสตารางสอน</label>
+                        <input type="text" id="staffScheduleCodeInput" placeholder="เช่น 0326" class="w-full p-2.5 bg-amber-50 border border-amber-300 rounded-xl font-mono font-bold outline-none">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">สิทธิ์ (Role) *</label>
                         <select id="staffRoleInput" required class="w-full p-2.5 bg-indigo-50 border border-indigo-300 text-indigo-950 rounded-xl font-extrabold outline-none">
-                            <option value="teacher">👩‍🏫 ครูผู้สอน (teacher)</option>
-                            <option value="academic">🎓 ฝ่ายวิชาการ (academic)</option>
-                            <option value="discipline">🛡️ ฝ่ายปกครอง (discipline)</option>
-                            <option value="nurse">🏥 ห้องพยาบาล (nurse)</option>
-                            <option value="executive">🏛️ ผู้บริหาร (executive)</option>
-                            <option value="admin">👑 ผู้ดูแลระบบสูงสุด (admin)</option>
+                            <option value="teacher">👩‍🏫 ครูผู้สอน</option>
+                            <option value="academic">🎓 ฝ่ายวิชาการ</option>
+                            <option value="discipline">🛡️ ฝ่ายปกครอง</option>
+                            <option value="nurse">🏥 ห้องพยาบาล</option>
+                            <option value="executive">🏛️ ผู้บริหาร</option>
+                            <option value="admin">👑 ผู้ดูแลระบบ</option>
                         </select>
                     </div>
                 </div>
                 <div>
                     <label class="font-bold text-slate-700 block mb-1">ชื่อ - นามสกุล (พร้อมคำนำหน้า) *</label>
-                    <input type="text" id="staffFullNameInput" required placeholder="เช่น นายธนดล ใจดี" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium outline-none focus:border-indigo-600">
+                    <input type="text" id="staffFullNameInput" required placeholder="เช่น นายธนดล คำเสมอ" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium outline-none focus:border-indigo-600">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">อีเมลจริง</label>
-                        <input type="email" id="staffEmailInput" placeholder="teacher@gmail.com" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium outline-none">
+                        <input type="email" id="staffEmailInput" placeholder="teacher@buached.ac.th" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium outline-none">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700 block mb-1">สถานะบัญชี</label>
                         <select id="staffStatusInput" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold outline-none">
                             <option value="active">🟢 เปิดใช้งาน (Active)</option>
-                            <option value="inactive">🔴 ระงับสิทธิ์ / ย้ายออก (Inactive)</option>
+                            <option value="inactive">🔴 ระงับสิทธิ์ / ย้ายออก</option>
                         </select>
                     </div>
                 </div>
@@ -423,19 +558,28 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 text-center text-slate-500 text-xs py-3">
-        โรงเรียนบัวเชดวิทยา (BCW Smart Hub) &bull; Master Data &amp; Role Management Console
+        โรงเรียนบัวเชดวิทยา (BCW Smart Hub) &bull; Master Data, Smart Schedule Parser &amp; Role Management Console
     </footer>
 
     <!-- ==================== SCRIPT LOGIC ==================== -->
     <script>
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
         const db = window.supabaseClient || window.db || window.supabase;
         const SUPABASE_STORAGE_URL = (window.SUPABASE_URL || 'https://supabase.co') + '/storage/v1/object/public/avatars';
         let parsedImportRows = [];
+        let parsedScheduleRows = [];
+        let parsedScheduleScope = { mode: '', classroom: '', teacher_id: '', teacher_name: '', schedule_code: '' };
+        let cachedTeachersList = [];
+        let cachedSubjectsMap = new Map();
         window.ACTIVE_TEACHER_TABLE = null;
 
         // 1. สลับแท็บการทำงานหลัก
         window.switchAdminTab = async function(tabName) {
             const map = {
+                schedules: ['btnTabSchedules', 'panelSchedules'],
                 import: ['btnTabImport', 'panelImport'],
                 students: ['btnTabStudents', 'panelStudents'],
                 staff: ['btnTabStaff', 'panelStaff'],
@@ -455,22 +599,503 @@
                 }
             });
 
+            if (tabName === 'schedules') await window.loadReferenceMasters();
             if (tabName === 'students') {
                 await window.loadDynamicClassrooms();
                 window.loadStudentsTable();
             }
-            if (tabName === 'staff') {
-                window.loadStaffTable();
+            if (tabName === 'staff') window.loadStaffTable();
+        };
+
+        // 2. โหลดข้อมูลอ้างอิง (รายชื่อครู + รหัสตารางสอน + ทะเบียนรายวิชา)
+        window.loadReferenceMasters = async function() {
+            if (!db) return;
+            try {
+                const [resTeachers, resUsers, resSubjects] = await Promise.all([
+                    db.from('teachers').select('*'),
+                    db.from('users').select('*').ilike('role', '%teacher%'),
+                    db.from('subjects').select('*')
+                ]);
+
+                const mergedMap = new Map();
+                (resUsers.data || []).forEach(u => {
+                    const tid = u.teacher_id || u.ref_id || '';
+                    if (tid) {
+                        mergedMap.set(tid, {
+                            teacher_id: tid,
+                            schedule_code: u.schedule_code || '',
+                            full_name: u.full_name || '',
+                            first_name: (u.full_name || '').replace(/^(นางสาว|ว่าที่ร้อยตรี|นาย|นาง)\s*/, '').split(' ')[0] || ''
+                        });
+                    }
+                });
+
+                (resTeachers.data || []).forEach(t => {
+                    const tid = t.teacher_id || '';
+                    const full = `${t.prefix || ''}${t.first_name || ''} ${t.last_name || ''}`.trim();
+                    const existing = mergedMap.get(tid) || {};
+                    mergedMap.set(tid, {
+                        teacher_id: tid,
+                        schedule_code: t.schedule_code || existing.schedule_code || '',
+                        full_name: full || existing.full_name || '',
+                        first_name: t.first_name || existing.first_name || ''
+                    });
+                });
+
+                cachedTeachersList = Array.from(mergedMap.values()).sort((a, b) => a.full_name.localeCompare(b.full_name, 'th'));
+
+                cachedSubjectsMap.clear();
+                (resSubjects.data || []).forEach(s => {
+                    if (s.course_code) cachedSubjectsMap.set(s.course_code.trim().toUpperCase(), s);
+                });
+
+                // เติมรายชื่อครูใน Dropdown โอนย้ายรายวิชากลางเทอม
+                const fromSel = document.getElementById('transferFromTeacher');
+                const toSel = document.getElementById('transferToTeacher');
+                if (fromSel && toSel) {
+                    const optionsHtml = cachedTeachersList.map(t =>
+                        `<option value="${t.teacher_id}">${t.full_name} (${t.teacher_id}${t.schedule_code ? ' / ' + t.schedule_code : ''})</option>`
+                    ).join('');
+                    fromSel.innerHTML = `<option value="">-- เลือกครูผู้สอนเดิม --</option>` + optionsHtml;
+                    toSel.innerHTML = `<option value="">-- เลือกครูผู้สอนคนใหม่ --</option>` + optionsHtml;
+                }
+            } catch (err) {
+                console.warn('Reference masters warning:', err);
             }
         };
 
-        // 2. ดึงรายชื่อห้องเรียนทั้งหมดที่มีจริงในฐานข้อมูล (รองรับนักเรียน 2,000+ คน / 60+ ห้อง)
+        // 3. ระบบสกัดตารางเรียนและตารางสอนจาก PDF และรูปภาพ (BCW Smart Schedule Parser)
+        const BCWScheduleParser = {
+            ignoreKeywords: ['พักกลางวัน', 'พัก', 'PLC', 'ว่าง', 'หน้าที่', 'พลเมือง', 'จิตสาธารณ'],
+
+            sanitizeCourseCode(raw) {
+                let code = String(raw || '').replace(/\s+/g, '').trim();
+                // แก้บั๊กฟอนต์ PDF ที่อ่าน "ว22104" เป็น "722104"
+                if (/^7\d{5}$/.test(code)) {
+                    code = 'ว' + code.slice(1);
+                }
+                return code;
+            },
+
+            normalizeClassroom(raw) {
+                let clean = String(raw || '').replace(/\s+/g, '').replace(/^ชั้น/, '');
+                // แปลง "2/12stem" หรือ "2/2" ให้เป็น "ม.2/12" และ "ม.2/2"
+                const m = clean.match(/(\d+\/\d+)/);
+                return m ? `ม.${m[1]}` : clean;
+            },
+
+            matchTeacher(codeOrFirstName) {
+                const q = String(codeOrFirstName || '').trim();
+                if (!q) return null;
+                return cachedTeachersList.find(t =>
+                    (t.schedule_code && t.schedule_code === q) ||
+                    (t.teacher_id && t.teacher_id.toUpperCase() === q.toUpperCase()) ||
+                    (t.first_name && t.first_name === q) ||
+                    (t.full_name && t.full_name.includes(q))
+                ) || null;
+            },
+
+            detectHeader(fullText) {
+                // ตรวจจับหัวตารางครู: "0326 นายธนดล คำเสมอ ภาคเรียนที่ 2/2569"
+                const teacherHeader = fullText.match(/(\d{3,5})\s+((?:นาย|นางสาว|นาง|ว่าที่ร้อยตรี)[^\n\r]+?)\s+ภาคเรียนที่/);
+                if (teacherHeader) {
+                    const sCode = teacherHeader[1].trim();
+                    const tName = teacherHeader[2].trim();
+                    const matched = this.matchTeacher(sCode) || this.matchTeacher(tName);
+                    return {
+                        mode: 'TEACHER',
+                        schedule_code: sCode,
+                        teacher_id: matched ? matched.teacher_id : '',
+                        teacher_name: matched ? matched.full_name : tName,
+                        classroom: ''
+                    };
+                }
+
+                // ตรวจจับหัวตารางนักเรียน: "ชั้น ม. 2/2 ภาคเรียนที่ 2/2569"
+                const studentHeader = fullText.match(/ชั้น\s*ม\.?\s*(\d+\/\d+)/);
+                if (studentHeader) {
+                    return {
+                        mode: 'STUDENT',
+                        classroom: `ม.${studentHeader[1].replace(/\s+/g, '')}`,
+                        teacher_id: '',
+                        teacher_name: '',
+                        schedule_code: ''
+                    };
+                }
+
+                return { mode: 'UNKNOWN', classroom: '', teacher_id: '', teacher_name: '', schedule_code: '' };
+            },
+
+            async parsePDF(file) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let allExtractedRows = [];
+                let lastHeader = null;
+
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    const items = textContent.items.map(it => ({
+                        str: it.str.trim(),
+                        x: it.transform[4],
+                        y: it.transform[5]
+                    })).filter(it => it.str.length > 0);
+
+                    const rawPageText = items.map(i => i.str).join(' ');
+                    const header = this.detectHeader(rawPageText);
+                    lastHeader = header;
+
+                    // หาพิกัดแกน X ของหัวคอลัมน์คาบ 1 ถึง 9 (แถวบน)
+                    const periodHeaders = [];
+                    items.forEach(it => {
+                        if (/^[1-9]$/.test(it.str) && it.y > 400) {
+                            periodHeaders.push({ period: parseInt(it.str), x: it.x });
+                        }
+                    });
+                    periodHeaders.sort((a, b) => a.x - b.x);
+
+                    // หาพิกัดแกน Y ของแถววัน จันทร์ - ศุกร์
+                    const dayMarkers = [
+                        { keys: ['จ.', 'ຈ.'], day: 'จันทร์' },
+                        { keys: ['อ.'], day: 'อังคาร' },
+                        { keys: ['พ.'], day: 'พุธ' },
+                        { keys: ['พฤ.'], day: 'พฤหัสบดี' },
+                        { keys: ['ศ.'], day: 'ศุกร์' }
+                    ];
+
+                    const dayRows = [];
+                    items.forEach(it => {
+                        if (it.x < 130) {
+                            const found = dayMarkers.find(dm => dm.keys.includes(it.str));
+                            if (found) dayRows.push({ day: found.day, y: it.y });
+                        }
+                    });
+                    dayRows.sort((a, b) => b.y - a.y); // เรียงจากบนลงล่าง
+
+                    // จัดกลุ่มข้อความลงช่อง [วัน x คาบ] ตามระยะห่างพิกัด X และ Y
+                    dayRows.forEach((dRow, dIdx) => {
+                        const yTop = dIdx === 0 ? dRow.y + 45 : (dayRows[dIdx - 1].y + dRow.y) / 2;
+                        const yBottom = dIdx === dayRows.length - 1 ? dRow.y - 45 : (dRow.y + dayRows[dIdx + 1].y) / 2;
+
+                        periodHeaders.forEach((pCol, pIdx) => {
+                            const xLeft = pIdx === 0 ? pCol.x - 32 : (periodHeaders[pIdx - 1].x + pCol.x) / 2;
+                            const xRight = pIdx === periodHeaders.length - 1 ? pCol.x + 38 : (pCol.x + periodHeaders[pIdx + 1].x) / 2;
+
+                            const cellItems = items
+                                .filter(it => it.x >= xLeft && it.x < xRight && it.y <= yTop && it.y > yBottom)
+                                .sort((a, b) => b.y - a.y)
+                                .map(it => it.str);
+
+                            if (cellItems.length === 0) return;
+                            const joined = cellItems.join(' ');
+                            if (this.ignoreKeywords.some(k => joined.includes(k))) return;
+
+                            const rowObj = this.buildScheduleRecord(cellItems, dRow.day, pCol.period, header);
+                            if (rowObj) allExtractedRows.push(rowObj);
+                        });
+                    });
+                }
+
+                return { rows: allExtractedRows, header: lastHeader };
+            },
+
+            async parseImageOCR(file) {
+                const worker = await Tesseract.createWorker('tha+eng');
+                const ret = await worker.recognize(file);
+                await worker.terminate();
+                const text = ret.data.text || '';
+                const header = this.detectHeader(text);
+
+                // แยกบรรทัดเบื้องต้นจากภาพถ่ายเพื่อให้เจ้าหน้าที่ตรวจสอบต่อในตาราง Preview
+                const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+                const rows = [];
+                const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
+                let currentDay = 'จันทร์';
+
+                lines.forEach(line => {
+                    if (line.startsWith('จ.')) currentDay = 'จันทร์';
+                    else if (line.startsWith('อ.')) currentDay = 'อังคาร';
+                    else if (line.startsWith('พ.')) currentDay = 'พุธ';
+                    else if (line.startsWith('พฤ.')) currentDay = 'พฤหัสบดี';
+                    else if (line.startsWith('ศ.')) currentDay = 'ศุกร์';
+
+                    const codeMatches = line.match(/[ก-ฮ7]\d{5}/g);
+                    if (codeMatches) {
+                        codeMatches.forEach((rawCode, idx) => {
+                            const cleanCode = this.sanitizeCourseCode(rawCode);
+                            const subj = cachedSubjectsMap.get(cleanCode);
+                            rows.push({
+                                day: currentDay,
+                                period: idx + 1,
+                                course_code: cleanCode,
+                                subject_name: subj ? subj.subject_name : cleanCode,
+                                classroom: header.classroom || 'ม.2/2',
+                                teacher_id: header.teacher_id || '',
+                                teacher_name: header.teacher_name || '',
+                                schedule_code: header.schedule_code || '',
+                                room: '-',
+                                course_type: cleanCode.startsWith('ก') ? 'ACTIVITY' : 'REGULAR'
+                            });
+                        });
+                    }
+                });
+
+                return { rows, header };
+            },
+
+            buildScheduleRecord(lines, day, period, header) {
+                const rawCode = lines[0] || '';
+                const line2 = lines[1] || '';
+                const line3 = lines[2] || '-';
+
+                // กรณีคาบกิจกรรมไม่มีรหัสวิชา เช่น "รักการอ่าน / โฮมรูม" หรือ "ชุมนุม / เลือก / ฐานฯ"
+                const isSpecialActivity = ['โฮมรูม', 'ชุมนุม', 'ลูกเสือ', 'รักการอ่าน'].some(k => lines.join(' ').includes(k));
+                const courseCode = isSpecialActivity && !/^[ก-ฮ7]\d{5}/.test(rawCode)
+                    ? 'ACTIVITY'
+                    : this.sanitizeCourseCode(rawCode);
+
+                const subjInfo = cachedSubjectsMap.get(courseCode);
+                let classroom = header.classroom || '';
+                let teacherId = header.teacher_id || '';
+                let teacherName = header.teacher_name || '';
+                let room = line3;
+
+                if (header.mode === 'TEACHER') {
+                    classroom = this.normalizeClassroom(line2);
+                } else if (header.mode === 'STUDENT') {
+                    if (isSpecialActivity) {
+                        teacherName = header.teacher_name || 'ครูที่ปรึกษา/กิจกรรม';
+                        room = lines.join(' ');
+                    } else {
+                        const matchedTeacher = this.matchTeacher(line2);
+                        teacherId = matchedTeacher ? matchedTeacher.teacher_id : '';
+                        teacherName = matchedTeacher ? matchedTeacher.full_name : line2;
+                    }
+                }
+
+                return {
+                    day,
+                    period,
+                    course_code: courseCode,
+                    subject_name: isSpecialActivity ? lines.slice(0, 2).join(' ') : (subjInfo ? subjInfo.subject_name : courseCode),
+                    classroom: classroom || 'ม.2/2',
+                    teacher_id: teacherId,
+                    teacher_name: teacherName,
+                    schedule_code: header.schedule_code || '',
+                    room: room,
+                    course_type: (courseCode.startsWith('ก') || isSpecialActivity) ? 'ACTIVITY' : 'REGULAR'
+                };
+            }
+        };
+
+        window.handleScheduleFileUpload = async function() {
+            const file = document.getElementById('scheduleFileInput').files[0];
+            if (!file) return;
+
+            await window.loadReferenceMasters();
+
+            const statusBox = document.getElementById('scheduleParseStatus');
+            const statusText = document.getElementById('scheduleParseStatusText');
+            statusBox.classList.remove('hidden');
+            statusText.innerText = `กำลังวิเคราะห์โครงสร้างไฟล์ "${file.name}"...`;
+
+            try {
+                const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                const result = isPDF
+                    ? await BCWScheduleParser.parsePDF(file)
+                    : await BCWScheduleParser.parseImageOCR(file);
+
+                parsedScheduleRows = result.rows || [];
+                parsedScheduleScope = result.header || {};
+
+                statusBox.classList.add('hidden');
+                window.renderSchedulePreviewTable();
+            } catch (err) {
+                statusBox.classList.add('hidden');
+                alert('❌ ไม่สามารถอ่านไฟล์ได้: ' + err.message);
+            }
+        };
+
+        window.renderSchedulePreviewTable = function() {
+            const container = document.getElementById('schedulePreviewContainer');
+            const tbody = document.getElementById('schedulePreviewBody');
+            const headerLbl = document.getElementById('scheduleDetectedHeader');
+
+            if (parsedScheduleScope.mode === 'TEACHER') {
+                headerLbl.innerText = `👩‍🏫 ตรวจพบใบตารางสอนครู: ${parsedScheduleScope.teacher_name} (รหัสตารางสอน: ${parsedScheduleScope.schedule_code} | รหัสระบบ: ${parsedScheduleScope.teacher_id || 'ยังไม่ผูก'}) — พบ ${parsedScheduleRows.length} คาบ`;
+            } else if (parsedScheduleScope.mode === 'STUDENT') {
+                headerLbl.innerText = `🏫 ตรวจพบใบตารางเรียนห้อง: ${parsedScheduleScope.classroom} — พบ ${parsedScheduleRows.length} คาบ`;
+            } else {
+                headerLbl.innerText = `📋 ผลการสกัดข้อมูลตารางเรียน — พบ ${parsedScheduleRows.length} คาบ`;
+            }
+
+            tbody.innerHTML = parsedScheduleRows.map((row, idx) => `
+                <tr class="hover:bg-indigo-50/40">
+                    <td class="p-1.5">
+                        <input type="text" value="${row.day}" onchange="parsedScheduleRows[${idx}].day = this.value" class="w-16 p-1 border border-slate-200 rounded font-bold">
+                    </td>
+                    <td class="p-1.5 text-center">
+                        <input type="number" value="${row.period}" onchange="parsedScheduleRows[${idx}].period = parseInt(this.value)||1" class="w-11 p-1 border border-slate-200 rounded text-center font-bold">
+                    </td>
+                    <td class="p-1.5">
+                        <input type="text" value="${row.course_code}" onchange="parsedScheduleRows[${idx}].course_code = this.value" class="w-20 p-1 border border-slate-200 rounded font-mono font-bold text-indigo-800">
+                    </td>
+                    <td class="p-1.5">
+                        <input type="text" value="${row.subject_name}" onchange="parsedScheduleRows[${idx}].subject_name = this.value" class="w-36 p-1 border border-slate-200 rounded">
+                    </td>
+                    <td class="p-1.5">
+                        <input type="text" value="${row.classroom}" onchange="parsedScheduleRows[${idx}].classroom = this.value" class="w-20 p-1 border border-slate-200 rounded font-bold text-emerald-800">
+                    </td>
+                    <td class="p-1.5">
+                        <input type="text" value="${row.teacher_name}" onchange="parsedScheduleRows[${idx}].teacher_name = this.value" class="w-36 p-1 border border-slate-200 rounded">
+                    </td>
+                    <td class="p-1.5">
+                        <input type="text" value="${row.room}" onchange="parsedScheduleRows[${idx}].room = this.value" class="w-20 p-1 border border-slate-200 rounded">
+                    </td>
+                    <td class="p-1.5 text-center">
+                        <button type="button" onclick="parsedScheduleRows.splice(${idx}, 1); window.renderSchedulePreviewTable();" class="text-rose-600 hover:text-rose-800 font-bold px-2 cursor-pointer">&times;</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            container.classList.remove('hidden');
+        };
+
+        window.addBlankScheduleRow = function() {
+            parsedScheduleRows.push({
+                day: 'จันทร์',
+                period: 1,
+                course_code: '',
+                subject_name: '',
+                classroom: parsedScheduleScope.classroom || 'ม.2/2',
+                teacher_id: parsedScheduleScope.teacher_id || '',
+                teacher_name: parsedScheduleScope.teacher_name || '',
+                schedule_code: parsedScheduleScope.schedule_code || '',
+                room: '',
+                course_type: 'REGULAR'
+            });
+            window.renderSchedulePreviewTable();
+        };
+
+        window.clearSchedulePreview = function() {
+            parsedScheduleRows = [];
+            document.getElementById('scheduleFileInput').value = '';
+            document.getElementById('schedulePreviewContainer').classList.add('hidden');
+        };
+
+        window.saveParsedSchedulesToDB = async function() {
+            if (!parsedScheduleRows.length) return alert('ไม่มีข้อมูลตารางเรียนให้บันทึกครับ');
+            const saveMode = document.getElementById('scheduleSaveMode').value;
+            const btn = document.getElementById('btnSaveParsedSchedules');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึกลงฐานข้อมูล...`;
+
+            try {
+                // หากเลือกโหมดอัปเดตเฉพาะครูหรือเฉพาะห้อง ให้ล้างตารางเก่าเฉพาะขอบเขตนั้นก่อน
+                if (saveMode === 'SCOPED_REPLACE') {
+                    if (parsedScheduleScope.mode === 'TEACHER' && parsedScheduleScope.teacher_name) {
+                        await db.from('schedules').delete().eq('teacher_name', parsedScheduleScope.teacher_name);
+                    } else if (parsedScheduleScope.mode === 'STUDENT' && parsedScheduleScope.classroom) {
+                        await db.from('schedules').delete().eq('classroom', parsedScheduleScope.classroom);
+                    }
+                }
+
+                const payload = parsedScheduleRows.map(r => ({
+                    classroom: r.classroom,
+                    day: r.day,
+                    period: Number(r.period) || 1,
+                    course_code: r.course_code,
+                    subject_name: r.subject_name || r.course_code,
+                    room: r.room || '-',
+                    teacher_name: r.teacher_name,
+                    teacher_id: r.teacher_id || null,
+                    schedule_code: r.schedule_code || null,
+                    academic_year: '2569',
+                    semester: '2',
+                    course_type: r.course_type || 'REGULAR'
+                }));
+
+                const { error } = await db.from('schedules').insert(payload);
+                if (error) throw error;
+
+                alert(`🎉 บันทึกตารางเรียน/ตารางสอนสำเร็จ ${payload.length} คาบเรียน!`);
+                window.clearSchedulePreview();
+                await window.refreshAllAdminData();
+            } catch (err) {
+                alert('❌ เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>ยืนยันบันทึกตารางเรียน/ตารางสอนลง Supabase</span>`;
+            }
+        };
+
+        // 4. ระบบโอนย้ายรายวิชา / เปลี่ยนครูผู้สอนกลางเทอม
+        window.loadTeacherSubjectsForTransfer = async function() {
+            const fromTid = document.getElementById('transferFromTeacher').value;
+            const scopeSel = document.getElementById('transferScopeSelect');
+            if (!fromTid) {
+                scopeSel.innerHTML = `<option value="ALL">โอนย้ายทุกรายวิชาและทุกห้องเรียน</option>`;
+                return;
+            }
+
+            const teacherObj = cachedTeachersList.find(t => t.teacher_id === fromTid);
+            const { data } = await db.from('schedules')
+                .select('course_code, subject_name, classroom')
+                .or(`teacher_id.eq.${fromTid},teacher_name.eq."${teacherObj?.full_name || ''}"`);
+
+            const uniquePairs = new Map();
+            (data || []).forEach(r => {
+                const key = `${r.course_code}||${r.classroom}`;
+                if (!uniquePairs.has(key)) {
+                    uniquePairs.set(key, `${r.course_code} ${r.subject_name || ''} (ห้อง ${r.classroom})`);
+                }
+            });
+
+            scopeSel.innerHTML = `<option value="ALL">โอนย้ายทั้งหมด (${uniquePairs.size} วิชา/ห้อง)</option>` +
+                Array.from(uniquePairs.entries()).map(([k, label]) => `<option value="${k}">${label}</option>`).join('');
+        };
+
+        window.executeTeacherTransfer = async function() {
+            const fromTid = document.getElementById('transferFromTeacher').value;
+            const toTid = document.getElementById('transferToTeacher').value;
+            const scope = document.getElementById('transferScopeSelect').value;
+
+            if (!fromTid || !toTid) return alert('กรุณาเลือกทั้งครูผู้สอนเดิมและครูผู้สอนคนใหม่ครับ');
+            if (fromTid === toTid) return alert('ครูผู้สอนเดิมและคนใหม่ต้องไม่ใช่คนเดียวกันครับ');
+
+            const fromObj = cachedTeachersList.find(t => t.teacher_id === fromTid);
+            const toObj = cachedTeachersList.find(t => t.teacher_id === toTid);
+
+            if (!confirm(`ยืนยันการโอนย้ายตารางสอนจาก "${fromObj.full_name}" ไปยัง "${toObj.full_name}" ใช่หรือไม่?\n(ประวัติการเช็กชื่อเดิมของนักเรียนจะยังคงอยู่ครบถ้วน)`)) return;
+
+            try {
+                let query = db.from('schedules').update({
+                    teacher_id: toObj.teacher_id,
+                    teacher_name: toObj.full_name,
+                    schedule_code: toObj.schedule_code || null
+                }).or(`teacher_id.eq.${fromTid},teacher_name.eq."${fromObj.full_name}"`);
+
+                if (scope !== 'ALL') {
+                    const [cCode, cRoom] = scope.split('||');
+                    query = query.eq('course_code', cCode).eq('classroom', cRoom);
+                }
+
+                const { error } = await query;
+                if (error) throw error;
+
+                alert(`✅ โอนย้ายตารางสอนไปยัง "${toObj.full_name}" เรียบร้อยแล้ว!`);
+                window.loadTeacherSubjectsForTransfer();
+            } catch (err) {
+                alert('❌ เกิดข้อผิดพลาดในการโอนย้าย: ' + err.message);
+            }
+        };
+
+        // 5. ดึงรายชื่อห้องเรียนทั้งหมดที่มีจริงในฐานข้อมูล
         window.loadDynamicClassrooms = async function() {
             const selectEl = document.getElementById('filterClassroomSelect');
             if (!selectEl || !db) return;
 
             try {
-                // ดึงแบบแบ่งหน้า 3 ช่วง เพื่อให้ครบนักเรียน 2,000+ คน (ทะลุขีดจำกัด 1,000 แถวของ Supabase)
                 const [r1, r2, r3] = await Promise.all([
                     db.from('students').select('classroom').range(0, 999),
                     db.from('students').select('classroom').range(1000, 1999),
@@ -485,60 +1110,72 @@
                 selectEl.innerHTML = `<option value="ALL">ทุกห้องเรียน (${uniqueRooms.length} ห้อง)</option>` +
                     uniqueRooms.map(room => `<option value="${room}">${room}</option>`).join('');
 
-                if (uniqueRooms.includes(currentVal)) {
-                    selectEl.value = currentVal;
-                }
+                if (uniqueRooms.includes(currentVal)) selectEl.value = currentVal;
             } catch (err) {
                 console.warn('Load classrooms warning:', err);
             }
         };
 
-        // 3. โหลดตัวเลขสถิติภาพรวม 4 ช่อง
+        // 6. โหลดตัวเลขสถิติภาพรวม 4 ช่อง
         window.refreshAllAdminData = async function() {
             if (!db) return;
             try {
-                const [resStu, resUsr, resCrs, resAvt] = await Promise.all([
+                const [resStu, resUsr, resSch, resAvt] = await Promise.all([
                     db.from('students').select('*', { count: 'exact', head: true }),
                     db.from('users').select('*', { count: 'exact', head: true }),
-                    db.from('courses').select('*', { count: 'exact', head: true }),
+                    db.from('schedules').select('*', { count: 'exact', head: true }),
                     db.storage.from('avatars').list()
                 ]);
 
                 document.getElementById('statStudents').innerText = `${resStu.count || 0} คน`;
                 document.getElementById('statTeachers').innerText = `${resUsr.count || 0} คน`;
-                document.getElementById('statCourses').innerText = `${resCrs.count || 0} วิชา`;
+                document.getElementById('statCourses').innerText = `${resSch.count || 0} คาบ`;
                 document.getElementById('statAvatars').innerText = `${resAvt.data ? resAvt.data.length : 0} รูป`;
 
+                await window.loadReferenceMasters();
                 await window.loadDynamicClassrooms();
             } catch (e) {
                 console.warn('Stats load warning:', e);
             }
         };
 
-        // 4. ดาวน์โหลดไฟล์ต้นแบบ Excel (.xlsx)
+        // 7. ดาวน์โหลดไฟล์ต้นแบบ Excel (.xlsx)
         window.downloadTemplateExcel = function() {
             const cat = document.getElementById('importCategory').value;
             let sampleData = [];
 
-            if (cat === 'students') {
+            if (cat === 'subjects') {
                 sampleData = [
-                    { student_id: '13174', prefix: 'นาย', first_name: 'รักเรียน', last_name: 'เพียรศึกษา', classroom: 'ม.4/1', no: 1, behavior_score: 100 }
+                    { course_code: 'ว22104', subject_name: 'วิทยาการคำนวณ 4', subject_group: 'วิทยาศาสตร์และเทคโนโลยี', grade_level: 'ม.2' },
+                    { course_code: 'ค22202', subject_name: 'คณิตศาสตร์เพิ่มเติม 4', subject_group: 'คณิตศาสตร์', grade_level: 'ม.2' }
+                ];
+            } else if (cat === 'teacher_schedule_codes') {
+                sampleData = [
+                    { teacher_id: 'T024', schedule_code: '0326', full_name: 'นายธนดล คำเสมอ' }
+                ];
+            } else if (cat === 'class_advisors') {
+                sampleData = [
+                    { classroom: 'ม.2/2', advisor_name: 'นายธนดล คำเสมอ' }
+                ];
+            } else if (cat === 'students') {
+                sampleData = [
+                    { student_id: '13174', prefix: 'นาย', first_name: 'รักเรียน', last_name: 'เพียรศึกษา', classroom: 'ม.4/1', student_no: 1, behavior_score: 100 }
                 ];
             } else if (cat === 'teachers') {
                 sampleData = [
-                    { teacher_id: 'T001', full_name: 'นายธนดล ใจดี', role: 'admin', email: 'thanadol@gmail.com' }
+                    { teacher_id: 'T001', schedule_code: '0326', full_name: 'นายธนดล คำเสมอ', role: 'admin', email: 'thanadol@buached.ac.th' }
                 ];
             } else {
-                sampleData = [{ code: 'SAMPLE', name: 'ตัวอย่างข้อมูล' }];
+                sampleData = [{ id: 'SAMPLE', status: 'inactive' }];
             }
 
             const ws = XLSX.utils.json_to_sheet(sampleData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Template');
-            XLSX.writeFile(wb, `ต้นแบบนำเข้า_${cat}_BCW.xlsx`);
+            XLSX.writeFile(wb, `ต้นแบบ_${cat}_BCW.xlsx`);
         };
 
-        // 5. อ่านไฟล์ Excel / CSV และแสดงตัวอย่าง
+        // 8. อ่านไฟล์ Excel / CSV และแสดงตัวอย่าง
         window.previewSelectedFile = function() {
             const file = document.getElementById('dataFileInput').files[0];
             if (!file) return;
@@ -580,7 +1217,7 @@
             document.getElementById('previewBox').classList.add('hidden');
         };
 
-        // 6. นำเข้าข้อมูล Excel / CSV ลงฐานข้อมูล
+        // 9. นำเข้าข้อมูล Excel / CSV ลงฐานข้อมูล (รองรับการอัปเดตครูที่ปรึกษาและรหัสตารางสอน)
         window.executeBulkImport = async function() {
             if (!parsedImportRows.length) return alert('กรุณาเลือกไฟล์ Excel หรือ CSV ก่อนครับ');
             const category = document.getElementById('importCategory').value;
@@ -589,11 +1226,41 @@
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังนำเข้าข้อมูล ${parsedImportRows.length} รายการ...`;
 
             try {
-                let tableName = category;
-                let payload = [];
-
-                if (category === 'students') {
-                    payload = parsedImportRows.map(r => {
+                if (category === 'class_advisors') {
+                    // อัปเดตชื่อครูที่ปรึกษาลงให้นักเรียนทั้งห้องอัตโนมัติ
+                    for (const r of parsedImportRows) {
+                        const room = String(r.classroom || r['ห้องเรียน'] || '').trim();
+                        const adv = String(r.advisor_name || r['ครูที่ปรึกษา'] || '').trim();
+                        if (room && adv) {
+                            await db.from('students').update({ advisor_name: adv }).eq('classroom', room);
+                        }
+                    }
+                    alert(`🎉 อัปเดตครูที่ปรึกษาประจำห้องสำเร็จ ${parsedImportRows.length} ห้องเรียน!`);
+                } else if (category === 'teacher_schedule_codes') {
+                    // อัปเดตรหัสตารางสอน 4 หลักลงในตาราง teachers และ users
+                    for (const r of parsedImportRows) {
+                        const tid = String(r.teacher_id || '').trim();
+                        const sCode = String(r.schedule_code || '').trim();
+                        if (tid && sCode) {
+                            await Promise.all([
+                                db.from('teachers').update({ schedule_code: sCode }).eq('teacher_id', tid),
+                                db.from('users').update({ schedule_code: sCode }).or(`teacher_id.eq.${tid},ref_id.eq.${tid}`)
+                            ]);
+                        }
+                    }
+                    alert(`🎉 ผูกรหัสตารางสอน 4 หลักสำเร็จ ${parsedImportRows.length} รายการ!`);
+                } else if (category === 'subjects') {
+                    const payload = parsedImportRows.map(r => ({
+                        course_code: String(r.course_code || '').trim(),
+                        subject_name: String(r.subject_name || '').trim(),
+                        subject_group: String(r.subject_group || 'ทั่วไป').trim(),
+                        grade_level: String(r.grade_level || '').trim()
+                    })).filter(x => x.course_code && x.subject_name);
+                    const { error } = await db.from('subjects').upsert(payload, { onConflict: 'course_code' });
+                    if (error) throw error;
+                    alert(`🎉 นำเข้าทะเบียนรายวิชาสำเร็จ ${payload.length} วิชา!`);
+                } else if (category === 'students') {
+                    const payload = parsedImportRows.map(r => {
                         const sid = String(r.student_id || r['รหัสนักเรียน'] || '').trim();
                         const prefix = r.prefix || r['คำนำหน้า'] || '';
                         const fname = r.first_name || r['ชื่อ'] || '';
@@ -603,30 +1270,30 @@
                             prefix,
                             first_name: fname,
                             last_name: lname,
-                            name: r.name || `${prefix}${fname} ${lname}`.trim(),
-                            classroom: String(r.classroom || r.class || r['ชั้นเรียน'] || '').trim(),
-                            no: parseInt(r.no || r['เลขที่']) || 0,
+                            classroom: String(r.classroom || r['ชั้นเรียน'] || '').trim(),
+                            student_no: parseInt(r.student_no || r.no || r['เลขที่']) || 0,
                             status: 'active',
                             avatar_url: `${SUPABASE_STORAGE_URL}/${sid}.jpg`
                         };
                     }).filter(x => x.student_id);
+                    const { error } = await db.from('students').upsert(payload, { onConflict: 'student_id' });
+                    if (error) throw error;
+                    alert(`🎉 นำเข้าข้อมูลนักเรียนสำเร็จ ${payload.length} คน!`);
                 } else if (category === 'teachers') {
-                    tableName = 'users';
-                    payload = parsedImportRows.map(r => ({
-                        ref_id: String(r.teacher_id || r.ref_id || r['รหัสครู'] || '').trim(),
-                        full_name: r.full_name || r.name || r['ชื่อ-นามสกุล'] || '',
-                        role: (r.role || r['สิทธิ์'] || 'teacher').toLowerCase().trim(),
+                    const payload = parsedImportRows.map(r => ({
+                        teacher_id: String(r.teacher_id || r.ref_id || '').trim(),
+                        ref_id: String(r.teacher_id || r.ref_id || '').trim(),
+                        schedule_code: String(r.schedule_code || '').trim(),
+                        full_name: r.full_name || r.name || '',
+                        role: (r.role || 'TEACHER').toUpperCase().trim(),
                         email: r.email || '',
                         status: 'active'
-                    })).filter(x => x.ref_id || x.email);
-                } else {
-                    payload = parsedImportRows;
+                    })).filter(x => x.teacher_id || x.email);
+                    const { error } = await db.from('users').upsert(payload);
+                    if (error) throw error;
+                    alert(`🎉 นำเข้าข้อมูลบุคลากรสำเร็จ ${payload.length} รายการ!`);
                 }
 
-                const { error } = await db.from(tableName).upsert(payload);
-                if (error) throw error;
-
-                alert(`🎉 นำเข้าข้อมูลลงตาราง "${tableName}" สำเร็จจำนวน ${payload.length} รายการ!`);
                 window.clearFilePreview();
                 await window.refreshAllAdminData();
             } catch (err) {
@@ -637,7 +1304,7 @@
             }
         };
 
-        // 7. โหลดตารางนักเรียนตามห้องจริงที่เลือก
+        // 10. โหลดตารางนักเรียนตามห้องจริงที่เลือก
         window.loadStudentsTable = async function() {
             const tbody = document.getElementById('studentsAdminTableBody');
             const keyword = (document.getElementById('searchStudentInput')?.value || '').trim().toLowerCase();
@@ -648,13 +1315,9 @@
 
             try {
                 let query = db.from('students').select('*');
-                if (classroom !== 'ALL') {
-                    query = query.eq('classroom', classroom);
-                } else if (!keyword) {
-                    query = query.limit(200);
-                } else {
-                    query = query.limit(3000);
-                }
+                if (classroom !== 'ALL') query = query.eq('classroom', classroom);
+                else if (!keyword) query = query.limit(200);
+                else query = query.limit(3000);
 
                 const { data, error } = await query;
                 if (error) throw error;
@@ -663,7 +1326,7 @@
                     const st = s.status || 'active';
                     if (status !== 'ALL' && st !== status) return false;
                     if (keyword) {
-                        const text = `${s.student_id || ''} ${s.prefix || ''} ${s.first_name || ''} ${s.last_name || ''} ${s.name || ''} ${s.classroom || ''}`.toLowerCase();
+                        const text = `${s.student_id || ''} ${s.prefix || ''} ${s.first_name || ''} ${s.last_name || ''} ${s.classroom || ''}`.toLowerCase();
                         return text.includes(keyword);
                     }
                     return true;
@@ -671,7 +1334,7 @@
 
                 list.sort((a, b) =>
                     String(a.classroom || '').localeCompare(String(b.classroom || ''), 'th', { numeric: true }) ||
-                    (Number(a.no || 0) - Number(b.no || 0))
+                    (Number(a.student_no || a.no || 0) - Number(b.student_no || b.no || 0))
                 );
 
                 if (list.length === 0) {
@@ -680,22 +1343,17 @@
                 }
 
                 tbody.innerHTML = list.map(s => {
-                    const fullName = `${s.prefix || ''}${s.first_name || ''} ${s.last_name || ''}`.trim() || s.name || '-';
-                    const isActive = (s.status || 'active') === 'active';
-                    const badge = isActive
-                        ? `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full text-xs font-bold">กำลังศึกษา</span>`
-                        : `<span class="bg-rose-100 text-rose-800 px-2.5 py-0.5 rounded-full text-xs font-bold">ย้ายออก</span>`;
-
+                    const fullName = `${s.prefix || ''}${s.first_name || ''} ${s.last_name || ''}`.trim() || '-';
                     return `
                         <tr class="hover:bg-slate-50">
                             <td class="py-2.5 px-3 font-mono font-bold text-slate-700">${s.student_id || '-'}</td>
                             <td class="py-2.5 px-3 font-bold text-slate-900">${fullName}</td>
                             <td class="py-2.5 px-3 text-center font-bold text-indigo-700">${s.classroom || '-'}</td>
-                            <td class="py-2.5 px-3 text-center">${s.no || '-'}</td>
-                            <td class="py-2.5 px-3 text-center">${badge}</td>
+                            <td class="py-2.5 px-3 text-center">${s.student_no || s.no || '-'}</td>
+                            <td class="py-2.5 px-3 text-xs text-slate-600">${s.advisor_name || '<span class="text-amber-600">ยังไม่ระบุ</span>'}</td>
                             <td class="py-2.5 px-3 text-center">
                                 <button type="button" onclick='window.openStudentFormModal(${JSON.stringify(s).replace(/'/g, "&apos;")})' class="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 px-3 py-1 rounded-lg text-xs font-bold cursor-pointer">
-                                    <i class="fa-solid fa-pen-to-square"></i> แก้ไข / ย้ายห้อง
+                                    <i class="fa-solid fa-pen-to-square"></i> แก้ไข
                                 </button>
                             </td>
                         </tr>
@@ -713,10 +1371,10 @@
                 document.getElementById('stuIdInput').readOnly = true;
                 document.getElementById('stuClassInput').value = stu.classroom || '';
                 document.getElementById('stuPrefixInput').value = stu.prefix || 'นาย';
-                document.getElementById('stuFirstNameInput').value = stu.first_name || stu.name || '';
+                document.getElementById('stuFirstNameInput').value = stu.first_name || '';
                 document.getElementById('stuLastNameInput').value = stu.last_name || '';
-                document.getElementById('stuNoInput').value = stu.no || 1;
-                document.getElementById('stuStatusInput').value = stu.status || 'active';
+                document.getElementById('stuNoInput').value = stu.student_no || stu.no || 1;
+                document.getElementById('stuAdvisorInput').value = stu.advisor_name || '';
             } else {
                 document.getElementById('stuIdInput').value = '';
                 document.getElementById('stuIdInput').readOnly = false;
@@ -725,7 +1383,7 @@
                 document.getElementById('stuFirstNameInput').value = '';
                 document.getElementById('stuLastNameInput').value = '';
                 document.getElementById('stuNoInput').value = 1;
-                document.getElementById('stuStatusInput').value = 'active';
+                document.getElementById('stuAdvisorInput').value = '';
             }
             modal.style.display = 'flex';
         };
@@ -741,8 +1399,8 @@
             const fname = document.getElementById('stuFirstNameInput').value.trim();
             const lname = document.getElementById('stuLastNameInput').value.trim();
             const classroom = document.getElementById('stuClassInput').value.trim();
-            const no = parseInt(document.getElementById('stuNoInput').value) || 1;
-            const status = document.getElementById('stuStatusInput').value;
+            const student_no = parseInt(document.getElementById('stuNoInput').value) || 1;
+            const advisor_name = document.getElementById('stuAdvisorInput').value.trim();
 
             try {
                 const { error } = await db.from('students').upsert({
@@ -750,12 +1408,12 @@
                     prefix,
                     first_name: fname,
                     last_name: lname,
-                    name: `${prefix}${fname} ${lname}`.trim(),
                     classroom,
-                    no,
-                    status,
+                    student_no,
+                    advisor_name: advisor_name || null,
+                    status: 'active',
                     avatar_url: `${SUPABASE_STORAGE_URL}/${sid}.jpg`
-                });
+                }, { onConflict: 'student_id' });
                 if (error) throw error;
 
                 alert(`✅ บันทึกข้อมูลนักเรียน ${prefix}${fname} ${lname} เรียบร้อยแล้ว`);
@@ -767,43 +1425,23 @@
             }
         };
 
-        // 8. โหลดตารางข้อมูลครูจริง + เชื่อมโยงสิทธิ์การใช้งาน
+        // 11. โหลดตารางข้อมูลครูจริง + รหัสตารางสอน + สิทธิ์การใช้งาน
         window.loadStaffTable = async function() {
             const tbody = document.getElementById('staffAdminTableBody');
             const keyword = (document.getElementById('searchStaffInput')?.value || '').trim().toLowerCase();
             const roleFilter = document.getElementById('filterRoleSelect')?.value || 'ALL';
 
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังดึงข้อมูลบุคลากรและสิทธิ์จริง...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังดึงข้อมูลบุคลากร...</td></tr>`;
 
             try {
-                const candidateTables = ['teachers', 'staff', 'personnel', 'teacher_profiles'];
-                let realTeachers = [];
-                let foundTable = null;
+                const [{ data: usersData }, { data: teachersData }] = await Promise.all([
+                    db.from('users').select('*'),
+                    db.from('teachers').select('*')
+                ]);
 
-                for (const tbl of candidateTables) {
-                    const { data, error } = await db.from(tbl).select('*');
-                    if (!error && Array.isArray(data) && data.length > 0) {
-                        realTeachers = data;
-                        foundTable = tbl;
-                        break;
-                    }
-                }
-                window.ACTIVE_TEACHER_TABLE = foundTable;
-
-                const { data: usersData } = await db.from('users').select('*');
-                const usersList = usersData || [];
-                const sourceList = realTeachers.length > 0 ? realTeachers : usersList;
-
-                const roleMapByEmail = new Map();
-                const roleMapByCode = new Map();
-                const roleMapByName = new Map();
-
-                usersList.forEach(u => {
-                    if (u.email) roleMapByEmail.set(String(u.email).toLowerCase().trim(), u);
-                    const uCode = u.ref_id || u.teacher_id || u.code || '';
-                    if (uCode) roleMapByCode.set(String(uCode).toLowerCase().trim(), u);
-                    const uName = u.full_name || u.name || '';
-                    if (uName) roleMapByName.set(String(uName).trim(), u);
+                const teacherScheduleMap = new Map();
+                (teachersData || []).forEach(t => {
+                    if (t.teacher_id) teacherScheduleMap.set(t.teacher_id, t);
                 });
 
                 const roleLabels = {
@@ -815,81 +1453,47 @@
                     teacher: { text: '👩‍🏫 ครูผู้สอน (Teacher)', cls: 'bg-slate-100 text-slate-800 border-slate-300' }
                 };
 
-                let normalizedList = sourceList.map(t => {
-                    const realCode = t.teacher_id || t.teacher_code || t.employee_id || t.staff_id || t.code || t.ref_id || '-';
-                    const realName = t.full_name || t.name || `${t.prefix || ''}${t.first_name || ''} ${t.last_name || ''}`.trim() || '-';
-                    const realEmail = t.email || t.personal_email || t.google_email || '-';
-
-                    const linkedUser =
-                        roleMapByEmail.get(String(realEmail).toLowerCase().trim()) ||
-                        roleMapByCode.get(String(realCode).toLowerCase().trim()) ||
-                        roleMapByName.get(String(realName).trim()) ||
-                        {};
-
-                    const rawRole = t.role || t.user_role || t.roles || linkedUser.role || linkedUser.user_role || 'teacher';
-                    const roleArray = Array.isArray(rawRole)
-                        ? rawRole.map(r => String(r).toLowerCase().trim())
-                        : String(rawRole).split(',').map(r => r.toLowerCase().trim()).filter(Boolean);
-
+                let list = (usersData || []).map(u => {
+                    const code = u.teacher_id || u.ref_id || '-';
+                    const tExtra = teacherScheduleMap.get(code) || {};
+                    const sCode = u.schedule_code || tExtra.schedule_code || '';
+                    const rKey = String(u.role || 'teacher').toLowerCase().trim();
                     return {
-                        linkedUserId: linkedUser.id || null,
-                        staffCode: String(realCode),
-                        staffName: realName,
-                        email: realEmail,
-                        department: t.department || t.subject_group || t.position || '',
-                        roleArray: roleArray.length ? roleArray : ['teacher'],
-                        isActive: (t.status || linkedUser.status || 'active') === 'active'
+                        id: u.id,
+                        staffCode: code,
+                        scheduleCode: sCode,
+                        staffName: u.full_name || '-',
+                        email: u.email || '-',
+                        department: u.department || tExtra.department || '',
+                        roleKey: rKey,
+                        isActive: (u.status || 'active') === 'active'
                     };
-                });
-
-                normalizedList = normalizedList.filter(item => {
-                    if (roleFilter !== 'ALL' && !item.roleArray.includes(roleFilter.toLowerCase())) return false;
+                }).filter(item => {
+                    if (roleFilter !== 'ALL' && item.roleKey !== roleFilter.toLowerCase()) return false;
                     if (keyword) {
-                        const text = `${item.staffCode} ${item.staffName} ${item.email} ${item.department}`.toLowerCase();
-                        return text.includes(keyword);
+                        return `${item.staffCode} ${item.scheduleCode} ${item.staffName} ${item.email}`.toLowerCase().includes(keyword);
                     }
                     return true;
                 });
 
-                normalizedList.sort((a, b) => a.staffCode.localeCompare(b.staffCode, 'th', { numeric: true }));
+                list.sort((a, b) => a.staffCode.localeCompare(b.staffCode, 'th', { numeric: true }));
 
-                if (normalizedList.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">ไม่พบข้อมูลครูตามเงื่อนไขที่ค้นหา</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = normalizedList.map(item => {
-                    const badgesHtml = item.roleArray.map(rKey => {
-                        const rInfo = roleLabels[rKey] || { text: `🔑 ${rKey}`, cls: 'bg-sky-100 text-sky-900 border-sky-300' };
-                        return `<span class="inline-block border px-2.5 py-0.5 rounded-full text-xs font-extrabold m-0.5 ${rInfo.cls}">${rInfo.text}</span>`;
-                    }).join('');
-
-                    const editPayload = JSON.stringify({
-                        linkedUserId: item.linkedUserId,
-                        staffCode: item.staffCode,
-                        staffName: item.staffName,
-                        email: item.email,
-                        role: item.roleArray[0] || 'teacher',
-                        status: item.isActive ? 'active' : 'inactive'
-                    }).replace(/'/g, "&apos;");
-
+                tbody.innerHTML = list.map(item => {
+                    const rInfo = roleLabels[item.roleKey] || { text: `🔑 ${item.roleKey}`, cls: 'bg-sky-100 text-sky-900 border-sky-300' };
+                    const editPayload = JSON.stringify(item).replace(/'/g, "&apos;");
                     return `
                         <tr class="hover:bg-slate-50">
-                            <td class="py-2.5 px-3 font-mono font-bold text-indigo-900">${item.staffCode}</td>
-                            <td class="py-2.5 px-3">
-                                <div class="font-bold text-slate-900">${item.staffName}</div>
-                                ${item.department ? `<div class="text-[11px] text-slate-500">${item.department}</div>` : ''}
+                            <td class="py-2.5 px-3 font-mono font-bold text-indigo-900">
+                                ${item.staffCode}
+                                ${item.scheduleCode ? `<span class="ml-1 bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded text-[11px]">ตาราง: ${item.scheduleCode}</span>` : ''}
                             </td>
-                            <td class="py-2.5 px-3 text-slate-700 font-medium">${item.email}</td>
-                            <td class="py-2.5 px-3 text-center">${badgesHtml}</td>
-                            <td class="py-2.5 px-3 text-center">
-                                ${item.isActive
-                                    ? '<span class="text-emerald-700 font-bold text-xs">🟢 ใช้งานปกติ</span>'
-                                    : '<span class="text-rose-600 font-bold text-xs">🔴 ระงับสิทธิ์</span>'}
-                            </td>
+                            <td class="py-2.5 px-3 font-bold text-slate-900">${item.staffName}</td>
+                            <td class="py-2.5 px-3 text-slate-700">${item.email}</td>
+                            <td class="py-2.5 px-3 text-center"><span class="inline-block border px-2.5 py-0.5 rounded-full text-xs font-extrabold ${rInfo.cls}">${rInfo.text}</span></td>
+                            <td class="py-2.5 px-3 text-center">${item.isActive ? '<span class="text-emerald-700 font-bold text-xs">🟢 ปกติ</span>' : '<span class="text-rose-600 font-bold text-xs">🔴 ระงับ</span>'}</td>
                             <td class="py-2.5 px-3 text-center">
                                 <button type="button" onclick='window.openStaffFormModal(${editPayload})' class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 px-3 py-1 rounded-lg text-xs font-bold cursor-pointer">
-                                    <i class="fa-solid fa-key"></i> ตั้งค่าสิทธิ์ / แก้ไข
+                                    <i class="fa-solid fa-key"></i> ตั้งค่า
                                 </button>
                             </td>
                         </tr>
@@ -902,21 +1506,13 @@
 
         window.openStaffFormModal = function(item = null) {
             const modal = document.getElementById('staffFormModal');
-            if (item) {
-                document.getElementById('staffRecordId').value = item.linkedUserId || '';
-                document.getElementById('staffRefIdInput').value = item.staffCode !== '-' ? item.staffCode : '';
-                document.getElementById('staffFullNameInput').value = item.staffName !== '-' ? item.staffName : '';
-                document.getElementById('staffEmailInput').value = item.email !== '-' ? item.email : '';
-                document.getElementById('staffRoleInput').value = item.role || 'teacher';
-                document.getElementById('staffStatusInput').value = item.status || 'active';
-            } else {
-                document.getElementById('staffRecordId').value = '';
-                document.getElementById('staffRefIdInput').value = '';
-                document.getElementById('staffFullNameInput').value = '';
-                document.getElementById('staffEmailInput').value = '';
-                document.getElementById('staffRoleInput').value = 'teacher';
-                document.getElementById('staffStatusInput').value = 'active';
-            }
+            document.getElementById('staffRecordId').value = item?.id || '';
+            document.getElementById('staffRefIdInput').value = item?.staffCode !== '-' ? (item?.staffCode || '') : '';
+            document.getElementById('staffScheduleCodeInput').value = item?.scheduleCode || '';
+            document.getElementById('staffFullNameInput').value = item?.staffName !== '-' ? (item?.staffName || '') : '';
+            document.getElementById('staffEmailInput').value = item?.email !== '-' ? (item?.email || '') : '';
+            document.getElementById('staffRoleInput').value = item?.roleKey || 'teacher';
+            document.getElementById('staffStatusInput').value = item?.isActive === false ? 'inactive' : 'active';
             modal.style.display = 'flex';
         };
 
@@ -928,34 +1524,28 @@
             e.preventDefault();
             const recId = document.getElementById('staffRecordId').value;
             const code = document.getElementById('staffRefIdInput').value.trim();
+            const sCode = document.getElementById('staffScheduleCodeInput').value.trim();
             const fullName = document.getElementById('staffFullNameInput').value.trim();
             const email = document.getElementById('staffEmailInput').value.trim();
             const role = document.getElementById('staffRoleInput').value;
             const status = document.getElementById('staffStatusInput').value;
 
             try {
-                if (window.ACTIVE_TEACHER_TABLE) {
-                    await db.from(window.ACTIVE_TEACHER_TABLE).upsert({
-                        teacher_id: code,
-                        full_name: fullName,
-                        email: email,
-                        role: role,
-                        status: status
-                    });
-                }
-
                 const userPayload = {
+                    teacher_id: code,
                     ref_id: code,
+                    schedule_code: sCode || null,
                     full_name: fullName,
                     email: email,
-                    role: role,
+                    role: role.toUpperCase(),
                     status: status
                 };
 
-                if (recId) {
-                    await db.from('users').update(userPayload).eq('id', recId);
-                } else {
-                    await db.from('users').upsert(userPayload, { onConflict: 'email' });
+                if (recId) await db.from('users').update(userPayload).eq('id', recId);
+                else await db.from('users').upsert(userPayload, { onConflict: 'email' });
+
+                if (code) {
+                    await db.from('teachers').update({ schedule_code: sCode || null, status }).eq('teacher_id', code);
                 }
 
                 alert(`✅ บันทึกข้อมูลครูและสิทธิ์ของ "${fullName}" เรียบร้อยแล้ว`);
@@ -966,7 +1556,7 @@
             }
         };
 
-        // 9. อัปโหลดรูปโปรไฟล์จำนวนมาก
+        // 12. อัปโหลดรูปโปรไฟล์จำนวนมาก
         window.executeUploadAvatars = async function() {
             const files = document.getElementById('imageFilesInput').files;
             if (!files.length) return alert('กรุณาเลือกไฟล์รูปภาพอย่างน้อย 1 รูปครับ');
