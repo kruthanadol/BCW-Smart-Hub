@@ -607,38 +607,37 @@
             if (tabName === 'staff') window.loadStaffTable();
         };
 
-        // 2. โหลดข้อมูลอ้างอิง (รายชื่อครู + รหัสตารางสอน + ทะเบียนรายวิชา)
+
+    // 2. โหลดข้อมูลอ้างอิง (ดึงรายชื่อครูจากตาราง users เป็นหลัก + ทะเบียนรายวิชา subjects)
         window.loadReferenceMasters = async function() {
             if (!db) return;
             try {
-                const [resTeachers, resUsers, resSubjects] = await Promise.all([
-                    db.from('teachers').select('*'),
+                const [resUsers, resTeachers, resSubjects] = await Promise.all([
                     db.from('users').select('*'),
+                    db.from('teachers').select('*'),
                     db.from('subjects').select('*')
                 ]);
 
-                const mergedMap = new Map();
-                (resUsers.data || []).forEach(u => {
-                    const tid = u.teacher_id || u.ref_id || '';
-                    if (tid) {
-                        mergedMap.set(tid, {
-                            teacher_id: tid,
-                            schedule_code: u.schedule_code || '',
-                            full_name: u.full_name || '',
-                            first_name: (u.full_name || '').replace(/^(นางสาว|ว่าที่ร้อยตรี|นาย|นาง)\s*/, '').split(' ')[0] || ''
-                        });
-                    }
+                const extraTeacherMap = new Map();
+                (resTeachers.data || []).forEach(t => {
+                    if (t.teacher_id) extraTeacherMap.set(String(t.teacher_id).trim(), t);
                 });
 
-                (resTeachers.data || []).forEach(t => {
-                    const tid = t.teacher_id || '';
-                    const full = `${t.prefix || ''}${t.first_name || ''} ${t.last_name || ''}`.trim();
-                    const existing = mergedMap.get(tid) || {};
+                const mergedMap = new Map();
+                (resUsers.data || []).forEach(u => {
+                    const tid = String(u.teacher_id || u.ref_id || '').trim();
+                    const fullName = String(u.full_name || '').trim();
+                    if (!tid || !fullName) return;
+
+                    const extra = extraTeacherMap.get(tid) || {};
+                    const cleanNoPrefix = fullName.replace(/^(นางสาว|ว่าที่ร้อยตรี|นาย|นาง|ดร\.|ผอ\.|รองฯ)\s*/g, '').trim();
+                    const firstName = cleanNoPrefix.split(/\s+/)[0] || '';
+
                     mergedMap.set(tid, {
                         teacher_id: tid,
-                        schedule_code: t.schedule_code || existing.schedule_code || '',
-                        full_name: full || existing.full_name || '',
-                        first_name: t.first_name || existing.first_name || ''
+                        schedule_code: String(u.schedule_code || extra.schedule_code || '').trim(),
+                        full_name: fullName,
+                        first_name: firstName
                     });
                 });
 
@@ -646,7 +645,9 @@
 
                 cachedSubjectsMap.clear();
                 (resSubjects.data || []).forEach(s => {
-                    if (s.course_code) cachedSubjectsMap.set(s.course_code.trim().toUpperCase(), s);
+                    if (s.course_code) {
+                        cachedSubjectsMap.set(String(s.course_code).trim().toUpperCase(), s);
+                    }
                 });
 
                 // เติมรายชื่อครูใน Dropdown โอนย้ายรายวิชากลางเทอม
