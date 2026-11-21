@@ -301,7 +301,7 @@
             </div>
         </section>
 
-        <!-- 4. SMART TIMETABLE SELECTOR (Auto-Detect Current Period + Today Quick Pills) -->
+        <!-- 4. SMART TIMETABLE SELECTOR (Auto-Detect Current Period + Auto-Merge คาบคู่/3 คาบ + Today Quick Pills) -->
         <section id="section-selector" class="bg-white p-2.5 sm:p-3 rounded-2xl shadow-xs border border-slate-200 space-y-2">
             <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2">
                 <button type="button" onclick="toggleSubjectModal()" id="customSubjectBtn" class="bg-slate-50 border border-slate-300 font-medium text-slate-800 text-sm rounded-xl py-2.5 px-3.5 flex items-center justify-between gap-2 w-full md:w-auto hover:bg-slate-100 transition cursor-pointer">
@@ -323,9 +323,7 @@
             </div>
 
             <!-- ปุ่มลัดสลับคาบสอนเฉพาะวันนี้ (1-Tap Today's Periods) -->
-            <div id="todayQuickPeriodsBar" class="hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
-                <!-- Dynamic Quick Pills for Today -->
-            </div>
+            <div id="todayQuickPeriodsBar" class="hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5"></div>
 
             <div id="attendanceModeBanner" class="hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2"></div>
         </section>
@@ -551,7 +549,6 @@
     let DB_STATUS_SAMPLE = '';
     let FILTER_RISK_ONLY = false;
 
-    // ตารางเวลาเรียนมาตรฐานโรงเรียนบัวเชดวิทยา (ใช้ตรวจจับคาบปัจจุบันอัตโนมัติ)
     const BCW_PERIOD_TIMES = [
         { period: 1, start: 8 * 60 + 20, end: 9 * 60 + 20, label: '08.30-09.20' },
         { period: 2, start: 9 * 60 + 20, end: 10 * 60 + 20, label: '09.20-10.10' },
@@ -674,7 +671,7 @@
         if (banner) {
             if (status.isRealtime) {
                 banner.className = 'hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200';
-                banner.innerHTML = `<i class="fa-solid fa-tower-broadcast text-emerald-600"></i> <span>โหมด Realtime ในเวลาเรียน: ระบบตรวจจับคาบปัจจุบันอัตโนมัติและอัปเดตสถิติทันที</span>`;
+                banner.innerHTML = `<i class="fa-solid fa-tower-broadcast text-emerald-600"></i> <span>โหมด Realtime ในเวลาเรียน: ระบบรวมคาบคู่/คาบต่อเนื่องให้อัตโนมัติ เช็กครั้งเดียวบันทึกครบทุกคาบ</span>`;
             } else {
                 banner.className = 'hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2 bg-amber-50 text-amber-800 border border-amber-200';
                 banner.innerHTML = `<i class="fa-solid fa-clock-rotate-left text-amber-600"></i> <span>โหมดบันทึกย้อนหลัง / นอกเวลาเรียน (${status.reason}): บันทึกสถิติเข้าฐานข้อมูลตามปกติ</span>`;
@@ -768,7 +765,7 @@
         window.location.replace(prefix + '/login.html?logout=1');
     }
 
-    // โหลดเฉพาะตารางสอนของครูคนนี้ + จับคู่คาบปัจจุบันอัตโนมัติ (Zero-Click Current Class)
+    // โหลดเฉพาะตารางสอนของครูคนนี้ + ยุบรวมคาบคู่/3 คาบติดกันอัตโนมัติ (Auto-Merge Consecutive Periods)
     async function loadRealSubjectSchedules(teacherInfo) {
         const modalList = document.getElementById('subjectModalList');
         const customText = document.getElementById('customSubjectText');
@@ -786,7 +783,6 @@
                 client.from('registration_offerings').select('*').order('created_at', { ascending: false })
             ]);
 
-            // สร้างพจนานุกรมชื่อเต็มวิชาจากตาราง subjects (ไม่เอาไปโชว์เป็นลิสต์เลือก แต่ใช้แปลชื่อวิชาอัตโนมัติ)
             const subjectDict = new Map();
             (resSubjects.data || []).forEach(sub => {
                 if (sub.course_code) subjectDict.set(String(sub.course_code).trim().toUpperCase(), sub.subject_name);
@@ -800,7 +796,6 @@
             const tName = String(teacherInfo?.full_name || '').trim();
             const firstNameOnly = tName.replace(/^(นางสาว|ว่าที่ร้อยตรี|นาย|นาง)\s*/g, '').split(/\s+/)[0] || '';
 
-            // กรองเฉพาะตารางสอนของครูคนนี้เท่านั้น (ห้ามดึงตารางทั้งโรงเรียนมาปนเด็ดขาด)
             const mySchedules = rawList.filter(s => {
                 const rowTid = String(s.teacher_id || '').trim().toLowerCase();
                 const rowSCode = String(s.schedule_code || '').trim().toLowerCase();
@@ -818,26 +813,61 @@
             const dayOrder = { 'จันทร์': 1, 'อังคาร': 2, 'พุธ': 3, 'พฤหัสบดี': 4, 'ศุกร์': 5 };
             mySchedules.sort((a, b) => (dayOrder[a.day] || 9) - (dayOrder[b.day] || 9) || (Number(a.period || a.period_no || 0) - Number(b.period || b.period_no || 0)));
 
+            // ยุบรวมคาบคู่ / 3 คาบติดกัน (วันเดียวกัน + รหัสวิชาเดียวกัน + ห้องเดียวกัน + เลขคาบเรียงติดกัน)
+            const mergedBlocks = [];
+            for (const s of mySchedules) {
+                const cCode = String(s.course_code || s.subject_code || 'วิชา').trim();
+                const cRoom = String(s.classroom || s.class_name || '-').trim();
+                const fullSubjName = subjectDict.get(cCode.toUpperCase()) || s.subject_name || s.course_name || cCode;
+                const pNo = Number(s.period || s.period_no || 1);
+                const dayStr = String(s.day || '').trim();
+
+                const prev = mergedBlocks[mergedBlocks.length - 1];
+                const lastPeriodOfPrev = prev ? prev.periods[prev.periods.length - 1] : -99;
+
+                if (
+                    prev &&
+                    prev.day === dayStr &&
+                    prev.course_code === cCode &&
+                    prev.classroom === cRoom &&
+                    pNo === lastPeriodOfPrev + 1
+                ) {
+                    prev.periods.push(pNo);
+                } else {
+                    mergedBlocks.push({
+                        day: dayStr,
+                        course_code: cCode,
+                        classroom: cRoom,
+                        subject_name: fullSubjName,
+                        periods: [pNo]
+                    });
+                }
+            }
+
             const selectedDateStr = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
             const selectedDayName = getThaiDayName(selectedDateStr);
             const activePeriodNow = getCurrentSchoolPeriodNumber();
 
             const allOptions = [];
-            for (const s of mySchedules) {
-                const cCode = String(s.course_code || s.subject_code || 'วิชา').trim();
-                const cRoom = String(s.classroom || s.class_name || '-').trim();
-                const fullSubjName = subjectDict.get(cCode.toUpperCase()) || s.subject_name || s.course_name || cCode;
-                const displaySubj = (fullSubjName && fullSubjName !== cCode) ? `${cCode} ${fullSubjName}` : cCode;
-                const pNo = Number(s.period || s.period_no || 1);
-                const dayStr = String(s.day || '').trim();
+            for (const blk of mergedBlocks) {
+                const pStart = blk.periods[0];
+                const pEnd = blk.periods[blk.periods.length - 1];
+                const pCount = blk.periods.length;
+                const periodsCsv = blk.periods.join(',');
+
+                const periodRangeText = pCount > 1 ? `คาบ ${pStart}–${pEnd} (${pCount} คาบ)` : `คาบ ${pStart}`;
+                const shortPeriodText = pCount > 1 ? `คาบ ${pStart}–${pEnd}` : `คาบ ${pStart}`;
+                const displaySubj = (blk.subject_name && blk.subject_name !== blk.course_code)
+                    ? `${blk.course_code} ${blk.subject_name}`
+                    : blk.course_code;
 
                 allOptions.push({
-                    day: dayStr,
-                    period: pNo,
-                    val: `${cCode}|${cRoom}|${fullSubjName}|${pNo}|REGULAR|`,
-                    label: `${dayStr ? 'วัน' + dayStr + ' คาบ ' + pNo + ' • ' : ''}${displaySubj} (ห้อง ${cRoom})`,
-                    shortLabel: `คาบ ${pNo}: ${cCode} (${cRoom})`,
-                    badgeHtml: `<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-semibold shrink-0">วัน${dayStr || '-'} คาบ ${pNo}</span>`
+                    day: blk.day,
+                    periods: blk.periods,
+                    val: `${blk.course_code}|${blk.classroom}|${blk.subject_name}|${periodsCsv}|REGULAR|`,
+                    label: `${blk.day ? 'วัน' + blk.day + ' ' + periodRangeText + ' • ' : ''}${displaySubj} (ห้อง ${blk.classroom})`,
+                    shortLabel: `${shortPeriodText}: ${blk.course_code} (${blk.classroom})`,
+                    badgeHtml: `<span class="text-[10px] ${pCount > 1 ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-100 text-emerald-800'} px-1.5 py-0.5 rounded font-semibold shrink-0">วัน${blk.day || '-'} ${shortPeriodText}</span>`
                 });
             }
 
@@ -847,7 +877,7 @@
                 const groupLabel = isClub ? 'กิจกรรมชุมนุม' : 'วิชาเลือกเสรี';
                 allOptions.push({
                     day: '',
-                    period: 8,
+                    periods: [8],
                     val: `${code}|${groupLabel}|${off.title}|8|OFFERING|${off.id}`,
                     label: `${off.title} (${groupLabel})`,
                     shortLabel: `${off.title}`,
@@ -859,38 +889,36 @@
                 if (customText) customText.innerText = "-- ยังไม่มีตารางสอนของท่านในระบบ --";
                 if (liveBadge) liveBadge.classList.add('hidden');
                 if (quickBar) quickBar.classList.add('hidden');
-                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนของท่านในระบบ (กรุณาติดต่อฝ่ายวิชาการเพื่อนำเข้าตารางสอน)</p>`;
+                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนของท่านในระบบ</p>`;
                 renderStudents();
                 return;
             }
 
-            // 1. ค้นหาคาบสอนของ "วันที่เลือก" (เช่น วันจันทร์) และ "คาบปัจจุบัน" อัตโนมัติ
             const todaysOptions = allOptions.filter(o => o.day === selectedDayName);
             let defaultPick = null;
             let isLiveMatch = false;
 
             if (todaysOptions.length > 0) {
                 if (activePeriodNow) {
-                    defaultPick = todaysOptions.find(o => o.period === activePeriodNow);
+                    defaultPick = todaysOptions.find(o => o.periods.includes(activePeriodNow));
                     if (defaultPick) isLiveMatch = true;
                 }
                 if (!defaultPick) {
-                    // ถ้าอยู่นอกคาบเรียน (เช่น พักกลางวันหรือก่อนเข้าเรียน) เลือกคาบถัดไปของวันนี้
-                    defaultPick = todaysOptions.find(o => o.period >= (activePeriodNow || 1)) || todaysOptions[0];
+                    defaultPick = todaysOptions.find(o => o.periods[o.periods.length - 1] >= (activePeriodNow || 1)) || todaysOptions[0];
                 }
             } else {
                 defaultPick = allOptions[0];
             }
 
-            // 2. แสดงแถบปุ่มลัดคาบสอนเฉพาะของวันนี้ (3-5 ปุ่ม) ให้แตะสลับคาบได้ทันทีใน 1 คลิก
             if (quickBar) {
                 if (todaysOptions.length > 0) {
                     quickBar.classList.remove('hidden');
                     quickBar.innerHTML = `<span class="text-[11px] text-slate-500 font-medium shrink-0 mr-1">วัน${selectedDayName}:</span>` +
                         todaysOptions.map(opt => {
                             const isSelected = opt.val === defaultPick.val;
+                            const hasLiveNow = activePeriodNow && opt.periods.includes(activePeriodNow);
                             return `
-                                <button type="button" data-quick-val="${opt.val}" onclick="selectQuickPeriod('${opt.val}', '${opt.label.replace(/'/g, "\\'")}', ${opt.period === activePeriodNow})"
+                                <button type="button" data-quick-val="${opt.val}" onclick="selectQuickPeriod('${opt.val}', '${opt.label.replace(/'/g, "\\'")}', ${hasLiveNow})"
                                     class="quick-period-pill shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition cursor-pointer ${isSelected ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50'}">
                                     ${opt.shortLabel}
                                 </button>
@@ -901,7 +929,6 @@
                 }
             }
 
-            // 3. เติมรายการใน Modal เผื่อครูต้องการเช็กย้อนหลังวันอื่นในสัปดาห์
             if (modalList) {
                 modalList.innerHTML = allOptions.map(opt => `
                     <button type="button" onclick="selectSubjectOption('${opt.val}', '${opt.label.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 font-normal transition border border-transparent hover:border-emerald-200 flex items-center justify-between gap-2 cursor-pointer">
@@ -1177,10 +1204,15 @@
 
         const [courseCode, className, courseName, periodStr, subjectMode, offeringId] = selectedVal.split('|');
         const isOfferingMode = subjectMode === 'OFFERING' && offeringId;
-        const currentPeriodNo = Number(periodStr) || 1;
+        const periodList = String(periodStr || '1').split(',').map(n => Number(n.trim())).filter(n => n > 0);
+        if (periodList.length === 0) periodList.push(1);
+
+        const periodTitleLabel = periodList.length > 1
+            ? `คาบที่ ${periodList[0]}–${periodList[periodList.length - 1]} (${periodList.length} คาบ)`
+            : `คาบที่ ${periodList[0]}`;
 
         const headerTitle = document.getElementById('tableHeaderTitle');
-        if (headerTitle) headerTitle.innerText = isOfferingMode ? `${courseName}` : `ห้อง ${className} (คาบที่ ${currentPeriodNo})`;
+        if (headerTitle) headerTitle.innerText = isOfferingMode ? `${courseName}` : `ห้อง ${className} (${periodTitleLabel})`;
 
         const hwClassTag = document.getElementById('homeworkClassTag');
         if (hwClassTag) hwClassTag.innerText = isOfferingMode ? `${courseName}` : `${courseCode} • ห้อง ${className}`;
@@ -1287,9 +1319,8 @@
                 const studentLogs = allLogs.filter(l => String(l.student_id).trim() === studentId);
                 const dateLogs = studentLogs.filter(l => (l.date || String(l.recorded_at || '').split('T')[0]) === targetDateStr);
 
-                // เช็กว่าคาบนี้ในวันนี้เคยถูกบันทึกไว้แล้วหรือยัง (โหลดสถานะเดิมมาแสดงทันที)
                 const existingThisPeriodLog = dateLogs.find(l =>
-                    Number(l.period_no) === currentPeriodNo &&
+                    periodList.includes(Number(l.period_no)) &&
                     (String(l.subject_code || '') === courseCode || String(l.subject_name || '').includes(courseCode))
                 );
 
@@ -1342,7 +1373,7 @@
                 const leaveInfo = dateLogs.find(l => normalizeDbStatus(l.status) === 'leave') || 
                                   studentLogs.find(l => normalizeDbStatus(l.status) === 'leave' && l.method === 'parent_leave_request');
 
-                const subjectLogsOnDate = dateLogs.filter(l => l.period_no && l.period_no > 0 && Number(l.period_no) !== currentPeriodNo);
+                const subjectLogsOnDate = dateLogs.filter(l => l.period_no && l.period_no > 0 && !periodList.includes(Number(l.period_no)));
                 const lastLogToday = subjectLogsOnDate.length > 0 ? subjectLogsOnDate[0] : null;
                 const lastSt = lastLogToday ? normalizeDbStatus(lastLogToday.status) : '';
                 const missedPrevPeriod = lastLogToday && (lastSt === 'absent' || lastSt === 'truant');
@@ -1589,9 +1620,11 @@
         const isOfferingMode = subjectMode === 'OFFERING';
         const targetDateStr = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
         const modeStatus = checkIsRealtimeSchoolHours(targetDateStr);
-        const periodNo = Number(periodStr) || 1;
-        const recorderId = CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.full_name || 'TEACHER';
 
+        const periodList = String(periodStr || '1').split(',').map(n => Number(n.trim())).filter(n => n > 0);
+        if (periodList.length === 0) periodList.push(1);
+
+        const recorderId = CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.full_name || 'TEACHER';
         const recordedTimestamp = (targetDateStr === getLocalTodayStr())
             ? new Date().toISOString()
             : `${targetDateStr}T12:00:00+07:00`;
@@ -1599,37 +1632,42 @@
         const isSampleThai = ['มา', 'สาย', 'ลา', 'ขาด', 'หนี'].includes(DB_STATUS_SAMPLE);
         const modesToTry = isSampleThai ? ['THAI', 'UPPER', 'LOWER'] : ['UPPER', 'LOWER', 'THAI'];
 
-        const buildPayload = (enumMode) => CURRENT_STUDENTS_CACHE.map(s => {
-            const studentId = String(s.student_id || s.id).trim();
-            const rawStatus = ATTENDANCE_STATE[studentId] || 'present';
-            const noteVal = document.getElementById(`note_${studentId}`)?.value || document.getElementById(`note_mobile_${studentId}`)?.value || '';
-            const roomLabel = isOfferingMode ? (s.classroom || className) : (className || '-');
+        const buildPayload = (enumMode) => {
+            const rows = [];
+            for (const pNo of periodList) {
+                for (const s of CURRENT_STUDENTS_CACHE) {
+                    const studentId = String(s.student_id || s.id).trim();
+                    const rawStatus = ATTENDANCE_STATE[studentId] || 'present';
+                    const noteVal = document.getElementById(`note_${studentId}`)?.value || document.getElementById(`note_mobile_${studentId}`)?.value || '';
+                    const roomLabel = isOfferingMode ? (s.classroom || className) : (className || '-');
 
-            return {
-                student_id: studentId,
-                date: targetDateStr,
-                classroom: roomLabel,
-                subject_code: courseCode || 'GENERAL',
-                status: formatStatusForEnum(rawStatus, enumMode),
-                method: modeStatus.isRealtime ? 'teacher_realtime' : 'teacher_backdated',
-                period_no: periodNo,
-                recorded_at: recordedTimestamp,
-                recorded_by: String(recorderId),
-                subject_name: `${courseName || courseCode || 'รายวิชา'} (${courseCode || '-'}) - ${roomLabel}${noteVal ? ' | หมายเหตุ: ' + noteVal : ''}`
-            };
-        });
+                    rows.push({
+                        student_id: studentId,
+                        date: targetDateStr,
+                        classroom: roomLabel,
+                        subject_code: courseCode || 'GENERAL',
+                        status: formatStatusForEnum(rawStatus, enumMode),
+                        method: modeStatus.isRealtime ? 'teacher_realtime' : 'teacher_backdated',
+                        period_no: pNo,
+                        recorded_at: recordedTimestamp,
+                        recorded_by: String(recorderId),
+                        subject_name: `${courseName || courseCode || 'รายวิชา'} (${courseCode || '-'}) - ${roomLabel}${noteVal ? ' | หมายเหตุ: ' + noteVal : ''}`
+                    });
+                }
+            }
+            return rows;
+        };
 
         try {
             let lastError = null;
             let savedSuccess = false;
 
-            // ลบข้อมูลเดิมของคาบนี้ในวันนี้ก่อนบันทึกใหม่ เพื่อรองรับการแก้ไขโดยไม่ติด Unique Index (23505)
             const studentIds = CURRENT_STUDENTS_CACHE.map(s => String(s.student_id || s.id).trim());
             await client.from('attendance_logs')
                 .delete()
                 .in('student_id', studentIds)
                 .eq('date', targetDateStr)
-                .eq('period_no', periodNo)
+                .in('period_no', periodList)
                 .eq('subject_code', courseCode || 'GENERAL');
 
             for (const mode of modesToTry) {
@@ -1650,7 +1688,12 @@
             window.updateLiveSubjectStats();
             IS_CHECKING_ACTIVE = false;
             hideMobileFloatingStats();
-            alert(`✅ บันทึกข้อมูลการเช็กชื่อ ${isOfferingMode ? courseName : 'ห้อง ' + className} คาบที่ ${periodNo} (${CURRENT_STUDENTS_CACHE.length} คน) เรียบร้อยแล้ว!`);
+
+            const periodSummaryText = periodList.length > 1
+                ? `คาบที่ ${periodList[0]}–${periodList[periodList.length - 1]} (ครบทั้ง ${periodList.length} คาบ)`
+                : `คาบที่ ${periodList[0]}`;
+
+            alert(`✅ บันทึกเช็กชื่อ ${isOfferingMode ? courseName : 'ห้อง ' + className} ${periodSummaryText} (${CURRENT_STUDENTS_CACHE.length} คน) เรียบร้อยแล้ว!`);
             await renderStudents();
         } catch (err) {
             alert('เกิดข้อผิดพลาดในการบันทึกเช็กชื่อ: ' + (err.message || err));
