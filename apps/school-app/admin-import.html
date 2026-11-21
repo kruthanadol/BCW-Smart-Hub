@@ -666,37 +666,102 @@
 
         // 3. ระบบสกัดตารางเรียนและตารางสอนจาก PDF และรูปภาพ (BCW Smart Schedule Parser)
         // รองรับทั้งไฟล์ PDF (ทุกหน้า) และไฟล์รูปภาพ (.jpg, .png) อย่างแม่นยำ 100%
+// 3. ระบบสกัดตารางเรียนและตารางสอนทั้งโรงเรียน (รองรับ ม.1 - ม.6 และรหัสวิชาทุกกลุ่มสาระ)
         const BCWScheduleParser = {
             daysList: ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'],
             ignoreKeywords: ['พักกลางวัน', 'พัก', 'PLC', 'ว่าง', 'หน้าที่', 'พลเมือง', 'จิตสาธารณ'],
 
+            // กฎทำความสะอาดรหัสวิชาทั้งโรงเรียน (ม.1 - ม.6) + เทียบฐานข้อมูล subjects อัตโนมัติ
             sanitizeCourseCode(raw) {
-                let code = String(raw || '').replace(/\s+/g, '').trim();
-                // แก้บั๊กตัวอักษร OCR ที่อ่าน "ว" เป็น "7" หรือ "า" หรือ "จ"
-                if (/^[7าจ]\d{5}$/.test(code)) code = 'ว' + code.slice(1);
+                let code = String(raw || '').replace(/[^ก-ฮa-zA-Z0-9]/g, '').trim();
+                if (!code) return '';
+
+                // 1. แก้อักษรกลุ่มสาระตัวแรกที่ OCR มักอ่านเพี้ยนเป็นตัวเลข
+                // (ว มักเพี้ยนเป็น 7, 2, 1 | อ มักเพี้ยนเป็น 8 | ส มักเพี้ยนเป็น 6)
+                if (/^[721าจ](\d{5})$/.test(code)) code = 'ว' + code.slice(1);
+                else if (/^8(\d{5})$/.test(code)) code = 'อ' + code.slice(1);
+
+                // 2. กรณีตัวเลขเกิน 6 หลัก (OCR อ่านเบิ้ลหลักที่ 2-3) ให้บีบกลับเป็น 6 หลัก
+                if (/^([ก-ฮa-zA-Z])\d{6}$/.test(code)) {
+                    code = code[0] + code.slice(1, 3) + code.slice(4);
+                }
+
+                // 3. แก้ตัวเลขเพี้ยนตามกฎหลักสูตรแกนกลาง (รองรับทั้ง ม.ต้น 2xx และ ม.ปลาย 3xx)
+                const m = code.match(/^([ก-ฮa-zA-Z])(\d)(\d)(\d)(\d)(\d)$/);
+                if (m) {
+                    let [, subj, d1, d2, d3, d4, d5] = m;
+
+                    // หลักที่ 2: ช่วงชั้นมีเฉพาะ 2 (ม.ต้น) หรือ 3 (ม.ปลาย)
+                    if (d1 === '9' || d1 === '8') d1 = '2';
+
+                    // หลักที่ 3: ชั้นปีมีเฉพาะ 1, 2, 3 (ไม่มี 9)
+                    if (d2 === '9') d2 = '2';
+                    else if (d2 === '8') d2 = '3';
+
+                    // หลักที่ 4: ประเภทวิชา (ถ้าไม่ใช่กิจกรรม 'ก' จะเป็น 1 พื้นฐาน หรือ 2 เพิ่มเติม)
+                    if (subj !== 'ก' && d3 === '9') d3 = '1';
+
+                    // หลักที่ 5: หลักสิบของลำดับวิชา (01-39) ถ้า OCR อ่าน 0 เป็น 9 ให้แก้เป็น 0
+                    if (d4 === '9') d4 = '0';
+
+                    // หลักที่ 6: เลขท้ายรายวิชา (มักลงท้ายด้วยเลขคู่ตามภาคเรียน หรือเลขลำดับ)
+                    if (d5 === '9' && subj !== 'ก') d5 = '2';
+
+                    code = `${subj}${d1}${d2}${d3}${d4}${d5}`;
+                }
+
+                // 4. เทียบกับทะเบียนรายวิชาทั้งโรงเรียนในตาราง subjects (Fuzzy Match 5 จาก 6 ตัวอักษร)
+                if (cachedSubjectsMap.has(code)) {
+                    return code;
+                }
+                if (code.length === 6 && cachedSubjectsMap.size > 0) {
+                    let bestMatch = null;
+                    let bestScore = 0;
+                    for (const dbCode of cachedSubjectsMap.keys()) {
+                        if (dbCode.length !== 6) continue;
+                        let matchChars = 0;
+                        for (let i = 0; i < 6; i++) {
+                            if (code[i] === dbCode[i]) matchChars++;
+                        }
+                        // ถ้าตรงกัน 5 ใน 6 ตำแหน่ง (เช่น ต่างกันแค่ตัวเลขที่ OCR อ่านเพี้ยน 1 ตัว) ให้ใช้รหัสจริงของโรงเรียน
+                        if (matchChars >= 5 && matchChars > bestScore) {
+                            bestScore = matchChars;
+                            bestMatch = dbCode;
+                        }
+                    }
+                    if (bestMatch) return bestMatch;
+                }
+
                 return code;
             },
 
+            // ปรับมาตรฐานห้องเรียนทุกระดับชั้น ม.1/1 ถึง ม.6/15 (รองรับห้องโครงการพิเศษ เช่น 4/12stem, 5/1gifted)
             normalizeClassroom(raw) {
                 let clean = String(raw || '').replace(/\s+/g, '').replace(/^ชั้น/, '');
-                const m = clean.match(/(\d+\/\d+)/);
-                return m ? `ม.${m[1]}` : clean;
+                const m = clean.match(/([1-6])\/(\d{1,2})/);
+                if (!m) return clean;
+                const grade = m[1]; // ชั้น ม.1 - ม.6
+                let roomNo = m[2];
+                // ห้องเรียนแต่ละระดับชั้นมีไม่เกิน 15 ห้อง หาก OCR อ่านเลข 7 ติดเส้นตารางหน้าเลขห้องเดียว (เช่น 72 -> 2)
+                if (roomNo.length === 2 && parseInt(roomNo, 10) > 15 && roomNo.startsWith('7')) {
+                    roomNo = roomNo.slice(1);
+                }
+                return `ม.${grade}/${parseInt(roomNo, 10)}`;
             },
 
             matchTeacher(codeOrFirstName) {
-                const q = String(codeOrFirstName || '').trim();
-                if (!q) return null;
+                const q = String(codeOrFirstName || '').replace(/[^ก-ฮะ-์a-zA-Z0-9]/g, '').trim();
+                if (!q || q.length < 2) return null;
                 return cachedTeachersList.find(t =>
                     (t.schedule_code && t.schedule_code === q) ||
                     (t.teacher_id && t.teacher_id.toUpperCase() === q.toUpperCase()) ||
-                    (t.first_name && t.first_name === q) ||
+                    (t.first_name && (t.first_name === q || t.first_name.startsWith(q) || q.startsWith(t.first_name))) ||
                     (t.full_name && t.full_name.includes(q))
                 ) || null;
             },
 
             detectHeader(headerText) {
                 const cleanText = headerText.replace(/\s+/g, ' ').trim();
-                // ตรวจจับหัวตารางครู: "0326 นายธนดล คำเสมอ ภาคเรียนที่ 2/2569"
                 const teacherMatch = cleanText.match(/(\d{3,5})\s*((?:นาย|นางสาว|นาง|ว่าที่ร้อยตรี)[^\d\n\r]+?)(?:ภาคเรียน|$)/);
                 if (teacherMatch) {
                     const sCode = teacherMatch[1].trim();
@@ -711,12 +776,12 @@
                     };
                 }
 
-                // ตรวจจับหัวตารางนักเรียน: "ชั้น ม. 2/2 ภาคเรียนที่ 2/2569"
-                const studentMatch = cleanText.match(/(?:ชั้น\s*)?ม\.?\s*(\d+\/\d+)/);
+                // รองรับหัวตารางนักเรียนทุกชั้น ม.1/X ถึง ม.6/X
+                const studentMatch = cleanText.match(/(?:ชั้น\s*)?ม\.?\s*([1-6]\s*\/\s*\d{1,2})/);
                 if (studentMatch) {
                     return {
                         mode: 'STUDENT',
-                        classroom: `ม.${studentMatch[1].replace(/\s+/g, '')}`,
+                        classroom: this.normalizeClassroom(studentMatch[1]),
                         teacher_id: '',
                         teacher_name: '',
                         schedule_code: ''
@@ -733,17 +798,29 @@
                 };
             },
 
-            // แปลงไฟล์ PDF หรือ รูปภาพ ให้เป็นรายการ Canvas ความละเอียดสูง (รองรับ PDF หลายหน้า)
             async fileToCanvases(file) {
                 const canvases = [];
                 const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+                const enhanceCanvasContrast = (canvas) => {
+                    const ctx = canvas.getContext('2d');
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const d = imgData.data;
+                    for (let i = 0; i < d.length; i += 4) {
+                        const gray = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+                        const val = gray < 165 ? 0 : 255;
+                        d[i] = d[i + 1] = d[i + 2] = val;
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+                    return canvas;
+                };
 
                 if (isPDF) {
                     const arrayBuffer = await file.arrayBuffer();
                     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                     for (let p = 1; p <= pdf.numPages; p++) {
                         const page = await pdf.getPage(p);
-                        const viewport = page.getViewport({ scale: 2.5 }); // ความละเอียดสูง 2.5x
+                        const viewport = page.getViewport({ scale: 3.0 });
                         const canvas = document.createElement('canvas');
                         canvas.width = viewport.width;
                         canvas.height = viewport.height;
@@ -751,7 +828,7 @@
                         ctx.fillStyle = '#ffffff';
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                         await page.render({ canvasContext: ctx, viewport }).promise;
-                        canvases.push(canvas);
+                        canvases.push(enhanceCanvasContrast(canvas));
                     }
                 } else {
                     const img = await new Promise((resolve, reject) => {
@@ -760,7 +837,7 @@
                         image.onerror = reject;
                         image.src = URL.createObjectURL(file);
                     });
-                    const scale = Math.max(1, 1800 / img.width); // ขยายภาพให้คมชัดพอสำหรับ OCR
+                    const scale = Math.max(1.5, 2200 / img.width);
                     const canvas = document.createElement('canvas');
                     canvas.width = Math.round(img.width * scale);
                     canvas.height = Math.round(img.height * scale);
@@ -768,54 +845,43 @@
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    canvases.push(canvas);
+                    canvases.push(enhanceCanvasContrast(canvas));
                 }
                 return canvases;
             },
 
-            // ตรวจจับเส้นกรอบตารางแนวนอนและแนวตั้ง (Grid Line Detection)
             detectTableGrid(canvas) {
                 const ctx = canvas.getContext('2d');
                 const { width, height } = canvas;
                 const imgData = ctx.getImageData(0, 0, width, height).data;
 
-                // นับพิกเซลสีเข้มในแต่ละแถว (Y) และคอลัมน์ (X)
                 const rowDark = new Int32Array(height);
                 const colDark = new Int32Array(width);
 
                 for (let y = 0; y < height; y++) {
                     for (let x = 0; x < width; x++) {
                         const idx = (y * width + x) * 4;
-                        const brightness = (imgData[idx] + imgData[idx + 1] + imgData[idx + 2]) / 3;
-                        if (brightness < 140) {
+                        if (imgData[idx] < 128) {
                             rowDark[y]++;
                             colDark[x]++;
                         }
                     }
                 }
 
-                // หาเส้นแนวนอนที่ยาวเกิน 55% ของความกว้างภาพ
                 const hLines = [];
                 for (let y = 1; y < height - 1; y++) {
                     if (rowDark[y] > width * 0.55 && rowDark[y] >= rowDark[y - 1] && rowDark[y] >= rowDark[y + 1]) {
-                        if (hLines.length === 0 || y - hLines[hLines.length - 1] > height * 0.03) {
-                            hLines.push(y);
-                        }
+                        if (hLines.length === 0 || y - hLines[hLines.length - 1] > height * 0.03) hLines.push(y);
                     }
                 }
 
-                // หาเส้นแนวตั้งที่ยาวเกิน 45% ของความสูงภาพ
                 const vLines = [];
                 for (let x = 1; x < width - 1; x++) {
                     if (colDark[x] > height * 0.45 && colDark[x] >= colDark[x - 1] && colDark[x] >= colDark[x + 1]) {
-                        if (vLines.length === 0 || x - vLines[vLines.length - 1] > width * 0.03) {
-                            vLines.push(x);
-                        }
+                        if (vLines.length === 0 || x - vLines[vLines.length - 1] > width * 0.03) vLines.push(x);
                     }
                 }
 
-                // ในตารางโรงเรียน: เส้นแนวนอน 5 แถวล่างสุดคือ วัน จันทร์ - ศุกร์
-                // เส้นแนวตั้ง 9 คอลัมน์ขวาสุดคือ คาบเรียนที่ 1 - 9
                 const dayBounds = [];
                 if (hLines.length >= 6) {
                     const last6 = hLines.slice(-6);
@@ -836,8 +902,7 @@
                 return { headerBottomY, dayBounds, periodBounds };
             },
 
-            // ตัดภาพเฉพาะช่องเล็กๆ พร้อมเติมขอบขาว (Padding) เพื่อให้ OCR อ่านได้แม่นยำสูงสุด
-            cropCellToDataURL(sourceCanvas, x1, y1, x2, y2, padRatio = 0.08) {
+            cropCellToDataURL(sourceCanvas, x1, y1, x2, y2, padRatio = 0.09) {
                 const w = x2 - x1;
                 const h = y2 - y1;
                 const trimX = Math.round(w * padRatio);
@@ -846,7 +911,7 @@
                 const ch = Math.max(10, h - trimY * 2);
 
                 const out = document.createElement('canvas');
-                const whitePad = 16;
+                const whitePad = 20;
                 out.width = cw + whitePad * 2;
                 out.height = ch + whitePad * 2;
                 const ctx = out.getContext('2d');
@@ -856,7 +921,6 @@
                 return out.toDataURL('image/png');
             },
 
-            // ตรวจว่าช่องนี้ว่างเปล่าหรือไม่ (ข้ามช่องว่างทันทีเพื่อความเร็ว)
             isCellBlank(sourceCanvas, x1, y1, x2, y2) {
                 const ctx = sourceCanvas.getContext('2d');
                 const w = Math.max(4, Math.round((x2 - x1) * 0.7));
@@ -866,7 +930,7 @@
                 const data = ctx.getImageData(sx, sy, w, h).data;
                 let darkPixels = 0;
                 for (let i = 0; i < data.length; i += 16) {
-                    if ((data[i] + data[i + 1] + data[i + 2]) / 3 < 170) darkPixels++;
+                    if (data[i] < 128) darkPixels++;
                 }
                 return darkPixels < 8;
             },
@@ -881,30 +945,28 @@
                     const canvas = canvases[pageIdx];
                     const grid = this.detectTableGrid(canvas);
 
-                    // 1. อ่านหัวตารางด้านบนเพื่อระบุชื่อครูหรือชั้นเรียน
                     const headerImg = this.cropCellToDataURL(canvas, Math.round(canvas.width * 0.1), 0, Math.round(canvas.width * 0.95), grid.headerBottomY, 0.02);
                     const headerRes = await worker.recognize(headerImg);
                     const header = this.detectHeader(headerRes.data.text || '');
                     detectedHeader = header;
 
                     if (grid.dayBounds.length === 5 && grid.periodBounds.length === 9) {
-                        // 2. วนลูปตัดและอ่านทีละช่อง [5 วัน x 9 คาบ] ตามเส้นตารางจริง
                         for (let d = 0; d < 5; d++) {
                             const dBound = grid.dayBounds[d];
                             if (onProgress) {
-                                onProgress(`หน้า ${pageIdx + 1}/${canvases.length} — กำลังอ่านตารางวัน${dBound.day} (คาบ 1-9)...`);
+                                onProgress(`หน้า ${pageIdx + 1}/${canvases.length} (${header.classroom || header.teacher_name || 'ตาราง'}) — กำลังอ่านวัน${dBound.day}...`);
                             }
 
                             for (let p = 0; p < 9; p++) {
                                 const pBound = grid.periodBounds[p];
                                 if (this.isCellBlank(canvas, pBound.x1, dBound.y1, pBound.x2, dBound.y2)) continue;
 
-                                const cellImg = this.cropCellToDataURL(canvas, pBound.x1, dBound.y1, pBound.x2, dBound.y2, 0.08);
+                                const cellImg = this.cropCellToDataURL(canvas, pBound.x1, dBound.y1, pBound.x2, dBound.y2, 0.09);
                                 const cellRes = await worker.recognize(cellImg);
                                 const lines = (cellRes.data.text || '')
                                     .split(/\r?\n/)
                                     .map(l => l.trim())
-                                    .filter(Boolean);
+                                    .filter(l => l.length >= 2 || /^\d$/.test(l));
 
                                 if (lines.length === 0) continue;
                                 const joined = lines.join(' ');
@@ -927,7 +989,7 @@
                 const line3 = lines[2] || '-';
 
                 const isSpecialActivity = ['โฮมรูม', 'ชุมนุม', 'ลูกเสือ', 'รักการอ่าน'].some(k => lines.join(' ').includes(k));
-                const courseCode = isSpecialActivity && !/^[ก-ฮ7าจ]\d{5}/.test(rawCode)
+                const courseCode = isSpecialActivity && !/^[ก-ฮa-zA-Z7218าจ]\d{5}/.test(rawCode)
                     ? 'ACTIVITY'
                     : this.sanitizeCourseCode(rawCode);
 
@@ -944,9 +1006,16 @@
                         teacherName = header.teacher_name || 'ครูที่ปรึกษา/กิจกรรม';
                         room = lines.slice(1).join(' ') || '-';
                     } else {
-                        const matchedTeacher = this.matchTeacher(line2);
-                        teacherId = matchedTeacher ? matchedTeacher.teacher_id : '';
-                        teacherName = matchedTeacher ? matchedTeacher.full_name : line2;
+                        const matchedTeacher = this.matchTeacher(line2) || this.matchTeacher(line3);
+                        if (matchedTeacher) {
+                            teacherId = matchedTeacher.teacher_id;
+                            teacherName = matchedTeacher.full_name;
+                            if (!this.matchTeacher(line2) && this.matchTeacher(line3)) {
+                                room = lines[3] || '-';
+                            }
+                        } else {
+                            teacherName = line2;
+                        }
                     }
                 }
 
