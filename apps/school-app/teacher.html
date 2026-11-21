@@ -1596,11 +1596,17 @@
         return status.toLowerCase();
     }
 
+let IS_SUBMITTING_ATTENDANCE = false;
+
     window.submitAttendance = async function() {
+        // 1. ป้องกันครูกดปุ่มบันทึกรัว 2 ครั้งติดกัน (Double-Tap Lock)
+        if (IS_SUBMITTING_ATTENDANCE) return;
+
         const client = window.supabaseClient || window.db || window.supabase;
         if (!client) return alert('❌ ไม่พบการเชื่อมต่อฐานข้อมูล Supabase');
         if (!CURRENT_STUDENTS_CACHE || CURRENT_STUDENTS_CACHE.length === 0) return alert('ไม่พบรายชื่อนักเรียนในกลุ่มนี้');
 
+        IS_SUBMITTING_ATTENDANCE = true;
         const btnMobile = document.getElementById('btnMobileSubmit');
         const btnDesktop = document.getElementById('btnDesktopSubmit');
         const origMobileHtml = btnMobile ? btnMobile.innerHTML : '';
@@ -1632,16 +1638,19 @@
         const isSampleThai = ['มา', 'สาย', 'ลา', 'ขาด', 'หนี'].includes(DB_STATUS_SAMPLE);
         const modesToTry = isSampleThai ? ['THAI', 'UPPER', 'LOWER'] : ['UPPER', 'LOWER', 'THAI'];
 
+        // กันข้อมูลซ้ำใน Array เดียวกันก่อนส่งเข้า Database
         const buildPayload = (enumMode) => {
-            const rows = [];
+            const uniqueMap = new Map();
             for (const pNo of periodList) {
                 for (const s of CURRENT_STUDENTS_CACHE) {
                     const studentId = String(s.student_id || s.id).trim();
+                    if (!studentId) continue;
                     const rawStatus = ATTENDANCE_STATE[studentId] || 'present';
                     const noteVal = document.getElementById(`note_${studentId}`)?.value || document.getElementById(`note_mobile_${studentId}`)?.value || '';
                     const roomLabel = isOfferingMode ? (s.classroom || className) : (className || '-');
 
-                    rows.push({
+                    const uniqueKey = `${studentId}|${targetDateStr}|${pNo}`;
+                    uniqueMap.set(uniqueKey, {
                         student_id: studentId,
                         date: targetDateStr,
                         classroom: roomLabel,
@@ -1655,24 +1664,20 @@
                     });
                 }
             }
-            return rows;
+            return Array.from(uniqueMap.values());
         };
 
         try {
             let lastError = null;
             let savedSuccess = false;
 
-            const studentIds = CURRENT_STUDENTS_CACHE.map(s => String(s.student_id || s.id).trim());
-            await client.from('attendance_logs')
-                .delete()
-                .in('student_id', studentIds)
-                .eq('date', targetDateStr)
-                .in('period_no', periodList)
-                .eq('subject_code', courseCode || 'GENERAL');
-
             for (const mode of modesToTry) {
                 const payload = buildPayload(mode);
-                const { error } = await client.from('attendance_logs').insert(payload);
+                // ใช้ Upsert เขียนทับข้อมูลเดิมของ (student_id, date, period_no) อัตโนมัติ ไม่ว่าจะบันทึกกี่รอบก็ไม่ชน Unique Constraint
+                const { error } = await client
+                    .from('attendance_logs')
+                    .upsert(payload, { onConflict: 'student_id,date,period_no' });
+
                 if (!error) {
                     savedSuccess = true;
                     break;
@@ -1698,6 +1703,7 @@
         } catch (err) {
             alert('เกิดข้อผิดพลาดในการบันทึกเช็กชื่อ: ' + (err.message || err));
         } finally {
+            IS_SUBMITTING_ATTENDANCE = false;
             if (btnMobile) {
                 btnMobile.disabled = false;
                 btnMobile.innerHTML = origMobileHtml;
