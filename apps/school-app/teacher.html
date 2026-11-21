@@ -13,6 +13,8 @@
     <style>
         body { font-family: 'Kanit', sans-serif; font-weight: 400; background-color: #f1f5f9; color: #1e293b; overflow-x: hidden; }
         main section, main > div { scroll-margin-top: 64px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         .att-tap-btn {
             display: flex;
@@ -299,11 +301,14 @@
             </div>
         </section>
 
-        <!-- 4. SMART TIMETABLE SELECTOR -->
+        <!-- 4. SMART TIMETABLE SELECTOR (Auto-Detect Current Period + Today Quick Pills) -->
         <section id="section-selector" class="bg-white p-2.5 sm:p-3 rounded-2xl shadow-xs border border-slate-200 space-y-2">
             <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2">
                 <button type="button" onclick="toggleSubjectModal()" id="customSubjectBtn" class="bg-slate-50 border border-slate-300 font-medium text-slate-800 text-sm rounded-xl py-2.5 px-3.5 flex items-center justify-between gap-2 w-full md:w-auto hover:bg-slate-100 transition cursor-pointer">
-                    <span id="customSubjectText" class="truncate">กำลังโหลดวิชาสอน...</span>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span id="livePeriodBadge" class="hidden shrink-0 text-[11px] bg-emerald-600 text-white px-2 py-0.5 rounded-lg font-semibold">คาบปัจจุบัน</span>
+                        <span id="customSubjectText" class="truncate">กำลังค้นหาคาบสอนปัจจุบัน...</span>
+                    </div>
                     <i class="fa-solid fa-chevron-down text-slate-500 text-xs shrink-0"></i>
                 </button>
                 <input type="hidden" id="subjectSelect" value="" onchange="renderStudents()">
@@ -315,6 +320,11 @@
                         💾 บันทึกเช็กชื่อ
                     </button>
                 </div>
+            </div>
+
+            <!-- ปุ่มลัดสลับคาบสอนเฉพาะวันนี้ (1-Tap Today's Periods) -->
+            <div id="todayQuickPeriodsBar" class="hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+                <!-- Dynamic Quick Pills for Today -->
             </div>
 
             <div id="attendanceModeBanner" class="hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2"></div>
@@ -352,9 +362,7 @@
             </div>
 
             <!-- Mobile View: One-Tap Full-Width Card List -->
-            <div id="mobileStudentList" class="sm:hidden divide-y divide-slate-200 bg-white">
-                <!-- Dynamic Mobile Student Cards -->
-            </div>
+            <div id="mobileStudentList" class="sm:hidden divide-y divide-slate-200 bg-white"></div>
 
             <!-- Desktop View: One-Tap Table -->
             <div class="hidden sm:block overflow-x-auto w-full">
@@ -367,9 +375,7 @@
                             <th class="p-3 min-w-[210px] font-medium">หมายเหตุพฤติกรรม / การลา</th>
                         </tr>
                     </thead>
-                    <tbody id="studentList" class="divide-y divide-slate-200 font-normal">
-                        <!-- Dynamic Desktop Student Rows -->
-                    </tbody>
+                    <tbody id="studentList" class="divide-y divide-slate-200 font-normal"></tbody>
                 </table>
             </div>
         </section>
@@ -516,14 +522,14 @@
 
     <!-- 7. CUSTOM SUBJECT SELECTOR MODAL -->
     <div id="subjectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
             <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                 <h3 class="font-medium text-slate-800 text-sm flex items-center gap-1.5">
-                    <i class="fa-solid fa-book text-emerald-600"></i> เลือกวิชา / วิชาเลือก / ชุมนุม
+                    <i class="fa-solid fa-calendar-week text-emerald-600"></i> ตารางสอนทั้งหมดของฉัน (สัปดาห์นี้)
                 </h3>
                 <button type="button" onclick="toggleSubjectModal()" class="text-slate-400 hover:text-slate-600 p-1 text-base cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div id="subjectModalList" class="p-2.5 space-y-1 text-sm max-h-80 overflow-y-auto font-normal">
+            <div id="subjectModalList" class="p-2.5 space-y-1 text-sm max-h-96 overflow-y-auto font-normal">
                 <p class="text-slate-400 text-center py-4">กำลังดึงรายการตารางสอน...</p>
             </div>
         </div>
@@ -544,6 +550,32 @@
     let IS_CHECKING_ACTIVE = false;
     let DB_STATUS_SAMPLE = '';
     let FILTER_RISK_ONLY = false;
+
+    // ตารางเวลาเรียนมาตรฐานโรงเรียนบัวเชดวิทยา (ใช้ตรวจจับคาบปัจจุบันอัตโนมัติ)
+    const BCW_PERIOD_TIMES = [
+        { period: 1, start: 8 * 60 + 20, end: 9 * 60 + 20, label: '08.30-09.20' },
+        { period: 2, start: 9 * 60 + 20, end: 10 * 60 + 20, label: '09.20-10.10' },
+        { period: 3, start: 10 * 60 + 20, end: 11 * 60 + 10, label: '10.20-11.10' },
+        { period: 4, start: 11 * 60 + 10, end: 12 * 60 + 0,  label: '11.10-12.00' },
+        { period: 5, start: 12 * 60 + 0,  end: 12 * 60 + 50, label: '12.00-12.50' },
+        { period: 6, start: 12 * 60 + 50, end: 13 * 60 + 40, label: '12.50-13.40' },
+        { period: 7, start: 13 * 60 + 40, end: 14 * 60 + 40, label: '13.40-14.30' },
+        { period: 8, start: 14 * 60 + 40, end: 15 * 60 + 30, label: '14.40-15.30' },
+        { period: 9, start: 15 * 60 + 30, end: 16 * 60 + 30, label: '15.30-16.20' }
+    ];
+
+    function getThaiDayName(dateStr) {
+        const d = dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
+        const map = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+        return map[d.getDay()] || '';
+    }
+
+    function getCurrentSchoolPeriodNumber() {
+        const now = new Date();
+        const mins = now.getHours() * 60 + now.getMinutes();
+        const found = BCW_PERIOD_TIMES.find(p => mins >= p.start && mins < p.end);
+        return found ? found.period : null;
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
         try {
@@ -566,8 +598,8 @@
             }
 
             CURRENT_TEACHER_USER = currentUser;
-            const realTeacherId = await loadTeacherProfile(currentUser);
-            await loadRealSubjectSchedules(realTeacherId);
+            const teacherInfo = await loadTeacherProfile(currentUser);
+            await loadRealSubjectSchedules(teacherInfo);
 
             document.querySelectorAll('.btn-logout, [onclick*="logout"], button:has(.fa-right-from-bracket)').forEach(btn => {
                 btn.removeAttribute('onclick');
@@ -642,17 +674,21 @@
         if (banner) {
             if (status.isRealtime) {
                 banner.className = 'hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200';
-                banner.innerHTML = `<i class="fa-solid fa-tower-broadcast text-emerald-600"></i> <span>โหมดRealtimeในเวลาเรียน: ระบบจะอัปเดตสถิติและแจ้งเตือนสถานะ Real-time ทันที</span>`;
+                banner.innerHTML = `<i class="fa-solid fa-tower-broadcast text-emerald-600"></i> <span>โหมด Realtime ในเวลาเรียน: ระบบตรวจจับคาบปัจจุบันอัตโนมัติและอัปเดตสถิติทันที</span>`;
             } else {
                 banner.className = 'hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2 bg-amber-50 text-amber-800 border border-amber-200';
-                banner.innerHTML = `<i class="fa-solid fa-clock-rotate-left text-amber-600"></i> <span>โหมดบันทึกย้อนหลัง / นอกเวลาเรียน (${status.reason}): บันทึกสถิติเข้าฐานข้อมูลตามปกติ (งดส่งแจ้งเตือนด่วนหาผู้ปกครองในเวลานี้)</span>`;
+                banner.innerHTML = `<i class="fa-solid fa-clock-rotate-left text-amber-600"></i> <span>โหมดบันทึกย้อนหลัง / นอกเวลาเรียน (${status.reason}): บันทึกสถิติเข้าฐานข้อมูลตามปกติ</span>`;
             }
         }
     }
 
     async function onAttendanceDateChange() {
         updateAttendanceModeBanner();
-        await renderStudents();
+        if (window.MY_TEACHER_INFO) {
+            await loadRealSubjectSchedules(window.MY_TEACHER_INFO);
+        } else {
+            await renderStudents();
+        }
     }
 
     async function loadTeacherProfile(user) {
@@ -663,39 +699,24 @@
         const avatarImg = document.getElementById('headerTeacherAvatar');
 
         let teacherCode = user.teacher_id || user.teacherId || user.teacherCode || user.code || '';
+        let scheduleCode = user.schedule_code || '';
         let fullName = user.full_name || user.name || user.displayName || '';
         let avatarUrl = user.avatar || user.avatar_url || user.pictureUrl || user.photoURL || '';
 
-        if (client && (!teacherCode || String(teacherCode).length > 15)) {
+        if (client) {
             try {
-                const { data: allUsers } = await client.from('users').select('*').limit(200);
+                const { data: allUsers } = await client.from('users').select('*');
                 if (allUsers && allUsers.length > 0) {
                     const uRec = allUsers.find(u =>
                         (user.id && String(u.id) === String(user.id)) ||
-                        (user.email && u.email && String(u.email).toLowerCase() === String(user.email).toLowerCase())
+                        (user.email && u.email && String(u.email).toLowerCase() === String(user.email).toLowerCase()) ||
+                        (teacherCode && String(u.teacher_id || u.ref_id || '').trim() === String(teacherCode).trim())
                     );
                     if (uRec) {
-                        teacherCode = uRec.teacher_id || uRec.teacher_code || teacherCode;
+                        teacherCode = uRec.teacher_id || uRec.ref_id || teacherCode;
+                        scheduleCode = uRec.schedule_code || scheduleCode;
                         fullName = uRec.full_name || uRec.name || fullName;
                         avatarUrl = uRec.avatar_url || uRec.photo_url || avatarUrl;
-                    }
-                }
-                if (!teacherCode || String(teacherCode).length > 15) {
-                    const { data: allTeachers } = await client.from('teachers').select('*');
-                    if (allTeachers && allTeachers.length > 0) {
-                        const cleanName = String(fullName).trim().toLowerCase();
-                        const tRec = allTeachers.find(t => {
-                            const tFull = `${t.prefix || ''}${t.first_name || ''} ${t.last_name || ''}`.trim().toLowerCase();
-                            const tFirstLast = `${t.first_name || ''} ${t.last_name || ''}`.trim().toLowerCase();
-                            return (user.id && String(t.user_id) === String(user.id)) ||
-                                   (user.email && t.email && String(t.email).toLowerCase() === String(user.email).toLowerCase()) ||
-                                   (cleanName && (tFull === cleanName || tFirstLast === cleanName || String(t.full_name || '').trim().toLowerCase() === cleanName));
-                        });
-                        if (tRec) {
-                            teacherCode = tRec.teacher_id || tRec.code || tRec.teacher_code || teacherCode;
-                            fullName = tRec.full_name || `${tRec.prefix || ''}${tRec.first_name || ''} ${tRec.last_name || ''}`.trim() || fullName;
-                            avatarUrl = tRec.avatar_url || tRec.photo_url || avatarUrl;
-                        }
                     }
                 }
             } catch (e) {}
@@ -705,9 +726,10 @@
         if (cleanCode && CURRENT_TEACHER_USER) {
             CURRENT_TEACHER_USER.teacher_id = cleanCode;
             CURRENT_TEACHER_USER.teacherId = cleanCode;
+            CURRENT_TEACHER_USER.full_name = fullName;
         }
 
-        const codeText = `รหัส: ${cleanCode || 'ไม่ระบุ'}`;
+        const codeText = `รหัส: ${cleanCode || 'ไม่ระบุ'}${scheduleCode ? ' (' + scheduleCode + ')' : ''}`;
         if (nameEl) nameEl.innerText = fullName || 'ครูผู้สอน';
         if (codeEl) codeEl.innerText = codeText;
         if (mobileCodeEl) mobileCodeEl.innerText = codeText;
@@ -716,15 +738,15 @@
             avatarImg.src = avatarUrl && avatarUrl !== '' ? avatarUrl : 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
             avatarImg.onerror = () => { avatarImg.src = 'https://cdn-icons-png.flaticon.com/512/847/847969.png'; };
         }
-        return cleanCode;
+
+        const info = { teacher_id: cleanCode, schedule_code: scheduleCode, full_name: fullName };
+        window.MY_TEACHER_INFO = info;
+        return info;
     }
 
     async function handleLogout() {
         if (!confirm('คุณต้องการออกจากระบบและปิดหน้าต่างนี้ใช่หรือไม่?')) return;
-
-        if (window.showBCWCurtain) {
-            window.showBCWCurtain('กำลังออกจากระบบ...');
-        }
+        if (window.showBCWCurtain) window.showBCWCurtain('กำลังออกจากระบบ...');
 
         try {
             const client = window.supabaseClient || window.db || window.supabase;
@@ -746,105 +768,155 @@
         window.location.replace(prefix + '/login.html?logout=1');
     }
 
-    async function loadRealSubjectSchedules(teacherId) {
+    // โหลดเฉพาะตารางสอนของครูคนนี้ + จับคู่คาบปัจจุบันอัตโนมัติ (Zero-Click Current Class)
+    async function loadRealSubjectSchedules(teacherInfo) {
         const modalList = document.getElementById('subjectModalList');
         const customText = document.getElementById('customSubjectText');
         const subjectInput = document.getElementById('subjectSelect');
+        const liveBadge = document.getElementById('livePeriodBadge');
+        const quickBar = document.getElementById('todayQuickPeriodsBar');
 
         try {
             const client = window.supabaseClient || window.db || window.supabase;
             if (!client) return;
 
-            const [resSched, resOfferings] = await Promise.all([
-                client.from('schedules').select('*').limit(300),
+            const [resSched, resSubjects, resOfferings] = await Promise.all([
+                client.from('schedules').select('*'),
+                client.from('subjects').select('*'),
                 client.from('registration_offerings').select('*').order('created_at', { ascending: false })
             ]);
+
+            // สร้างพจนานุกรมชื่อเต็มวิชาจากตาราง subjects (ไม่เอาไปโชว์เป็นลิสต์เลือก แต่ใช้แปลชื่อวิชาอัตโนมัติ)
+            const subjectDict = new Map();
+            (resSubjects.data || []).forEach(sub => {
+                if (sub.course_code) subjectDict.set(String(sub.course_code).trim().toUpperCase(), sub.subject_name);
+            });
 
             const rawList = resSched.data || [];
             const allOfferings = resOfferings.data || [];
 
-            const targetTeacherId = String(teacherId || CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.teacherId || '').trim().toLowerCase();
-            let schedules = [];
+            const tid = String(teacherInfo?.teacher_id || '').trim().toLowerCase();
+            const sCode = String(teacherInfo?.schedule_code || '').trim().toLowerCase();
+            const tName = String(teacherInfo?.full_name || '').trim();
+            const firstNameOnly = tName.replace(/^(นางสาว|ว่าที่ร้อยตรี|นาย|นาง)\s*/g, '').split(/\s+/)[0] || '';
 
-            if (targetTeacherId && rawList.length > 0) {
-                schedules = rawList.filter(s => {
-                    const rowTid = String(s.teacher_id || s.teacher_code || '').trim().toLowerCase();
-                    return rowTid === targetTeacherId;
+            // กรองเฉพาะตารางสอนของครูคนนี้เท่านั้น (ห้ามดึงตารางทั้งโรงเรียนมาปนเด็ดขาด)
+            const mySchedules = rawList.filter(s => {
+                const rowTid = String(s.teacher_id || '').trim().toLowerCase();
+                const rowSCode = String(s.schedule_code || '').trim().toLowerCase();
+                const rowName = String(s.teacher_name || '').trim();
+                return (tid && rowTid === tid) ||
+                       (sCode && rowSCode === sCode) ||
+                       (tName && rowName === tName) ||
+                       (firstNameOnly && firstNameOnly.length >= 3 && rowName.includes(firstNameOnly));
+            });
+
+            const myOfferings = tid
+                ? allOfferings.filter(o => String(o.teacher_id || '').trim().toLowerCase() === tid)
+                : [];
+
+            const dayOrder = { 'จันทร์': 1, 'อังคาร': 2, 'พุธ': 3, 'พฤหัสบดี': 4, 'ศุกร์': 5 };
+            mySchedules.sort((a, b) => (dayOrder[a.day] || 9) - (dayOrder[b.day] || 9) || (Number(a.period || a.period_no || 0) - Number(b.period || b.period_no || 0)));
+
+            const selectedDateStr = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
+            const selectedDayName = getThaiDayName(selectedDateStr);
+            const activePeriodNow = getCurrentSchoolPeriodNumber();
+
+            const allOptions = [];
+            for (const s of mySchedules) {
+                const cCode = String(s.course_code || s.subject_code || 'วิชา').trim();
+                const cRoom = String(s.classroom || s.class_name || '-').trim();
+                const fullSubjName = subjectDict.get(cCode.toUpperCase()) || s.subject_name || s.course_name || cCode;
+                const displaySubj = (fullSubjName && fullSubjName !== cCode) ? `${cCode} ${fullSubjName}` : cCode;
+                const pNo = Number(s.period || s.period_no || 1);
+                const dayStr = String(s.day || '').trim();
+
+                allOptions.push({
+                    day: dayStr,
+                    period: pNo,
+                    val: `${cCode}|${cRoom}|${fullSubjName}|${pNo}|REGULAR|`,
+                    label: `${dayStr ? 'วัน' + dayStr + ' คาบ ' + pNo + ' • ' : ''}${displaySubj} (ห้อง ${cRoom})`,
+                    shortLabel: `คาบ ${pNo}: ${cCode} (${cRoom})`,
+                    badgeHtml: `<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-semibold shrink-0">วัน${dayStr || '-'} คาบ ${pNo}</span>`
                 });
-            }
-            if (schedules.length === 0) schedules = rawList;
-
-            let myOfferings = allOfferings;
-            if (targetTeacherId) {
-                const matched = allOfferings.filter(o => String(o.teacher_id || '').trim().toLowerCase() === targetTeacherId);
-                if (matched.length > 0) myOfferings = matched;
-            }
-
-            const uniqueOptions = [];
-            const map = new Map();
-
-            for (const s of schedules) {
-                const cCode = s.course_code || s.subject_code || 'วิชา';
-                const cRoom = s.classroom || s.class_name || 'ไม่ระบุ';
-                const cName = s.course_name || s.subject_name || cCode;
-                const periodNo = s.period_no || s.period || '';
-                const key = `REGULAR|${cCode}|${cRoom}`;
-                if (!map.has(key)) {
-                    map.set(key, true);
-                    uniqueOptions.push({
-                        val: `${cCode}|${cRoom}|${cName}|${periodNo}|REGULAR|`,
-                        label: `${cName} (${cCode}) - ห้อง ${cRoom}`,
-                        badgeHtml: `<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium shrink-0">รายวิชา</span>`
-                    });
-                }
             }
 
             for (const off of myOfferings) {
                 const isClub = (off.category || '').toUpperCase() === 'CLUB';
                 const code = off.code || (isClub ? 'ชุมนุม' : 'เลือกเสรี');
                 const groupLabel = isClub ? 'กิจกรรมชุมนุม' : 'วิชาเลือกเสรี';
-                const tagHtml = isClub
-                    ? `<span class="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-medium shrink-0">ชุมนุม</span>`
-                    : `<span class="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-medium shrink-0">เลือกเสรี</span>`;
-
-                uniqueOptions.push({
-                    val: `${code}|${groupLabel}|${off.title}|1|OFFERING|${off.id}`,
+                allOptions.push({
+                    day: '',
+                    period: 8,
+                    val: `${code}|${groupLabel}|${off.title}|8|OFFERING|${off.id}`,
                     label: `${off.title} (${groupLabel})`,
-                    badgeHtml: tagHtml
+                    shortLabel: `${off.title}`,
+                    badgeHtml: `<span class="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-semibold shrink-0">${groupLabel}</span>`
                 });
             }
 
-            if (uniqueOptions.length === 0) {
-                if (customText) customText.innerText = "-- ไม่พบตารางสอนในระบบ --";
-                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนหรือรายวิชาที่เปิดรับสมัคร</p>`;
+            if (allOptions.length === 0) {
+                if (customText) customText.innerText = "-- ยังไม่มีตารางสอนของท่านในระบบ --";
+                if (liveBadge) liveBadge.classList.add('hidden');
+                if (quickBar) quickBar.classList.add('hidden');
+                if (modalList) modalList.innerHTML = `<p class="text-slate-400 text-center py-4">ไม่พบตารางสอนของท่านในระบบ (กรุณาติดต่อฝ่ายวิชาการเพื่อนำเข้าตารางสอน)</p>`;
                 renderStudents();
                 return;
             }
 
+            // 1. ค้นหาคาบสอนของ "วันที่เลือก" (เช่น วันจันทร์) และ "คาบปัจจุบัน" อัตโนมัติ
+            const todaysOptions = allOptions.filter(o => o.day === selectedDayName);
+            let defaultPick = null;
+            let isLiveMatch = false;
+
+            if (todaysOptions.length > 0) {
+                if (activePeriodNow) {
+                    defaultPick = todaysOptions.find(o => o.period === activePeriodNow);
+                    if (defaultPick) isLiveMatch = true;
+                }
+                if (!defaultPick) {
+                    // ถ้าอยู่นอกคาบเรียน (เช่น พักกลางวันหรือก่อนเข้าเรียน) เลือกคาบถัดไปของวันนี้
+                    defaultPick = todaysOptions.find(o => o.period >= (activePeriodNow || 1)) || todaysOptions[0];
+                }
+            } else {
+                defaultPick = allOptions[0];
+            }
+
+            // 2. แสดงแถบปุ่มลัดคาบสอนเฉพาะของวันนี้ (3-5 ปุ่ม) ให้แตะสลับคาบได้ทันทีใน 1 คลิก
+            if (quickBar) {
+                if (todaysOptions.length > 0) {
+                    quickBar.classList.remove('hidden');
+                    quickBar.innerHTML = `<span class="text-[11px] text-slate-500 font-medium shrink-0 mr-1">วัน${selectedDayName}:</span>` +
+                        todaysOptions.map(opt => {
+                            const isSelected = opt.val === defaultPick.val;
+                            return `
+                                <button type="button" data-quick-val="${opt.val}" onclick="selectQuickPeriod('${opt.val}', '${opt.label.replace(/'/g, "\\'")}', ${opt.period === activePeriodNow})"
+                                    class="quick-period-pill shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition cursor-pointer ${isSelected ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50'}">
+                                    ${opt.shortLabel}
+                                </button>
+                            `;
+                        }).join('');
+                } else {
+                    quickBar.classList.add('hidden');
+                }
+            }
+
+            // 3. เติมรายการใน Modal เผื่อครูต้องการเช็กย้อนหลังวันอื่นในสัปดาห์
             if (modalList) {
-                const listHtml = uniqueOptions.map(opt => `
-                    <button type="button" onclick="selectSubjectOption('${opt.val}', '${opt.label.replace(/'/g, "\'")}')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 font-normal transition border border-transparent hover:border-emerald-200 flex items-center justify-between gap-2 cursor-pointer">
+                modalList.innerHTML = allOptions.map(opt => `
+                    <button type="button" onclick="selectSubjectOption('${opt.val}', '${opt.label.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 font-normal transition border border-transparent hover:border-emerald-200 flex items-center justify-between gap-2 cursor-pointer">
                         <div class="flex items-center gap-2 min-w-0">
                             ${opt.badgeHtml}
-                            <span class="truncate">${opt.label}</span>
+                            <span class="truncate text-xs sm:text-sm">${opt.label}</span>
                         </div>
                         <i class="fa-solid fa-chevron-right text-xs text-slate-400 shrink-0"></i>
                     </button>
                 `).join('');
-
-                const manageLinkHtml = `
-                    <div class="pt-2 mt-2 border-t border-slate-100">
-                        <a href="../../modules/registration/teacher-offering.html" class="w-full p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 text-xs font-medium flex items-center justify-center gap-1.5 transition">
-                            <i class="fa-solid fa-book-open-reader"></i> จัดการเปิดวิชาเลือกเสรี & ชุมนุม
-                        </a>
-                    </div>
-                `;
-                modalList.innerHTML = listHtml + manageLinkHtml;
             }
 
-            const first = uniqueOptions[0];
-            if (subjectInput) subjectInput.value = first.val;
-            if (customText) customText.innerText = first.label;
+            if (subjectInput) subjectInput.value = defaultPick.val;
+            if (customText) customText.innerText = defaultPick.label;
+            if (liveBadge) liveBadge.classList.toggle('hidden', !isLiveMatch);
 
             await renderStudents();
             await loadHomeworkHistory();
@@ -852,6 +924,23 @@
             if (customText) customText.innerText = "-- เลือกวิชาและห้องเรียน --";
         }
     }
+
+    window.selectQuickPeriod = async function(val, labelText, isLive) {
+        document.getElementById('subjectSelect').value = val;
+        document.getElementById('customSubjectText').innerText = labelText;
+        const liveBadge = document.getElementById('livePeriodBadge');
+        if (liveBadge) liveBadge.classList.toggle('hidden', !isLive);
+
+        document.querySelectorAll('.quick-period-pill').forEach(btn => {
+            const active = btn.getAttribute('data-quick-val') === val;
+            btn.className = active
+                ? 'quick-period-pill shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition cursor-pointer bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                : 'quick-period-pill shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition cursor-pointer bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50';
+        });
+
+        await renderStudents();
+        await loadHomeworkHistory();
+    };
     
     window.toggleStatsDrawer = function() {
         const trafficSec = document.getElementById('section-traffic');
@@ -923,13 +1012,14 @@
     window.selectSubjectOption = async function(val, labelText) {
         document.getElementById('subjectSelect').value = val;
         document.getElementById('customSubjectText').innerText = labelText;
+        const liveBadge = document.getElementById('livePeriodBadge');
+        if (liveBadge) liveBadge.classList.add('hidden');
         window.toggleSubjectModal();
         await renderStudents();
         await loadHomeworkHistory();
     };
 
     window.toggleRiskOnlyFilter = function() {
-        
         FILTER_RISK_ONLY = !FILTER_RISK_ONLY;
         const btn = document.getElementById('btnFilterRisk');
         if (btn) {
@@ -1032,16 +1122,13 @@
     window.toggleMobileNoteBox = function(studentId, forceShow = null) {
         const box = document.getElementById(`note_box_mobile_${studentId}`);
         if (!box) return;
-        if (forceShow === true) {
-            box.classList.remove('hidden');
-        } else if (forceShow === false) {
+        if (forceShow === true) box.classList.remove('hidden');
+        else if (forceShow === false) {
             const inp = document.getElementById(`note_mobile_${studentId}`);
             if (!inp || !inp.value.trim()) box.classList.add('hidden');
         } else {
             box.classList.toggle('hidden');
-            if (!box.classList.contains('hidden')) {
-                document.getElementById(`note_mobile_${studentId}`)?.focus();
-            }
+            if (!box.classList.contains('hidden')) document.getElementById(`note_mobile_${studentId}`)?.focus();
         }
     };
 
@@ -1052,9 +1139,7 @@
         statuses.forEach(st => {
             document.querySelectorAll(`[data-btn="${studentId}_${st}"]`).forEach(btn => {
                 btn.classList.remove('active-present', 'active-late', 'active-leave', 'active-absent', 'active-truant');
-                if (st === statusValue) {
-                    btn.classList.add(`active-${statusValue}`);
-                }
+                if (st === statusValue) btn.classList.add(`active-${statusValue}`);
             });
         });
 
@@ -1064,11 +1149,8 @@
             card.classList.add(`card-state-${statusValue}`);
         }
 
-        if (statusValue !== 'present') {
-            window.toggleMobileNoteBox(studentId, true);
-        } else {
-            window.toggleMobileNoteBox(studentId, false);
-        }
+        if (statusValue !== 'present') window.toggleMobileNoteBox(studentId, true);
+        else window.toggleMobileNoteBox(studentId, false);
 
         window.updateLiveSubjectStats();
         IS_CHECKING_ACTIVE = true;
@@ -1093,17 +1175,18 @@
             return;
         }
 
-        const [courseCode, className, courseName, , subjectMode, offeringId] = selectedVal.split('|');
+        const [courseCode, className, courseName, periodStr, subjectMode, offeringId] = selectedVal.split('|');
         const isOfferingMode = subjectMode === 'OFFERING' && offeringId;
+        const currentPeriodNo = Number(periodStr) || 1;
 
         const headerTitle = document.getElementById('tableHeaderTitle');
-        if (headerTitle) headerTitle.innerText = isOfferingMode ? `${courseName}` : `ห้อง ${className}`;
+        if (headerTitle) headerTitle.innerText = isOfferingMode ? `${courseName}` : `ห้อง ${className} (คาบที่ ${currentPeriodNo})`;
 
         const hwClassTag = document.getElementById('homeworkClassTag');
         if (hwClassTag) hwClassTag.innerText = isOfferingMode ? `${courseName}` : `${courseCode} • ห้อง ${className}`;
 
-        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-sm text-slate-400 font-normal">กำลังดึงข้อมูลนักเรียน Real-time จากฐานข้อมูล...</td></tr>';
-        if (mobileList) mobileList.innerHTML = '<div class="text-center py-6 text-sm text-slate-400 font-normal">กำลังดึงข้อมูลนักเรียน Real-time...</div>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-sm text-slate-400 font-normal">กำลังดึงรายชื่อนักเรียน...</td></tr>';
+        if (mobileList) mobileList.innerHTML = '<div class="text-center py-6 text-sm text-slate-400 font-normal">กำลังดึงรายชื่อนักเรียน...</div>';
 
         try {
             const client = window.supabaseClient || window.db || window.supabase;
@@ -1146,13 +1229,13 @@
                     .select('*')
                     .eq('classroom', className)
                     .order('student_no', { ascending: true });
-                students = roomStudents || [];
+                students = (roomStudents || []).filter(s => (s.status || 'active') === 'active');
             }
 
             const [resNurse, resAffairs, resLogs] = await Promise.all([
                 client.from('clinic_records').select('*'),
                 client.from('gate_pass_logs').select('*'),
-                client.from('attendance_logs').select('*').order('recorded_at', { ascending: false }).limit(1500)
+                client.from('attendance_logs').select('*').order('recorded_at', { ascending: false }).limit(2000)
             ]);
 
             const allLogs = resLogs.data || [];
@@ -1202,13 +1285,20 @@
                 if (affairInfo) CURRENT_OUT_COUNT++;
 
                 const studentLogs = allLogs.filter(l => String(l.student_id).trim() === studentId);
-                const dateLogs = studentLogs.filter(l => String(l.recorded_at || '').startsWith(targetDateStr));
+                const dateLogs = studentLogs.filter(l => (l.date || String(l.recorded_at || '').split('T')[0]) === targetDateStr);
+
+                // เช็กว่าคาบนี้ในวันนี้เคยถูกบันทึกไว้แล้วหรือยัง (โหลดสถานะเดิมมาแสดงทันที)
+                const existingThisPeriodLog = dateLogs.find(l =>
+                    Number(l.period_no) === currentPeriodNo &&
+                    (String(l.subject_code || '') === courseCode || String(l.subject_name || '').includes(courseCode))
+                );
 
                 const thisSubjectLogs = studentLogs.filter(l => {
                     if (!l.period_no || l.period_no <= 0) return false;
                     const subjStr = String(l.subject_name || '');
+                    const subjCodeStr = String(l.subject_code || '');
                     if (isOfferingMode) return subjStr.includes(courseName);
-                    return subjStr.includes(`(${courseCode})`) || subjStr.includes(courseCode);
+                    return subjCodeStr === courseCode || subjStr.includes(`(${courseCode})`) || subjStr.includes(courseCode);
                 });
 
                 const totalSubjectSessions = thisSubjectLogs.length;
@@ -1252,7 +1342,7 @@
                 const leaveInfo = dateLogs.find(l => normalizeDbStatus(l.status) === 'leave') || 
                                   studentLogs.find(l => normalizeDbStatus(l.status) === 'leave' && l.method === 'parent_leave_request');
 
-                const subjectLogsOnDate = dateLogs.filter(l => l.period_no && l.period_no > 0);
+                const subjectLogsOnDate = dateLogs.filter(l => l.period_no && l.period_no > 0 && Number(l.period_no) !== currentPeriodNo);
                 const lastLogToday = subjectLogsOnDate.length > 0 ? subjectLogsOnDate[0] : null;
                 const lastSt = lastLogToday ? normalizeDbStatus(lastLogToday.status) : '';
                 const missedPrevPeriod = lastLogToday && (lastSt === 'absent' || lastSt === 'truant');
@@ -1262,15 +1352,21 @@
                     return st === 'absent' || st === 'truant';
                 });
                 const leaveLogs = studentLogs.filter(l => normalizeDbStatus(l.status) === 'leave');
-                const uniqueAbsentDays = new Set(absentLogs.map(l => String(l.recorded_at || '').split('T')[0])).size;
+                const uniqueAbsentDays = new Set(absentLogs.map(l => (l.date || String(l.recorded_at || '').split('T')[0]))).size;
 
                 let specialTagHtml = '';
                 let autoNoteText = '';
-                let defaultStatus = 'present';
+                let defaultStatus = existingThisPeriodLog ? (normalizeDbStatus(existingThisPeriodLog.status) || 'present') : 'present';
+
+                if (existingThisPeriodLog) {
+                    specialTagHtml += `<span class="bg-indigo-50 text-indigo-700 text-[11px] font-normal px-1.5 py-0.5 rounded border border-indigo-200">✓ บันทึกคาบนี้แล้ว</span> `;
+                    const noteMatch = String(existingThisPeriodLog.subject_name || '').split('| หมายเหตุ: ')[1];
+                    if (noteMatch) autoNoteText = noteMatch;
+                }
 
                 if (gateScanTimeStr) {
                     specialTagHtml += `<span class="bg-emerald-50 text-emerald-700 text-[11px] font-normal px-1.5 py-0.5 rounded border border-emerald-200">📸 เข้า ${gateScanTimeStr}</span> `;
-                    if (missedPrevPeriod) {
+                    if (!existingThisPeriodLog && missedPrevPeriod) {
                         specialTagHtml += `<span class="bg-purple-600 text-white text-[11px] font-normal px-1.5 py-0.5 rounded">⚠️ เสี่ยงหนีเรียน</span> `;
                         defaultStatus = 'truant';
                     }
@@ -1293,23 +1389,29 @@
 
                 if (nurseInfo) {
                     specialTagHtml += `<span class="bg-rose-100 text-rose-800 text-[11px] font-normal px-1.5 py-0.5 rounded border border-rose-200">🏥 ห้องพยาบาล</span> `;
-                    autoNoteText = `พักห้องพยาบาล: ${nurseInfo.symptom || 'ป่วย'}`;
-                    defaultStatus = 'leave';
+                    if (!existingThisPeriodLog) {
+                        autoNoteText = `พักห้องพยาบาล: ${nurseInfo.symptom || 'ป่วย'}`;
+                        defaultStatus = 'leave';
+                    }
                 }
                 if (affairInfo) {
                     specialTagHtml += `<span class="bg-sky-100 text-sky-800 text-[11px] font-normal px-1.5 py-0.5 rounded border border-sky-200">🚪 ออกนอก</span> `;
-                    autoNoteText = autoNoteText || `ขอออกนอก: ${affairInfo.reason || 'ธุระ'}`;
-                    defaultStatus = 'leave';
+                    if (!existingThisPeriodLog) {
+                        autoNoteText = autoNoteText || `ขอออกนอก: ${affairInfo.reason || 'ธุระ'}`;
+                        defaultStatus = 'leave';
+                    }
                 }
                 if (leaveInfo) {
                     specialTagHtml += `<span class="bg-amber-100 text-amber-800 text-[11px] font-normal px-1.5 py-0.5 rounded border border-amber-200">✉️ ผู้ปกครองแจ้งลา</span>`;
-                    autoNoteText = autoNoteText || leaveInfo.subject_name || `ผู้ปกครองแจ้งลา: ${leaveInfo.reason || 'ลากิจ/ป่วย'}`;
-                    defaultStatus = 'leave';
+                    if (!existingThisPeriodLog) {
+                        autoNoteText = autoNoteText || leaveInfo.subject_name || `ผู้ปกครองแจ้งลา: ${leaveInfo.reason || 'ลากิจ/ป่วย'}`;
+                        defaultStatus = 'leave';
+                    }
                 }
 
                 ATTENDANCE_STATE[studentId] = defaultStatus;
 
-                const avatarUrl = s.avatar_url || `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.webp`;
+                const avatarUrl = s.avatar_url || `${SUPABASE_URL}/storage/v1/object/public/avatars/${studentId}.jpg`;
                 const showNoteInitially = defaultStatus !== 'present' || Boolean(autoNoteText);
 
                 const renderTapButtons = () => `
@@ -1487,13 +1589,15 @@
         const isOfferingMode = subjectMode === 'OFFERING';
         const targetDateStr = document.getElementById('attendanceDateInput')?.value || getLocalTodayStr();
         const modeStatus = checkIsRealtimeSchoolHours(targetDateStr);
+        const periodNo = Number(periodStr) || 1;
+        const recorderId = CURRENT_TEACHER_USER?.teacher_id || CURRENT_TEACHER_USER?.full_name || 'TEACHER';
 
         const recordedTimestamp = (targetDateStr === getLocalTodayStr())
             ? new Date().toISOString()
             : `${targetDateStr}T12:00:00+07:00`;
 
         const isSampleThai = ['มา', 'สาย', 'ลา', 'ขาด', 'หนี'].includes(DB_STATUS_SAMPLE);
-        const modesToTry = isSampleThai ? ['THAI', 'UPPER', 'LOWER'] : ['UPPER', 'THAI', 'LOWER'];
+        const modesToTry = isSampleThai ? ['THAI', 'UPPER', 'LOWER'] : ['UPPER', 'LOWER', 'THAI'];
 
         const buildPayload = (enumMode) => CURRENT_STUDENTS_CACHE.map(s => {
             const studentId = String(s.student_id || s.id).trim();
@@ -1503,10 +1607,14 @@
 
             return {
                 student_id: studentId,
+                date: targetDateStr,
+                classroom: roomLabel,
+                subject_code: courseCode || 'GENERAL',
                 status: formatStatusForEnum(rawStatus, enumMode),
                 method: modeStatus.isRealtime ? 'teacher_realtime' : 'teacher_backdated',
-                period_no: Number(periodStr) || 1,
+                period_no: periodNo,
                 recorded_at: recordedTimestamp,
+                recorded_by: String(recorderId),
                 subject_name: `${courseName || courseCode || 'รายวิชา'} (${courseCode || '-'}) - ${roomLabel}${noteVal ? ' | หมายเหตุ: ' + noteVal : ''}`
             };
         });
@@ -1514,6 +1622,15 @@
         try {
             let lastError = null;
             let savedSuccess = false;
+
+            // ลบข้อมูลเดิมของคาบนี้ในวันนี้ก่อนบันทึกใหม่ เพื่อรองรับการแก้ไขโดยไม่ติด Unique Index (23505)
+            const studentIds = CURRENT_STUDENTS_CACHE.map(s => String(s.student_id || s.id).trim());
+            await client.from('attendance_logs')
+                .delete()
+                .in('student_id', studentIds)
+                .eq('date', targetDateStr)
+                .eq('period_no', periodNo)
+                .eq('subject_code', courseCode || 'GENERAL');
 
             for (const mode of modesToTry) {
                 const payload = buildPayload(mode);
@@ -1533,7 +1650,7 @@
             window.updateLiveSubjectStats();
             IS_CHECKING_ACTIVE = false;
             hideMobileFloatingStats();
-            alert(`✅ บันทึกข้อมูลการเช็กชื่อ ${isOfferingMode ? courseName : 'ห้อง ' + className} (${CURRENT_STUDENTS_CACHE.length} คน) เรียบร้อยแล้ว!`);
+            alert(`✅ บันทึกข้อมูลการเช็กชื่อ ${isOfferingMode ? courseName : 'ห้อง ' + className} คาบที่ ${periodNo} (${CURRENT_STUDENTS_CACHE.length} คน) เรียบร้อยแล้ว!`);
             await renderStudents();
         } catch (err) {
             alert('เกิดข้อผิดพลาดในการบันทึกเช็กชื่อ: ' + (err.message || err));
