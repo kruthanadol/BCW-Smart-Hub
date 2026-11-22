@@ -1074,113 +1074,190 @@
             .trim();
     }
 
-    function normalizeDayKey(rawDay) {
+function normalizeDayKey(rawDay) {
         const d = String(rawDay || '').trim().toLowerCase();
-        if (d === '1' || d.includes('mon') || d.includes('จันทร์')) return 'Monday';
-        if (d === '2' || d.includes('tue') || d.includes('อังคาร')) return 'Tuesday';
-        if (d === '3' || d.includes('wed') || d.includes('พุธ')) return 'Wednesday';
-        if (d === '4' || d.includes('thu') || d.includes('พฤหัส')) return 'Thursday';
-        if (d === '5' || d.includes('fri') || d.includes('ศุกร์')) return 'Friday';
+        if (d === '1' || d.includes('mon') || d.includes('จันทร์') || d === 'จ.' || d === 'จ') return 'Monday';
+        if (d === '2' || d.includes('tue') || d.includes('อังคาร') || d === 'อ.' || d === 'อ') return 'Tuesday';
+        if (d === '3' || d.includes('wed') || d.includes('พุธ') || d === 'พ.' || d === 'พ') return 'Wednesday';
+        if (d === '4' || d.includes('thu') || d.includes('พฤหัส') || d === 'พฤ.' || d === 'พฤ') return 'Thursday';
+        if (d === '5' || d.includes('fri') || d.includes('ศุกร์') || d === 'ศ.' || d === 'ศ') return 'Friday';
         return '';
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            let currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
-            if (!currentUser) {
-                const raw = localStorage.getItem('bcw_user_session') || sessionStorage.getItem('bcw_user_session');
-                if (raw) currentUser = JSON.parse(raw);
-            }
-            if (!currentUser) return;
+    function normalizeRoomStr(str) {
+        return String(str || '').replace(/\s+/g, '').replace(/^ห้อง/g, '').trim();
+    }
 
-            const client = window.supabaseClient || window.db || window.supabase;
-            const rawId = String(currentUser.studentId || currentUser.student_id || currentUser.id || '').trim();
-            const email = String(currentUser.email || '').toLowerCase().trim();
-            CURRENT_STUDENT_ID = rawId;
+    // 📅 ตารางเรียนประจำห้อง (ดึงจาก schedules + subjects ชุดเดียวกับครู รองรับทุกชื่อคอลัมน์และช่องว่าง)
+    async function renderStudentSchedule() {
+        const container = document.getElementById('scheduleContainer');
+        const desktopContainer = document.getElementById('desktopScheduleContainer');
+        const nextBar = document.getElementById('nextClassBarText');
+        const client = window.supabaseClient || window.db || window.supabase;
+        const defaultTeacherAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png';
 
-            if (currentUser.name && document.getElementById('student-fullname')) {
-                document.getElementById('student-fullname').textContent = currentUser.name;
-            }
-            if (currentUser.avatar && document.getElementById('student-avatar')) {
-                document.getElementById('student-avatar').src = currentUser.avatar;
-            }
+        if (!client) return;
 
-            // ดึงข้อมูลนักเรียนจากตาราง students
-            let student = null;
-            if (client) {
-                try {
-                    if (rawId) {
-                        const { data: byStuId } = await client.from('students').select('*').eq('student_id', rawId).maybeSingle();
-                        student = byStuId;
+        // 1. ดึงข้อมูลวิชาเลือกเสรีและชุมนุมที่นักเรียนลงทะเบียนไว้
+        let regCardsHtml = '';
+        if (CURRENT_STUDENT_ID) {
+            try {
+                const { data: myRegs } = await client
+                    .from('student_registrations')
+                    .select('category, offering:registration_offerings(code, title, teacher_name, room, schedule_info)')
+                    .eq('student_id', CURRENT_STUDENT_ID);
+
+                if (myRegs && myRegs.length > 0) {
+                    const electiveReg = myRegs.find(r => r.category === 'ELECTIVE' && r.offering);
+                    const clubReg = myRegs.find(r => r.category === 'CLUB' && r.offering);
+
+                    if (electiveReg) {
+                        const txt = `✅ ${electiveReg.offering.title}`;
+                        if (document.getElementById('drawerElectiveStatusText')) document.getElementById('drawerElectiveStatusText').textContent = txt;
+                        if (document.getElementById('desktopElectiveStatusText')) document.getElementById('desktopElectiveStatusText').textContent = txt;
                     }
-                    if (!student && email) {
-                        const { data: byEmail } = await client.from('students').select('*').eq('email', email).maybeSingle();
-                        student = byEmail;
+                    if (clubReg) {
+                        const txt = `✅ ${clubReg.offering.title}`;
+                        if (document.getElementById('drawerClubStatusText')) document.getElementById('drawerClubStatusText').textContent = txt;
+                        if (document.getElementById('desktopClubStatusText')) document.getElementById('desktopClubStatusText').textContent = txt;
                     }
-                    if (!student && rawId) {
-                        const { data: byPk } = await client.from('students').select('*').eq('id', rawId).maybeSingle();
-                        student = byPk;
-                    }
-                } catch (e) {
-                    console.warn('[StudentPortal] Fetch student notice:', e);
+
+                    regCardsHtml = myRegs.filter(r => r.offering).map(r => {
+                        const isClub = r.category === 'CLUB';
+                        const off = r.offering;
+                        return `
+                            <div class="flex items-center justify-between p-2.5 ${isClub ? 'bg-emerald-50/80 border-emerald-200' : 'bg-indigo-50/80 border-indigo-200'} border rounded-xl gap-2">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-8 h-8 rounded-xl ${isClub ? 'bg-emerald-700' : 'bg-indigo-900'} text-amber-300 font-bold text-[10px] flex flex-col items-center justify-center shrink-0">
+                                        <i class="fa-solid ${isClub ? 'fa-users-rays' : 'fa-book-open'}"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[10px] font-extrabold px-1.5 py-0.2 rounded ${isClub ? 'bg-emerald-200 text-emerald-950' : 'bg-indigo-200 text-indigo-950'}">
+                                                ${isClub ? 'กิจกรรมชุมนุม' : 'วิชาเลือกเสรี'}
+                                            </span>
+                                            <h4 class="text-xs font-bold text-slate-900 truncate">${off.title}</h4>
+                                        </div>
+                                        <p class="text-[11px] text-slate-600 truncate mt-0.5">
+                                            ${off.teacher_name || 'ครูผู้สอน'} &bull; ห้อง ${off.room || '-'} ${off.schedule_info ? `(${off.schedule_info})` : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
                 }
+            } catch (e) {
+                console.warn('[StudentPortal] Registration schedule load notice:', e);
             }
-
-            if (student) {
-                CURRENT_STUDENT_ID = String(student.student_id || rawId);
-                currentStudentClass = String(student.classroom || student.class_name || '').trim();
-                const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
-                const studentNo = student.student_no || student.no || '-';
-                const avatarUrl = student.avatar_url || student.photo_url || currentUser.avatar || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-
-                if (document.getElementById('student-fullname') && fullName) document.getElementById('student-fullname').textContent = fullName;
-                if (document.getElementById('student-class')) document.getElementById('student-class').textContent = currentStudentClass || '-';
-                if (document.getElementById('student-no')) document.getElementById('student-no').textContent = studentNo;
-                if (document.getElementById('student-id')) document.getElementById('student-id').textContent = CURRENT_STUDENT_ID;
-
-                const avatarEl = document.getElementById('student-avatar');
-                if (avatarEl) {
-                    avatarEl.src = avatarUrl;
-                    avatarEl.onerror = () => { avatarEl.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'; };
-                }
-            }
-
-            // กำหนดวันเริ่มต้นตารางเรียนตามวันปัจจุบัน
-            const dayMap = {
-                'Sunday': { key: 'Monday', label: 'วันจันทร์' },
-                'Monday': { key: 'Monday', label: 'วันจันทร์' },
-                'Tuesday': { key: 'Tuesday', label: 'วันอังคาร' },
-                'Wednesday': { key: 'Wednesday', label: 'วันพุธ' },
-                'Thursday': { key: 'Thursday', label: 'วันพฤหัสบดี' },
-                'Friday': { key: 'Friday', label: 'วันศุกร์' },
-                'Saturday': { key: 'Monday', label: 'วันจันทร์' }
-            };
-            const currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-            const defaultDay = dayMap[currentDayName] || { key: 'Monday', label: 'วันจันทร์' };
-            SELECTED_SCHEDULE_DAY = defaultDay.key;
-            if (document.getElementById('currentDayText')) document.getElementById('currentDayText').innerText = defaultDay.label;
-            if (document.getElementById('desktopDayText')) document.getElementById('desktopDayText').innerText = defaultDay.label;
-
-            // โหลดฐานข้อมูลครู + รายวิชา (subjects) ชุดเดียวกับฝั่งครู
-            await buildMasterLookupMaps(client);
-
-            // โหลดข้อมูลจริงครบทุกส่วนพร้อมกัน
-            await Promise.all([
-                renderHomeroomAdvisors(currentStudentClass),
-                renderAttendanceAndAcademicData(client, CURRENT_STUDENT_ID),
-                renderActiveGatepass(),
-                renderStudentSchedule(),
-                renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
-                renderHomeworkData(currentStudentClass),
-                renderClinicData(CURRENT_STUDENT_ID),
-                renderAnnouncements(client)
-            ]);
-
-            setupEventListeners();
-        } catch (err) {
-            console.error('[StudentPortal] Init Error:', err);
         }
-    });
+
+        if (!currentStudentClass) {
+            const emptyHtml = regCardsHtml || `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่พบข้อมูลห้องเรียนของนักเรียน</div>`;
+            if (container) container.innerHTML = emptyHtml;
+            if (desktopContainer) desktopContainer.innerHTML = emptyHtml;
+            if (nextBar) nextBar.textContent = "ตารางเรียนประจำวัน (แตะเพื่อเปิดดู)";
+            updateNextClassWidget([]);
+            return;
+        }
+
+        try {
+            const targetRoom = normalizeRoomStr(currentStudentClass); // เช่น "ม.2/2"
+            const targetGrade = targetRoom.split('/')[0] || '';       // เช่น "ม.2"
+
+            // ดึงข้อมูลจากตาราง schedules ทั้งหมดแล้วกรองฝั่ง Client เพื่อรองรับทุกชื่อคอลัมน์และช่องว่าง
+            const { data: allSchedRows, error: schedErr } = await client
+                .from('schedules')
+                .select('*');
+
+            if (schedErr) {
+                console.warn('[StudentPortal] schedules table query error:', schedErr);
+            }
+
+            let matchedSchedules = (allSchedRows || []).filter(row => {
+                const r1 = normalizeRoomStr(row.classroom);
+                const r2 = normalizeRoomStr(row.class_name);
+                const r3 = normalizeRoomStr(row.room);
+                const candidates = [r1, r2, r3].filter(Boolean);
+                return candidates.includes(targetRoom) || (targetGrade && candidates.includes(targetGrade));
+            });
+
+            // กรณีตาราง schedules ติดสิทธิ์ RLS (อ่านได้ 0 แถว) ให้ดึงสำรองจาก course_assignments หรือ attendance_logs
+            if (matchedSchedules.length === 0) {
+                const { data: fallbackAssign } = await client
+                    .from('course_assignments')
+                    .select('*');
+                matchedSchedules = (fallbackAssign || []).filter(row => {
+                    const r1 = normalizeRoomStr(row.class_name);
+                    const r2 = normalizeRoomStr(row.classroom);
+                    return r1 === targetRoom || r2 === targetRoom || (targetGrade && (r1 === targetGrade || r2 === targetGrade));
+                });
+            }
+
+            STUDENT_WEEKLY_SCHEDULES = matchedSchedules;
+
+            if (STUDENT_WEEKLY_SCHEDULES.length === 0) {
+                const noDataHtml = regCardsHtml || `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายวิชาในตารางเรียน (${currentStudentClass})</div>`;
+                if (container) container.innerHTML = noDataHtml;
+                if (desktopContainer) desktopContainer.innerHTML = noDataHtml;
+                if (nextBar) nextBar.textContent = `ห้อง ${currentStudentClass} • ยังไม่มีข้อมูลตารางเรียน`;
+                updateNextClassWidget([]);
+                return;
+            }
+
+            // กรองเฉพาะวันที่เลือก (หรือแสดงทั้งหมดหากตารางไม่ได้ระบุวัน)
+            const hasDayColumn = STUDENT_WEEKLY_SCHEDULES.some(s => normalizeDayKey(s.day_of_week || s.day || s.weekday));
+            const daySchedules = hasDayColumn
+                ? STUDENT_WEEKLY_SCHEDULES
+                    .filter(s => normalizeDayKey(s.day_of_week || s.day || s.weekday) === SELECTED_SCHEDULE_DAY)
+                    .sort((a, b) => Number(a.period_no || a.period || 0) - Number(b.period_no || b.period || 0))
+                : STUDENT_WEEKLY_SCHEDULES.sort((a, b) => Number(a.period_no || a.period || 0) - Number(b.period_no || b.period || 0));
+
+            const regularHtml = daySchedules.length > 0
+                ? daySchedules.map((s, idx) => {
+                    const pNo = Number(s.period_no || s.period || (idx + 1));
+                    const cCode = String(s.course_code || s.subject_code || '').trim().toUpperCase();
+                    const fullSubjName = SUBJECT_LOOKUP_MAP[cCode] || s.subject_name || s.course_name || cCode || 'วิชาเรียน';
+                    const tCode = String(s.teacher_id || s.schedule_code || '').trim().toUpperCase();
+                    const tInfo = TEACHER_LOOKUP_MAP[tCode] || {};
+                    const rawTeacherName = s.teacher_name || tInfo.name || tCode || 'ผู้สอน';
+                    const tDisplayName = formatCompactTeacherName(rawTeacherName);
+                    const tAvatar = tInfo.avatar || defaultTeacherAvatar;
+                    const slotInfo = PERIOD_TIME_SLOTS.find(slot => slot.p === pNo);
+                    const timeBadge = slotInfo ? `${slotInfo.start}–${slotInfo.end}` : '';
+
+                    return `
+                        <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl gap-2">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-800 font-bold text-xs flex flex-col items-center justify-center shrink-0">
+                                    <span class="text-[8px] text-indigo-500 leading-none">คาบ</span>
+                                    <span class="leading-tight">${pNo}</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="text-xs font-bold text-slate-900 truncate">${cCode ? `${cCode} ` : ''}${fullSubjName !== cCode ? fullSubjName : ''}</h4>
+                                    <p class="text-[11px] text-slate-600 truncate">
+                                        ${timeBadge ? `<span class="font-mono text-indigo-700">${timeBadge}</span> &bull; ` : ''}ห้อง ${s.room || s.classroom || s.class_name || currentStudentClass}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shrink-0">
+                                <img src="${tAvatar}" class="w-5 h-5 rounded-full object-cover" onerror="this.src='${defaultTeacherAvatar}'">
+                                <span class="text-[10.5px] font-medium text-slate-700 max-w-[95px] truncate">${tDisplayName}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('')
+                : `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันที่เลือก</div>`;
+
+            const combinedHtml = regularHtml + regCardsHtml;
+            if (container) container.innerHTML = combinedHtml;
+            if (desktopContainer) desktopContainer.innerHTML = combinedHtml;
+
+            updateNextClassWidget(STUDENT_WEEKLY_SCHEDULES);
+        } catch (e) {
+            console.warn('[StudentPortal] Schedule error:', e);
+        }
+    }
 
     async function buildMasterLookupMaps(client) {
         if (!client) return;
