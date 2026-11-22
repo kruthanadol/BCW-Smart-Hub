@@ -1033,6 +1033,7 @@
     let SELECTED_SCHEDULE_DAY = 'Monday';
     let gatepassTimerInterval = null;
     let TEACHER_LOOKUP_MAP = {};
+    let TEACHER_NAME_LOOKUP_MAP = {};
     let SUBJECT_LOOKUP_MAP = {};
     let STUDENT_WEEKLY_SCHEDULES = [];
 
@@ -1049,7 +1050,14 @@
 
     function formatCompactTeacherName(fullName) {
         return String(fullName || '')
-            .replace(/^(นางสาว|นาย|นาง|ว่าที่ร้อยตรี|ว่าที่ ร\.ต\.)\s*/g, 'ครู')
+            .replace(/^(นางสาว|ว่าที่ร้อยตรี|ว่าที่ ร\.ต\.|นาย|นาง)\s*/g, 'ครู')
+            .trim();
+    }
+
+    function normalizeTeacherMatchKey(name) {
+        return String(name || '')
+            .replace(/^(นางสาว|ว่าที่ร้อยตรี|ว่าที่ ร\.ต\.|นาย|นาง|ครู)\s*/g, '')
+            .replace(/\s+/g, '')
             .trim();
     }
 
@@ -1178,6 +1186,9 @@
                 }
             });
 
+            TEACHER_LOOKUP_MAP = {};
+            TEACHER_NAME_LOOKUP_MAP = {};
+
             const registerTeacher = (rec, keys) => {
                 const name = rec.full_name || rec.name || rec.display_name || `${rec.prefix || ''}${rec.first_name || rec.teacher_name || ''} ${rec.last_name || ''}`.trim();
                 const avatar = rec.avatar_url || rec.photo_url || rec.picture_url || rec.image_url || '';
@@ -1190,11 +1201,37 @@
                     if (avatar && !TEACHER_LOOKUP_MAP[code].avatar) TEACHER_LOOKUP_MAP[code].avatar = avatar;
                     if (phone && !TEACHER_LOOKUP_MAP[code].phone) TEACHER_LOOKUP_MAP[code].phone = phone;
                 });
+
+                const cleanNameKey = normalizeTeacherMatchKey(name);
+                if (cleanNameKey) {
+                    if (!TEACHER_NAME_LOOKUP_MAP[cleanNameKey]) {
+                        TEACHER_NAME_LOOKUP_MAP[cleanNameKey] = { name, avatar: '', phone: '' };
+                    }
+                    if (avatar && !TEACHER_NAME_LOOKUP_MAP[cleanNameKey].avatar) {
+                        TEACHER_NAME_LOOKUP_MAP[cleanNameKey].avatar = avatar;
+                    }
+                    if (phone && !TEACHER_NAME_LOOKUP_MAP[cleanNameKey].phone) {
+                        TEACHER_NAME_LOOKUP_MAP[cleanNameKey].phone = phone;
+                    }
+                }
             };
 
             (allUsers || []).forEach(u => registerTeacher(u, [u.teacher_id, u.ref_id, u.schedule_code, u.user_id, u.teacher_code]));
             (allTeachers || []).forEach(t => registerTeacher(t, [t.teacher_id, t.code, t.teacher_code, t.id]));
         } catch (e) {}
+    }
+
+    function resolveTeacherProfile(teacherCode, teacherName) {
+        const defaultTeacherAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png';
+        const byCode = TEACHER_LOOKUP_MAP[String(teacherCode || '').trim().toUpperCase()] || {};
+        const rawName = teacherName || byCode.name || teacherCode || 'ผู้สอน';
+        const byName = TEACHER_NAME_LOOKUP_MAP[normalizeTeacherMatchKey(rawName)] || {};
+
+        return {
+            fullName: rawName,
+            shortName: formatCompactTeacherName(rawName),
+            avatar: byCode.avatar || byName.avatar || defaultTeacherAvatar
+        };
     }
 
     async function renderHomeroomAdvisors(classroom) {
@@ -1514,7 +1551,7 @@
         gatepassTimerInterval = setInterval(updateTimer, 1000);
     }
 
-    // 📅 ตารางเรียนประจำห้อง (ดึงจาก schedules + subjects ชุดเดียวกับครู รองรับทุกชื่อคอลัมน์และช่องว่าง)
+    // 📅 ตารางเรียนประจำห้อง + วิชาเลือกเสรี + ชุมนุม (แสดงรูปและชื่อครูครบทุกรายการ)
     async function renderStudentSchedule() {
         const container = document.getElementById('scheduleContainer');
         const desktopContainer = document.getElementById('desktopScheduleContainer');
@@ -1525,48 +1562,59 @@
         if (!client) return;
 
         let regCardsHtml = '';
+        let myRegisteredItems = [];
+
         if (CURRENT_STUDENT_ID) {
             try {
                 const { data: myRegs } = await client
                     .from('student_registrations')
-                    .select('category, offering:registration_offerings(code, title, teacher_name, room, schedule_info)')
+                    .select('category, offering:registration_offerings(code, title, teacher_id, teacher_name, room, schedule_info)')
                     .eq('student_id', CURRENT_STUDENT_ID);
 
                 if (myRegs && myRegs.length > 0) {
-                    const electiveReg = myRegs.find(r => r.category === 'ELECTIVE' && r.offering);
-                    const clubReg = myRegs.find(r => r.category === 'CLUB' && r.offering);
+                    myRegisteredItems = myRegs.filter(r => r.offering);
+                    const electiveReg = myRegisteredItems.find(r => r.category === 'ELECTIVE');
+                    const clubReg = myRegisteredItems.find(r => r.category === 'CLUB');
 
                     if (electiveReg) {
-                        const txt = `✅ ${electiveReg.offering.title}`;
+                        const tProf = resolveTeacherProfile(electiveReg.offering.teacher_id, electiveReg.offering.teacher_name);
+                        const txt = `✅ ${electiveReg.offering.title} (${tProf.shortName})`;
                         if (document.getElementById('drawerElectiveStatusText')) document.getElementById('drawerElectiveStatusText').textContent = txt;
                         if (document.getElementById('desktopElectiveStatusText')) document.getElementById('desktopElectiveStatusText').textContent = txt;
                     }
                     if (clubReg) {
-                        const txt = `✅ ${clubReg.offering.title}`;
+                        const tProf = resolveTeacherProfile(clubReg.offering.teacher_id, clubReg.offering.teacher_name);
+                        const txt = `✅ ${clubReg.offering.title} (${tProf.shortName})`;
                         if (document.getElementById('drawerClubStatusText')) document.getElementById('drawerClubStatusText').textContent = txt;
                         if (document.getElementById('desktopClubStatusText')) document.getElementById('desktopClubStatusText').textContent = txt;
                     }
 
-                    regCardsHtml = myRegs.filter(r => r.offering).map(r => {
+                    regCardsHtml = myRegisteredItems.map(r => {
                         const isClub = r.category === 'CLUB';
                         const off = r.offering;
+                        const tProf = resolveTeacherProfile(off.teacher_id, off.teacher_name);
+
                         return `
-                            <div class="flex items-center justify-between p-2.5 ${isClub ? 'bg-emerald-50/80 border-emerald-200' : 'bg-indigo-50/80 border-indigo-200'} border rounded-xl gap-2">
+                            <div class="flex items-center justify-between p-2.5 ${isClub ? 'bg-emerald-50/85 border-emerald-200' : 'bg-indigo-50/85 border-indigo-200'} border rounded-xl gap-2">
                                 <div class="flex items-center gap-2.5 min-w-0">
-                                    <div class="w-8 h-8 rounded-xl ${isClub ? 'bg-emerald-700' : 'bg-indigo-900'} text-amber-300 font-bold text-[10px] flex flex-col items-center justify-center shrink-0">
+                                    <div class="w-9 h-9 rounded-xl ${isClub ? 'bg-emerald-700' : 'bg-indigo-900'} text-amber-300 font-bold text-xs flex flex-col items-center justify-center shrink-0">
                                         <i class="fa-solid ${isClub ? 'fa-users-rays' : 'fa-book-open'}"></i>
                                     </div>
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-1.5">
-                                            <span class="text-[10px] font-extrabold px-1.5 py-0.2 rounded ${isClub ? 'bg-emerald-200 text-emerald-950' : 'bg-indigo-200 text-indigo-950'}">
-                                                ${isClub ? 'กิจกรรมชุมนุม' : 'วิชาเลือกเสรี'}
+                                            <span class="text-[10px] font-extrabold px-1.5 py-0.2 rounded shrink-0 ${isClub ? 'bg-emerald-200 text-emerald-950' : 'bg-indigo-200 text-indigo-950'}">
+                                                ${isClub ? 'ชุมนุม' : 'เลือกเสรี'}
                                             </span>
-                                            <h4 class="text-xs font-bold text-slate-900 truncate">${off.title}</h4>
+                                            <h4 class="text-xs font-bold text-slate-900 truncate">${off.code ? `${off.code} ` : ''}${off.title}</h4>
                                         </div>
                                         <p class="text-[11px] text-slate-600 truncate mt-0.5">
-                                            ${off.teacher_name || 'ครูผู้สอน'} &bull; ห้อง ${off.room || '-'} ${off.schedule_info ? `(${off.schedule_info})` : ''}
+                                            ห้อง ${off.room || '-'} ${off.schedule_info ? `&bull; ${off.schedule_info}` : ''}
                                         </p>
                                     </div>
+                                </div>
+                                <div class="flex items-center gap-1.5 bg-white border ${isClub ? 'border-emerald-200' : 'border-indigo-200'} px-2 py-1 rounded-lg shrink-0">
+                                    <img src="${tProf.avatar}" class="w-5 h-5 rounded-full object-cover" onerror="this.src='${defaultTeacherAvatar}'">
+                                    <span class="text-[10.5px] font-medium text-slate-700 max-w-[95px] truncate">${tProf.shortName}</span>
                                 </div>
                             </div>
                         `;
@@ -1632,12 +1680,12 @@
                 ? daySchedules.map((s, idx) => {
                     const pNo = Number(s.period_no || s.period || (idx + 1));
                     const cCode = String(s.course_code || s.subject_code || '').trim().toUpperCase();
-                    const fullSubjName = SUBJECT_LOOKUP_MAP[cCode] || s.subject_name || s.course_name || cCode || 'วิชาเรียน';
-                    const tCode = String(s.teacher_id || s.schedule_code || '').trim().toUpperCase();
-                    const tInfo = TEACHER_LOOKUP_MAP[tCode] || {};
-                    const rawTeacherName = s.teacher_name || tInfo.name || tCode || 'ผู้สอน';
-                    const tDisplayName = formatCompactTeacherName(rawTeacherName);
-                    const tAvatar = tInfo.avatar || defaultTeacherAvatar;
+                    let fullSubjName = SUBJECT_LOOKUP_MAP[cCode] || s.subject_name || s.course_name || cCode || 'วิชาเรียน';
+                    if (cCode && fullSubjName.toUpperCase().startsWith(cCode)) {
+                        fullSubjName = fullSubjName.slice(cCode.length).trim() || cCode;
+                    }
+
+                    const tProf = resolveTeacherProfile(s.teacher_id || s.schedule_code, s.teacher_name);
                     const slotInfo = PERIOD_TIME_SLOTS.find(slot => slot.p === pNo);
                     const timeBadge = slotInfo ? `${slotInfo.start}–${slotInfo.end}` : '';
 
@@ -1656,15 +1704,15 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shrink-0">
-                                <img src="${tAvatar}" class="w-5 h-5 rounded-full object-cover" onerror="this.src='${defaultTeacherAvatar}'">
-                                <span class="text-[10.5px] font-medium text-slate-700 max-w-[95px] truncate">${tDisplayName}</span>
+                                <img src="${tProf.avatar}" class="w-5 h-5 rounded-full object-cover" onerror="this.src='${defaultTeacherAvatar}'">
+                                <span class="text-[10.5px] font-medium text-slate-700 max-w-[105px] truncate">${tProf.shortName}</span>
                             </div>
                         </div>
                     `;
                 }).join('')
                 : `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันที่เลือก</div>`;
 
-            const combinedHtml = regularHtml + regCardsHtml;
+            const combinedHtml = regCardsHtml + regularHtml;
             if (container) container.innerHTML = combinedHtml;
             if (desktopContainer) desktopContainer.innerHTML = combinedHtml;
 
@@ -1735,7 +1783,8 @@
         if (nextBar && firstItem) {
             const pNo = firstItem.period_no || firstItem.period || 1;
             const cCode = String(firstItem.course_code || firstItem.subject_code || '').trim().toUpperCase();
-            const sName = SUBJECT_LOOKUP_MAP[cCode] || firstItem.subject_name || cCode;
+            let sName = SUBJECT_LOOKUP_MAP[cCode] || firstItem.subject_name || cCode;
+            if (cCode && sName.toUpperCase().startsWith(cCode)) sName = sName.slice(cCode.length).trim() || cCode;
             const label = sName !== cCode ? `${cCode} ${sName}` : cCode;
             nextBar.textContent = `⚡ ${isWeekend ? 'วันจันทร์ ' : dayLabelPrefix}คาบ ${pNo}: ${label}`;
         }
@@ -1744,7 +1793,8 @@
         widgetBody.innerHTML = upcoming.map((nc, i) => {
             const pNo = nc.period_no || nc.period || (i + 1);
             const cCode = String(nc.course_code || nc.subject_code || '').trim().toUpperCase();
-            const sName = SUBJECT_LOOKUP_MAP[cCode] || nc.subject_name || cCode;
+            let sName = SUBJECT_LOOKUP_MAP[cCode] || nc.subject_name || cCode;
+            if (cCode && sName.toUpperCase().startsWith(cCode)) sName = sName.slice(cCode.length).trim() || cCode;
             const label = sName !== cCode ? `${cCode} ${sName}` : cCode;
             return `
                 <div class="flex items-center justify-between gap-2 text-[11px] bg-indigo-50/80 p-1.5 rounded-lg border border-indigo-100">
