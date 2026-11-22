@@ -12,7 +12,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
-        /* 📱 เฉพาะมือถือ: ล็อกความสูงพอดี Viewport และเว้นระยะด้านล่างให้พ้นแถบเมนูล่าง 100% */
         @media (max-width: 1023px) {
             html, body {
                 height: 100dvh !important;
@@ -30,7 +29,6 @@
                 padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important;
             }
         }
-        /* 💻 สำหรับคอมพิวเตอร์ให้ Scroll ได้ปกติ และเว้นระยะด้านล่างไม่ให้เมนูบังเนื้อหา */
         @media (min-width: 1024px) {
             html, body {
                 height: auto !important;
@@ -55,7 +53,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* การ์ดสรุปข้อมูลนักเรียนใบเดียว (Unified Student Card) */
         .unified-student-card {
             background: #ffffff;
             border: 1.5px solid #e2e8f0;
@@ -64,13 +61,12 @@
             overflow: hidden;
         }
 
-        /* 📱 ป๊อปอัปแก้วลอยตัว แสดงคาบเรียนถัดไป 2 คาบ (Glassmorphism Widget) */
         .glass-next-class {
             position: fixed;
             top: 96px;
             right: 12px;
             z-index: 45;
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
             border: 1.5px solid #c7d2fe;
@@ -78,18 +74,17 @@
             border-radius: 16px;
             padding: 8px 10px;
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            width: 245px;
-            max-width: 78vw;
+            width: 255px;
+            max-width: 80vw;
         }
         @media (min-width: 1024px) {
             .glass-next-class {
                 top: 110px;
                 right: 24px;
-                width: 270px;
+                width: 280px;
             }
         }
 
-        /* ปุ่มแอป 4 ช่องบนมือถือ (App Grid) */
         .mobile-app-card {
             background: #ffffff;
             border: 1.5px solid #e2e8f0;
@@ -123,7 +118,6 @@
             white-space: nowrap;
         }
 
-        /* 📱 Bottom Sheet Drawer มาตรฐาน App */
         .bottom-sheet-backdrop {
             position: fixed;
             inset: 0;
@@ -201,7 +195,6 @@
             border-radius: 99px;
         }
 
-        /* 👑 Floating Bottom Navigation Bar มาตรฐาน App พร้อม Smart Auto-Hide */
         .native-bottom-nav {
             position: fixed;
             bottom: max(10px, env(safe-area-inset-bottom));
@@ -271,7 +264,6 @@
             box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
         }
 
-        /* จอเล็กมาก (ความสูงต่ำกว่า 660px) */
         @media (max-width: 1023px) and (max-height: 660px) {
             .mobile-app-card { padding: 4px 2px; gap: 2px; border-radius: 12px; }
             .mobile-app-icon { width: 26px; height: 26px; font-size: 12px; border-radius: 8px; }
@@ -282,7 +274,7 @@
 </head>
 <body class="student-app-body px-3 md:p-6 relative select-none">
 
-    <!-- 1. TOP APP HEADER + แถบวันที่/เวลา + ตัวนับเวลาขอออก -->
+    <!-- 1. TOP APP HEADER -->
     <div class="max-w-7xl mx-auto w-full shrink-0 space-y-1.5">
         <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-2 md:p-5 border-b-2 border-amber-400">
             <div class="flex justify-between items-center gap-2">
@@ -300,7 +292,6 @@
                 </div>
 
                 <div class="flex items-center gap-1.5 shrink-0">
-                    <!-- แสดงเวลาถอยหลังเมื่อได้รับอนุมัติขอออกนอกโรงเรียน -->
                     <div id="topGatepassTimerBadge" class="hidden bg-indigo-900/95 border border-amber-400/80 rounded-xl px-2 py-1 text-left flex items-center gap-1.5 shadow-xs">
                         <i class="fa-solid fa-clock-rotate-left text-amber-400 text-xs animate-spin" style="animation-duration: 4s;"></i>
                         <div class="leading-none">
@@ -316,7 +307,6 @@
                 </div>
             </div>
 
-            <!-- แถบวันที่และนาฬิกา Real-time -->
             <div class="bg-indigo-950/90 border-t border-indigo-800/70 mt-1.5 pt-1 px-1 flex justify-between items-center text-[11.5px] md:text-xs">
                 <span id="header-date-display" class="font-medium text-indigo-100 truncate">กำลังโหลดวันที่...</span>
                 <div class="flex items-center gap-1.5 text-amber-200 font-semibold shrink-0">
@@ -326,7 +316,7 @@
             </div>
         </header>
 
-        <!-- แถบคาบเรียนถัดไปแบบกระชับ (กดเพื่อเปิด/ซ่อนป๊อปอัปแก้วคาบเรียนถัดไป) -->
+        <!-- แถบคาบเรียนถัดไป -->
         <div onclick="toggleGlassNextClassWidget()" class="w-full bg-indigo-950/95 border border-amber-400/80 shadow-sm rounded-2xl py-1 px-3 flex items-center justify-between gap-2 cursor-pointer active:scale-99 transition">
             <div class="flex items-center gap-2 min-w-0">
                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0"></span>
@@ -338,7 +328,7 @@
         </div>
     </div>
 
-    <!-- 📱 ป๊อปอัปแก้วลอยตัว แสดงคาบเรียนถัดไป 2 คาบ (Next Class Glass Widget) -->
+    <!-- ป๊อปอัปแก้วลอยตัว แสดงคาบเรียนถัดไป -->
     <div id="glassNextClassWidget" class="glass-next-class hidden">
         <div class="flex items-center justify-between border-b border-indigo-100 pb-1 mb-1.5">
             <span class="text-[11px] font-bold text-indigo-950 flex items-center gap-1">
@@ -357,9 +347,8 @@
     <!-- 2. MAIN CONTENT AREA -->
     <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-center lg:justify-start gap-1.5 lg:gap-3 my-1 lg:my-3 min-h-0">
 
-        <!-- 🌟 การ์ดสรุปข้อมูลนักเรียนใบเดียว (Unified Student Card) -->
+        <!-- การ์ดสรุปข้อมูลนักเรียนใบเดียว -->
         <section id="section-profile" class="unified-student-card shrink-0">
-            <!-- ส่วนบน: รูปนักเรียน + ชื่อ/ชั้น/เลขที่ + คะแนนความประพฤติ -->
             <div class="p-2 md:p-4 flex items-center justify-between gap-2 border-b border-slate-100">
                 <div class="flex items-center gap-2.5 min-w-0">
                     <div class="relative w-11 h-11 md:w-14 md:h-14 shrink-0">
@@ -374,7 +363,6 @@
                     </div>
                 </div>
 
-                <!-- คะแนนพฤติกรรมคงเหลือ -->
                 <div class="bg-indigo-50 border border-indigo-100 rounded-2xl px-2.5 py-1 text-center shrink-0">
                     <span class="text-[11px] font-medium text-indigo-900 block leading-none">ความประพฤติ</span>
                     <div class="mt-0.5 leading-none">
@@ -384,7 +372,7 @@
                 </div>
             </div>
 
-            <!-- 👨‍🏫 แถบครูที่ปรึกษาประจำห้อง -->
+            <!-- แถบครูที่ปรึกษาประจำห้อง -->
             <div onclick="openDrawerById('advisorDrawerBackdrop')" class="px-2.5 py-1.5 bg-indigo-50/60 border-b border-indigo-100/80 flex items-center justify-between gap-1.5 cursor-pointer hover:bg-indigo-50 transition">
                 <div id="advisorCardList" class="flex items-center gap-1.5 min-w-0 flex-1 overflow-x-auto no-scrollbar">
                     <div class="flex items-center gap-1.5 text-xs text-slate-600">
@@ -395,7 +383,7 @@
                 <span class="text-[10.5px] font-semibold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-lg shrink-0">ข้อมูลครู</span>
             </div>
 
-            <!-- ส่วนกลาง: สถานะการเข้าเรียนวันนี้ -->
+            <!-- สถานะการเข้าเรียนวันนี้ -->
             <div id="section-gate" class="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                     <div id="trafficIconBg" class="w-6 h-6 rounded-lg bg-slate-500 text-white flex items-center justify-center text-xs shrink-0">
@@ -412,7 +400,7 @@
                 </div>
             </div>
 
-            <!-- ส่วนล่าง: การ์ดสรุปสถิติ 4 ช่อง -->
+            <!-- การ์ดสรุปสถิติ 4 ช่อง -->
             <div id="section-attendance-stats" class="px-2 pt-1 pb-1.5 bg-white">
                 <div class="flex justify-between items-center px-1 mb-1">
                     <span class="text-[11px] font-medium text-slate-600">สถิติการมาเรียนของฉัน (ภาคเรียนนี้)</span>
@@ -439,7 +427,7 @@
             </div>
         </section>
 
-        <!-- 🛡️ กล่องแสดงพฤติกรรมนักเรียนวันนี้โดยตรง -->
+        <!-- กล่องแสดงพฤติกรรมนักเรียนวันนี้ -->
         <section id="todayBehaviorCard" onclick="openDrawerById('behaviorDrawerBackdrop')" class="bg-emerald-50 border border-emerald-200 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0 shadow-2xs">
             <div class="flex items-center gap-2 min-w-0">
                 <div id="todayBehaviorIconBox" class="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0">
@@ -455,7 +443,7 @@
             <span class="bg-white/95 text-emerald-900 border border-emerald-200 text-[11px] font-semibold px-2 py-0.5 rounded-lg shrink-0">ประวัติ</span>
         </section>
 
-        <!-- 🪪 แถบสถานะบัตรผ่านประตูดิจิทัล / แจ้งเตือนจากโรงเรียน -->
+        <!-- แถบสถานะบัตรผ่านประตูดิจิทัล -->
         <section id="gatepassStatusBanner" onclick="openDrawerById('gatepassDrawerBackdrop')" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0">
             <div class="flex items-center gap-2 min-w-0">
                 <span class="relative flex h-2 w-2 shrink-0">
@@ -469,7 +457,7 @@
             <span class="bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0">เปิดดู</span>
         </section>
 
-        <!-- 📱 APP GRID 4 บริการหลักของนักเรียน -->
+        <!-- APP GRID 4 บริการหลัก -->
         <div class="grid grid-cols-4 gap-2 shrink-0">
             <button type="button" onclick="openDrawerById('homeworkDrawerBackdrop')" class="mobile-app-card border-indigo-200 cursor-pointer">
                 <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
@@ -500,7 +488,7 @@
             </button>
         </div>
 
-        <!-- 💻 DESKTOP VIEW: แสดงรายละเอียดครบทุกส่วนบนหน้าจอคอมพิวเตอร์ -->
+        <!-- DESKTOP VIEW -->
         <div class="hidden lg:grid lg:grid-cols-2 gap-4 mt-1">
             <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 shadow-xs">
                 <div class="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -513,7 +501,6 @@
                     </button>
                 </div>
 
-                <!-- ทางลัดลงทะเบียนวิชาเลือกเสรี & ชุมนุม (Desktop - แก้ลิงก์ผ่านฟังก์ชันป้องกัน 404) -->
                 <div class="grid grid-cols-2 gap-2">
                     <button type="button" onclick="openRegistrationModule('elective')" class="text-left bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl px-3 py-2 flex items-center justify-between gap-2 transition active:scale-95 cursor-pointer">
                         <div class="flex items-center gap-2 min-w-0">
@@ -563,7 +550,7 @@
         </div>
     </main>
 
-    <!-- 🖥️ DESKTOP FOOTER (แสดงเฉพาะบนหน้าจอคอมพิวเตอร์) -->
+    <!-- DESKTOP FOOTER -->
     <footer class="hidden lg:block max-w-7xl mx-auto w-full mt-4 pt-3 border-t border-slate-200/90 text-xs text-slate-500">
         <div class="flex flex-col sm:flex-row justify-between items-center gap-2 px-1">
             <div class="flex items-center gap-2 font-semibold text-slate-700">
@@ -576,7 +563,7 @@
         </div>
     </footer>
 
-    <!-- 3. FLOATING BOTTOM NAVIGATION BAR (ซ่อนอัตโนมัติเมื่อเลื่อนลง แสดงขึ้นเมื่อเลื่อนขึ้น) -->
+    <!-- 3. FLOATING BOTTOM NAVIGATION BAR -->
     <nav id="nativeBottomNav" class="native-bottom-nav">
         <button id="navHome" type="button" class="nav-item-btn active" onclick="switchStudentTab('home')">
             <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
@@ -598,7 +585,7 @@
 
     <!-- ================= BOTTOM SHEET DRAWERS ================= -->
 
-    <!-- 👨‍🏫 Drawer 0: ข้อมูลครูที่ปรึกษาประจำห้อง -->
+    <!-- Drawer 0: ครูที่ปรึกษา -->
     <div id="advisorDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('advisorDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -618,7 +605,7 @@
         </div>
     </div>
 
-    <!-- 📋 Drawer 1: ตารางเรียนประจำวัน + เมนูวิชาเลือกเสรี & กิจกรรมชุมนุม -->
+    <!-- Drawer 1: ตารางเรียนประจำวัน -->
     <div id="scheduleDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('scheduleDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -640,7 +627,6 @@
             </div>
 
             <div class="p-3 space-y-2.5 drawer-scroll-content flex-1 text-xs">
-                <!-- แถบทางลัดลงทะเบียน / ตรวจสอบวิชาเลือกเสรี & ชุมนุม (Mobile Drawer) -->
                 <div class="grid grid-cols-2 gap-2">
                     <button type="button" onclick="openRegistrationModule('elective')" class="text-left bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl px-3 py-2 flex items-center justify-between gap-2 transition active:scale-95 cursor-pointer">
                         <div class="flex items-center gap-2 min-w-0">
@@ -669,7 +655,6 @@
                     </button>
                 </div>
 
-                <!-- รายการตารางเรียน + วิชาเลือกเสรี/ชุมนุมที่ลงทะเบียนไว้ -->
                 <div id="scheduleContainer" class="space-y-2">
                     <p class="text-xs text-slate-500 text-center py-4">กำลังโหลดตารางเรียน...</p>
                 </div>
@@ -677,7 +662,7 @@
         </div>
     </div>
 
-    <!-- 🪪 Drawer 2: บัตรผ่านประตูดิจิทัล (QR Code) & ประวัติขอออก -->
+    <!-- Drawer 2: บัตรผ่านประตูดิจิทัล -->
     <div id="gatepassDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('gatepassDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -716,7 +701,7 @@
         </div>
     </div>
 
-    <!-- 🔔 Drawer 3: ประกาศและแจ้งเตือนจากโรงเรียน -->
+    <!-- Drawer 3: ประกาศและแจ้งเตือน -->
     <div id="notificationDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('notificationDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -738,7 +723,7 @@
         </div>
     </div>
 
-    <!-- 📚 Drawer 4: การบ้าน & เวลาเรียนสะสม / สิทธิ์สอบ -->
+    <!-- Drawer 4: การบ้าน & สิทธิ์สอบ -->
     <div id="homeworkDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('homeworkDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -769,7 +754,7 @@
         </div>
     </div>
 
-    <!-- 🏥 Drawer 5: ประวัติห้องพยาบาล -->
+    <!-- Drawer 5: ห้องพยาบาล -->
     <div id="clinicDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('clinicDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -791,7 +776,7 @@
         </div>
     </div>
 
-    <!-- 🛡️ Drawer 6: ประวัติคะแนนความประพฤติ -->
+    <!-- Drawer 6: ความประพฤติ -->
     <div id="behaviorDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('behaviorDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -890,7 +875,6 @@
 
 <!-- UI & Drawer Controller -->
 <script>
-    // 🔗 ฟังก์ชันเปิดหน้าลงทะเบียนวิชาเลือกเสรี / ชุมนุม แบบคำนวณ Path อัตโนมัติ ป้องกัน 404
     window.openRegistrationModule = function(type) {
         const prefix = window.location.pathname.includes('/BCW-Smart-Hub') ? '/BCW-Smart-Hub' : '';
         window.location.href = `${prefix}/modules/registration/student-register.html?type=${encodeURIComponent(type)}`;
@@ -979,7 +963,6 @@
     setInterval(updateHeaderClock, 1000);
     updateHeaderClock();
 
-    // ✨ ระบบซ่อนเมนูด้านล่างเมื่อเลื่อนลง และแสดงขึ้นมาเมื่อเลื่อนขึ้น (Luxury Scroll Behavior)
     (function initSmartScrollBottomNav() {
         let lastScrollY = window.scrollY || 0;
         let ticking = false;
@@ -992,14 +975,11 @@
             const docHeight = document.documentElement.scrollHeight;
             const winHeight = window.innerHeight;
 
-            // หากอยู่ด้านบนสุด หรือเลื่อนลงมาจนสุดหน้า (Footer) ให้แสดงเมนูขึ้นมา
             if (currentScrollY <= 20 || (currentScrollY + winHeight >= docHeight - 24)) {
                 nav.classList.remove('nav-hidden');
             } else if (currentScrollY > lastScrollY + 8) {
-                // เลื่อนลง -> ซ่อนเมนูลอยลงด้านล่าง
                 nav.classList.add('nav-hidden');
             } else if (currentScrollY < lastScrollY - 8) {
-                // เลื่อนขึ้น -> แสดงเมนูลอยกลับขึ้นมา
                 nav.classList.remove('nav-hidden');
             }
 
@@ -1015,7 +995,6 @@
         }, { passive: true });
     })();
 
-    // ระบบปัดลงเพื่อปิด Bottom Sheet Drawer
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.bottom-sheet-card').forEach(card => {
             let startY = 0, currentY = 0;
@@ -1074,7 +1053,7 @@
             .trim();
     }
 
-function normalizeDayKey(rawDay) {
+    function normalizeDayKey(rawDay) {
         const d = String(rawDay || '').trim().toLowerCase();
         if (d === '1' || d.includes('mon') || d.includes('จันทร์') || d === 'จ.' || d === 'จ') return 'Monday';
         if (d === '2' || d.includes('tue') || d.includes('อังคาร') || d === 'อ.' || d === 'อ') return 'Tuesday';
@@ -1088,176 +1067,99 @@ function normalizeDayKey(rawDay) {
         return String(str || '').replace(/\s+/g, '').replace(/^ห้อง/g, '').trim();
     }
 
-    // 📅 ตารางเรียนประจำห้อง (ดึงจาก schedules + subjects ชุดเดียวกับครู รองรับทุกชื่อคอลัมน์และช่องว่าง)
-    async function renderStudentSchedule() {
-        const container = document.getElementById('scheduleContainer');
-        const desktopContainer = document.getElementById('desktopScheduleContainer');
-        const nextBar = document.getElementById('nextClassBarText');
-        const client = window.supabaseClient || window.db || window.supabase;
-        const defaultTeacherAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png';
-
-        if (!client) return;
-
-        // 1. ดึงข้อมูลวิชาเลือกเสรีและชุมนุมที่นักเรียนลงทะเบียนไว้
-        let regCardsHtml = '';
-        if (CURRENT_STUDENT_ID) {
-            try {
-                const { data: myRegs } = await client
-                    .from('student_registrations')
-                    .select('category, offering:registration_offerings(code, title, teacher_name, room, schedule_info)')
-                    .eq('student_id', CURRENT_STUDENT_ID);
-
-                if (myRegs && myRegs.length > 0) {
-                    const electiveReg = myRegs.find(r => r.category === 'ELECTIVE' && r.offering);
-                    const clubReg = myRegs.find(r => r.category === 'CLUB' && r.offering);
-
-                    if (electiveReg) {
-                        const txt = `✅ ${electiveReg.offering.title}`;
-                        if (document.getElementById('drawerElectiveStatusText')) document.getElementById('drawerElectiveStatusText').textContent = txt;
-                        if (document.getElementById('desktopElectiveStatusText')) document.getElementById('desktopElectiveStatusText').textContent = txt;
-                    }
-                    if (clubReg) {
-                        const txt = `✅ ${clubReg.offering.title}`;
-                        if (document.getElementById('drawerClubStatusText')) document.getElementById('drawerClubStatusText').textContent = txt;
-                        if (document.getElementById('desktopClubStatusText')) document.getElementById('desktopClubStatusText').textContent = txt;
-                    }
-
-                    regCardsHtml = myRegs.filter(r => r.offering).map(r => {
-                        const isClub = r.category === 'CLUB';
-                        const off = r.offering;
-                        return `
-                            <div class="flex items-center justify-between p-2.5 ${isClub ? 'bg-emerald-50/80 border-emerald-200' : 'bg-indigo-50/80 border-indigo-200'} border rounded-xl gap-2">
-                                <div class="flex items-center gap-2.5 min-w-0">
-                                    <div class="w-8 h-8 rounded-xl ${isClub ? 'bg-emerald-700' : 'bg-indigo-900'} text-amber-300 font-bold text-[10px] flex flex-col items-center justify-center shrink-0">
-                                        <i class="fa-solid ${isClub ? 'fa-users-rays' : 'fa-book-open'}"></i>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="flex items-center gap-1.5">
-                                            <span class="text-[10px] font-extrabold px-1.5 py-0.2 rounded ${isClub ? 'bg-emerald-200 text-emerald-950' : 'bg-indigo-200 text-indigo-950'}">
-                                                ${isClub ? 'กิจกรรมชุมนุม' : 'วิชาเลือกเสรี'}
-                                            </span>
-                                            <h4 class="text-xs font-bold text-slate-900 truncate">${off.title}</h4>
-                                        </div>
-                                        <p class="text-[11px] text-slate-600 truncate mt-0.5">
-                                            ${off.teacher_name || 'ครูผู้สอน'} &bull; ห้อง ${off.room || '-'} ${off.schedule_info ? `(${off.schedule_info})` : ''}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            } catch (e) {
-                console.warn('[StudentPortal] Registration schedule load notice:', e);
-            }
-        }
-
-        if (!currentStudentClass) {
-            const emptyHtml = regCardsHtml || `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่พบข้อมูลห้องเรียนของนักเรียน</div>`;
-            if (container) container.innerHTML = emptyHtml;
-            if (desktopContainer) desktopContainer.innerHTML = emptyHtml;
-            if (nextBar) nextBar.textContent = "ตารางเรียนประจำวัน (แตะเพื่อเปิดดู)";
-            updateNextClassWidget([]);
-            return;
-        }
-
+    document.addEventListener('DOMContentLoaded', async () => {
         try {
-            const targetRoom = normalizeRoomStr(currentStudentClass); // เช่น "ม.2/2"
-            const targetGrade = targetRoom.split('/')[0] || '';       // เช่น "ม.2"
+            let currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
+            if (!currentUser) {
+                const raw = localStorage.getItem('bcw_user_session') || sessionStorage.getItem('bcw_user_session');
+                if (raw) currentUser = JSON.parse(raw);
+            }
+            if (!currentUser) return;
 
-            // ดึงข้อมูลจากตาราง schedules ทั้งหมดแล้วกรองฝั่ง Client เพื่อรองรับทุกชื่อคอลัมน์และช่องว่าง
-            const { data: allSchedRows, error: schedErr } = await client
-                .from('schedules')
-                .select('*');
+            const client = window.supabaseClient || window.db || window.supabase;
+            const rawId = String(currentUser.studentId || currentUser.student_id || currentUser.id || '').trim();
+            const email = String(currentUser.email || '').toLowerCase().trim();
+            CURRENT_STUDENT_ID = rawId;
 
-            if (schedErr) {
-                console.warn('[StudentPortal] schedules table query error:', schedErr);
+            if (currentUser.name && document.getElementById('student-fullname')) {
+                document.getElementById('student-fullname').textContent = currentUser.name;
+            }
+            if (currentUser.avatar && document.getElementById('student-avatar')) {
+                document.getElementById('student-avatar').src = currentUser.avatar;
             }
 
-            let matchedSchedules = (allSchedRows || []).filter(row => {
-                const r1 = normalizeRoomStr(row.classroom);
-                const r2 = normalizeRoomStr(row.class_name);
-                const r3 = normalizeRoomStr(row.room);
-                const candidates = [r1, r2, r3].filter(Boolean);
-                return candidates.includes(targetRoom) || (targetGrade && candidates.includes(targetGrade));
-            });
-
-            // กรณีตาราง schedules ติดสิทธิ์ RLS (อ่านได้ 0 แถว) ให้ดึงสำรองจาก course_assignments หรือ attendance_logs
-            if (matchedSchedules.length === 0) {
-                const { data: fallbackAssign } = await client
-                    .from('course_assignments')
-                    .select('*');
-                matchedSchedules = (fallbackAssign || []).filter(row => {
-                    const r1 = normalizeRoomStr(row.class_name);
-                    const r2 = normalizeRoomStr(row.classroom);
-                    return r1 === targetRoom || r2 === targetRoom || (targetGrade && (r1 === targetGrade || r2 === targetGrade));
-                });
+            let student = null;
+            if (client) {
+                try {
+                    if (rawId) {
+                        const { data: byStuId } = await client.from('students').select('*').eq('student_id', rawId).maybeSingle();
+                        student = byStuId;
+                    }
+                    if (!student && email) {
+                        const { data: byEmail } = await client.from('students').select('*').eq('email', email).maybeSingle();
+                        student = byEmail;
+                    }
+                    if (!student && rawId) {
+                        const { data: byPk } = await client.from('students').select('*').eq('id', rawId).maybeSingle();
+                        student = byPk;
+                    }
+                } catch (e) {
+                    console.warn('[StudentPortal] Fetch student notice:', e);
+                }
             }
 
-            STUDENT_WEEKLY_SCHEDULES = matchedSchedules;
+            if (student) {
+                CURRENT_STUDENT_ID = String(student.student_id || rawId);
+                currentStudentClass = String(student.classroom || student.class_name || '').trim();
+                const fullName = `${student.prefix || ''}${student.first_name || ''} ${student.last_name || ''}`.trim();
+                const studentNo = student.student_no || student.no || '-';
+                const avatarUrl = student.avatar_url || student.photo_url || currentUser.avatar || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
 
-            if (STUDENT_WEEKLY_SCHEDULES.length === 0) {
-                const noDataHtml = regCardsHtml || `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายวิชาในตารางเรียน (${currentStudentClass})</div>`;
-                if (container) container.innerHTML = noDataHtml;
-                if (desktopContainer) desktopContainer.innerHTML = noDataHtml;
-                if (nextBar) nextBar.textContent = `ห้อง ${currentStudentClass} • ยังไม่มีข้อมูลตารางเรียน`;
-                updateNextClassWidget([]);
-                return;
+                if (document.getElementById('student-fullname') && fullName) document.getElementById('student-fullname').textContent = fullName;
+                if (document.getElementById('student-class')) document.getElementById('student-class').textContent = currentStudentClass || '-';
+                if (document.getElementById('student-no')) document.getElementById('student-no').textContent = studentNo;
+                if (document.getElementById('student-id')) document.getElementById('student-id').textContent = CURRENT_STUDENT_ID;
+
+                const avatarEl = document.getElementById('student-avatar');
+                if (avatarEl) {
+                    avatarEl.src = avatarUrl;
+                    avatarEl.onerror = () => { avatarEl.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'; };
+                }
             }
 
-            // กรองเฉพาะวันที่เลือก (หรือแสดงทั้งหมดหากตารางไม่ได้ระบุวัน)
-            const hasDayColumn = STUDENT_WEEKLY_SCHEDULES.some(s => normalizeDayKey(s.day_of_week || s.day || s.weekday));
-            const daySchedules = hasDayColumn
-                ? STUDENT_WEEKLY_SCHEDULES
-                    .filter(s => normalizeDayKey(s.day_of_week || s.day || s.weekday) === SELECTED_SCHEDULE_DAY)
-                    .sort((a, b) => Number(a.period_no || a.period || 0) - Number(b.period_no || b.period || 0))
-                : STUDENT_WEEKLY_SCHEDULES.sort((a, b) => Number(a.period_no || a.period || 0) - Number(b.period_no || b.period || 0));
+            const dayMap = {
+                'Sunday': { key: 'Monday', label: 'วันจันทร์' },
+                'Monday': { key: 'Monday', label: 'วันจันทร์' },
+                'Tuesday': { key: 'Tuesday', label: 'วันอังคาร' },
+                'Wednesday': { key: 'Wednesday', label: 'วันพุธ' },
+                'Thursday': { key: 'Thursday', label: 'วันพฤหัสบดี' },
+                'Friday': { key: 'Friday', label: 'วันศุกร์' },
+                'Saturday': { key: 'Monday', label: 'วันจันทร์' }
+            };
+            const currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            const defaultDay = dayMap[currentDayName] || { key: 'Monday', label: 'วันจันทร์' };
+            SELECTED_SCHEDULE_DAY = defaultDay.key;
+            if (document.getElementById('currentDayText')) document.getElementById('currentDayText').innerText = defaultDay.label;
+            if (document.getElementById('desktopDayText')) document.getElementById('desktopDayText').innerText = defaultDay.label;
 
-            const regularHtml = daySchedules.length > 0
-                ? daySchedules.map((s, idx) => {
-                    const pNo = Number(s.period_no || s.period || (idx + 1));
-                    const cCode = String(s.course_code || s.subject_code || '').trim().toUpperCase();
-                    const fullSubjName = SUBJECT_LOOKUP_MAP[cCode] || s.subject_name || s.course_name || cCode || 'วิชาเรียน';
-                    const tCode = String(s.teacher_id || s.schedule_code || '').trim().toUpperCase();
-                    const tInfo = TEACHER_LOOKUP_MAP[tCode] || {};
-                    const rawTeacherName = s.teacher_name || tInfo.name || tCode || 'ผู้สอน';
-                    const tDisplayName = formatCompactTeacherName(rawTeacherName);
-                    const tAvatar = tInfo.avatar || defaultTeacherAvatar;
-                    const slotInfo = PERIOD_TIME_SLOTS.find(slot => slot.p === pNo);
-                    const timeBadge = slotInfo ? `${slotInfo.start}–${slotInfo.end}` : '';
+            await buildMasterLookupMaps(client);
 
-                    return `
-                        <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl gap-2">
-                            <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-800 font-bold text-xs flex flex-col items-center justify-center shrink-0">
-                                    <span class="text-[8px] text-indigo-500 leading-none">คาบ</span>
-                                    <span class="leading-tight">${pNo}</span>
-                                </div>
-                                <div class="min-w-0">
-                                    <h4 class="text-xs font-bold text-slate-900 truncate">${cCode ? `${cCode} ` : ''}${fullSubjName !== cCode ? fullSubjName : ''}</h4>
-                                    <p class="text-[11px] text-slate-600 truncate">
-                                        ${timeBadge ? `<span class="font-mono text-indigo-700">${timeBadge}</span> &bull; ` : ''}ห้อง ${s.room || s.classroom || s.class_name || currentStudentClass}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shrink-0">
-                                <img src="${tAvatar}" class="w-5 h-5 rounded-full object-cover" onerror="this.src='${defaultTeacherAvatar}'">
-                                <span class="text-[10.5px] font-medium text-slate-700 max-w-[95px] truncate">${tDisplayName}</span>
-                            </div>
-                        </div>
-                    `;
-                }).join('')
-                : `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันที่เลือก</div>`;
+            await Promise.all([
+                renderHomeroomAdvisors(currentStudentClass),
+                renderAttendanceAndAcademicData(client, CURRENT_STUDENT_ID),
+                renderActiveGatepass(),
+                renderStudentSchedule(),
+                renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
+                renderHomeworkData(currentStudentClass),
+                renderClinicData(CURRENT_STUDENT_ID),
+                renderAnnouncements(client)
+            ]);
 
-            const combinedHtml = regularHtml + regCardsHtml;
-            if (container) container.innerHTML = combinedHtml;
-            if (desktopContainer) desktopContainer.innerHTML = combinedHtml;
-
-            updateNextClassWidget(STUDENT_WEEKLY_SCHEDULES);
-        } catch (e) {
-            console.warn('[StudentPortal] Schedule error:', e);
+            setupEventListeners();
+        } catch (err) {
+            console.error('[StudentPortal] Init Error:', err);
         }
-    }
+    });
 
     async function buildMasterLookupMaps(client) {
         if (!client) return;
@@ -1295,7 +1197,6 @@ function normalizeDayKey(rawDay) {
         } catch (e) {}
     }
 
-    // 👨‍🏫 โหลดรูปโปรไฟล์ + ชื่อจริงครูที่ปรึกษาทุกคน
     async function renderHomeroomAdvisors(classroom) {
         const cardListEl = document.getElementById('advisorCardList');
         const drawerListEl = document.getElementById('advisorDrawerList');
@@ -1358,7 +1259,6 @@ function normalizeDayKey(rawDay) {
         }
     }
 
-    // 📊 สถิติการมาเรียน + สถานะเข้าโรงเรียนวันนี้ + เวลาเรียนสะสมรายวิชา (ดึงสดจาก attendance_logs ชุดเดียวกับครู)
     async function renderAttendanceAndAcademicData(client, studentId) {
         if (!client || !studentId) return;
         const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
@@ -1382,7 +1282,6 @@ function normalizeDayKey(rawDay) {
                 else if (st === 'truant' || st === 'หนี' || st === 'หนีเรียน') { truantCount++; norm = 'truant'; }
                 else if (st === 'leave' || st === 'ลา' || st === 'ลากิจ' || st === 'ลาป่วย') { norm = 'leave'; }
 
-                // สรุปรายวิชาเฉพาะคาบเรียน (period_no > 0)
                 if (Number(item.period_no || 0) > 0 && norm) {
                     const cCode = String(item.subject_code || 'GENERAL').trim().toUpperCase();
                     if (!subjectStatsMap.has(cCode)) {
@@ -1408,7 +1307,6 @@ function normalizeDayKey(rawDay) {
             if (document.getElementById('stat-absent')) document.getElementById('stat-absent').textContent = absentCount;
             if (document.getElementById('stat-truant')) document.getElementById('stat-truant').textContent = truantCount;
 
-            // อัปเดตการ์ดเวลาเรียนสะสมรายวิชา (สิทธิ์สอบ)
             const academicContainer = document.getElementById('studentAcademicContainer');
             if (academicContainer && subjectStatsMap.size > 0) {
                 academicContainer.className = "space-y-2 text-left";
@@ -1435,7 +1333,6 @@ function normalizeDayKey(rawDay) {
                 }).join('');
             }
 
-            // อัปเดตสถานะการเช็กชื่อวันนี้
             const todayLogs = logs.filter(l => (l.date === todayStr) || String(l.recorded_at || l.created_at || '').startsWith(todayStr));
             const gateSection = document.getElementById('section-gate');
             const iconBg = document.getElementById('trafficIconBg');
@@ -1459,7 +1356,6 @@ function normalizeDayKey(rawDay) {
         } catch (e) {}
     }
 
-    // 🛡️ คะแนนความประพฤติคงเหลือ + ประวัติการหัก/เพิ่มคะแนน
     async function renderBehaviorScoreAndHistory(studentId) {
         const container = document.getElementById('behaviorHistoryList');
         const desktopContainer = document.getElementById('desktopBehaviorLogsContainer');
@@ -1527,7 +1423,6 @@ function normalizeDayKey(rawDay) {
         } catch (e) {}
     }
 
-    // 🪪 บัตรผ่านประตูดิจิทัล (QR Code) & ตัวนับเวลาถอยหลัง
     async function renderActiveGatepass() {
         if (!CURRENT_STUDENT_ID) return;
         const client = window.supabaseClient || window.db || window.supabase;
@@ -1619,7 +1514,7 @@ function normalizeDayKey(rawDay) {
         gatepassTimerInterval = setInterval(updateTimer, 1000);
     }
 
-    // 📅 ตารางเรียนประจำห้อง (ดึงจากตาราง schedules + subjects ชุดเดียวกับครู 100%)
+    // 📅 ตารางเรียนประจำห้อง (ดึงจาก schedules + subjects ชุดเดียวกับครู รองรับทุกชื่อคอลัมน์และช่องว่าง)
     async function renderStudentSchedule() {
         const container = document.getElementById('scheduleContainer');
         const desktopContainer = document.getElementById('desktopScheduleContainer');
@@ -1629,7 +1524,6 @@ function normalizeDayKey(rawDay) {
 
         if (!client) return;
 
-        // 1. ดึงข้อมูลวิชาเลือกเสรีและชุมนุมที่นักเรียนลงทะเบียนไว้
         let regCardsHtml = '';
         if (CURRENT_STUDENT_ID) {
             try {
@@ -1683,7 +1577,6 @@ function normalizeDayKey(rawDay) {
             }
         }
 
-        // 2. ดึงตารางเรียนประจำห้องจากตาราง `schedules` (ฐานข้อมูลเดียวกับหน้าของครู)
         if (!currentStudentClass) {
             const emptyHtml = regCardsHtml || `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่พบข้อมูลห้องเรียนของนักเรียน</div>`;
             if (container) container.innerHTML = emptyHtml;
@@ -1694,19 +1587,30 @@ function normalizeDayKey(rawDay) {
         }
 
         try {
-            // หมายเหตุ: รองรับทั้งห้องเรียนเต็ม (เช่น ม.2/7) และรหัสระดับชั้นรวม (เช่น ม.2 สำหรับวิชากิจกรรม/ลูกเสือ)
-            const gradePrefix = currentStudentClass.split('/')[0]?.trim();
-            const classFilters = gradePrefix && gradePrefix !== currentStudentClass
-                ? [currentStudentClass, gradePrefix]
-                : [currentStudentClass];
+            const targetRoom = normalizeRoomStr(currentStudentClass);
+            const targetGrade = targetRoom.split('/')[0] || '';
 
-            const { data: schedules } = await client
-                .from('schedules')
-                .select('*')
-                .in('classroom', classFilters)
-                .order('period_no', { ascending: true });
+            const { data: allSchedRows } = await client.from('schedules').select('*');
 
-            STUDENT_WEEKLY_SCHEDULES = schedules || [];
+            let matchedSchedules = (allSchedRows || []).filter(row => {
+                const candidates = [
+                    normalizeRoomStr(row.classroom),
+                    normalizeRoomStr(row.class_name),
+                    normalizeRoomStr(row.room)
+                ].filter(Boolean);
+                return candidates.includes(targetRoom) || (targetGrade && candidates.includes(targetGrade));
+            });
+
+            if (matchedSchedules.length === 0) {
+                const { data: fallbackAssign } = await client.from('course_assignments').select('*');
+                matchedSchedules = (fallbackAssign || []).filter(row => {
+                    const r1 = normalizeRoomStr(row.class_name);
+                    const r2 = normalizeRoomStr(row.classroom);
+                    return r1 === targetRoom || r2 === targetRoom || (targetGrade && (r1 === targetGrade || r2 === targetGrade));
+                });
+            }
+
+            STUDENT_WEEKLY_SCHEDULES = matchedSchedules;
 
             if (STUDENT_WEEKLY_SCHEDULES.length === 0) {
                 const noDataHtml = regCardsHtml || `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายวิชาในตารางเรียน (${currentStudentClass})</div>`;
@@ -1717,14 +1621,16 @@ function normalizeDayKey(rawDay) {
                 return;
             }
 
-            // กรองเฉพาะวันที่เลือก (SELECTED_SCHEDULE_DAY) และเรียงตามคาบเรียนที่ 1 -> 8
-            const daySchedules = STUDENT_WEEKLY_SCHEDULES
-                .filter(s => normalizeDayKey(s.day_of_week || s.day) === SELECTED_SCHEDULE_DAY)
-                .sort((a, b) => Number(a.period_no || 0) - Number(b.period_no || 0));
+            const hasDayColumn = STUDENT_WEEKLY_SCHEDULES.some(s => normalizeDayKey(s.day_of_week || s.day || s.weekday));
+            const daySchedules = hasDayColumn
+                ? STUDENT_WEEKLY_SCHEDULES
+                    .filter(s => normalizeDayKey(s.day_of_week || s.day || s.weekday) === SELECTED_SCHEDULE_DAY)
+                    .sort((a, b) => Number(a.period_no || a.period || 0) - Number(b.period_no || b.period || 0))
+                : STUDENT_WEEKLY_SCHEDULES.sort((a, b) => Number(a.period_no || a.period || 0) - Number(b.period_no || b.period || 0));
 
             const regularHtml = daySchedules.length > 0
                 ? daySchedules.map((s, idx) => {
-                    const pNo = Number(s.period_no || (idx + 1));
+                    const pNo = Number(s.period_no || s.period || (idx + 1));
                     const cCode = String(s.course_code || s.subject_code || '').trim().toUpperCase();
                     const fullSubjName = SUBJECT_LOOKUP_MAP[cCode] || s.subject_name || s.course_name || cCode || 'วิชาเรียน';
                     const tCode = String(s.teacher_id || s.schedule_code || '').trim().toUpperCase();
@@ -1745,7 +1651,7 @@ function normalizeDayKey(rawDay) {
                                 <div class="min-w-0">
                                     <h4 class="text-xs font-bold text-slate-900 truncate">${cCode ? `${cCode} ` : ''}${fullSubjName !== cCode ? fullSubjName : ''}</h4>
                                     <p class="text-[11px] text-slate-600 truncate">
-                                        ${timeBadge ? `<span class="font-mono text-indigo-700">${timeBadge}</span> &bull; ` : ''}ห้อง ${s.room || s.classroom || currentStudentClass}
+                                        ${timeBadge ? `<span class="font-mono text-indigo-700">${timeBadge}</span> &bull; ` : ''}ห้อง ${s.room || s.classroom || s.class_name || currentStudentClass}
                                     </p>
                                 </div>
                             </div>
@@ -1785,27 +1691,29 @@ function normalizeDayKey(rawDay) {
         const isWeekend = todayNameEn === 'Saturday' || todayNameEn === 'Sunday';
         const targetDayKey = isWeekend ? 'Monday' : todayNameEn;
 
-        const targetDaySchedules = allWeeklySchedules
-            .filter(s => normalizeDayKey(s.day_of_week || s.day) === targetDayKey)
-            .sort((a, b) => Number(a.period_no || 0) - Number(b.period_no || 0));
+        const hasDayColumn = allWeeklySchedules.some(s => normalizeDayKey(s.day_of_week || s.day || s.weekday));
+        const targetDaySchedules = hasDayColumn
+            ? allWeeklySchedules
+                .filter(s => normalizeDayKey(s.day_of_week || s.day || s.weekday) === targetDayKey)
+                .sort((a, b) => Number(a.period_no || a.period || 0) - Number(b.period_no || b.period || 0))
+            : allWeeklySchedules.sort((a, b) => Number(a.period_no || a.period || 0) - Number(b.period_no || b.period || 0));
 
         if (targetDaySchedules.length === 0) {
             widget.classList.add('hidden');
             return;
         }
 
-        // คำนวณคาบเรียนปัจจุบันตามเวลาจริงของโรงเรียน
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
         let currentPeriod = 0;
         if (!isWeekend) {
-            if (nowMinutes >= 510 && nowMinutes < 560) currentPeriod = 1;       // 08:30 - 09:20
-            else if (nowMinutes >= 560 && nowMinutes < 610) currentPeriod = 2;  // 09:20 - 10:10
-            else if (nowMinutes >= 610 && nowMinutes < 660) currentPeriod = 3;  // 10:10 - 11:00
-            else if (nowMinutes >= 660 && nowMinutes < 710) currentPeriod = 4;  // 11:00 - 11:50
-            else if (nowMinutes >= 760 && nowMinutes < 810) currentPeriod = 5;  // 12:40 - 13:30
-            else if (nowMinutes >= 810 && nowMinutes < 860) currentPeriod = 6;  // 13:30 - 14:20
-            else if (nowMinutes >= 860 && nowMinutes < 910) currentPeriod = 7;  // 14:20 - 15:10
-            else if (nowMinutes >= 910 && nowMinutes < 960) currentPeriod = 8;  // 15:10 - 16:00
+            if (nowMinutes >= 510 && nowMinutes < 560) currentPeriod = 1;
+            else if (nowMinutes >= 560 && nowMinutes < 610) currentPeriod = 2;
+            else if (nowMinutes >= 610 && nowMinutes < 660) currentPeriod = 3;
+            else if (nowMinutes >= 660 && nowMinutes < 710) currentPeriod = 4;
+            else if (nowMinutes >= 760 && nowMinutes < 810) currentPeriod = 5;
+            else if (nowMinutes >= 810 && nowMinutes < 860) currentPeriod = 6;
+            else if (nowMinutes >= 860 && nowMinutes < 910) currentPeriod = 7;
+            else if (nowMinutes >= 910 && nowMinutes < 960) currentPeriod = 8;
             else if (nowMinutes >= 960) currentPeriod = 9;
         }
 
@@ -1816,7 +1724,7 @@ function normalizeDayKey(rawDay) {
             else widgetCurrentText.innerText = `คาบปัจจุบัน: คาบ ${currentPeriod}`;
         }
 
-        let upcoming = targetDaySchedules.filter(s => Number(s.period_no || 0) > currentPeriod).slice(0, 2);
+        let upcoming = targetDaySchedules.filter(s => Number(s.period_no || s.period || 0) > currentPeriod).slice(0, 2);
         let dayLabelPrefix = '';
         if (upcoming.length === 0) {
             upcoming = targetDaySchedules.slice(0, 2);
@@ -1825,20 +1733,22 @@ function normalizeDayKey(rawDay) {
 
         const firstItem = upcoming[0];
         if (nextBar && firstItem) {
+            const pNo = firstItem.period_no || firstItem.period || 1;
             const cCode = String(firstItem.course_code || firstItem.subject_code || '').trim().toUpperCase();
             const sName = SUBJECT_LOOKUP_MAP[cCode] || firstItem.subject_name || cCode;
             const label = sName !== cCode ? `${cCode} ${sName}` : cCode;
-            nextBar.textContent = `⚡ ${isWeekend ? 'วันจันทร์ ' : dayLabelPrefix}คาบ ${firstItem.period_no}: ${label}`;
+            nextBar.textContent = `⚡ ${isWeekend ? 'วันจันทร์ ' : dayLabelPrefix}คาบ ${pNo}: ${label}`;
         }
 
         widget.classList.remove('hidden');
-        widgetBody.innerHTML = upcoming.map(nc => {
+        widgetBody.innerHTML = upcoming.map((nc, i) => {
+            const pNo = nc.period_no || nc.period || (i + 1);
             const cCode = String(nc.course_code || nc.subject_code || '').trim().toUpperCase();
             const sName = SUBJECT_LOOKUP_MAP[cCode] || nc.subject_name || cCode;
             const label = sName !== cCode ? `${cCode} ${sName}` : cCode;
             return `
                 <div class="flex items-center justify-between gap-2 text-[11px] bg-indigo-50/80 p-1.5 rounded-lg border border-indigo-100">
-                    <span class="font-bold text-indigo-800 bg-white px-1.5 py-0.5 rounded shrink-0">คาบ ${nc.period_no}</span>
+                    <span class="font-bold text-indigo-800 bg-white px-1.5 py-0.5 rounded shrink-0">คาบ ${pNo}</span>
                     <span class="font-semibold text-slate-900 truncate flex-1">${label}</span>
                     <span class="text-[10px] text-rose-600 font-semibold shrink-0">${nc.room || nc.classroom || currentStudentClass}</span>
                 </div>
@@ -1846,7 +1756,6 @@ function normalizeDayKey(rawDay) {
         }).join('');
     }
 
-    // 📚 การบ้าน (รองรับทั้งตาราง academic_assignments และ homeworks)
     async function renderHomeworkData(className) {
         const container = document.getElementById('studentHomeworkList');
         const client = window.supabaseClient || window.db || window.supabase;
@@ -1875,7 +1784,6 @@ function normalizeDayKey(rawDay) {
         } catch (e) {}
     }
 
-    // 🏥 ห้องพยาบาล (รองรับทั้งตาราง clinic_records และ clinic_logs)
     async function renderClinicData(studentId) {
         const container = document.getElementById('studentClinicList');
         const client = window.supabaseClient || window.db || window.supabase;
