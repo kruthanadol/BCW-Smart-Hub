@@ -27,7 +27,7 @@
             flex-direction: column !important;
             justify-content: flex-start !important;
             padding-top: max(8px, env(safe-area-inset-top)) !important;
-            padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+            padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
         }
 
         body {
@@ -1243,11 +1243,13 @@
                 else if (st === 'truant' || st === 'หนี' || st === 'หนีเรียน') { truantCount++; norm = 'truant'; }
                 else if (st === 'leave' || st === 'ลา' || st === 'ลากิจ' || st === 'ลาป่วย') { norm = 'leave'; }
 
-                if (Number(item.period_no || 0) > 0 && norm) {
-                    const cCode = String(item.subject_code || 'GENERAL').trim().toUpperCase();
+                const pNo = Number(item.period_no || item.period || 0);
+                const rawCode = String(item.subject_code || item.course_code || '').trim().toUpperCase();
+                if ((pNo > 0 || rawCode) && norm) {
+                    const cCode = rawCode || 'GENERAL';
                     if (!subjectStatsMap.has(cCode)) {
                         const dictName = SUBJECT_LOOKUP_MAP[cCode];
-                        const fallbackName = String(item.subject_name || '').split('(')[0].trim();
+                        const fallbackName = String(item.subject_name || item.course_name || '').split('(')[0].trim();
                         subjectStatsMap.set(cCode, {
                             code: cCode,
                             name: dictName || fallbackName || cCode,
