@@ -1216,7 +1216,7 @@
                 }
             };
 
-            (allUsers || []).forEach(u => registerTeacher(u, [u.teacher_id, u.ref_id, u.schedule_code, u.user_id, u.teacher_code]));
+            (allUsers || []).forEach(u => registerTeacher(u, [u.teacher_id, u.ref_id, u.schedule_code, u.user_id, u.teacher_code, u.id]));
             (allTeachers || []).forEach(t => registerTeacher(t, [t.teacher_id, t.code, t.teacher_code, t.id]));
         } catch (e) {}
     }
@@ -1225,7 +1225,13 @@
         const defaultTeacherAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png';
         const byCode = TEACHER_LOOKUP_MAP[String(teacherCode || '').trim().toUpperCase()] || {};
         const rawName = teacherName || byCode.name || teacherCode || 'ผู้สอน';
-        const byName = TEACHER_NAME_LOOKUP_MAP[normalizeTeacherMatchKey(rawName)] || {};
+        const cleanKey = normalizeTeacherMatchKey(rawName);
+        let byName = TEACHER_NAME_LOOKUP_MAP[cleanKey] || {};
+
+        if (!byName.avatar && cleanKey) {
+            const matchedEntry = Object.entries(TEACHER_NAME_LOOKUP_MAP).find(([k, v]) => v.avatar && (k.includes(cleanKey) || cleanKey.includes(k)));
+            if (matchedEntry) byName = matchedEntry[1];
+        }
 
         return {
             fullName: rawName,
@@ -1566,10 +1572,15 @@
 
         if (CURRENT_STUDENT_ID) {
             try {
-                const { data: myRegs } = await client
+                // ดึงคอลัมน์ทั้งหมด (*) ของ offering เพื่อป้องกัน Error กรณีไม่มีคอลัมน์ teacher_id
+                const { data: myRegs, error: regErr } = await client
                     .from('student_registrations')
-                    .select('category, offering:registration_offerings(code, title, teacher_id, teacher_name, room, schedule_info)')
-                    .eq('student_id', CURRENT_STUDENT_ID);
+                    .select('category, offering:registration_offerings(*)')
+                    .eq('student_id', String(CURRENT_STUDENT_ID));
+
+                if (regErr) {
+                    console.warn('[StudentPortal] Registration query warning:', regErr);
+                }
 
                 if (myRegs && myRegs.length > 0) {
                     myRegisteredItems = myRegs.filter(r => r.offering);
@@ -1577,14 +1588,16 @@
                     const clubReg = myRegisteredItems.find(r => r.category === 'CLUB');
 
                     if (electiveReg) {
-                        const tProf = resolveTeacherProfile(electiveReg.offering.teacher_id, electiveReg.offering.teacher_name);
-                        const txt = `✅ ${electiveReg.offering.title} (${tProf.shortName})`;
+                        const off = electiveReg.offering;
+                        const tProf = resolveTeacherProfile(off.teacher_id || off.teacher_code, off.teacher_name);
+                        const txt = `✅ ${off.title} (${tProf.shortName})`;
                         if (document.getElementById('drawerElectiveStatusText')) document.getElementById('drawerElectiveStatusText').textContent = txt;
                         if (document.getElementById('desktopElectiveStatusText')) document.getElementById('desktopElectiveStatusText').textContent = txt;
                     }
                     if (clubReg) {
-                        const tProf = resolveTeacherProfile(clubReg.offering.teacher_id, clubReg.offering.teacher_name);
-                        const txt = `✅ ${clubReg.offering.title} (${tProf.shortName})`;
+                        const off = clubReg.offering;
+                        const tProf = resolveTeacherProfile(off.teacher_id || off.teacher_code, off.teacher_name);
+                        const txt = `✅ ${off.title} (${tProf.shortName})`;
                         if (document.getElementById('drawerClubStatusText')) document.getElementById('drawerClubStatusText').textContent = txt;
                         if (document.getElementById('desktopClubStatusText')) document.getElementById('desktopClubStatusText').textContent = txt;
                     }
@@ -1592,7 +1605,7 @@
                     regCardsHtml = myRegisteredItems.map(r => {
                         const isClub = r.category === 'CLUB';
                         const off = r.offering;
-                        const tProf = resolveTeacherProfile(off.teacher_id, off.teacher_name);
+                        const tProf = resolveTeacherProfile(off.teacher_id || off.teacher_code, off.teacher_name);
 
                         return `
                             <div class="flex items-center justify-between p-2.5 ${isClub ? 'bg-emerald-50/85 border-emerald-200' : 'bg-indigo-50/85 border-indigo-200'} border rounded-xl gap-2">
@@ -1614,7 +1627,7 @@
                                 </div>
                                 <div class="flex items-center gap-1.5 bg-white border ${isClub ? 'border-emerald-200' : 'border-indigo-200'} px-2 py-1 rounded-lg shrink-0">
                                     <img src="${tProf.avatar}" class="w-5 h-5 rounded-full object-cover" onerror="this.src='${defaultTeacherAvatar}'">
-                                    <span class="text-[10.5px] font-medium text-slate-700 max-w-[95px] truncate">${tProf.shortName}</span>
+                                    <span class="text-[10.5px] font-medium text-slate-700 max-w-[105px] truncate">${tProf.shortName}</span>
                                 </div>
                             </div>
                         `;
