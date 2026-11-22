@@ -1054,11 +1054,34 @@
     let SELECTED_SCHEDULE_DAY = 'Monday';
     let gatepassTimerInterval = null;
     let TEACHER_LOOKUP_MAP = {};
+    let SUBJECT_LOOKUP_MAP = {};
+    let STUDENT_WEEKLY_SCHEDULES = [];
+
+    const PERIOD_TIME_SLOTS = [
+        { p: 1, start: '08:30', end: '09:20' },
+        { p: 2, start: '09:20', end: '10:10' },
+        { p: 3, start: '10:10', end: '11:00' },
+        { p: 4, start: '11:00', end: '11:50' },
+        { p: 5, start: '12:40', end: '13:30' },
+        { p: 6, start: '13:30', end: '14:20' },
+        { p: 7, start: '14:20', end: '15:10' },
+        { p: 8, start: '15:10', end: '16:00' }
+    ];
 
     function formatCompactTeacherName(fullName) {
         return String(fullName || '')
             .replace(/^(นางสาว|นาย|นาง|ว่าที่ร้อยตรี|ว่าที่ ร\.ต\.)\s*/g, 'ครู')
             .trim();
+    }
+
+    function normalizeDayKey(rawDay) {
+        const d = String(rawDay || '').trim().toLowerCase();
+        if (d === '1' || d.includes('mon') || d.includes('จันทร์')) return 'Monday';
+        if (d === '2' || d.includes('tue') || d.includes('อังคาร')) return 'Tuesday';
+        if (d === '3' || d.includes('wed') || d.includes('พุธ')) return 'Wednesday';
+        if (d === '4' || d.includes('thu') || d.includes('พฤหัส')) return 'Thursday';
+        if (d === '5' || d.includes('fri') || d.includes('ศุกร์')) return 'Friday';
+        return '';
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -1122,7 +1145,7 @@
                 }
             }
 
-            // กำหนดวันเริ่มต้นตารางเรียน
+            // กำหนดวันเริ่มต้นตารางเรียนตามวันปัจจุบัน
             const dayMap = {
                 'Sunday': { key: 'Monday', label: 'วันจันทร์' },
                 'Monday': { key: 'Monday', label: 'วันจันทร์' },
@@ -1138,16 +1161,15 @@
             if (document.getElementById('currentDayText')) document.getElementById('currentDayText').innerText = defaultDay.label;
             if (document.getElementById('desktopDayText')) document.getElementById('desktopDayText').innerText = defaultDay.label;
 
-            // โหลดรายชื่อครูทั้งหมดมาเตรียมจับคู่กับครูที่ปรึกษาและครูผู้สอนในตารางเรียน
-            await buildTeacherLookupMap(client);
+            // โหลดฐานข้อมูลครู + รายวิชา (subjects) ชุดเดียวกับฝั่งครู
+            await buildMasterLookupMaps(client);
 
             // โหลดข้อมูลจริงครบทุกส่วนพร้อมกัน
             await Promise.all([
                 renderHomeroomAdvisors(currentStudentClass),
-                renderAttendanceAndGateStatus(client, CURRENT_STUDENT_ID),
+                renderAttendanceAndAcademicData(client, CURRENT_STUDENT_ID),
                 renderActiveGatepass(),
                 renderStudentSchedule(),
-                renderAcademicData(CURRENT_STUDENT_ID),
                 renderBehaviorScoreAndHistory(CURRENT_STUDENT_ID),
                 renderHomeworkData(currentStudentClass),
                 renderClinicData(CURRENT_STUDENT_ID),
@@ -1160,13 +1182,22 @@
         }
     });
 
-    async function buildTeacherLookupMap(client) {
+    async function buildMasterLookupMaps(client) {
         if (!client) return;
         try {
-            const [{ data: allUsers }, { data: allTeachers }] = await Promise.all([
+            const [{ data: allUsers }, { data: allTeachers }, { data: allSubjects }] = await Promise.all([
                 client.from('users').select('*'),
-                client.from('teachers').select('*')
+                client.from('teachers').select('*'),
+                client.from('subjects').select('*')
             ]);
+
+            SUBJECT_LOOKUP_MAP = {};
+            (allSubjects || []).forEach(sub => {
+                const code = String(sub.course_code || sub.subject_code || '').trim().toUpperCase();
+                if (code && sub.subject_name) {
+                    SUBJECT_LOOKUP_MAP[code] = String(sub.subject_name).trim();
+                }
+            });
 
             const registerTeacher = (rec, keys) => {
                 const name = rec.full_name || rec.name || rec.display_name || `${rec.prefix || ''}${rec.first_name || rec.teacher_name || ''} ${rec.last_name || ''}`.trim();
@@ -1182,7 +1213,7 @@
                 });
             };
 
-            (allUsers || []).forEach(u => registerTeacher(u, [u.teacher_id, u.user_id, u.teacher_code]));
+            (allUsers || []).forEach(u => registerTeacher(u, [u.teacher_id, u.ref_id, u.schedule_code, u.user_id, u.teacher_code]));
             (allTeachers || []).forEach(t => registerTeacher(t, [t.teacher_id, t.code, t.teacher_code, t.id]));
         } catch (e) {}
     }
@@ -1250,21 +1281,49 @@
         }
     }
 
-    // 📊 สถิติการมาเรียน & สถานะเข้าโรงเรียนวันนี้
-    async function renderAttendanceAndGateStatus(client, studentId) {
+    // 📊 สถิติการมาเรียน + สถานะเข้าโรงเรียนวันนี้ + เวลาเรียนสะสมรายวิชา (ดึงสดจาก attendance_logs ชุดเดียวกับครู)
+    async function renderAttendanceAndAcademicData(client, studentId) {
         if (!client || !studentId) return;
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
         try {
-            const { data: attLogs } = await client.from('attendance_logs').select('*').eq('student_id', studentId).order('recorded_at', { ascending: false });
+            const { data: attLogs } = await client
+                .from('attendance_logs')
+                .select('*')
+                .eq('student_id', studentId)
+                .order('recorded_at', { ascending: false });
             const logs = attLogs || [];
 
             let presentCount = 0, lateCount = 0, absentCount = 0, truantCount = 0;
+            const subjectStatsMap = new Map();
+
             logs.forEach(item => {
-                const st = String(item.status || '').toLowerCase();
-                if (st === 'present' || st === 'ontime' || st === 'มาเรียน') presentCount++;
-                else if (st === 'late' || st === 'มาสาย') lateCount++;
-                else if (st === 'absent' || st === 'ขาดเรียน') absentCount++;
-                else if (st === 'truant' || st === 'หนีเรียน') truantCount++;
+                const st = String(item.status || '').trim().toLowerCase();
+                let norm = '';
+                if (st === 'present' || st === 'ontime' || st === 'มา' || st === 'มาเรียน') { presentCount++; norm = 'present'; }
+                else if (st === 'late' || st === 'สาย' || st === 'มาสาย') { lateCount++; norm = 'late'; }
+                else if (st === 'absent' || st === 'ขาด' || st === 'ขาดเรียน') { absentCount++; norm = 'absent'; }
+                else if (st === 'truant' || st === 'หนี' || st === 'หนีเรียน') { truantCount++; norm = 'truant'; }
+                else if (st === 'leave' || st === 'ลา' || st === 'ลากิจ' || st === 'ลาป่วย') { norm = 'leave'; }
+
+                // สรุปรายวิชาเฉพาะคาบเรียน (period_no > 0)
+                if (Number(item.period_no || 0) > 0 && norm) {
+                    const cCode = String(item.subject_code || 'GENERAL').trim().toUpperCase();
+                    if (!subjectStatsMap.has(cCode)) {
+                        const dictName = SUBJECT_LOOKUP_MAP[cCode];
+                        const fallbackName = String(item.subject_name || '').split('(')[0].trim();
+                        subjectStatsMap.set(cCode, {
+                            code: cCode,
+                            name: dictName || fallbackName || cCode,
+                            attended: 0,
+                            absent: 0,
+                            total: 0
+                        });
+                    }
+                    const entry = subjectStatsMap.get(cCode);
+                    entry.total++;
+                    if (norm === 'present' || norm === 'late') entry.attended++;
+                    if (norm === 'absent' || norm === 'truant') entry.absent++;
+                }
             });
 
             if (document.getElementById('stat-present')) document.getElementById('stat-present').textContent = presentCount;
@@ -1272,7 +1331,35 @@
             if (document.getElementById('stat-absent')) document.getElementById('stat-absent').textContent = absentCount;
             if (document.getElementById('stat-truant')) document.getElementById('stat-truant').textContent = truantCount;
 
-            const todayLogs = logs.filter(l => String(l.recorded_at || l.created_at || '').startsWith(todayStr));
+            // อัปเดตการ์ดเวลาเรียนสะสมรายวิชา (สิทธิ์สอบ)
+            const academicContainer = document.getElementById('studentAcademicContainer');
+            if (academicContainer && subjectStatsMap.size > 0) {
+                academicContainer.className = "space-y-2 text-left";
+                academicContainer.innerHTML = Array.from(subjectStatsMap.values()).map(sub => {
+                    const percent = sub.total > 0 ? Math.round((sub.attended / sub.total) * 100) : 100;
+                    const badgeStyle = percent < 80 ? 'bg-rose-100 text-rose-800' : percent < 85 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800';
+                    const barColor = percent < 80 ? 'bg-rose-500' : percent < 85 ? 'bg-amber-500' : 'bg-emerald-500';
+                    const statusText = percent < 80 ? 'เสี่ยง มส.' : percent < 85 ? 'เฝ้าระวัง' : 'ปกติ';
+
+                    return `
+                        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                            <div class="flex justify-between items-center gap-2">
+                                <div class="min-w-0">
+                                    <span class="font-bold text-slate-800 block truncate">${sub.code} ${sub.name !== sub.code ? sub.name : ''}</span>
+                                    <span class="text-[11px] text-slate-600">เข้าเรียน ${sub.attended}/${sub.total} คาบ &bull; ขาด/หนี ${sub.absent} คาบ</span>
+                                </div>
+                                <span class="${badgeStyle} text-[10.5px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">${statusText} (${percent}%)</span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div class="${barColor} h-full rounded-full transition-all duration-300" style="width: ${percent}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // อัปเดตสถานะการเช็กชื่อวันนี้
+            const todayLogs = logs.filter(l => (l.date === todayStr) || String(l.recorded_at || l.created_at || '').startsWith(todayStr));
             const gateSection = document.getElementById('section-gate');
             const iconBg = document.getElementById('trafficIconBg');
             const titleEl = document.getElementById('trafficStatusTitle');
@@ -1290,7 +1377,7 @@
                 if (gateSection) gateSection.className = "px-3 py-1.5 bg-emerald-50/90 border-b border-emerald-100 flex items-center justify-between gap-2";
                 if (iconBg) iconBg.className = "w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0";
                 if (titleEl) { titleEl.className = "text-xs font-semibold text-emerald-950 truncate"; titleEl.textContent = "🟢 อยู่ในโรงเรียน (เช็กชื่อเข้าเรียนแล้ว)"; }
-                if (descEl) { descEl.className = "text-[11px] text-emerald-800 truncate"; descEl.textContent = "บันทึกการเข้าเรียนวันนี้เรียบร้อยแล้ว"; }
+                if (descEl) { descEl.className = "text-[11px] text-emerald-800 truncate"; descEl.textContent = `บันทึกการเข้าเรียนวันนี้แล้ว (${todayLogs.length} รายการ)`; }
             }
         } catch (e) {}
     }
@@ -1319,7 +1406,7 @@
             });
             if (scoreEl) scoreEl.textContent = totalScore;
 
-            const todayStr = new Date().toISOString().slice(0, 10);
+            const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
             const todayLogs = list.filter(l => String(l.created_at || '').startsWith(todayStr));
             const cardEl = document.getElementById('todayBehaviorCard');
             const iconBoxEl = document.getElementById('todayBehaviorIconBox');
@@ -1455,7 +1542,7 @@
         gatepassTimerInterval = setInterval(updateTimer, 1000);
     }
 
-    // 📅 ตารางเรียนประจำห้อง + วิชาเลือกเสรี/ชุมนุมที่ลงทะเบียนไว้ + ป๊อปอัปแก้วคาบเรียนถัดไป
+    // 📅 ตารางเรียนประจำห้อง (ดึงจากตาราง schedules + subjects ชุดเดียวกับครู 100%)
     async function renderStudentSchedule() {
         const container = document.getElementById('scheduleContainer');
         const desktopContainer = document.getElementById('desktopScheduleContainer');
@@ -1465,7 +1552,7 @@
 
         if (!client) return;
 
-        // 1. ดึงข้อมูลวิชาเลือกเสรีและชุมนุมที่นักเรียนลงทะเบียนไว้มาแสดงในตารางเรียนและอัปเดตป้ายสถานะปุ่ม
+        // 1. ดึงข้อมูลวิชาเลือกเสรีและชุมนุมที่นักเรียนลงทะเบียนไว้
         let regCardsHtml = '';
         if (CURRENT_STUDENT_ID) {
             try {
@@ -1519,7 +1606,7 @@
             }
         }
 
-        // 2. ดึงตารางเรียนประจำห้อง
+        // 2. ดึงตารางเรียนประจำห้องจากตาราง `schedules` (ฐานข้อมูลเดียวกับหน้าของครู)
         if (!currentStudentClass) {
             const emptyHtml = regCardsHtml || `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่พบข้อมูลห้องเรียนของนักเรียน</div>`;
             if (container) container.innerHTML = emptyHtml;
@@ -1530,8 +1617,21 @@
         }
 
         try {
-            const { data: schedules } = await client.from('course_assignments').select('*').eq('class_name', currentStudentClass);
-            if (!schedules || schedules.length === 0) {
+            // หมายเหตุ: รองรับทั้งห้องเรียนเต็ม (เช่น ม.2/7) และรหัสระดับชั้นรวม (เช่น ม.2 สำหรับวิชากิจกรรม/ลูกเสือ)
+            const gradePrefix = currentStudentClass.split('/')[0]?.trim();
+            const classFilters = gradePrefix && gradePrefix !== currentStudentClass
+                ? [currentStudentClass, gradePrefix]
+                : [currentStudentClass];
+
+            const { data: schedules } = await client
+                .from('schedules')
+                .select('*')
+                .in('classroom', classFilters)
+                .order('period_no', { ascending: true });
+
+            STUDENT_WEEKLY_SCHEDULES = schedules || [];
+
+            if (STUDENT_WEEKLY_SCHEDULES.length === 0) {
                 const noDataHtml = regCardsHtml || `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายวิชาในตารางเรียน (${currentStudentClass})</div>`;
                 if (container) container.innerHTML = noDataHtml;
                 if (desktopContainer) desktopContainer.innerHTML = noDataHtml;
@@ -1540,122 +1640,133 @@
                 return;
             }
 
-            if (nextBar) {
-                nextBar.textContent = `📚 คาบเรียนห้อง ${currentStudentClass}: ${schedules[0].subject_name || schedules[0].course_code || 'ดูคาบเรียนถัดไป'}`;
-            }
+            // กรองเฉพาะวันที่เลือก (SELECTED_SCHEDULE_DAY) และเรียงตามคาบเรียนที่ 1 -> 8
+            const daySchedules = STUDENT_WEEKLY_SCHEDULES
+                .filter(s => normalizeDayKey(s.day_of_week || s.day) === SELECTED_SCHEDULE_DAY)
+                .sort((a, b) => Number(a.period_no || 0) - Number(b.period_no || 0));
 
-            const regularHtml = schedules.map((s, idx) => {
-                const tCode = String(s.teacher_id || '').trim().toUpperCase();
-                const tInfo = TEACHER_LOOKUP_MAP[tCode] || {};
-                const tDisplayName = tInfo.name ? formatCompactTeacherName(tInfo.name) : (s.teacher_id || 'ผู้สอน');
-                const tAvatar = tInfo.avatar || defaultTeacherAvatar;
+            const regularHtml = daySchedules.length > 0
+                ? daySchedules.map((s, idx) => {
+                    const pNo = Number(s.period_no || (idx + 1));
+                    const cCode = String(s.course_code || s.subject_code || '').trim().toUpperCase();
+                    const fullSubjName = SUBJECT_LOOKUP_MAP[cCode] || s.subject_name || s.course_name || cCode || 'วิชาเรียน';
+                    const tCode = String(s.teacher_id || s.schedule_code || '').trim().toUpperCase();
+                    const tInfo = TEACHER_LOOKUP_MAP[tCode] || {};
+                    const rawTeacherName = s.teacher_name || tInfo.name || tCode || 'ผู้สอน';
+                    const tDisplayName = formatCompactTeacherName(rawTeacherName);
+                    const tAvatar = tInfo.avatar || defaultTeacherAvatar;
+                    const slotInfo = PERIOD_TIME_SLOTS.find(slot => slot.p === pNo);
+                    const timeBadge = slotInfo ? `${slotInfo.start}–${slotInfo.end}` : '';
 
-                return `
-                    <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl gap-2">
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 font-bold text-xs flex flex-col items-center justify-center shrink-0">
-                                <span class="text-[8px] text-indigo-500 leading-none">คาบ</span>
-                                <span class="leading-tight">${idx + 1}</span>
+                    return `
+                        <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl gap-2">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-800 font-bold text-xs flex flex-col items-center justify-center shrink-0">
+                                    <span class="text-[8px] text-indigo-500 leading-none">คาบ</span>
+                                    <span class="leading-tight">${pNo}</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="text-xs font-bold text-slate-900 truncate">${cCode ? `${cCode} ` : ''}${fullSubjName !== cCode ? fullSubjName : ''}</h4>
+                                    <p class="text-[11px] text-slate-600 truncate">
+                                        ${timeBadge ? `<span class="font-mono text-indigo-700">${timeBadge}</span> &bull; ` : ''}ห้อง ${s.room || s.classroom || currentStudentClass}
+                                    </p>
+                                </div>
                             </div>
-                            <div class="min-w-0">
-                                <h4 class="text-xs font-semibold text-slate-800 truncate">${s.subject_name || s.course_code || 'วิชาเรียน'}</h4>
-                                <p class="text-[11px] text-slate-600 truncate">รหัสวิชา: ${s.course_code || '-'} &bull; ห้อง ${s.class_name || currentStudentClass}</p>
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shrink-0">
+                                <img src="${tAvatar}" class="w-5 h-5 rounded-full object-cover" onerror="this.src='${defaultTeacherAvatar}'">
+                                <span class="text-[10.5px] font-medium text-slate-700 max-w-[95px] truncate">${tDisplayName}</span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shrink-0">
-                            <img src="${tAvatar}" class="w-5 h-5 rounded-full object-cover" onerror="this.src='${defaultTeacherAvatar}'">
-                            <span class="text-[10.5px] font-medium text-slate-700 max-w-[90px] truncate">${tDisplayName}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                }).join('')
+                : `<div class="p-4 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีตารางเรียนในวันที่เลือก</div>`;
 
             const combinedHtml = regularHtml + regCardsHtml;
             if (container) container.innerHTML = combinedHtml;
             if (desktopContainer) desktopContainer.innerHTML = combinedHtml;
-            updateNextClassWidget(schedules);
+
+            updateNextClassWidget(STUDENT_WEEKLY_SCHEDULES);
         } catch (e) {
             console.warn('[StudentPortal] Schedule error:', e);
         }
     }
 
-    function updateNextClassWidget(schedules) {
+    function updateNextClassWidget(allWeeklySchedules) {
         const widget = document.getElementById('glassNextClassWidget');
         const widgetBody = document.getElementById('glassNextClassBody');
         const widgetCurrentText = document.getElementById('widgetCurrentPeriodText');
         const nextBar = document.getElementById('nextClassBarText');
         if (!widget || !widgetBody) return;
 
-        if (!schedules || schedules.length === 0) {
+        if (!allWeeklySchedules || allWeeklySchedules.length === 0) {
             widget.classList.add('hidden');
             return;
         }
 
-        const currentHour = new Date().getHours();
-        let currentPeriod = 1;
-        if (currentHour >= 9) currentPeriod = 2;
-        if (currentHour >= 10) currentPeriod = 3;
-        if (currentHour >= 11) currentPeriod = 4;
-        if (currentHour >= 13) currentPeriod = 5;
-        if (currentHour >= 14) currentPeriod = 6;
-        if (currentHour >= 15) currentPeriod = 7;
+        const now = new Date();
+        const todayNameEn = now.toLocaleDateString('en-US', { weekday: 'long' });
+        const isWeekend = todayNameEn === 'Saturday' || todayNameEn === 'Sunday';
+        const targetDayKey = isWeekend ? 'Monday' : todayNameEn;
 
-        if (widgetCurrentText) widgetCurrentText.innerText = `คาบปัจจุบัน: คาบ ${currentPeriod}`;
+        const targetDaySchedules = allWeeklySchedules
+            .filter(s => normalizeDayKey(s.day_of_week || s.day) === targetDayKey)
+            .sort((a, b) => Number(a.period_no || 0) - Number(b.period_no || 0));
 
-        let nextClasses = schedules.slice(currentPeriod, currentPeriod + 2);
-        let startPeriodNo = currentPeriod + 1;
-        if (nextClasses.length === 0) {
-            nextClasses = schedules.slice(0, 2);
-            startPeriodNo = 1;
+        if (targetDaySchedules.length === 0) {
+            widget.classList.add('hidden');
+            return;
         }
 
-        if (nextBar && nextClasses[0]) {
-            nextBar.textContent = `⚡ คาบถัดไป (คาบ ${startPeriodNo}): ${nextClasses[0].subject_name || nextClasses[0].course_code || ''}`;
+        // คำนวณคาบเรียนปัจจุบันตามเวลาจริงของโรงเรียน
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        let currentPeriod = 0;
+        if (!isWeekend) {
+            if (nowMinutes >= 510 && nowMinutes < 560) currentPeriod = 1;       // 08:30 - 09:20
+            else if (nowMinutes >= 560 && nowMinutes < 610) currentPeriod = 2;  // 09:20 - 10:10
+            else if (nowMinutes >= 610 && nowMinutes < 660) currentPeriod = 3;  // 10:10 - 11:00
+            else if (nowMinutes >= 660 && nowMinutes < 710) currentPeriod = 4;  // 11:00 - 11:50
+            else if (nowMinutes >= 760 && nowMinutes < 810) currentPeriod = 5;  // 12:40 - 13:30
+            else if (nowMinutes >= 810 && nowMinutes < 860) currentPeriod = 6;  // 13:30 - 14:20
+            else if (nowMinutes >= 860 && nowMinutes < 910) currentPeriod = 7;  // 14:20 - 15:10
+            else if (nowMinutes >= 910 && nowMinutes < 960) currentPeriod = 8;  // 15:10 - 16:00
+            else if (nowMinutes >= 960) currentPeriod = 9;
+        }
+
+        if (widgetCurrentText) {
+            if (isWeekend) widgetCurrentText.innerText = 'วันหยุด (วันจันทร์)';
+            else if (currentPeriod === 0) widgetCurrentText.innerText = 'ก่อนเข้าเรียน';
+            else if (currentPeriod > 8) widgetCurrentText.innerText = 'เลิกเรียนแล้ว';
+            else widgetCurrentText.innerText = `คาบปัจจุบัน: คาบ ${currentPeriod}`;
+        }
+
+        let upcoming = targetDaySchedules.filter(s => Number(s.period_no || 0) > currentPeriod).slice(0, 2);
+        let dayLabelPrefix = '';
+        if (upcoming.length === 0) {
+            upcoming = targetDaySchedules.slice(0, 2);
+            if (!isWeekend && currentPeriod > 0) dayLabelPrefix = 'พรุ่งนี้ / ถัดไป ';
+        }
+
+        const firstItem = upcoming[0];
+        if (nextBar && firstItem) {
+            const cCode = String(firstItem.course_code || firstItem.subject_code || '').trim().toUpperCase();
+            const sName = SUBJECT_LOOKUP_MAP[cCode] || firstItem.subject_name || cCode;
+            const label = sName !== cCode ? `${cCode} ${sName}` : cCode;
+            nextBar.textContent = `⚡ ${isWeekend ? 'วันจันทร์ ' : dayLabelPrefix}คาบ ${firstItem.period_no}: ${label}`;
         }
 
         widget.classList.remove('hidden');
-        widgetBody.innerHTML = nextClasses.map((nc, i) => `
-            <div class="flex items-center justify-between gap-2 text-[11px] bg-indigo-50/80 p-1.5 rounded-lg border border-indigo-100">
-                <span class="font-bold text-indigo-800 bg-white px-1.5 py-0.5 rounded shrink-0">คาบ ${startPeriodNo + i}</span>
-                <span class="font-semibold text-slate-900 truncate flex-1">${nc.subject_name || nc.course_code || 'วิชาเรียน'}</span>
-                <span class="text-[10px] text-rose-600 font-semibold shrink-0">${nc.class_name || currentStudentClass}</span>
-            </div>
-        `).join('');
-    }
-
-    // ⚠️ เวลาเรียนสะสม & Progress Bar สิทธิ์สอบ (มส.)
-    async function renderAcademicData(studentId) {
-        const container = document.getElementById('studentAcademicContainer');
-        const client = window.supabaseClient || window.db || window.supabase;
-        if (!container || !client || !studentId) return;
-
-        try {
-            const { data: risks } = await client.from('academic_attendance_summary').select('*').eq('student_id', studentId);
-            if (!risks || risks.length === 0) return;
-
-            container.className = "space-y-2 text-left";
-            container.innerHTML = risks.map(item => {
-                const percent = item.attendance_percent ?? 100;
-                const badgeStyle = percent < 80 ? 'bg-rose-100 text-rose-800' : percent < 85 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800';
-                const barColor = percent < 80 ? 'bg-rose-500' : percent < 85 ? 'bg-amber-500' : 'bg-emerald-500';
-                const statusText = percent < 80 ? 'ติด มส.' : percent < 85 ? 'เสี่ยง มส.' : 'ปกติ';
-
-                return `
-                    <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-                        <div class="flex justify-between items-center gap-2">
-                            <div>
-                                <span class="font-bold text-slate-800 block">${item.subject_name || item.subject_code}</span>
-                                <span class="text-[11px] text-slate-600">ขาดเรียน ${item.absent_count || 0} คาบ</span>
-                            </div>
-                            <span class="${badgeStyle} text-[10.5px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap">${statusText} (${percent}%)</span>
-                        </div>
-                        <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                            <div class="${barColor} h-full rounded-full transition-all duration-300" style="width: ${percent}%;"></div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        } catch (e) {}
+        widgetBody.innerHTML = upcoming.map(nc => {
+            const cCode = String(nc.course_code || nc.subject_code || '').trim().toUpperCase();
+            const sName = SUBJECT_LOOKUP_MAP[cCode] || nc.subject_name || cCode;
+            const label = sName !== cCode ? `${cCode} ${sName}` : cCode;
+            return `
+                <div class="flex items-center justify-between gap-2 text-[11px] bg-indigo-50/80 p-1.5 rounded-lg border border-indigo-100">
+                    <span class="font-bold text-indigo-800 bg-white px-1.5 py-0.5 rounded shrink-0">คาบ ${nc.period_no}</span>
+                    <span class="font-semibold text-slate-900 truncate flex-1">${label}</span>
+                    <span class="text-[10px] text-rose-600 font-semibold shrink-0">${nc.room || nc.classroom || currentStudentClass}</span>
+                </div>
+            `;
+        }).join('');
     }
 
     // 📚 การบ้าน (รองรับทั้งตาราง academic_assignments และ homeworks)
