@@ -12,60 +12,49 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
-        /* ป้องกันเบราว์เซอร์รีโหลดหน้า (Pull-to-Refresh) โดยไม่บล็อกการเลื่อนขึ้น-ลง */
-        html {
-            overscroll-behavior-y: none;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        /* ขยายสเกลตัวอักษรบนหน้าจอมือถือให้อ่านง่ายสบายตา และเปิดการเลื่อนหน้าจอแบบ Native 60fps */
-        @media (max-width: 1023px) {
-            html {
-                font-size: 18px !important;
-            }
-            html, body, body.student-app-body {
-                display: block !important;
-                height: auto !important;
-                min-height: 100vh !important;
-                max-height: none !important;
-                width: 100% !important;
-                overflow-x: clip !important;
-                overflow-y: auto !important;
-                position: relative !important;
-                touch-action: pan-y !important;
-                overscroll-behavior-y: none !important;
-                padding-top: max(8px, env(safe-area-inset-top)) !important;
-                padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
-            }
-            main {
-                display: flex !important;
-                flex-direction: column !important;
-                height: auto !important;
-                max-height: none !important;
-                overflow: visible !important;
-                flex: none !important;
-                margin-bottom: 36px !important;
-            }
-        }
-        @media (min-width: 1024px) {
-            html, body {
-                height: auto !important;
-                min-height: 100vh !important;
-                overflow-y: auto !important;
-            }
-            body.student-app-body {
-                display: flex !important;
-                flex-direction: column !important;
-                padding-bottom: 96px !important;
-            }
-        }
-
-        body {
+        /* ล็อกกรอบนอกสุดไว้กับหน้าจอ และให้เลื่อนผ่านกล่อง #appScrollContainer ด้านในแทน 100% */
+        html, body, body.student-app-body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+            overflow: hidden !important;
+            position: fixed !important;
+            inset: 0 !important;
             font-family: 'Kanit', sans-serif;
             background-color: #f1f5f9;
             color: #0f172a;
             -webkit-text-size-adjust: 100%;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        @media (max-width: 1023px) {
+            html {
+                font-size: 18px !important;
+            }
+        }
+
+        /* กล่องเลื่อนอิสระหลักของแอป ทำงานลื่น 60fps ไม่โดนสคริปต์อื่นบล็อก */
+        #appScrollContainer {
+            width: 100%;
+            height: 100dvh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+            touch-action: pan-y;
+            padding-top: max(10px, env(safe-area-inset-top));
+            padding-bottom: calc(140px + env(safe-area-inset-bottom));
+            padding-left: 12px;
+            padding-right: 12px;
+            box-sizing: border-box;
+        }
+
+        @media (min-width: 768px) {
+            #appScrollContainer {
+                padding: 24px 24px 110px 24px;
+            }
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -267,7 +256,7 @@
             border-radius: 99px;
         }
 
-        /* แถบเมนูลอยด้านล่าง (ตัด blur ออกเพื่อลดภาระ GPU ให้เลื่อนหน้าจอลื่น 60fps) */
+        /* แถบเมนูลอยด้านล่าง */
         .native-bottom-nav {
             position: fixed;
             bottom: max(10px, env(safe-area-inset-bottom));
@@ -338,61 +327,332 @@
     </style>    
     <script src="../../core/bcw-page-transition.js?v=1"></script>
 </head>
-<body class="student-app-body px-3 md:p-6 relative">
+<body class="student-app-body">
 
-    <!-- 1. TOP APP HEADER -->
-    <div class="max-w-7xl mx-auto w-full shrink-0 space-y-2">
-        <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-2.5 md:p-5 border-b-2 border-amber-400">
-            <div class="flex justify-between items-center gap-2">
-                <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-amber-300/60 flex items-center justify-center">
-                        <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-1.5">
-                            <h1 class="text-base md:text-2xl font-extrabold text-amber-400 tracking-wide leading-tight uppercase truncate">BCW STUDENT</h1>
-                            <span id="studentRoleBadge" class="bg-emerald-400/20 text-emerald-300 border border-emerald-400/60 px-2 py-0.5 rounded-md text-xs font-semibold shrink-0">นักเรียน</span>
+    <!-- กล่องเลื่อนอิสระหลัก (ครอบเนื้อหาหน้าหลักทั้งหมด) -->
+    <div id="appScrollContainer">
+
+        <!-- 1. TOP APP HEADER -->
+        <div class="max-w-7xl mx-auto w-full shrink-0 space-y-2">
+            <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-2.5 md:p-5 border-b-2 border-amber-400">
+                <div class="flex justify-between items-center gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-amber-300/60 flex items-center justify-center">
+                            <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
                         </div>
-                        <div class="text-xs md:text-base font-medium text-indigo-100 leading-snug truncate">โรงเรียนบัวเชดวิทยา <span class="hidden sm:inline text-indigo-300 text-xs">• STUDENT PORTAL</span></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5">
+                                <h1 class="text-base md:text-2xl font-extrabold text-amber-400 tracking-wide leading-tight uppercase truncate">BCW STUDENT</h1>
+                                <span id="studentRoleBadge" class="bg-emerald-400/20 text-emerald-300 border border-emerald-400/60 px-2 py-0.5 rounded-md text-xs font-semibold shrink-0">นักเรียน</span>
+                            </div>
+                            <div class="text-xs md:text-base font-medium text-indigo-100 leading-snug truncate">โรงเรียนบัวเชดวิทยา <span class="hidden sm:inline text-indigo-300 text-xs">• STUDENT PORTAL</span></div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <div id="topGatepassTimerBadge" class="hidden bg-indigo-900/95 border border-amber-400/80 rounded-xl px-2.5 py-1 text-left flex items-center gap-1.5 shadow-xs">
+                            <i class="fa-solid fa-clock-rotate-left text-amber-400 text-xs animate-spin" style="animation-duration: 4s;"></i>
+                            <div class="leading-none">
+                                <span class="text-[10px] text-amber-300 font-semibold block">เวลาเหลือ</span>
+                                <span id="topGatepassCountdown" class="text-xs font-bold text-amber-400 font-mono">00:00:00</span>
+                            </div>
+                        </div>
+
+                        <button id="btnLogout" type="button" onclick="handleLogout()" title="ออกจากระบบ" class="w-9 h-9 md:w-auto md:px-3.5 md:py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl font-semibold transition shadow-md flex items-center justify-center gap-1.5 border border-rose-400/50 cursor-pointer text-xs">
+                            <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                            <span class="hidden md:inline">ออกจากระบบ</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-1.5 shrink-0">
-                    <div id="topGatepassTimerBadge" class="hidden bg-indigo-900/95 border border-amber-400/80 rounded-xl px-2.5 py-1 text-left flex items-center gap-1.5 shadow-xs">
-                        <i class="fa-solid fa-clock-rotate-left text-amber-400 text-xs animate-spin" style="animation-duration: 4s;"></i>
-                        <div class="leading-none">
-                            <span class="text-[10px] text-amber-300 font-semibold block">เวลาเหลือ</span>
-                            <span id="topGatepassCountdown" class="text-xs font-bold text-amber-400 font-mono">00:00:00</span>
+                <div class="bg-indigo-950/90 border-t border-indigo-800/70 mt-2 pt-1.5 px-1 flex justify-between items-center text-xs">
+                    <span id="header-date-display" class="font-medium text-indigo-100 truncate">กำลังโหลดวันที่...</span>
+                    <div class="flex items-center gap-1.5 text-amber-200 font-semibold shrink-0">
+                        <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
+                        <span id="header-clock-display" class="bg-indigo-900/90 px-2 py-0.5 rounded-md border border-indigo-700/80 font-mono text-white text-xs">00:00:00</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- แถบคาบเรียนถัดไป -->
+            <div onclick="toggleGlassNextClassWidget()" class="w-full bg-indigo-950/95 border border-amber-400/80 shadow-sm rounded-2xl py-2 px-3 flex items-center justify-between gap-2 cursor-pointer active:scale-99 transition">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0"></span>
+                    <span id="nextClassBarText" class="text-xs sm:text-sm text-indigo-100 font-medium truncate">กำลังตรวจสอบคาบเรียนวันนี้...</span>
+                </div>
+                <span class="shrink-0 bg-indigo-900 text-amber-300 border border-amber-400/60 px-2.5 py-0.5 rounded-lg text-xs font-semibold">
+                    คาบถัดไป
+                </span>
+            </div>
+        </div>
+
+        <!-- 2. MAIN CONTENT AREA -->
+        <main class="max-w-7xl mx-auto w-full flex flex-col justify-start gap-2.5 lg:gap-3 my-2 lg:my-3">
+
+            <!-- การ์ดสรุปข้อมูลนักเรียนใบเดียว -->
+            <section id="section-profile" class="unified-student-card shrink-0">
+                <!-- แถวบน: รูป + ชื่อ-สกุลเต็ม + ป้ายคะแนนความประพฤติ -->
+                <div class="p-3 md:p-4 border-b border-slate-100 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2.5">
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <div onclick="openBcwProfileModal()" title="แตะเพื่อแก้ไขโปรไฟล์" class="relative w-12 h-12 md:w-14 md:h-14 shrink-0 cursor-pointer group active:scale-95 transition">
+                                <img id="student-avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Student Photo" class="w-full h-full rounded-2xl object-cover border border-indigo-200 shadow-xs" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+                                <span id="badge-status-dot" class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-indigo-600 text-white border-2 border-white rounded-full flex items-center justify-center text-[9px]">
+                                    <i class="fa-solid fa-camera"></i>
+                                </span>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <h2 id="student-fullname" class="text-base md:text-lg font-bold text-slate-900 leading-snug line-clamp-2">กำลังโหลดข้อมูล...</h2>
+                            </div>
+                        </div>
+
+                        <div class="bg-indigo-50 border border-indigo-100 rounded-2xl px-2.5 py-1.5 text-center shrink-0">
+                            <span class="text-[11px] font-semibold text-indigo-900 block leading-none">ความประพฤติ</span>
+                            <div class="mt-1 leading-none">
+                                <span id="student-behavior-score" class="text-base md:text-xl font-extrabold text-indigo-700">100</span>
+                                <span class="text-[11px] text-slate-600">/100</span>
+                            </div>
                         </div>
                     </div>
 
-                    <button id="btnLogout" type="button" onclick="handleLogout()" title="ออกจากระบบ" class="w-9 h-9 md:w-auto md:px-3.5 md:py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl font-semibold transition shadow-md flex items-center justify-center gap-1.5 border border-rose-400/50 cursor-pointer text-xs">
-                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
-                        <span class="hidden md:inline">ออกจากระบบ</span>
+                    <!-- แถบข้อมูล ชั้น / เลขที่ / รหัส -->
+                    <div class="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700">
+                        <span>ชั้น <strong id="student-class" class="text-indigo-700 font-bold">-</strong></span>
+                        <span class="text-slate-300">|</span>
+                        <span>เลขที่ <strong id="student-no" class="text-slate-900 font-bold">-</strong></span>
+                        <span class="text-slate-300">|</span>
+                        <span>รหัส <strong id="student-id" class="text-slate-900 font-bold">-</strong></span>
+                    </div>
+                </div>
+
+                <!-- แถบครูที่ปรึกษาประจำห้อง -->
+                <div onclick="openDrawerById('advisorDrawerBackdrop')" class="px-3 py-2 bg-indigo-50/60 border-b border-indigo-100/80 space-y-1.5 cursor-pointer hover:bg-indigo-50 transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-indigo-900 flex items-center gap-1">
+                            <i class="fa-solid fa-user-tie text-indigo-600"></i> ครูที่ปรึกษาประจำชั้น
+                        </span>
+                        <span class="text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-lg">ดูข้อมูลครู &rsaquo;</span>
+                    </div>
+                    <div id="advisorCardList" class="grid grid-cols-2 gap-1.5">
+                        <div class="flex items-center gap-1.5 text-xs text-slate-600 col-span-2">
+                            <span>กำลังโหลดข้อมูลครูที่ปรึกษา...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- สถานะการเข้าเรียนวันนี้ -->
+                <div id="section-gate" class="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div id="trafficIconBg" class="w-7 h-7 rounded-lg bg-slate-500 text-white flex items-center justify-center text-xs shrink-0">
+                            <i id="trafficIcon" class="fa-solid fa-school"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div id="trafficStatusTitle" class="text-xs sm:text-sm font-bold text-slate-800 truncate">⚪ รอเช็กชื่อเข้าเรียนวันนี้</div>
+                            <div id="trafficStatusDesc" class="text-xs text-slate-600 truncate">ระบบจะอัปเดตอัตโนมัติเมื่อเช็กชื่อเข้าแถว</div>
+                        </div>
+                    </div>
+                    <div class="text-right text-xs font-medium text-slate-700 shrink-0 leading-snug">
+                        <div>เข้า: <strong id="timeGateIn">--:--</strong></div>
+                        <div class="text-slate-600">ออก: <strong id="timeGateOut">--:--</strong></div>
+                    </div>
+                </div>
+
+                <!-- การ์ดสรุปสถิติ 4 ช่อง -->
+                <div id="section-attendance-stats" class="px-2.5 pt-2 pb-2.5 bg-white">
+                    <div class="flex justify-between items-center px-1 mb-1.5">
+                        <span class="text-xs font-semibold text-slate-700">สถิติการมาเรียนของฉัน (ภาคเรียนนี้)</span>
+                        <span class="text-[11px] text-slate-500">หน่วย: ครั้ง</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1.5 text-center">
+                        <div class="bg-emerald-50 border border-emerald-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
+                            <span class="text-[11px] text-emerald-900 font-semibold whitespace-nowrap">🟢 มาเรียน</span>
+                            <span id="stat-present" class="text-base font-extrabold text-emerald-950 mt-0.5">0</span>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
+                            <span class="text-[11px] text-amber-900 font-semibold whitespace-nowrap">🔵 มาสาย</span>
+                            <span id="stat-late" class="text-base font-extrabold text-amber-950 mt-0.5">0</span>
+                        </div>
+                        <div class="bg-rose-50 border border-rose-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
+                            <span class="text-[11px] text-rose-900 font-semibold whitespace-nowrap">🔴 ขาดเรียน</span>
+                            <span id="stat-absent" class="text-base font-extrabold text-rose-950 mt-0.5">0</span>
+                        </div>
+                        <div class="bg-purple-50 border border-purple-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
+                            <span class="text-[11px] text-purple-900 font-semibold whitespace-nowrap">🟣 หนีเรียน</span>
+                            <span id="stat-truant" class="text-base font-extrabold text-purple-950 mt-0.5">0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- กล่องแสดงพฤติกรรมนักเรียนวันนี้ -->
+            <section id="todayBehaviorCard" onclick="openDrawerById('behaviorDrawerBackdrop')" class="bg-emerald-50 border border-emerald-200 rounded-2xl px-3 py-2 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0 shadow-2xs">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div id="todayBehaviorIconBox" class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm shrink-0">
+                        <i id="todayBehaviorIcon" class="fa-solid fa-shield-heart"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <span class="text-xs font-semibold text-emerald-900 block leading-tight">สถานะพฤติกรรมวันนี้</span>
+                        <div id="todayBehaviorStatusText" class="text-xs sm:text-sm font-bold text-emerald-950 truncate leading-snug">
+                            ✅ พฤติกรรมปกติ (ไม่พบเหตุการณ์ผิดปกติ)
+                        </div>
+                    </div>
+                </div>
+                <span class="bg-white/95 text-emerald-900 border border-emerald-200 text-xs font-semibold px-2.5 py-1 rounded-lg shrink-0">ประวัติ</span>
+            </section>
+
+            <!-- แถบสถานะบัตรผ่านประตูดิจิทัล -->
+            <section id="gatepassStatusBanner" onclick="openDrawerById('gatepassDrawerBackdrop')" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl px-3 py-2 flex items-center justify-between gap-2 cursor-pointer shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="relative flex h-2.5 w-2.5 shrink-0">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-600"></span>
+                    </span>
+                    <span class="text-xs sm:text-sm font-bold text-amber-950 truncate" id="gatepassBannerText">
+                        🪪 บัตรผ่านออกนอกโรงเรียน & ประกาศโรงเรียน
+                    </span>
+                </div>
+                <span class="bg-amber-500 text-white text-xs font-semibold px-3 py-1 rounded-full shrink-0">เปิดดู</span>
+            </section>
+
+            <!-- APP GRID 4 บริการหลัก -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
+                <button type="button" onclick="openDrawerById('homeworkDrawerBackdrop')" class="mobile-app-card border-indigo-200 cursor-pointer">
+                    <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    <span class="mobile-app-label">การบ้าน/สิทธิ์สอบ</span>
+                </button>
+
+                <button type="button" onclick="openDrawerById('clinicDrawerBackdrop')" class="mobile-app-card border-rose-200 cursor-pointer">
+                    <div class="mobile-app-icon bg-rose-100 text-rose-700 border border-rose-200">
+                        <i class="fa-solid fa-notes-medical"></i>
+                    </div>
+                    <span class="mobile-app-label">ห้องพยาบาล</span>
+                </button>
+
+                <button type="button" onclick="openDrawerById('gatepassDrawerBackdrop')" class="mobile-app-card border-amber-200 cursor-pointer">
+                    <div class="mobile-app-icon bg-amber-100 text-amber-700 border border-amber-200">
+                        <i class="fa-solid fa-id-card-clip"></i>
+                    </div>
+                    <span class="mobile-app-label">บัตรผ่านประตู</span>
+                </button>
+
+                <button type="button" onclick="openDrawerById('behaviorDrawerBackdrop')" class="mobile-app-card border-emerald-200 cursor-pointer">
+                    <div class="mobile-app-icon bg-emerald-100 text-emerald-700 border border-emerald-200">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </div>
+                    <span class="mobile-app-label">ความประพฤติ</span>
+                </button>
+            </div>
+
+            <!-- กล่องรายงานสถิติเวลาเรียนแต่ละรายวิชา -->
+            <section id="homeSubjectAttendanceCard" class="unified-student-card subject-bottom-reveal shrink-0">
+                <div onclick="toggleHomeSubjectAccordion()" class="p-3 bg-gradient-to-r from-indigo-50/90 via-white to-emerald-50/70 flex items-center justify-between gap-2 cursor-pointer active:bg-slate-50 transition">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-900 text-amber-400 flex items-center justify-center text-base shrink-0 shadow-2xs">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-sm font-bold text-slate-900 truncate">รายงานสถิติเวลาเรียนแต่ละรายวิชา</h3>
+                            <p id="homeSubjectSummarySubtitle" class="text-xs font-semibold text-emerald-700 truncate">
+                                ✅ เวลาเรียนปกติทุกรายวิชา (มีสิทธิ์สอบครบ)
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" class="shrink-0 inline-flex items-center gap-1.5 bg-white border border-indigo-200 text-indigo-800 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-2xs">
+                        <span id="homeSubjectToggleLabel">สไลด์เก็บ</span>
+                        <i id="homeSubjectChevron" class="fa-solid fa-chevron-down text-xs subject-chevron-icon open"></i>
                     </button>
                 </div>
-            </div>
 
-            <div class="bg-indigo-950/90 border-t border-indigo-800/70 mt-2 pt-1.5 px-1 flex justify-between items-center text-xs">
-                <span id="header-date-display" class="font-medium text-indigo-100 truncate">กำลังโหลดวันที่...</span>
-                <div class="flex items-center gap-1.5 text-amber-200 font-semibold shrink-0">
-                    <i class="fa-regular fa-clock text-amber-400 text-xs"></i>
-                    <span id="header-clock-display" class="bg-indigo-900/90 px-2 py-0.5 rounded-md border border-indigo-700/80 font-mono text-white text-xs">00:00:00</span>
+                <div id="homeSubjectAccordionBody" class="subject-accordion-body open border-t border-slate-100">
+                    <div class="subject-accordion-inner">
+                        <div id="homeSubjectAttendanceList" class="p-3 space-y-2.5 bg-white text-xs sm:text-sm">
+                            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-emerald-900 font-semibold">
+                                <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> กำลังตรวจสอบสถิติเวลาเรียนรายวิชา...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DESKTOP VIEW -->
+            <div class="hidden lg:grid lg:grid-cols-2 gap-4 mt-1">
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 shadow-xs">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calendar-days text-sky-600"></i> ตารางเรียนประจำวัน & กิจกรรม
+                        </h3>
+                        <button type="button" onclick="openDayPickerModal()" class="text-xs bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 font-semibold text-slate-700 flex items-center gap-1 cursor-pointer">
+                            <span id="desktopDayText">วันจันทร์</span>
+                            <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="openRegistrationModule('elective')" class="text-left bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl px-3 py-2 flex items-center justify-between gap-2 transition active:scale-95 cursor-pointer">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="w-7 h-7 rounded-lg bg-indigo-900 text-amber-400 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-book-open"></i>
+                                </span>
+                                <div class="min-w-0 leading-tight">
+                                    <span class="text-xs font-extrabold text-indigo-950 block truncate">วิชาเลือกเสรี</span>
+                                    <span id="desktopElectiveStatusText" class="text-[10px] font-semibold text-indigo-600 block truncate">กดลงทะเบียน / ตรวจสอบ</span>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-indigo-400 text-[10px] shrink-0"></i>
+                        </button>
+
+                        <button type="button" onclick="openRegistrationModule('club')" class="text-left bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl px-3 py-2 flex items-center justify-between gap-2 transition active:scale-95 cursor-pointer">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="w-7 h-7 rounded-lg bg-emerald-800 text-amber-300 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-users-rays"></i>
+                                </span>
+                                <div class="min-w-0 leading-tight">
+                                    <span class="text-xs font-extrabold text-emerald-950 block truncate">กิจกรรมชุมนุม</span>
+                                    <span id="desktopClubStatusText" class="text-[10px] font-semibold text-emerald-600 block truncate">กดลงทะเบียน / ตรวจสอบ</span>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-emerald-500 text-[10px] shrink-0"></i>
+                        </button>
+                    </div>
+
+                    <div id="desktopScheduleContainer" class="space-y-1.5 max-h-60 overflow-y-auto">
+                        <p class="text-xs text-slate-500 text-center py-4">กำลังโหลดตารางเรียน...</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 shadow-xs">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-shield-cat text-indigo-600"></i> ประวัติความประพฤติ & คำขอออกนอกโรงเรียน
+                        </h3>
+                        <button type="button" onclick="openGatepassModal()" class="text-xs bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-xl font-semibold cursor-pointer">
+                            + ยื่นขอออกนอกโรงเรียน
+                        </button>
+                    </div>
+                    <div id="desktopBehaviorLogsContainer" class="space-y-1.5 max-h-60 overflow-y-auto">
+                        <p class="text-xs text-slate-500 text-center py-4">ยังไม่มีประวัติการบันทึกพฤติกรรมผิดปกติ</p>
+                    </div>
                 </div>
             </div>
-        </header>
+        </main>
 
-        <!-- แถบคาบเรียนถัดไป -->
-        <div onclick="toggleGlassNextClassWidget()" class="w-full bg-indigo-950/95 border border-amber-400/80 shadow-sm rounded-2xl py-2 px-3 flex items-center justify-between gap-2 cursor-pointer active:scale-99 transition">
-            <div class="flex items-center gap-2 min-w-0">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0"></span>
-                <span id="nextClassBarText" class="text-xs sm:text-sm text-indigo-100 font-medium truncate">กำลังตรวจสอบคาบเรียนวันนี้...</span>
+        <!-- DESKTOP FOOTER -->
+        <footer class="hidden lg:block max-w-7xl mx-auto w-full mt-4 pt-3 border-t border-slate-200/90 text-xs text-slate-500">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-2 px-1">
+                <div class="flex items-center gap-2 font-semibold text-slate-700">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>BCW SMART HUB • ระบบบริการสารสนเทศนักเรียน โรงเรียนบัวเชดวิทยา</span>
+                </div>
+                <div class="text-slate-500 font-medium">
+                    สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์ &bull; พัฒนาเพื่อการบริหารจัดการสถานศึกษายุคดิจิทัล
+                </div>
             </div>
-            <span class="shrink-0 bg-indigo-900 text-amber-300 border border-amber-400/60 px-2.5 py-0.5 rounded-lg text-xs font-semibold">
-                คาบถัดไป
-            </span>
-        </div>
+        </footer>
+
     </div>
+    <!-- จบกล่อง #appScrollContainer -->
 
     <!-- ป๊อปอัปแก้วลอยตัว แสดงคาบเรียนถัดไป -->
     <div id="glassNextClassWidget" class="glass-next-class hidden">
@@ -409,271 +669,6 @@
             <p class="text-xs text-slate-500 text-center py-1">กำลังโหลดตารางเรียน...</p>
         </div>
     </div>
-
-    <!-- 2. MAIN CONTENT AREA -->
-    <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-start gap-2.5 lg:gap-3 my-1.5 lg:my-3 min-h-0">
-
-        <!-- การ์ดสรุปข้อมูลนักเรียนใบเดียว -->
-        <section id="section-profile" class="unified-student-card shrink-0">
-            <!-- แถวบน: รูป + ชื่อ-สกุลเต็ม + ป้ายคะแนนความประพฤติ -->
-            <div class="p-3 md:p-4 border-b border-slate-100 space-y-2.5">
-                <div class="flex items-center justify-between gap-2.5">
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                        <div onclick="openBcwProfileModal()" title="แตะเพื่อแก้ไขโปรไฟล์" class="relative w-12 h-12 md:w-14 md:h-14 shrink-0 cursor-pointer group active:scale-95 transition">
-                            <img id="student-avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Student Photo" class="w-full h-full rounded-2xl object-cover border border-indigo-200 shadow-xs" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
-                            <span id="badge-status-dot" class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-indigo-600 text-white border-2 border-white rounded-full flex items-center justify-center text-[9px]">
-                                <i class="fa-solid fa-camera"></i>
-                            </span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <h2 id="student-fullname" class="text-base md:text-lg font-bold text-slate-900 leading-snug line-clamp-2">กำลังโหลดข้อมูล...</h2>
-                        </div>
-                    </div>
-
-                    <div class="bg-indigo-50 border border-indigo-100 rounded-2xl px-2.5 py-1.5 text-center shrink-0">
-                        <span class="text-[11px] font-semibold text-indigo-900 block leading-none">ความประพฤติ</span>
-                        <div class="mt-1 leading-none">
-                            <span id="student-behavior-score" class="text-base md:text-xl font-extrabold text-indigo-700">100</span>
-                            <span class="text-[11px] text-slate-600">/100</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- แถบข้อมูล ชั้น / เลขที่ / รหัส -->
-                <div class="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700">
-                    <span>ชั้น <strong id="student-class" class="text-indigo-700 font-bold">-</strong></span>
-                    <span class="text-slate-300">|</span>
-                    <span>เลขที่ <strong id="student-no" class="text-slate-900 font-bold">-</strong></span>
-                    <span class="text-slate-300">|</span>
-                    <span>รหัส <strong id="student-id" class="text-slate-900 font-bold">-</strong></span>
-                </div>
-            </div>
-
-            <!-- แถบครูที่ปรึกษาประจำห้อง -->
-            <div onclick="openDrawerById('advisorDrawerBackdrop')" class="px-3 py-2 bg-indigo-50/60 border-b border-indigo-100/80 space-y-1.5 cursor-pointer hover:bg-indigo-50 transition">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-indigo-900 flex items-center gap-1">
-                        <i class="fa-solid fa-user-tie text-indigo-600"></i> ครูที่ปรึกษาประจำชั้น
-                    </span>
-                    <span class="text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-lg">ดูข้อมูลครู &rsaquo;</span>
-                </div>
-                <div id="advisorCardList" class="grid grid-cols-2 gap-1.5">
-                    <div class="flex items-center gap-1.5 text-xs text-slate-600 col-span-2">
-                        <span>กำลังโหลดข้อมูลครูที่ปรึกษา...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- สถานะการเข้าเรียนวันนี้ -->
-            <div id="section-gate" class="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2.5 min-w-0">
-                    <div id="trafficIconBg" class="w-7 h-7 rounded-lg bg-slate-500 text-white flex items-center justify-center text-xs shrink-0">
-                        <i id="trafficIcon" class="fa-solid fa-school"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <div id="trafficStatusTitle" class="text-xs sm:text-sm font-bold text-slate-800 truncate">⚪ รอเช็กชื่อเข้าเรียนวันนี้</div>
-                        <div id="trafficStatusDesc" class="text-xs text-slate-600 truncate">ระบบจะอัปเดตอัตโนมัติเมื่อเช็กชื่อเข้าแถว</div>
-                    </div>
-                </div>
-                <div class="text-right text-xs font-medium text-slate-700 shrink-0 leading-snug">
-                    <div>เข้า: <strong id="timeGateIn">--:--</strong></div>
-                    <div class="text-slate-600">ออก: <strong id="timeGateOut">--:--</strong></div>
-                </div>
-            </div>
-
-            <!-- การ์ดสรุปสถิติ 4 ช่อง -->
-            <div id="section-attendance-stats" class="px-2.5 pt-2 pb-2.5 bg-white">
-                <div class="flex justify-between items-center px-1 mb-1.5">
-                    <span class="text-xs font-semibold text-slate-700">สถิติการมาเรียนของฉัน (ภาคเรียนนี้)</span>
-                    <span class="text-[11px] text-slate-500">หน่วย: ครั้ง</span>
-                </div>
-                <div class="grid grid-cols-4 gap-1.5 text-center">
-                    <div class="bg-emerald-50 border border-emerald-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
-                        <span class="text-[11px] text-emerald-900 font-semibold whitespace-nowrap">🟢 มาเรียน</span>
-                        <span id="stat-present" class="text-base font-extrabold text-emerald-950 mt-0.5">0</span>
-                    </div>
-                    <div class="bg-amber-50 border border-amber-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
-                        <span class="text-[11px] text-amber-900 font-semibold whitespace-nowrap">🔵 มาสาย</span>
-                        <span id="stat-late" class="text-base font-extrabold text-amber-950 mt-0.5">0</span>
-                    </div>
-                    <div class="bg-rose-50 border border-rose-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
-                        <span class="text-[11px] text-rose-900 font-semibold whitespace-nowrap">🔴 ขาดเรียน</span>
-                        <span id="stat-absent" class="text-base font-extrabold text-rose-950 mt-0.5">0</span>
-                    </div>
-                    <div class="bg-purple-50 border border-purple-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
-                        <span class="text-[11px] text-purple-900 font-semibold whitespace-nowrap">🟣 หนีเรียน</span>
-                        <span id="stat-truant" class="text-base font-extrabold text-purple-950 mt-0.5">0</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- กล่องแสดงพฤติกรรมนักเรียนวันนี้ -->
-        <section id="todayBehaviorCard" onclick="openDrawerById('behaviorDrawerBackdrop')" class="bg-emerald-50 border border-emerald-200 rounded-2xl px-3 py-2 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0 shadow-2xs">
-            <div class="flex items-center gap-2.5 min-w-0">
-                <div id="todayBehaviorIconBox" class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm shrink-0">
-                    <i id="todayBehaviorIcon" class="fa-solid fa-shield-heart"></i>
-                </div>
-                <div class="min-w-0">
-                    <span class="text-xs font-semibold text-emerald-900 block leading-tight">สถานะพฤติกรรมวันนี้</span>
-                    <div id="todayBehaviorStatusText" class="text-xs sm:text-sm font-bold text-emerald-950 truncate leading-snug">
-                        ✅ พฤติกรรมปกติ (ไม่พบเหตุการณ์ผิดปกติ)
-                    </div>
-                </div>
-            </div>
-            <span class="bg-white/95 text-emerald-900 border border-emerald-200 text-xs font-semibold px-2.5 py-1 rounded-lg shrink-0">ประวัติ</span>
-        </section>
-
-        <!-- แถบสถานะบัตรผ่านประตูดิจิทัล -->
-        <section id="gatepassStatusBanner" onclick="openDrawerById('gatepassDrawerBackdrop')" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl px-3 py-2 flex items-center justify-between gap-2 cursor-pointer shrink-0">
-            <div class="flex items-center gap-2 min-w-0">
-                <span class="relative flex h-2.5 w-2.5 shrink-0">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-600"></span>
-                </span>
-                <span class="text-xs sm:text-sm font-bold text-amber-950 truncate" id="gatepassBannerText">
-                    🪪 บัตรผ่านออกนอกโรงเรียน & ประกาศโรงเรียน
-                </span>
-            </div>
-            <span class="bg-amber-500 text-white text-xs font-semibold px-3 py-1 rounded-full shrink-0">เปิดดู</span>
-        </section>
-
-        <!-- APP GRID 4 บริการหลัก -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
-            <button type="button" onclick="openDrawerById('homeworkDrawerBackdrop')" class="mobile-app-card border-indigo-200 cursor-pointer">
-                <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
-                    <i class="fa-solid fa-book-bookmark"></i>
-                </div>
-                <span class="mobile-app-label">การบ้าน/สิทธิ์สอบ</span>
-            </button>
-
-            <button type="button" onclick="openDrawerById('clinicDrawerBackdrop')" class="mobile-app-card border-rose-200 cursor-pointer">
-                <div class="mobile-app-icon bg-rose-100 text-rose-700 border border-rose-200">
-                    <i class="fa-solid fa-notes-medical"></i>
-                </div>
-                <span class="mobile-app-label">ห้องพยาบาล</span>
-            </button>
-
-            <button type="button" onclick="openDrawerById('gatepassDrawerBackdrop')" class="mobile-app-card border-amber-200 cursor-pointer">
-                <div class="mobile-app-icon bg-amber-100 text-amber-700 border border-amber-200">
-                    <i class="fa-solid fa-id-card-clip"></i>
-                </div>
-                <span class="mobile-app-label">บัตรผ่านประตู</span>
-            </button>
-
-            <button type="button" onclick="openDrawerById('behaviorDrawerBackdrop')" class="mobile-app-card border-emerald-200 cursor-pointer">
-                <div class="mobile-app-icon bg-emerald-100 text-emerald-700 border border-emerald-200">
-                    <i class="fa-solid fa-clipboard-list"></i>
-                </div>
-                <span class="mobile-app-label">ความประพฤติ</span>
-            </button>
-        </div>
-
-        <!-- กล่องรายงานสถิติเวลาเรียนแต่ละรายวิชา -->
-        <section id="homeSubjectAttendanceCard" class="unified-student-card subject-bottom-reveal shrink-0">
-            <div onclick="toggleHomeSubjectAccordion()" class="p-3 bg-gradient-to-r from-indigo-50/90 via-white to-emerald-50/70 flex items-center justify-between gap-2 cursor-pointer active:bg-slate-50 transition">
-                <div class="flex items-center gap-2.5 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-900 text-amber-400 flex items-center justify-center text-base shrink-0 shadow-2xs">
-                        <i class="fa-solid fa-chart-pie"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h3 class="text-sm font-bold text-slate-900 truncate">รายงานสถิติเวลาเรียนแต่ละรายวิชา</h3>
-                        <p id="homeSubjectSummarySubtitle" class="text-xs font-semibold text-emerald-700 truncate">
-                            ✅ เวลาเรียนปกติทุกรายวิชา (มีสิทธิ์สอบครบ)
-                        </p>
-                    </div>
-                </div>
-                <button type="button" class="shrink-0 inline-flex items-center gap-1.5 bg-white border border-indigo-200 text-indigo-800 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-2xs">
-                    <span id="homeSubjectToggleLabel">สไลด์เก็บ</span>
-                    <i id="homeSubjectChevron" class="fa-solid fa-chevron-down text-xs subject-chevron-icon open"></i>
-                </button>
-            </div>
-
-            <div id="homeSubjectAccordionBody" class="subject-accordion-body open border-t border-slate-100">
-                <div class="subject-accordion-inner">
-                    <div id="homeSubjectAttendanceList" class="p-3 space-y-2.5 bg-white text-xs sm:text-sm">
-                        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-emerald-900 font-semibold">
-                            <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> กำลังตรวจสอบสถิติเวลาเรียนรายวิชา...
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- DESKTOP VIEW -->
-        <div class="hidden lg:grid lg:grid-cols-2 gap-4 mt-1">
-            <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 shadow-xs">
-                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                    <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                        <i class="fa-solid fa-calendar-days text-sky-600"></i> ตารางเรียนประจำวัน & กิจกรรม
-                    </h3>
-                    <button type="button" onclick="openDayPickerModal()" class="text-xs bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1 font-semibold text-slate-700 flex items-center gap-1 cursor-pointer">
-                        <span id="desktopDayText">วันจันทร์</span>
-                        <i class="fa-solid fa-chevron-down text-[10px]"></i>
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <button type="button" onclick="openRegistrationModule('elective')" class="text-left bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl px-3 py-2 flex items-center justify-between gap-2 transition active:scale-95 cursor-pointer">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <span class="w-7 h-7 rounded-lg bg-indigo-900 text-amber-400 flex items-center justify-center text-xs shrink-0">
-                                <i class="fa-solid fa-book-open"></i>
-                            </span>
-                            <div class="min-w-0 leading-tight">
-                                <span class="text-xs font-extrabold text-indigo-950 block truncate">วิชาเลือกเสรี</span>
-                                <span id="desktopElectiveStatusText" class="text-[10px] font-semibold text-indigo-600 block truncate">กดลงทะเบียน / ตรวจสอบ</span>
-                            </div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-indigo-400 text-[10px] shrink-0"></i>
-                    </button>
-
-                    <button type="button" onclick="openRegistrationModule('club')" class="text-left bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl px-3 py-2 flex items-center justify-between gap-2 transition active:scale-95 cursor-pointer">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <span class="w-7 h-7 rounded-lg bg-emerald-800 text-amber-300 flex items-center justify-center text-xs shrink-0">
-                                <i class="fa-solid fa-users-rays"></i>
-                            </span>
-                            <div class="min-w-0 leading-tight">
-                                <span class="text-xs font-extrabold text-emerald-950 block truncate">กิจกรรมชุมนุม</span>
-                                <span id="desktopClubStatusText" class="text-[10px] font-semibold text-emerald-600 block truncate">กดลงทะเบียน / ตรวจสอบ</span>
-                            </div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-emerald-500 text-[10px] shrink-0"></i>
-                    </button>
-                </div>
-
-                <div id="desktopScheduleContainer" class="space-y-1.5 max-h-60 overflow-y-auto">
-                    <p class="text-xs text-slate-500 text-center py-4">กำลังโหลดตารางเรียน...</p>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 shadow-xs">
-                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                    <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                        <i class="fa-solid fa-shield-cat text-indigo-600"></i> ประวัติความประพฤติ & คำขอออกนอกโรงเรียน
-                    </h3>
-                    <button type="button" onclick="openGatepassModal()" class="text-xs bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-xl font-semibold cursor-pointer">
-                        + ยื่นขอออกนอกโรงเรียน
-                    </button>
-                </div>
-                <div id="desktopBehaviorLogsContainer" class="space-y-1.5 max-h-60 overflow-y-auto">
-                    <p class="text-xs text-slate-500 text-center py-4">ยังไม่มีประวัติการบันทึกพฤติกรรมผิดปกติ</p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- DESKTOP FOOTER -->
-    <footer class="hidden lg:block max-w-7xl mx-auto w-full mt-4 pt-3 border-t border-slate-200/90 text-xs text-slate-500">
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-2 px-1">
-            <div class="flex items-center gap-2 font-semibold text-slate-700">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>BCW SMART HUB • ระบบบริการสารสนเทศนักเรียน โรงเรียนบัวเชดวิทยา</span>
-            </div>
-            <div class="text-slate-500 font-medium">
-                สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์ &bull; พัฒนาเพื่อการบริหารจัดการสถานศึกษายุคดิจิทัล
-            </div>
-        </div>
-    </footer>
 
     <!-- 3. FLOATING BOTTOM NAVIGATION BAR (หน้าหลัก | แจ้งเตือน | ขอออก | ตารางเรียน) -->
     <nav id="nativeBottomNav" class="native-bottom-nav">
@@ -1028,7 +1023,8 @@
         if (tab === 'home') {
             closeAllDrawers();
             setActiveBottomNav('navHome');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const scroller = document.getElementById('appScrollContainer');
+            if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (tab === 'alert') {
             openDrawerById('notificationDrawerBackdrop');
             setActiveBottomNav('navAlert');
@@ -1086,17 +1082,21 @@
     setInterval(updateHeaderClock, 1000);
     updateHeaderClock();
 
+    /* จับการเลื่อนจากกล่อง #appScrollContainer เพื่อซ่อน/แสดงเมนูลอยด้านล่าง */
     (function initSmartScrollBottomNav() {
-        let lastScrollY = window.scrollY || 0;
+        const scroller = document.getElementById('appScrollContainer');
+        if (!scroller) return;
+
+        let lastScrollY = scroller.scrollTop || 0;
         let ticking = false;
 
         function handleScroll() {
             const nav = document.getElementById('nativeBottomNav');
             if (!nav) return;
 
-            const currentScrollY = window.scrollY || 0;
-            const docHeight = document.documentElement.scrollHeight;
-            const winHeight = window.innerHeight;
+            const currentScrollY = scroller.scrollTop || 0;
+            const docHeight = scroller.scrollHeight;
+            const winHeight = scroller.clientHeight;
 
             if (currentScrollY <= 20 || (currentScrollY + winHeight >= docHeight - 24)) {
                 nav.classList.remove('nav-hidden');
@@ -1110,7 +1110,7 @@
             ticking = false;
         }
 
-        window.addEventListener('scroll', () => {
+        scroller.addEventListener('scroll', () => {
             if (!ticking) {
                 window.requestAnimationFrame(handleScroll);
                 ticking = true;
@@ -2144,12 +2144,5 @@
     }
 </script>
 <script src="../../core/bcw-profile-modal.js?v=3"></script>
-<script>
-    // บังคับคืนสิทธิ์การสัมผัสหน้าจอ หากสคริปต์อื่นแอบสั่ง preventDefault
-    window.addEventListener('touchmove', function(e) {
-        e.stopImmediatePropagation();
-    }, { capture: true, passive: true });
-</script>
 </body>
 </html>
-
