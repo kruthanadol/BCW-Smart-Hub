@@ -27,7 +27,7 @@
                 flex-direction: column !important;
                 justify-content: flex-start !important;
                 padding-top: max(6px, env(safe-area-inset-top)) !important;
-                padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
+                padding-bottom: calc(82px + env(safe-area-inset-bottom)) !important;
             }
         }
         @media (min-width: 1024px) {
@@ -236,38 +236,33 @@
             border-radius: 99px;
         }
 
-        /* แถบเมนูลอยด้านล่าง (ซ่อนในโทรศัพท์ เพื่อให้กล่องรายงานสรุปการมาเรียนแสดงแทน และแสดงปกติบนคอมพิวเตอร์) */
+        /* แถบเมนูลอยด้านล่าง (แสดงทั้งในโทรศัพท์และคอมพิวเตอร์) */
         .native-bottom-nav {
-            display: none;
+            position: fixed;
+            bottom: max(10px, env(safe-area-inset-bottom));
+            left: 12px;
+            right: 12px;
+            max-width: 520px;
+            margin: 0 auto;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid #f59e0b;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 6px;
+            z-index: 10000;
+            box-shadow: 0 8px 24px rgba(217, 119, 6, 0.16), 0 4px 12px rgba(15, 23, 42, 0.08);
+            transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            will-change: transform, opacity;
         }
-        @media (min-width: 1024px) {
-            .native-bottom-nav {
-                position: fixed;
-                bottom: 14px;
-                left: 12px;
-                right: 12px;
-                max-width: 520px;
-                margin: 0 auto;
-                height: 56px;
-                background: rgba(255, 255, 255, 0.96);
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-                border: 1.5px solid #f59e0b;
-                border-radius: 22px;
-                display: flex;
-                align-items: center;
-                justify-content: space-around;
-                padding: 0 6px;
-                z-index: 10000;
-                box-shadow: 0 8px 24px rgba(217, 119, 6, 0.16), 0 4px 12px rgba(15, 23, 42, 0.08);
-                transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-                will-change: transform, opacity;
-            }
-            .native-bottom-nav.nav-hidden {
-                transform: translateY(calc(100% + 28px));
-                opacity: 0;
-                pointer-events: none;
-            }
+        .native-bottom-nav.nav-hidden {
+            transform: translateY(calc(100% + 28px));
+            opacity: 0;
+            pointer-events: none;
         }
         .nav-item-btn {
             display: flex;
@@ -346,11 +341,6 @@
                             <span id="topGatepassCountdown" class="text-[11px] font-bold text-amber-400 font-mono">00:00:00</span>
                         </div>
                     </div>
-
-                    <!-- ปุ่มแจ้งเตือนสำหรับมือถือ (แทนเมนูลอยด้านล่าง) -->
-                    <button type="button" onclick="openDrawerById('notificationDrawerBackdrop')" title="แจ้งเตือนและประกาศ" class="lg:hidden w-8 h-8 bg-indigo-800/90 hover:bg-indigo-700 active:scale-95 text-amber-300 rounded-xl font-semibold transition shadow-xs flex items-center justify-center border border-indigo-600/70 cursor-pointer text-xs">
-                        <i class="fa-solid fa-bell"></i>
-                    </button>
 
                     <button id="btnLogout" type="button" onclick="handleLogout()" title="ออกจากระบบ" class="w-8 h-8 md:w-auto md:px-3.5 md:py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl font-semibold transition shadow-md flex items-center justify-center gap-1.5 border border-rose-400/50 cursor-pointer text-xs">
                         <i class="fa-solid fa-right-from-bracket text-xs"></i>
@@ -495,9 +485,9 @@
             <span class="bg-white/95 text-emerald-900 border border-emerald-200 text-[11px] font-semibold px-2 py-0.5 rounded-lg shrink-0">ประวัติ</span>
         </section>
 
-        <!-- แถบสถานะบัตรผ่านประตูดิจิทัล & ขอออก -->
-        <section id="gatepassStatusBanner" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 shrink-0">
-            <div onclick="openDrawerById('gatepassDrawerBackdrop')" class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
+        <!-- แถบสถานะบัตรผ่านประตูดิจิทัล -->
+        <section id="gatepassStatusBanner" onclick="openDrawerById('gatepassDrawerBackdrop')" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
                 <span class="relative flex h-2 w-2 shrink-0">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-600"></span>
@@ -506,25 +496,11 @@
                     🪪 บัตรผ่านออกนอกโรงเรียน & ประกาศโรงเรียน
                 </span>
             </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick="openGatepassModal()" class="lg:hidden bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full cursor-pointer shadow-2xs">
-                    + ขอออก
-                </button>
-                <button type="button" onclick="openDrawerById('gatepassDrawerBackdrop')" class="bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full cursor-pointer">
-                    เปิดดู
-                </button>
-            </div>
+            <span class="bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0">เปิดดู</span>
         </section>
 
-        <!-- APP GRID บริการหลัก (มือถือมีปุ่มตารางเรียนเพิ่มแทนเมนูด้านล่าง ส่วนคอมพิวเตอร์คง 4 ช่องเดิม) -->
-        <div class="grid grid-cols-5 lg:grid-cols-4 gap-1.5 lg:gap-2 shrink-0">
-            <button type="button" onclick="openDrawerById('scheduleDrawerBackdrop')" class="lg:hidden mobile-app-card border-sky-200 cursor-pointer">
-                <div class="mobile-app-icon bg-sky-100 text-sky-700 border border-sky-200">
-                    <i class="fa-solid fa-calendar-days"></i>
-                </div>
-                <span class="mobile-app-label">ตารางเรียน</span>
-            </button>
-
+        <!-- APP GRID 4 บริการหลัก -->
+        <div class="grid grid-cols-4 gap-1.5 lg:gap-2 shrink-0">
             <button type="button" onclick="openDrawerById('homeworkDrawerBackdrop')" class="mobile-app-card border-indigo-200 cursor-pointer">
                 <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
                     <i class="fa-solid fa-book-bookmark"></i>
@@ -554,7 +530,7 @@
             </button>
         </div>
 
-        <!-- กล่องรายงานสถิติการมาเรียนแต่ละรายวิชา (แสดงแทนเมนูหน้าหลักด้านล่างในโทรศัพท์) -->
+        <!-- กล่องรายงานสถิติเวลาเรียนแต่ละรายวิชา (แสดงในพื้นที่ด้านล่างหน้าหลักโทรศัพท์ เหนือแถบเมนูหลัก) -->
         <section id="homeSubjectAttendanceCard" class="lg:hidden unified-student-card subject-bottom-reveal shrink-0">
             <div onclick="toggleHomeSubjectAccordion()" class="p-3 bg-gradient-to-r from-indigo-50/90 via-white to-emerald-50/70 flex items-center justify-between gap-2 cursor-pointer active:bg-slate-50 transition">
                 <div class="flex items-center gap-2.5 min-w-0">
@@ -660,7 +636,7 @@
         </div>
     </footer>
 
-    <!-- 3. FLOATING BOTTOM NAVIGATION BAR (แสดงเฉพาะบนคอมพิวเตอร์) -->
+    <!-- 3. FLOATING BOTTOM NAVIGATION BAR (หน้าหลัก | แจ้งเตือน | ขอออก | ตารางเรียน) -->
     <nav id="nativeBottomNav" class="native-bottom-nav">
         <button id="navHome" type="button" class="nav-item-btn active" onclick="switchStudentTab('home')">
             <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
