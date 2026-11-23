@@ -27,7 +27,7 @@
                 flex-direction: column !important;
                 justify-content: flex-start !important;
                 padding-top: max(6px, env(safe-area-inset-top)) !important;
-                padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+                padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important;
             }
         }
         @media (min-width: 1024px) {
@@ -39,7 +39,7 @@
             body.student-app-body {
                 display: flex !important;
                 flex-direction: column !important;
-                padding-bottom: 32px !important;
+                padding-bottom: 92px !important;
             }
         }
 
@@ -189,11 +189,11 @@
             z-index: 9995;
             transform: translateY(120%);
             transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-            max-height: 82vh;
+            max-height: 78vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            padding-bottom: max(16px, env(safe-area-inset-bottom));
+            padding-bottom: 76px;
         }
         @media (min-width: 1024px) {
             .bottom-sheet-card {
@@ -236,6 +236,76 @@
             border-radius: 99px;
         }
 
+        /* แถบเมนูลอยด้านล่าง 4 ปุ่ม */
+        .native-bottom-nav {
+            position: fixed;
+            bottom: max(10px, env(safe-area-inset-bottom));
+            left: 12px;
+            right: 12px;
+            max-width: 520px;
+            margin: 0 auto;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid #f59e0b;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 6px;
+            z-index: 10000;
+            box-shadow: 0 8px 24px rgba(217, 119, 6, 0.16), 0 4px 12px rgba(15, 23, 42, 0.08);
+            transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            will-change: transform, opacity;
+        }
+        .native-bottom-nav.nav-hidden {
+            transform: translateY(calc(100% + 28px));
+            opacity: 0;
+            pointer-events: none;
+        }
+        .nav-item-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            font-size: 11.5px;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 24%;
+            flex-shrink: 0;
+            line-height: 1.2;
+        }
+        .nav-item-btn .nav-icon-box {
+            width: 40px;
+            height: 24px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            margin-bottom: 2px;
+        }
+        .nav-item-btn.active {
+            color: #3730a3 !important;
+            font-weight: 600;
+        }
+        .nav-item-btn.active .nav-icon-box {
+            background: #e0e7ff !important;
+            color: #3730a3 !important;
+            border: 1px solid #a5b4fc !important;
+        }
+        .nav-item-btn.highlight-leave .nav-icon-box {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+            color: #ffffff !important;
+            box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
+        }
+
         @media (max-width: 1023px) and (max-height: 660px) {
             .mobile-app-card { padding: 4px 2px; gap: 2px; border-radius: 12px; }
             .mobile-app-icon { width: 26px; height: 26px; font-size: 12px; border-radius: 8px; }
@@ -271,10 +341,6 @@
                             <span id="topGatepassCountdown" class="text-[11px] font-bold text-amber-400 font-mono">00:00:00</span>
                         </div>
                     </div>
-
-                    <button type="button" onclick="openDrawerById('notificationDrawerBackdrop')" title="ประกาศและแจ้งเตือน" class="w-8 h-8 md:w-9 md:h-9 bg-indigo-800/90 hover:bg-indigo-700 active:scale-95 text-amber-300 rounded-xl font-semibold transition shadow-xs flex items-center justify-center border border-indigo-600/70 cursor-pointer text-xs">
-                        <i class="fa-solid fa-bell"></i>
-                    </button>
 
                     <button id="btnLogout" type="button" onclick="handleLogout()" title="ออกจากระบบ" class="w-8 h-8 md:w-auto md:px-3.5 md:py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl font-semibold transition shadow-md flex items-center justify-center gap-1.5 border border-rose-400/50 cursor-pointer text-xs">
                         <i class="fa-solid fa-right-from-bracket text-xs"></i>
@@ -419,41 +485,27 @@
             <span class="bg-white/95 text-emerald-900 border border-emerald-200 text-[11px] font-semibold px-2 py-0.5 rounded-lg shrink-0">ประวัติ</span>
         </section>
 
-        <!-- แถบสถานะบัตรผ่านประตูดิจิทัล & ขอออก -->
-        <section id="gatepassStatusBanner" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 shrink-0">
-            <div onclick="openDrawerById('gatepassDrawerBackdrop')" class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
+        <!-- แถบสถานะบัตรผ่านประตูดิจิทัล -->
+        <section id="gatepassStatusBanner" onclick="openDrawerById('gatepassDrawerBackdrop')" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer active:scale-98 transition shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
                 <span class="relative flex h-2 w-2 shrink-0">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-600"></span>
                 </span>
                 <span class="text-xs font-semibold text-amber-950 truncate" id="gatepassBannerText">
-                    🪪 บัตรผ่านออกนอกโรงเรียน (แตะดู QR)
+                    🪪 บัตรผ่านออกนอกโรงเรียน & ประกาศโรงเรียน
                 </span>
             </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick="openGatepassModal()" class="bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full cursor-pointer shadow-2xs">
-                    + ขอออก
-                </button>
-                <button type="button" onclick="openDrawerById('gatepassDrawerBackdrop')" class="bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full cursor-pointer">
-                    เปิดดู
-                </button>
-            </div>
+            <span class="bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0">เปิดดู</span>
         </section>
 
         <!-- APP GRID 4 บริการหลัก -->
         <div class="grid grid-cols-4 gap-2 shrink-0">
-            <button type="button" onclick="openDrawerById('scheduleDrawerBackdrop')" class="mobile-app-card border-sky-200 cursor-pointer">
-                <div class="mobile-app-icon bg-sky-100 text-sky-700 border border-sky-200">
-                    <i class="fa-solid fa-calendar-days"></i>
-                </div>
-                <span class="mobile-app-label">ตารางเรียน</span>
-            </button>
-
             <button type="button" onclick="openDrawerById('homeworkDrawerBackdrop')" class="mobile-app-card border-indigo-200 cursor-pointer">
                 <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
                     <i class="fa-solid fa-book-bookmark"></i>
                 </div>
-                <span class="mobile-app-label">การบ้าน/งาน</span>
+                <span class="mobile-app-label">การบ้าน/สิทธิ์สอบ</span>
             </button>
 
             <button type="button" onclick="openDrawerById('clinicDrawerBackdrop')" class="mobile-app-card border-rose-200 cursor-pointer">
@@ -461,6 +513,13 @@
                     <i class="fa-solid fa-notes-medical"></i>
                 </div>
                 <span class="mobile-app-label">ห้องพยาบาล</span>
+            </button>
+
+            <button type="button" onclick="openDrawerById('gatepassDrawerBackdrop')" class="mobile-app-card border-amber-200 cursor-pointer">
+                <div class="mobile-app-icon bg-amber-100 text-amber-700 border border-amber-200">
+                    <i class="fa-solid fa-id-card-clip"></i>
+                </div>
+                <span class="mobile-app-label">บัตรผ่านประตู</span>
             </button>
 
             <button type="button" onclick="openDrawerById('behaviorDrawerBackdrop')" class="mobile-app-card border-emerald-200 cursor-pointer">
@@ -471,7 +530,7 @@
             </button>
         </div>
 
-        <!-- กล่องรายงานสถิติการมาเรียนแต่ละรายวิชา (แสดงด้านล่างแทนเมนูหน้าหลัก พร้อมสไลด์เปิด/เก็บแบบสมูท) -->
+        <!-- กล่องรายงานสถิติการมาเรียนแต่ละรายวิชา (สไลด์ขึ้นจากด้านล่าง และสไลด์เก็บแบบสมูทในโทรศัพท์) -->
         <section id="homeSubjectAttendanceCard" class="unified-student-card subject-bottom-reveal shrink-0">
             <div onclick="toggleHomeSubjectAccordion()" class="p-3 bg-gradient-to-r from-indigo-50/90 via-white to-emerald-50/70 flex items-center justify-between gap-2 cursor-pointer active:bg-slate-50 transition">
                 <div class="flex items-center gap-2.5 min-w-0">
@@ -576,6 +635,26 @@
             </div>
         </div>
     </footer>
+
+    <!-- 3. FLOATING BOTTOM NAVIGATION BAR -->
+    <nav id="nativeBottomNav" class="native-bottom-nav">
+        <button id="navHome" type="button" class="nav-item-btn active" onclick="switchStudentTab('home')">
+            <div class="nav-icon-box"><i class="fa-solid fa-house"></i></div>
+            <span>หน้าหลัก</span>
+        </button>
+        <button id="navAlert" type="button" class="nav-item-btn" onclick="switchStudentTab('alert')">
+            <div class="nav-icon-box"><i class="fa-solid fa-bell"></i></div>
+            <span>แจ้งเตือน</span>
+        </button>
+        <button id="navLeave" type="button" class="nav-item-btn highlight-leave" onclick="openGatepassModal()">
+            <div class="nav-icon-box"><i class="fa-solid fa-door-open"></i></div>
+            <span class="font-semibold text-orange-800">ขอออก</span>
+        </button>
+        <button id="navStudy" type="button" class="nav-item-btn" onclick="switchStudentTab('study')">
+            <div class="nav-icon-box"><i class="fa-solid fa-calendar-days"></i></div>
+            <span>ตารางเรียน</span>
+        </button>
+    </nav>
 
     <!-- ================= BOTTOM SHEET DRAWERS ================= -->
 
@@ -893,11 +972,32 @@
     window.closeDrawer = function(id) {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
+        setActiveBottomNav('navHome');
     };
 
     function closeAllDrawers() {
         document.querySelectorAll('.bottom-sheet-backdrop').forEach(el => el.classList.remove('active'));
     }
+
+    function setActiveBottomNav(btnId) {
+        document.querySelectorAll('.nav-item-btn').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById(btnId);
+        if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    window.switchStudentTab = function(tab) {
+        if (tab === 'home') {
+            closeAllDrawers();
+            setActiveBottomNav('navHome');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (tab === 'alert') {
+            openDrawerById('notificationDrawerBackdrop');
+            setActiveBottomNav('navAlert');
+        } else if (tab === 'study') {
+            openDrawerById('scheduleDrawerBackdrop');
+            setActiveBottomNav('navStudy');
+        }
+    };
 
     function toggleGlassNextClassWidget() {
         const widget = document.getElementById('glassNextClassWidget');
@@ -946,6 +1046,38 @@
     }
     setInterval(updateHeaderClock, 1000);
     updateHeaderClock();
+
+    (function initSmartScrollBottomNav() {
+        let lastScrollY = window.scrollY || 0;
+        let ticking = false;
+
+        function handleScroll() {
+            const nav = document.getElementById('nativeBottomNav');
+            if (!nav) return;
+
+            const currentScrollY = window.scrollY || 0;
+            const docHeight = document.documentElement.scrollHeight;
+            const winHeight = window.innerHeight;
+
+            if (currentScrollY <= 20 || (currentScrollY + winHeight >= docHeight - 24)) {
+                nav.classList.remove('nav-hidden');
+            } else if (currentScrollY > lastScrollY + 10) {
+                nav.classList.add('nav-hidden');
+            } else if (currentScrollY < lastScrollY - 10) {
+                nav.classList.remove('nav-hidden');
+            }
+
+            lastScrollY = currentScrollY;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                window.requestAnimationFrame(handleScroll);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
 
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.bottom-sheet-card').forEach(card => {
