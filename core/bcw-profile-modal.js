@@ -226,7 +226,7 @@
     window.openProfilePopup = window.openBcwProfileModal;
     };
 
-    async function saveBcwProfileChanges() {
+async function saveBcwProfileChanges() {
         const btn = document.getElementById('bcwProfileSaveBtn');
         const statusEl = document.getElementById('bcwProfileSaveStatus');
         const phoneVal = document.getElementById('bcwModalPhoneInput').value.trim();
@@ -239,13 +239,14 @@
         statusEl.classList.add('hidden');
 
         try {
-            const { isTeacher, userCode, email, sessionUser } = currentProfileContext;
+            const { isTeacher, userCode, email } = currentProfileContext;
             let newAvatarUrl = null;
 
-            // 1. อัปโหลดรูปขึ้น Supabase Storage Bucket ชื่อ 'avatars' (ถ้ามีการเลือกรูปใหม่)
+            // 1. อัปโหลดรูปขึ้น Supabase Storage Bucket 'avatars' (ถ้ามีการเลือกรูปใหม่)
             if (selectedCompressedBlob) {
                 const folder = isTeacher ? 'teachers' : 'students';
-                const filePath = `${folder}/${userCode}.jpg`;
+                const safeCode = String(userCode || 'user').replace(/[^a-zA-Z0-9_-]/g, '');
+                const filePath = `${folder}/${safeCode}.jpg`;
 
                 const { error: uploadErr } = await client.storage
                     .from('avatars')
@@ -257,41 +258,55 @@
                 if (uploadErr) throw new Error('อัปโหลดรูปไม่สำเร็จ: ' + uploadErr.message);
 
                 const { data: pubData } = client.storage.from('avatars').getPublicUrl(filePath);
-                // ต่อท้าย ?t=... เพื่อล้าง Cache รูปเก่าทันที
                 newAvatarUrl = `${pubData.publicUrl}?t=${Date.now()}`;
             }
 
-            // 2. อัปเดตข้อมูลลงตารางหลัก (students / teachers) และตาราง users
-            const updatePayload = {};
-            if (newAvatarUrl) updatePayload.avatar_url = newAvatarUrl;
-            if (phoneVal !== '') updatePayload.phone = phoneVal;
+            // 2. อัปเดตข้อมูลลงฐานข้อมูลแบบแยกทีละฟิลด์ (ป้องกัน Error 400 หากบางตารางไม่มีคอลัมน์ phone)
+            if (isTeacher) {
+                // หาเรคคอร์ดครูจริงก่อน เพื่อรู้ว่าต้องอัปเดตด้วยคอลัมน์ไหน (teacher_id หรือ id)
+                const { data: tMatch } = await client
+                    .from('teachers')
+                    .select('*')
+                    .or(`teacher_id.eq.${userCode},id.eq.${userCode}`)
+                    .maybeSingle();
 
-            if (Object.keys(updatePayload).length > 0) {
-                if (isTeacher) {
-                    await client.from('teachers').update(updatePayload).eq('teacher_id', userCode);
-                    await client.from('users').update(updatePayload).eq('teacher_id', userCode);
-                } else {
-                    await client.from('students').update(updatePayload).eq('student_id', userCode);
-                    if (email) {
-                        await client.from('users').update(updatePayload).eq('email', email);
+                if (tMatch) {
+                    const matchCol = tMatch.teacher_id ? 'teacher_id' : 'id';
+                    const matchVal = tMatch.teacher_id || tMatch.id;
+
+                    if (newAvatarUrl) {
+                        await client.from('teachers').update({ avatar_url: newAvatarUrl }).eq(matchCol, matchVal);
                     }
+                    if (phoneVal !== '' && 'phone' in tMatch) {
+                        await client.from('teachers').update({ phone: phoneVal }).eq(matchCol, matchVal);
+                    } else if (phoneVal !== '' && 'tel' in tMatch) {
+                        await client.from('teachers').update({ tel: phoneVal }).eq(matchCol, matchVal);
+                    }
+                }
+
+                // อัปเดตตาราง users (ถ้ามี)
+                if (newAvatarUrl) {
+                    const userFilter = email ? `email.eq.${email}` : `id.eq.${userCode}`;
+                    await client.from('users').update({ avatar_url: newAvatarUrl }).or(userFilter);
+                }
+            } else {
+                if (newAvatarUrl) {
+                    await client.from('students').update({ avatar_url: newAvatarUrl }).eq('student_id', userCode);
+                    if (email) {
+                        await client.from('users').update({ avatar_url: newAvatarUrl }).eq('email', email);
+                    }
+                }
+                if (phoneVal !== '') {
+                    await client.from('students').update({ phone: phoneVal }).eq('student_id', userCode);
                 }
             }
 
-            // 3. อัปเดต Session และรูปบนหน้าเว็บปัจจุบันทันทีโดยไม่ต้องรีเฟรช
+            // 3. เปลี่ยนรูปบนหน้าเว็บทันทีโดยไม่แตะต้องโครงสร้าง Session ล็อกอิน
             if (newAvatarUrl) {
-                sessionUser.avatar = newAvatarUrl;
-                if (localStorage.getItem('bcw_user_session')) {
-                    localStorage.setItem('bcw_user_session', JSON.stringify(sessionUser));
-                }
-                if (sessionStorage.getItem('bcw_user_session')) {
-                    sessionStorage.setItem('bcw_user_session', JSON.stringify(sessionUser));
-                }
-
-                const stuImg = document.getElementById('student-avatar');
-                const teaImg = document.getElementById('teacher-avatar');
-                if (stuImg) stuImg.src = newAvatarUrl;
-                if (teaImg) teaImg.src = newAvatarUrl;
+                ['student-avatar', 'teacher-avatar', 'headerTeacherAvatar'].forEach(id => {
+                    const imgEl = document.getElementById(id);
+                    if (imgEl) imgEl.src = newAvatarUrl;
+                });
             }
 
             statusEl.className = 'p-2.5 rounded-xl text-center font-semibold text-[11.5px] bg-emerald-50 text-emerald-800 border border-emerald-200';
