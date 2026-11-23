@@ -12,6 +12,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
+        /* ป้องกันเบราว์เซอร์รีโหลดหน้า (Pull-to-Refresh) เวลาลากลง */
+        html, body {
+            overscroll-behavior-y: contain !important;
+        }
+
         /* ขยายสเกลตัวอักษรบนหน้าจอมือถือให้อ่านง่ายสบายตา เทียบเท่าแอปมาตรฐาน */
         @media (max-width: 1023px) {
             html {
@@ -26,9 +31,9 @@
                 overflow-x: hidden !important;
                 overflow-y: auto !important;
                 position: relative !important;
-                touch-action: auto !important;
+                touch-action: pan-y !important;
                 -webkit-overflow-scrolling: touch !important;
-                overscroll-behavior-y: auto !important;
+                overscroll-behavior-y: contain !important;
                 padding-top: max(8px, env(safe-area-inset-top)) !important;
                 padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
             }
@@ -53,6 +58,12 @@
                 flex-direction: column !important;
                 padding-bottom: 96px !important;
             }
+        }
+
+        /* ล็อกพื้นหลังไม่ให้เลื่อนตามเวลาเปิด Drawer หรือ Modal */
+        body.drawer-open {
+            overflow: hidden !important;
+            touch-action: none !important;
         }
 
         body {
@@ -98,7 +109,7 @@
             }
         }
 
-        /* การ์ดปุ่มเมนูบริการหลัก 2x2 บนมือถือ (ขยายใหญ่ อ่านง่าย กดสะดวก) */
+        /* การ์ดปุ่มเมนูบริการหลัก 2x2 บนมือถือ */
         .mobile-app-card {
             background: #ffffff;
             border: 1.5px solid #e2e8f0;
@@ -191,6 +202,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
+            overscroll-behavior: contain;
         }
         .bottom-sheet-backdrop.active {
             opacity: 1;
@@ -209,13 +221,18 @@
             border: 1.5px solid #e2e8f0;
             box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
             z-index: 9995;
-            transform: translateY(120%);
-            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translate3d(0, 110%, 0);
+            transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform;
+            overscroll-behavior-y: contain;
             max-height: 85vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+        .bottom-sheet-card.dragging {
+            transition: none !important;
         }
         @media (min-width: 1024px) {
             .bottom-sheet-card {
@@ -234,22 +251,24 @@
             }
         }
         .bottom-sheet-backdrop.active .bottom-sheet-card {
-            transform: translateY(0);
+            transform: translate3d(0, 0, 0);
         }
         .drawer-scroll-content {
             overflow-y: auto !important;
             -webkit-overflow-scrolling: touch;
             touch-action: pan-y;
+            overscroll-behavior-y: contain;
         }
         .swipe-handle-area {
             width: 100%;
-            padding: 10px 0;
+            padding: 12px 0;
             display: flex;
             justify-content: center;
             cursor: grab;
             flex-shrink: 0;
             background: #f8fafc;
             border-bottom: 1px solid #f1f5f9;
+            touch-action: none;
         }
         .swipe-handle {
             width: 44px;
@@ -406,7 +425,7 @@
     <!-- 2. MAIN CONTENT AREA -->
     <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-start gap-2.5 lg:gap-3 my-1.5 lg:my-3 min-h-0">
 
-        <!-- การ์ดสรุปข้อมูลนักเรียนใบเดียว (จัดวางตำแหน่งใหม่ รองรับฟอนต์ขนาดใหญ่) -->
+        <!-- การ์ดสรุปข้อมูลนักเรียนใบเดียว -->
         <section id="section-profile" class="unified-student-card shrink-0">
             <!-- แถวบน: รูป + ชื่อ-สกุลเต็ม + ป้ายคะแนนความประพฤติ -->
             <div class="p-3 md:p-4 border-b border-slate-100 space-y-2.5">
@@ -432,7 +451,7 @@
                     </div>
                 </div>
 
-                <!-- แถบข้อมูล ชั้น / เลขที่ / รหัส แยกเป็นสัดส่วนชัดเจน ไม่พับบรรทัด -->
+                <!-- แถบข้อมูล ชั้น / เลขที่ / รหัส -->
                 <div class="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700">
                     <span>ชั้น <strong id="student-class" class="text-indigo-700 font-bold">-</strong></span>
                     <span class="text-slate-300">|</span>
@@ -442,7 +461,7 @@
                 </div>
             </div>
 
-            <!-- แถบครูที่ปรึกษาประจำห้อง (จัดเรียงแบบ 2 คอลัมน์ไม่ล้นขอบ) -->
+            <!-- แถบครูที่ปรึกษาประจำห้อง -->
             <div onclick="openDrawerById('advisorDrawerBackdrop')" class="px-3 py-2 bg-indigo-50/60 border-b border-indigo-100/80 space-y-1.5 cursor-pointer hover:bg-indigo-50 transition">
                 <div class="flex items-center justify-between">
                     <span class="text-[11px] font-bold text-indigo-900 flex items-center gap-1">
@@ -474,7 +493,7 @@
                 </div>
             </div>
 
-            <!-- การ์ดสรุปสถิติ 4 ช่อง (ปรับขนาดตัวอักษรให้พอดี 1 บรรทัดทุกช่อง ไม่พับตกบรรทัด) -->
+            <!-- การ์ดสรุปสถิติ 4 ช่อง -->
             <div id="section-attendance-stats" class="px-2.5 pt-2 pb-2.5 bg-white">
                 <div class="flex justify-between items-center px-1 mb-1.5">
                     <span class="text-xs font-semibold text-slate-700">สถิติการมาเรียนของฉัน (ภาคเรียนนี้)</span>
@@ -531,7 +550,7 @@
             <span class="bg-amber-500 text-white text-xs font-semibold px-3 py-1 rounded-full shrink-0">เปิดดู</span>
         </section>
 
-        <!-- APP GRID 4 บริการหลัก (2x2 บนมือถือ ปุ่มและตัวหนังสือใหญ่ชัดเจน) -->
+        <!-- APP GRID 4 บริการหลัก -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
             <button type="button" onclick="openDrawerById('homeworkDrawerBackdrop')" class="mobile-app-card border-indigo-200 cursor-pointer">
                 <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
@@ -998,17 +1017,22 @@
     window.openDrawerById = function(id) {
         closeAllDrawers();
         const el = document.getElementById(id);
-        if (el) el.classList.add('active');
+        if (el) {
+            el.classList.add('active');
+            document.body.classList.add('drawer-open');
+        }
     };
 
     window.closeDrawer = function(id) {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
+        document.body.classList.remove('drawer-open');
         setActiveBottomNav('navHome');
     };
 
     function closeAllDrawers() {
         document.querySelectorAll('.bottom-sheet-backdrop').forEach(el => el.classList.remove('active'));
+        document.body.classList.remove('drawer-open');
     }
 
     function setActiveBottomNav(btnId) {
@@ -1039,12 +1063,16 @@
     function openGatepassModal() {
         closeAllDrawers();
         const modal = document.getElementById('gatepass-modal');
-        if (modal) modal.classList.remove('hidden');
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.classList.add('drawer-open');
+        }
     }
 
     function closeGatepassModalDirect() {
         const modal = document.getElementById('gatepass-modal');
         if (modal) modal.classList.add('hidden');
+        document.body.classList.remove('drawer-open');
     }
 
     function openDayPickerModal() {
@@ -1084,6 +1112,10 @@
         let ticking = false;
 
         function handleScroll() {
+            if (document.body.classList.contains('drawer-open')) {
+                ticking = false;
+                return;
+            }
             const nav = document.getElementById('nativeBottomNav');
             if (!nav) return;
 
@@ -1111,25 +1143,56 @@
         }, { passive: true });
     })();
 
+    /* ระบบปัดสไลด์ Drawer แบบสมูท 60fps ป้องกัน Pull-to-Refresh และไม่ชนกับการเลื่อนเนื้อหา */
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.bottom-sheet-card').forEach(card => {
-            let startY = 0, currentY = 0;
-            card.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+            const scrollArea = card.querySelector('.drawer-scroll-content');
+            const handleArea = card.querySelector('.swipe-handle-area');
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+            let startedOnHandle = false;
+
+            card.addEventListener('touchstart', e => {
+                startY = e.touches[0].clientY;
+                currentY = startY;
+                startedOnHandle = handleArea ? handleArea.contains(e.target) : false;
+                const atTop = !scrollArea || scrollArea.scrollTop <= 0;
+                isDragging = startedOnHandle || atTop;
+            }, { passive: true });
+
             card.addEventListener('touchmove', e => {
+                if (!isDragging) return;
                 currentY = e.touches[0].clientY;
                 const diffY = currentY - startY;
-                if (diffY > 0 && card.scrollTop <= 0) {
-                    card.style.transform = `translateY(${diffY}px)`;
+
+                if (!startedOnHandle && scrollArea && scrollArea.scrollTop > 0) {
+                    isDragging = false;
+                    card.classList.remove('dragging');
+                    card.style.transform = '';
+                    return;
                 }
-            }, { passive: true });
+
+                if (diffY > 0) {
+                    if (e.cancelable) e.preventDefault();
+                    card.classList.add('dragging');
+                    card.style.transform = `translate3d(0, ${diffY}px, 0)`;
+                }
+            }, { passive: false });
+
             card.addEventListener('touchend', () => {
+                if (!isDragging) return;
                 const diffY = currentY - startY;
+                card.classList.remove('dragging');
                 card.style.transform = '';
-                if (diffY > 80) {
+
+                if (diffY > 90) {
                     const parent = card.closest('.bottom-sheet-backdrop');
                     if (parent) closeDrawer(parent.id);
                 }
-                startY = 0; currentY = 0;
+                isDragging = false;
+                startY = 0;
+                currentY = 0;
             });
         });
     });
@@ -2111,13 +2174,17 @@
     (function forceUnlockMobileScroll() {
         function applyUnlock() {
             if (window.innerWidth <= 1023) {
+                if (document.body.classList.contains('drawer-open')) {
+                    document.body.style.setProperty('overflow', 'hidden', 'important');
+                    return;
+                }
                 document.documentElement.style.setProperty('overflow-y', 'auto', 'important');
                 document.documentElement.style.setProperty('height', 'auto', 'important');
                 document.body.style.setProperty('display', 'block', 'important');
                 document.body.style.setProperty('overflow-y', 'auto', 'important');
                 document.body.style.setProperty('height', 'auto', 'important');
                 document.body.style.setProperty('position', 'relative', 'important');
-                document.body.style.setProperty('touch-action', 'auto', 'important');
+                document.body.style.setProperty('touch-action', 'pan-y', 'important');
                 document.body.style.setProperty('padding-bottom', '140px', 'important');
             }
         }
@@ -2130,4 +2197,3 @@
 <script src="../../core/bcw-profile-modal.js?v=3"></script>
 </body>
 </html>
-
