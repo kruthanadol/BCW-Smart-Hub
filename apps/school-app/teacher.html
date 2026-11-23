@@ -7,7 +7,6 @@
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="../../core/bcw-page-transition.js?v=5"></script>
     
     <style>
@@ -703,23 +702,30 @@
         let avatarUrl = user.avatar || user.avatar_url || user.pictureUrl || user.photoURL || '';
 
         if (client) {
-            try {
-                const { data: allUsers } = await client.from('users').select('*');
-                if (allUsers && allUsers.length > 0) {
-                    const uRec = allUsers.find(u =>
-                        (user.id && String(u.id) === String(user.id)) ||
-                        (user.email && u.email && String(u.email).toLowerCase() === String(user.email).toLowerCase()) ||
-                        (teacherCode && String(u.teacher_id || u.ref_id || '').trim() === String(teacherCode).trim())
-                    );
-                    if (uRec) {
-                        teacherCode = uRec.teacher_id || uRec.ref_id || teacherCode;
-                        scheduleCode = uRec.schedule_code || scheduleCode;
-                        fullName = uRec.full_name || uRec.name || fullName;
-                        avatarUrl = uRec.avatar_url || uRec.photo_url || avatarUrl;
-                    }
-                }
-            } catch (e) {}
-        }
+         try {
+             const { data: allUsers } = await client.from('users').select('*');
+             if (allUsers && allUsers.length > 0) {
+                 const uRec = allUsers.find(u =>
+                     (user.id && String(u.id) === String(user.id)) ||
+                     (user.email && u.email && String(u.email).toLowerCase() === String(user.email).toLowerCase()) ||
+                     (teacherCode && String(u.teacher_id || u.ref_id || '').trim() === String(teacherCode).trim())
+                 );
+                 if (uRec) {
+                     teacherCode = uRec.teacher_id || uRec.ref_id || teacherCode;
+                     scheduleCode = uRec.schedule_code || scheduleCode;
+                     fullName = uRec.full_name || uRec.name || fullName;
+                     avatarUrl = uRec.avatar_url || uRec.photo_url || avatarUrl;
+                 }
+             }
+             // ดึงรูปจากตาราง teachers เพิ่มเติมหากยังไม่มีรูป
+             if (!avatarUrl && teacherCode) {
+                 const { data: tRec } = await client.from('teachers').select('*').eq('teacher_id', String(teacherCode).trim()).maybeSingle();
+                 if (tRec && (tRec.avatar_url || tRec.photo_url)) {
+                     avatarUrl = tRec.avatar_url || tRec.photo_url;
+                 }
+             }
+         } catch (e) {}
+     }
 
         const cleanCode = (teacherCode && String(teacherCode).length <= 15) ? String(teacherCode).trim() : '';
         if (cleanCode && CURRENT_TEACHER_USER) {
