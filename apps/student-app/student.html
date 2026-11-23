@@ -258,7 +258,7 @@
             border-radius: 99px;
         }
 
-        /* แถบเมนูลอยด้านล่าง (ขยายปุ่มและตัวอักษรให้ชัดเจน) */
+        /* แถบเมนูลอยด้านล่าง (จัดสมดุลไอคอนและตัวอักษร ไม่ชิดขอบบน-ล่าง) */
         .native-bottom-nav {
             position: fixed;
             bottom: max(10px, env(safe-area-inset-bottom));
@@ -266,8 +266,8 @@
             right: 10px;
             max-width: 540px;
             margin: 0 auto;
-            height: 64px;
-            background: rgba(255, 255, 255, 0.97);
+            height: 68px;
+            background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1.5px solid #f59e0b;
@@ -275,7 +275,7 @@
             display: flex;
             align-items: center;
             justify-content: space-around;
-            padding: 0 6px;
+            padding: 6px 4px;
             z-index: 10000;
             box-shadow: 0 8px 24px rgba(217, 119, 6, 0.18), 0 4px 12px rgba(15, 23, 42, 0.1);
             transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
@@ -292,26 +292,27 @@
             align-items: center;
             justify-content: center;
             color: #334155;
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 600;
             background: transparent;
             border: none;
             cursor: pointer;
             transition: all 0.2s ease;
             width: 24%;
+            height: 100%;
             flex-shrink: 0;
-            line-height: 1.2;
+            line-height: 1.15;
+            gap: 3px;
         }
         .nav-item-btn .nav-icon-box {
-            width: 44px;
+            width: 42px;
             height: 28px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 17px;
+            font-size: 16px;
             transition: all 0.2s ease;
-            margin-bottom: 3px;
         }
         .nav-item-btn.active {
             color: #3730a3 !important;
@@ -405,42 +406,55 @@
     <!-- 2. MAIN CONTENT AREA -->
     <main class="max-w-7xl mx-auto w-full flex-1 flex flex-col justify-start gap-2.5 lg:gap-3 my-1.5 lg:my-3 min-h-0">
 
-        <!-- การ์ดสรุปข้อมูลนักเรียนใบเดียว -->
+        <!-- การ์ดสรุปข้อมูลนักเรียนใบเดียว (จัดวางตำแหน่งใหม่ รองรับฟอนต์ขนาดใหญ่) -->
         <section id="section-profile" class="unified-student-card shrink-0">
-            <div class="p-3 md:p-4 flex items-center justify-between gap-2.5 border-b border-slate-100">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div onclick="openBcwProfileModal()" title="แตะเพื่อแก้ไขโปรไฟล์" class="relative w-12 h-12 md:w-14 md:h-14 shrink-0 cursor-pointer group active:scale-95 transition">
-                        <img id="student-avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Student Photo" class="w-full h-full rounded-2xl object-cover border border-indigo-200 shadow-xs" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
-                        <span id="badge-status-dot" class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-indigo-600 text-white border-2 border-white rounded-full flex items-center justify-center text-[9px]">
-                            <i class="fa-solid fa-camera"></i>
-                        </span>
+            <!-- แถวบน: รูป + ชื่อ-สกุลเต็ม + ป้ายคะแนนความประพฤติ -->
+            <div class="p-3 md:p-4 border-b border-slate-100 space-y-2.5">
+                <div class="flex items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <div onclick="openBcwProfileModal()" title="แตะเพื่อแก้ไขโปรไฟล์" class="relative w-12 h-12 md:w-14 md:h-14 shrink-0 cursor-pointer group active:scale-95 transition">
+                            <img id="student-avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Student Photo" class="w-full h-full rounded-2xl object-cover border border-indigo-200 shadow-xs" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+                            <span id="badge-status-dot" class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-indigo-600 text-white border-2 border-white rounded-full flex items-center justify-center text-[9px]">
+                                <i class="fa-solid fa-camera"></i>
+                            </span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <h2 id="student-fullname" class="text-base md:text-lg font-bold text-slate-900 leading-snug line-clamp-2">กำลังโหลดข้อมูล...</h2>
+                        </div>
                     </div>
-                    <div class="min-w-0">
-                        <h2 id="student-fullname" class="text-base md:text-lg font-bold text-slate-900 truncate leading-tight">กำลังโหลดข้อมูล...</h2>
-                        <div class="text-xs sm:text-sm text-slate-700 font-medium mt-1">
-                            ชั้น <span id="student-class" class="font-bold text-indigo-700">-</span> &bull; เลขที่ <span id="student-no" class="font-bold text-slate-900">-</span> &bull; รหัส <span id="student-id" class="text-slate-700">-</span>
+
+                    <div class="bg-indigo-50 border border-indigo-100 rounded-2xl px-2.5 py-1.5 text-center shrink-0">
+                        <span class="text-[11px] font-semibold text-indigo-900 block leading-none">ความประพฤติ</span>
+                        <div class="mt-1 leading-none">
+                            <span id="student-behavior-score" class="text-base md:text-xl font-extrabold text-indigo-700">100</span>
+                            <span class="text-[11px] text-slate-600">/100</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-indigo-50 border border-indigo-100 rounded-2xl px-3 py-1.5 text-center shrink-0">
-                    <span class="text-xs font-semibold text-indigo-900 block leading-none">ความประพฤติ</span>
-                    <div class="mt-1 leading-none">
-                        <span id="student-behavior-score" class="text-lg md:text-xl font-extrabold text-indigo-700">100</span>
-                        <span class="text-xs text-slate-600">/100</span>
-                    </div>
+                <!-- แถบข้อมูล ชั้น / เลขที่ / รหัส แยกเป็นสัดส่วนชัดเจน ไม่พับบรรทัด -->
+                <div class="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700">
+                    <span>ชั้น <strong id="student-class" class="text-indigo-700 font-bold">-</strong></span>
+                    <span class="text-slate-300">|</span>
+                    <span>เลขที่ <strong id="student-no" class="text-slate-900 font-bold">-</strong></span>
+                    <span class="text-slate-300">|</span>
+                    <span>รหัส <strong id="student-id" class="text-slate-900 font-bold">-</strong></span>
                 </div>
             </div>
 
-            <!-- แถบครูที่ปรึกษาประจำห้อง -->
-            <div onclick="openDrawerById('advisorDrawerBackdrop')" class="px-3 py-2 bg-indigo-50/60 border-b border-indigo-100/80 flex items-center justify-between gap-2 cursor-pointer hover:bg-indigo-50 transition">
-                <div id="advisorCardList" class="flex items-center gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar">
-                    <div class="flex items-center gap-1.5 text-xs text-slate-600">
-                        <i class="fa-solid fa-user-tie text-indigo-500"></i>
+            <!-- แถบครูที่ปรึกษาประจำห้อง (จัดเรียงแบบ 2 คอลัมน์ไม่ล้นขอบ) -->
+            <div onclick="openDrawerById('advisorDrawerBackdrop')" class="px-3 py-2 bg-indigo-50/60 border-b border-indigo-100/80 space-y-1.5 cursor-pointer hover:bg-indigo-50 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-indigo-900 flex items-center gap-1">
+                        <i class="fa-solid fa-user-tie text-indigo-600"></i> ครูที่ปรึกษาประจำชั้น
+                    </span>
+                    <span class="text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-lg">ดูข้อมูลครู &rsaquo;</span>
+                </div>
+                <div id="advisorCardList" class="grid grid-cols-2 gap-1.5">
+                    <div class="flex items-center gap-1.5 text-xs text-slate-600 col-span-2">
                         <span>กำลังโหลดข้อมูลครูที่ปรึกษา...</span>
                     </div>
                 </div>
-                <span class="text-xs font-semibold text-indigo-700 bg-white border border-indigo-200 px-2.5 py-1 rounded-lg shrink-0">ข้อมูลครู</span>
             </div>
 
             <!-- สถานะการเข้าเรียนวันนี้ -->
@@ -460,28 +474,28 @@
                 </div>
             </div>
 
-            <!-- การ์ดสรุปสถิติ 4 ช่อง -->
+            <!-- การ์ดสรุปสถิติ 4 ช่อง (ปรับขนาดตัวอักษรให้พอดี 1 บรรทัดทุกช่อง ไม่พับตกบรรทัด) -->
             <div id="section-attendance-stats" class="px-2.5 pt-2 pb-2.5 bg-white">
                 <div class="flex justify-between items-center px-1 mb-1.5">
                     <span class="text-xs font-semibold text-slate-700">สถิติการมาเรียนของฉัน (ภาคเรียนนี้)</span>
-                    <span class="text-xs text-slate-500">หน่วย: ครั้ง</span>
+                    <span class="text-[11px] text-slate-500">หน่วย: ครั้ง</span>
                 </div>
                 <div class="grid grid-cols-4 gap-1.5 text-center">
-                    <div class="bg-emerald-50 border border-emerald-100 rounded-xl py-1.5 px-1">
-                        <span class="text-xs text-emerald-900 font-semibold block">🟢 มาเรียน</span>
-                        <span id="stat-present" class="text-base font-extrabold text-emerald-950">0</span>
+                    <div class="bg-emerald-50 border border-emerald-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
+                        <span class="text-[11px] text-emerald-900 font-semibold whitespace-nowrap">🟢 มาเรียน</span>
+                        <span id="stat-present" class="text-base font-extrabold text-emerald-950 mt-0.5">0</span>
                     </div>
-                    <div class="bg-amber-50 border border-amber-100 rounded-xl py-1.5 px-1">
-                        <span class="text-xs text-amber-900 font-semibold block">🔵 มาสาย</span>
-                        <span id="stat-late" class="text-base font-extrabold text-amber-950">0</span>
+                    <div class="bg-amber-50 border border-amber-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
+                        <span class="text-[11px] text-amber-900 font-semibold whitespace-nowrap">🔵 มาสาย</span>
+                        <span id="stat-late" class="text-base font-extrabold text-amber-950 mt-0.5">0</span>
                     </div>
-                    <div class="bg-rose-50 border border-rose-100 rounded-xl py-1.5 px-1">
-                        <span class="text-xs text-rose-900 font-semibold block">🔴 ขาดเรียน</span>
-                        <span id="stat-absent" class="text-base font-extrabold text-rose-950">0</span>
+                    <div class="bg-rose-50 border border-rose-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
+                        <span class="text-[11px] text-rose-900 font-semibold whitespace-nowrap">🔴 ขาดเรียน</span>
+                        <span id="stat-absent" class="text-base font-extrabold text-rose-950 mt-0.5">0</span>
                     </div>
-                    <div class="bg-purple-50 border border-purple-100 rounded-xl py-1.5 px-1">
-                        <span class="text-xs text-purple-900 font-semibold block">🟣 หนีเรียน</span>
-                        <span id="stat-truant" class="text-base font-extrabold text-purple-950">0</span>
+                    <div class="bg-purple-50 border border-purple-100 rounded-xl py-2 px-0.5 flex flex-col items-center justify-center">
+                        <span class="text-[11px] text-purple-900 font-semibold whitespace-nowrap">🟣 หนีเรียน</span>
+                        <span id="stat-truant" class="text-base font-extrabold text-purple-950 mt-0.5">0</span>
                     </div>
                 </div>
             </div>
@@ -517,7 +531,7 @@
             <span class="bg-amber-500 text-white text-xs font-semibold px-3 py-1 rounded-full shrink-0">เปิดดู</span>
         </section>
 
-        <!-- APP GRID 4 บริการหลัก (ปรับเป็น 2x2 บนมือถือ ให้ปุ่มและตัวหนังสือใหญ่ชัดเจน) -->
+        <!-- APP GRID 4 บริการหลัก (2x2 บนมือถือ ปุ่มและตัวหนังสือใหญ่ชัดเจน) -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
             <button type="button" onclick="openDrawerById('homeworkDrawerBackdrop')" class="mobile-app-card border-indigo-200 cursor-pointer">
                 <div class="mobile-app-icon bg-indigo-100 text-indigo-700 border border-indigo-200">
@@ -579,7 +593,7 @@
             </div>
         </section>
 
-        <!-- DESKTOP VIEW (คงเดิม 100% ไม่แก้ไข) -->
+        <!-- DESKTOP VIEW -->
         <div class="hidden lg:grid lg:grid-cols-2 gap-4 mt-1">
             <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 shadow-xs">
                 <div class="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -1349,7 +1363,7 @@
         const defaultTeacherAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png';
 
         if (!client || !classroom || classroom === '-') {
-            if (cardListEl) cardListEl.innerHTML = `<span class="text-xs text-slate-600">ยังไม่ได้ระบุครูที่ปรึกษา</span>`;
+            if (cardListEl) cardListEl.innerHTML = `<span class="text-xs text-slate-600 col-span-2">ยังไม่ได้ระบุครูที่ปรึกษา</span>`;
             return;
         }
 
@@ -1377,9 +1391,9 @@
         if (advisors.length > 0) {
             if (cardListEl) {
                 cardListEl.innerHTML = advisors.map(adv => `
-                    <div class="flex items-center gap-1.5 bg-white border border-indigo-100 rounded-xl px-2 py-1 shrink-0">
-                        <img src="${adv.avatar}" alt="${adv.name}" class="w-5 h-5 rounded-full object-cover border border-indigo-200 shrink-0" onerror="this.src='${defaultTeacherAvatar}'">
-                        <span class="text-xs font-medium text-slate-800 whitespace-nowrap">${adv.shortName}</span>
+                    <div class="flex items-center gap-1.5 bg-white border border-indigo-100 rounded-xl px-2 py-1.5 min-w-0">
+                        <img src="${adv.avatar}" alt="${adv.name}" class="w-6 h-6 rounded-full object-cover border border-indigo-200 shrink-0" onerror="this.src='${defaultTeacherAvatar}'">
+                        <span class="text-xs font-medium text-slate-800 truncate">${adv.shortName}</span>
                     </div>
                 `).join('');
             }
@@ -1399,7 +1413,7 @@
                 `).join('');
             }
         } else {
-            if (cardListEl) cardListEl.innerHTML = `<span class="text-xs text-slate-700"><i class="fa-solid fa-user-tie text-indigo-500 mr-1"></i>ครูที่ปรึกษาประจำชั้น ${classroom}</span>`;
+            if (cardListEl) cardListEl.innerHTML = `<span class="text-xs text-slate-700 col-span-2"><i class="fa-solid fa-user-tie text-indigo-500 mr-1"></i>ครูที่ปรึกษาประจำชั้น ${classroom}</span>`;
             if (drawerListEl) drawerListEl.innerHTML = `<div class="p-4 text-center text-slate-600">ยังไม่มีข้อมูลรายชื่อครูที่ปรึกษาชั้น ${classroom}</div>`;
         }
     }
@@ -2116,3 +2130,4 @@
 <script src="../../core/bcw-profile-modal.js?v=3"></script>
 </body>
 </html>
+
