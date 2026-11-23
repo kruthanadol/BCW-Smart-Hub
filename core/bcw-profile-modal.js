@@ -158,7 +158,7 @@
 
         const statusEl = document.getElementById('bcwProfileSaveStatus');
         if (statusEl) statusEl.classList.add('hidden');
-
+        
         let sessionUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
         if (!sessionUser) {
             const raw = localStorage.getItem('bcw_user_session') || sessionStorage.getItem('bcw_user_session');
@@ -223,6 +223,7 @@
     window.closeBcwProfileModal = function () {
         const modal = document.getElementById('bcwProfileModalBackdrop');
         if (modal) modal.classList.add('hidden');
+    window.openProfilePopup = window.openBcwProfileModal;
     };
 
     async function saveBcwProfileChanges() {
