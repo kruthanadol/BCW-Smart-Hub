@@ -539,7 +539,7 @@
         </div>
 
         <!-- กล่องรายงานสถิติเวลาเรียนแต่ละรายวิชา (แสดงในพื้นที่ด้านล่างหน้าหลักโทรศัพท์ เหนือแถบเมนูหลัก) -->
-        <section id="homeSubjectAttendanceCard" class="lg:hidden unified-student-card subject-bottom-reveal shrink-0">
+        <section id="homeSubjectAttendanceCard" class="unified-student-card subject-bottom-reveal shrink-0">
             <div onclick="toggleHomeSubjectAccordion()" class="p-3 bg-gradient-to-r from-indigo-50/90 via-white to-emerald-50/70 flex items-center justify-between gap-2 cursor-pointer active:bg-slate-50 transition">
                 <div class="flex items-center gap-2.5 min-w-0">
                     <div class="w-9 h-9 rounded-xl bg-indigo-900 text-amber-400 flex items-center justify-center text-sm shrink-0 shadow-2xs">
@@ -1394,7 +1394,7 @@
         }
     }
 
-    async function renderAttendanceAndAcademicData(client, studentId) {
+async function renderAttendanceAndAcademicData(client, studentId) {
         if (!client || !studentId) return;
         const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
         try {
@@ -1411,20 +1411,33 @@
             logs.forEach(item => {
                 const st = String(item.status || '').trim().toLowerCase();
                 let norm = '';
-                if (st === 'present' || st === 'ontime' || st === 'มา' || st === 'มาเรียน') { presentCount++; norm = 'present'; }
-                else if (st === 'late' || st === 'สาย' || st === 'มาสาย') { lateCount++; norm = 'late'; }
-                else if (st === 'absent' || st === 'ขาด' || st === 'ขาดเรียน') { absentCount++; norm = 'absent'; }
-                else if (st === 'truant' || st === 'หนี' || st === 'หนีเรียน') { truantCount++; norm = 'truant'; }
-                else if (st === 'leave' || st === 'ลา' || st === 'ลากิจ' || st === 'ลาป่วย') { norm = 'leave'; }
+                if (['present', 'ontime', 'on_time', 'normal', 'checked', '1', 'มา', 'มาเรียน', 'มาตรงเวลา', 'ตรงเวลา', 'ปกติ', 'เช็กชื่อ'].includes(st) || st.includes('มาเรียน') || st.includes('ตรงเวลา')) {
+                    presentCount++; norm = 'present';
+                } else if (['late', 'สาย', 'มาสาย'].includes(st) || st.includes('สาย')) {
+                    lateCount++; norm = 'late';
+                } else if (['absent', 'ขาด', 'ขาดเรียน'].includes(st) || st.includes('ขาด')) {
+                    absentCount++; norm = 'absent';
+                } else if (['truant', 'หนี', 'หนีเรียน'].includes(st) || st.includes('หนี')) {
+                    truantCount++; norm = 'truant';
+                } else if (['leave', 'ลา', 'ลากิจ', 'ลาป่วย'].includes(st) || st.includes('ลา')) {
+                    norm = 'leave';
+                }
 
                 if (Number(item.period_no || 0) > 0 && norm) {
-                    const cCode = String(item.subject_code || 'GENERAL').trim().toUpperCase();
+                    const rawCode = String(item.subject_code || '').trim().toUpperCase();
+                    const rawName = String(item.subject_name || '').trim();
+                    // สกัดรหัสวิชา เช่น ว22104 ออกจาก subject_code หรือ subject_name เพื่อรวมวิชาเดียวกันไม่ให้แยกเป็น GENERAL
+                    const codeMatch = `${rawCode} ${rawName}`.match(/[ก-ฮA-Z]{1,3}\d{5}/i);
+                    const cCode = (rawCode && rawCode !== 'GENERAL')
+                        ? rawCode
+                        : (codeMatch ? codeMatch[0].toUpperCase() : (rawName || 'GENERAL'));
+
                     if (!subjectStatsMap.has(cCode)) {
                         const dictName = SUBJECT_LOOKUP_MAP[cCode];
-                        const fallbackName = String(item.subject_name || '').split('(')[0].trim();
+                        const cleanFallback = rawName.replace(new RegExp(`^${cCode}\\s*`, 'i'), '').split('(')[0].trim();
                         subjectStatsMap.set(cCode, {
                             code: cCode,
-                            name: dictName || fallbackName || cCode,
+                            name: dictName || cleanFallback || '',
                             attended: 0,
                             absent: 0,
                             total: 0
@@ -1465,12 +1478,13 @@
                     const badgeStyle = percent < 80 ? 'bg-rose-100 text-rose-800' : percent < 85 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800';
                     const barColor = percent < 80 ? 'bg-rose-500' : percent < 85 ? 'bg-amber-500' : 'bg-emerald-500';
                     const statusText = percent < 80 ? 'เสี่ยง มส.' : percent < 85 ? 'เฝ้าระวัง' : 'ปกติ';
+                    const titleDisplay = sub.name && sub.name !== sub.code ? `${sub.code} ${sub.name}` : sub.code;
 
                     return `
                         <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                             <div class="flex justify-between items-center gap-2">
                                 <div class="min-w-0">
-                                    <span class="font-bold text-slate-800 block truncate">${sub.code} ${sub.name !== sub.code ? sub.name : ''}</span>
+                                    <span class="font-bold text-slate-800 block truncate">${titleDisplay}</span>
                                     <span class="text-[11px] text-slate-600">เข้าเรียน ${sub.attended}/${sub.total} คาบ &bull; ขาด/หนี ${sub.absent} คาบ</span>
                                 </div>
                                 <span class="${badgeStyle} text-[10.5px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">${statusText} (${percent}%)</span>
@@ -1520,7 +1534,7 @@
             }
         } catch (e) {}
     }
-
+    
     async function renderBehaviorScoreAndHistory(studentId) {
         const container = document.getElementById('behaviorHistoryList');
         const desktopContainer = document.getElementById('desktopBehaviorLogsContainer');
