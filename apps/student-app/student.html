@@ -12,28 +12,32 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
-        /* ป้องกันเบราว์เซอร์รีโหลดหน้า (Pull-to-Refresh) เวลาลากลง */
-        html, body {
-            overscroll-behavior-y: contain !important;
+        /* ป้องกันเบราว์เซอร์รีโหลดหน้า (Pull-to-Refresh) โดยไม่บล็อกการเลื่อนขึ้น-ลง */
+        html {
+            overscroll-behavior-y: none;
+            -webkit-overflow-scrolling: touch;
         }
 
-        /* ขยายสเกลตัวอักษรบนหน้าจอมือถือให้อ่านง่ายสบายตา เทียบเท่าแอปมาตรฐาน */
+        /* ขยายสเกลตัวอักษรบนหน้าจอมือถือให้อ่านง่ายสบายตา และเปิดการเลื่อนหน้าจอแบบ Native */
         @media (max-width: 1023px) {
             html {
                 font-size: 18px !important;
+                height: auto !important;
+                min-height: 100% !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
             }
-            html, body, body.student-app-body {
+            body, body.student-app-body {
                 display: block !important;
                 height: auto !important;
                 min-height: 100vh !important;
                 max-height: none !important;
                 width: 100% !important;
                 overflow-x: hidden !important;
-                overflow-y: auto !important;
+                overflow-y: visible !important;
                 position: relative !important;
-                touch-action: pan-y !important;
-                -webkit-overflow-scrolling: touch !important;
-                overscroll-behavior-y: contain !important;
+                touch-action: manipulation !important;
+                overscroll-behavior-y: none !important;
                 padding-top: max(8px, env(safe-area-inset-top)) !important;
                 padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
             }
@@ -344,7 +348,7 @@
     </style>    
     <script src="../../core/bcw-page-transition.js?v=1"></script>
 </head>
-<body class="student-app-body px-3 md:p-6 relative select-none">
+<body class="student-app-body px-3 md:p-6 relative">
 
     <!-- 1. TOP APP HEADER -->
     <div class="max-w-7xl mx-auto w-full shrink-0 space-y-2">
@@ -1008,7 +1012,7 @@
         if (label) label.textContent = isOpen ? 'สไลด์เก็บ' : 'แสดงรายวิชา';
     };
 
-window.openDrawerById = function(id) {
+    window.openDrawerById = function(id) {
         closeAllDrawers();
         const el = document.getElementById(id);
         if (el) el.classList.add('active');
@@ -1023,6 +1027,7 @@ window.openDrawerById = function(id) {
     function closeAllDrawers() {
         document.querySelectorAll('.bottom-sheet-backdrop').forEach(el => el.classList.remove('active'));
     }
+
     function setActiveBottomNav(btnId) {
         document.querySelectorAll('.nav-item-btn').forEach(btn => btn.classList.remove('active'));
         const activeBtn = document.getElementById(btnId);
@@ -1051,16 +1056,12 @@ window.openDrawerById = function(id) {
     function openGatepassModal() {
         closeAllDrawers();
         const modal = document.getElementById('gatepass-modal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            document.body.classList.add('drawer-open');
-        }
+        if (modal) modal.classList.remove('hidden');
     }
 
     function closeGatepassModalDirect() {
         const modal = document.getElementById('gatepass-modal');
         if (modal) modal.classList.add('hidden');
-        document.body.classList.remove('drawer-open');
     }
 
     function openDayPickerModal() {
@@ -1100,10 +1101,6 @@ window.openDrawerById = function(id) {
         let ticking = false;
 
         function handleScroll() {
-            if (document.body.classList.contains('drawer-open')) {
-                ticking = false;
-                return;
-            }
             const nav = document.getElementById('nativeBottomNav');
             if (!nav) return;
 
@@ -2157,7 +2154,7 @@ window.openDrawerById = function(id) {
     }
 </script>
 
-<!-- บังคับปลดล็อกการเลื่อนหน้าจอและเพิ่มระยะหลบเมนูลอยด้านล่าง (ทำงานหลังสคริปต์ทุกตัว) -->
+<!-- บังคับปลดล็อกการเลื่อนหน้าจอและเพิ่มระยะหลบเมนูลอยด้านล่าง -->
 <script>
     (function forceUnlockMobileScroll() {
         function applyUnlock() {
@@ -2165,10 +2162,10 @@ window.openDrawerById = function(id) {
                 document.documentElement.style.setProperty('overflow-y', 'auto', 'important');
                 document.documentElement.style.setProperty('height', 'auto', 'important');
                 document.body.style.setProperty('display', 'block', 'important');
-                document.body.style.setProperty('overflow-y', 'auto', 'important');
+                document.body.style.setProperty('overflow-y', 'visible', 'important');
                 document.body.style.setProperty('height', 'auto', 'important');
                 document.body.style.setProperty('position', 'relative', 'important');
-                document.body.style.setProperty('touch-action', 'pan-y', 'important');
+                document.body.style.setProperty('touch-action', 'manipulation', 'important');
                 document.body.style.setProperty('padding-bottom', '140px', 'important');
             }
         }
@@ -2181,4 +2178,3 @@ window.openDrawerById = function(id) {
 <script src="../../core/bcw-profile-modal.js?v=3"></script>
 </body>
 </html>
-
