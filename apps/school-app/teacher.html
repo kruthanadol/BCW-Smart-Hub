@@ -5,12 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <title>BCW Smart HUB - Teacher Portal</title>
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
+    <script src="../../core/bcw-page-transition.js?v=5"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="../../core/bcw-page-transition.js?v=5"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body { font-family: 'Kanit', sans-serif; font-weight: 400; background-color: #f1f5f9; color: #1e293b; overflow-x: hidden; }
+        /* ปลดล็อกหน้าจอให้เลื่อนได้ทั้งแนวตั้งและแนวนอนบนมือถือ/แท็บเล็ต */
+        html, body {
+            font-family: 'Kanit', sans-serif;
+            font-weight: 400;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            height: auto !important;
+            min-height: 100dvh !important;
+            max-height: none !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            position: relative !important;
+        }
         main section, main > div { scroll-margin-top: 64px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -75,9 +88,15 @@
         .card-state-absent { background-color: #fff1f2; }
         .card-state-truant { background-color: #f5f3ff; }
 
+        /* ซ่อนป้ายและกล่องข้อความ Realtime บนโทรศัพท์/แท็บเล็ตแนวตั้ง ไม่ให้เบียด/บังคาบเรียน */
         @media (max-width: 767px) {
             html, body { max-width: 100vw; overflow-x: hidden; }
             body { padding-bottom: calc(82px + env(safe-area-inset-bottom)) !important; }
+
+            #mobileDateModeTag.is-realtime,
+            #attendanceModeBanner {
+                display: none !important;
+            }
 
             .teacher-bottom-nav {
                 position: fixed;
@@ -162,6 +181,23 @@
             }
         }
 
+        /* รองรับโหมดแนวนอนบนโทรศัพท์ (ความสูงน้อย) ไม่ให้แถบล่างบังเนื้อหา */
+        @media (max-height: 500px) and (orientation: landscape) {
+            body { padding-bottom: 68px !important; }
+            .teacher-bottom-nav {
+                min-height: 52px;
+                padding: 4px 12px;
+            }
+            .teacher-nav-btn {
+                flex-direction: row;
+                gap: 6px;
+                min-height: 40px;
+                font-size: 12px;
+            }
+            .teacher-nav-btn i { margin-bottom: 0; font-size: 14px; }
+            #mobileStatsDrawer { bottom: 52px; max-height: 75dvh; overflow-y: auto; }
+        }
+
         @media (min-width: 768px) {
             .teacher-bottom-nav,
             #mobileFloatingStats,
@@ -199,7 +235,7 @@
 
     <!-- 2. แถบโปรไฟล์ครูผู้สอน -->
     <div class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 border-b border-emerald-700/80 text-white px-3 sm:px-4 py-2 shadow-xs">
-<div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
+        <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
             <div class="flex items-center gap-2.5 min-w-0">
                 <div onclick="openBcwProfileModal()" title="แตะเพื่อแก้ไขโปรไฟล์" class="relative shrink-0 cursor-pointer group active:scale-95 transition">
                     <img id="headerTeacherAvatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" 
@@ -252,7 +288,7 @@
             </button>
         </div>
 
-        <!-- Desktop Stats Card -->
+        <!-- Desktop Stats Card (แก้ไขให้ปุ่มซ่อน/แสดงยุบกล่องได้จริง) -->
         <section id="section-traffic" class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-200 p-3 space-y-2 transition-all duration-300">
             <div class="grid grid-cols-5 gap-2.5">
                 <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center gap-2.5 text-left">
@@ -302,7 +338,7 @@
             </div>
         </section>
 
-        <!-- 4. SMART TIMETABLE SELECTOR (Auto-Detect Current Period + Auto-Merge คาบคู่/3 คาบ + Today Quick Pills) -->
+        <!-- 4. SMART TIMETABLE SELECTOR -->
         <section id="section-selector" class="bg-white p-2.5 sm:p-3 rounded-2xl shadow-xs border border-slate-200 space-y-2">
             <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2">
                 <button type="button" onclick="toggleSubjectModal()" id="customSubjectBtn" class="bg-slate-50 border border-slate-300 font-medium text-slate-800 text-sm rounded-xl py-2.5 px-3.5 flex items-center justify-between gap-2 w-full md:w-auto hover:bg-slate-100 transition cursor-pointer">
@@ -323,9 +359,10 @@
                 </div>
             </div>
 
-            <!-- ปุ่มลัดสลับคาบสอนเฉพาะวันนี้ (1-Tap Today's Periods) -->
+            <!-- ปุ่มลัดสลับคาบสอนเฉพาะวันนี้ -->
             <div id="todayQuickPeriodsBar" class="hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5"></div>
 
+            <!-- แบนเนอร์แจ้งโหมด Realtime (ซ่อนอัตโนมัติบนโทรศัพท์) -->
             <div id="attendanceModeBanner" class="hidden md:flex text-xs font-normal px-3 py-1.5 rounded-xl items-center gap-2"></div>
         </section>
 
@@ -333,12 +370,12 @@
         <section id="section-attendance" class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
             <div class="p-2.5 sm:p-3 bg-slate-50 border-b border-slate-200 space-y-2">
                 <div class="flex items-center justify-between gap-2">
-                    <h3 class="font-medium text-slate-800 text-sm truncate" id="tableHeaderTitle">ห้อง -</h3>
+                    <h3 class="font-medium text-slate-800 text-sm truncate flex-1 min-w-0" id="tableHeaderTitle">ห้อง -</h3>
 
                     <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1 shadow-2xs shrink-0">
                         <i class="fa-regular fa-calendar text-emerald-700 text-xs shrink-0"></i>
                         <input type="date" id="attendanceDateInput" onchange="onAttendanceDateChange()" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer w-[108px] shrink-0">
-                        <span id="mobileDateModeTag" class="text-[10px] font-medium px-2 py-0.5 rounded-md truncate"></span>
+                        <span id="mobileDateModeTag" class="hidden md:inline-block text-[10px] font-medium px-2 py-0.5 rounded-md truncate"></span>
                     </div>
                 </div>
 
@@ -645,7 +682,7 @@
         const now = new Date();
         const todayStr = getLocalTodayStr();
         const targetDate = selectedDateStr || todayStr;
-        if (targetDate !== todayStr) return { isRealtime: false, reason: `เช็กย้อนหลัง` };
+        if (targetDate !== todayStr) return { isRealtime: false, reason: 'เช็กย้อนหลัง' };
         const dayOfWeek = now.getDay();
         if (dayOfWeek === 0 || dayOfWeek === 6) return { isRealtime: false, reason: 'วันหยุด' };
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -661,10 +698,10 @@
 
         if (mobileTag) {
             if (status.isRealtime) {
-                mobileTag.className = 'text-[10px] font-medium px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 truncate';
+                mobileTag.className = 'is-realtime hidden md:inline-block text-[10px] font-medium px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 truncate';
                 mobileTag.innerText = 'Realtime';
             } else {
-                mobileTag.className = 'text-[10px] font-medium px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 truncate';
+                mobileTag.className = 'inline-block text-[10px] font-medium px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 truncate';
                 mobileTag.innerText = 'เช็กย้อนหลัง';
             }
         }
@@ -702,30 +739,29 @@
         let avatarUrl = user.avatar || user.avatar_url || user.pictureUrl || user.photoURL || '';
 
         if (client) {
-         try {
-             const { data: allUsers } = await client.from('users').select('*');
-             if (allUsers && allUsers.length > 0) {
-                 const uRec = allUsers.find(u =>
-                     (user.id && String(u.id) === String(user.id)) ||
-                     (user.email && u.email && String(u.email).toLowerCase() === String(user.email).toLowerCase()) ||
-                     (teacherCode && String(u.teacher_id || u.ref_id || '').trim() === String(teacherCode).trim())
-                 );
-                 if (uRec) {
-                     teacherCode = uRec.teacher_id || uRec.ref_id || teacherCode;
-                     scheduleCode = uRec.schedule_code || scheduleCode;
-                     fullName = uRec.full_name || uRec.name || fullName;
-                     avatarUrl = uRec.avatar_url || uRec.photo_url || avatarUrl;
-                 }
-             }
-             // ดึงรูปจากตาราง teachers เพิ่มเติมหากยังไม่มีรูป
-             if (!avatarUrl && teacherCode) {
-                 const { data: tRec } = await client.from('teachers').select('*').eq('teacher_id', String(teacherCode).trim()).maybeSingle();
-                 if (tRec && (tRec.avatar_url || tRec.photo_url)) {
-                     avatarUrl = tRec.avatar_url || tRec.photo_url;
-                 }
-             }
-         } catch (e) {}
-     }
+            try {
+                const { data: allUsers } = await client.from('users').select('*');
+                if (allUsers && allUsers.length > 0) {
+                    const uRec = allUsers.find(u =>
+                        (user.id && String(u.id) === String(user.id)) ||
+                        (user.email && u.email && String(u.email).toLowerCase() === String(user.email).toLowerCase()) ||
+                        (teacherCode && String(u.teacher_id || u.ref_id || '').trim() === String(teacherCode).trim())
+                    );
+                    if (uRec) {
+                        teacherCode = uRec.teacher_id || uRec.ref_id || teacherCode;
+                        scheduleCode = uRec.schedule_code || scheduleCode;
+                        fullName = uRec.full_name || uRec.name || fullName;
+                        avatarUrl = uRec.avatar_url || uRec.photo_url || avatarUrl;
+                    }
+                }
+                if (!avatarUrl && teacherCode) {
+                    const { data: tRec } = await client.from('teachers').select('*').eq('teacher_id', String(teacherCode).trim()).maybeSingle();
+                    if (tRec && (tRec.avatar_url || tRec.photo_url)) {
+                        avatarUrl = tRec.avatar_url || tRec.photo_url;
+                    }
+                }
+            } catch (e) {}
+        }
 
         const cleanCode = (teacherCode && String(teacherCode).length <= 15) ? String(teacherCode).trim() : '';
         if (cleanCode && CURRENT_TEACHER_USER) {
@@ -773,7 +809,6 @@
         window.location.replace(prefix + '/login.html?logout=1');
     }
 
-    // โหลดเฉพาะตารางสอนของครูคนนี้ + ยุบรวมคาบคู่/3 คาบติดกันอัตโนมัติ (Auto-Merge Consecutive Periods)
     async function loadRealSubjectSchedules(teacherInfo) {
         const modalList = document.getElementById('subjectModalList');
         const customText = document.getElementById('customSubjectText');
@@ -821,7 +856,6 @@
             const dayOrder = { 'จันทร์': 1, 'อังคาร': 2, 'พุธ': 3, 'พฤหัสบดี': 4, 'ศุกร์': 5 };
             mySchedules.sort((a, b) => (dayOrder[a.day] || 9) - (dayOrder[b.day] || 9) || (Number(a.period || a.period_no || 0) - Number(b.period || b.period_no || 0)));
 
-            // ยุบรวมคาบคู่ / 3 คาบติดกัน (วันเดียวกัน + รหัสวิชาเดียวกัน + ห้องเดียวกัน + เลขคาบเรียงติดกัน)
             const mergedBlocks = [];
             for (const s of mySchedules) {
                 const cCode = String(s.course_code || s.subject_code || 'วิชา').trim();
@@ -977,15 +1011,24 @@
         await loadHomeworkHistory();
     };
     
+    /* แก้ไขฟังก์ชันปุ่มซ่อน/แสดงสถิติให้ยุบหายได้จริงโดยไม่ติดคลาส md:block */
     window.toggleStatsDrawer = function() {
         const trafficSec = document.getElementById('section-traffic');
         const btnText = document.getElementById('btnStatsText');
         const chevron = document.getElementById('statsChevron');
-        if (trafficSec) {
-            trafficSec.classList.toggle('hidden');
-            const isHidden = trafficSec.classList.contains('hidden');
-            if (btnText) btnText.innerText = isHidden ? 'ดูสถิติเข้าเรียนรายวิชา' : 'ซ่อนสถิติเข้าเรียนรายวิชา';
-            if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        if (!trafficSec) return;
+
+        const isCurrentlyHidden = trafficSec.style.display === 'none' || trafficSec.classList.contains('stats-collapsed');
+        if (isCurrentlyHidden) {
+            trafficSec.classList.remove('stats-collapsed');
+            trafficSec.style.display = '';
+            if (btnText) btnText.innerText = 'ซ่อนสถิติเข้าเรียนรายวิชา';
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        } else {
+            trafficSec.classList.add('stats-collapsed');
+            trafficSec.style.display = 'none';
+            if (btnText) btnText.innerText = 'ดูสถิติเข้าเรียนรายวิชา';
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
         }
     };
 
@@ -1604,10 +1647,9 @@
         return status.toLowerCase();
     }
 
-let IS_SUBMITTING_ATTENDANCE = false;
+    let IS_SUBMITTING_ATTENDANCE = false;
 
     window.submitAttendance = async function() {
-        // 1. ป้องกันครูกดปุ่มบันทึกรัว 2 ครั้งติดกัน (Double-Tap Lock)
         if (IS_SUBMITTING_ATTENDANCE) return;
 
         const client = window.supabaseClient || window.db || window.supabase;
@@ -1646,7 +1688,6 @@ let IS_SUBMITTING_ATTENDANCE = false;
         const isSampleThai = ['มา', 'สาย', 'ลา', 'ขาด', 'หนี'].includes(DB_STATUS_SAMPLE);
         const modesToTry = isSampleThai ? ['THAI', 'UPPER', 'LOWER'] : ['UPPER', 'LOWER', 'THAI'];
 
-        // กันข้อมูลซ้ำใน Array เดียวกันก่อนส่งเข้า Database
         const buildPayload = (enumMode) => {
             const uniqueMap = new Map();
             for (const pNo of periodList) {
@@ -1681,7 +1722,6 @@ let IS_SUBMITTING_ATTENDANCE = false;
 
             for (const mode of modesToTry) {
                 const payload = buildPayload(mode);
-                // ใช้ Upsert เขียนทับข้อมูลเดิมของ (student_id, date, period_no) อัตโนมัติ ไม่ว่าจะบันทึกกี่รอบก็ไม่ชน Unique Constraint
                 const { error } = await client
                     .from('attendance_logs')
                     .upsert(payload, { onConflict: 'student_id,date,period_no' });
@@ -1723,6 +1763,7 @@ let IS_SUBMITTING_ATTENDANCE = false;
         }
     };
 
+    /* แก้ไขฟังก์ชันดึงการบ้านให้รองรับชื่อตารางจริงใน Supabase โดยไม่เกิด Error 404 */
     async function loadHomeworkHistory() {
         const listEl = document.getElementById('homeworkHistoryList');
         if (!listEl) return;
@@ -1738,14 +1779,17 @@ let IS_SUBMITTING_ATTENDANCE = false;
         }
 
         try {
-            let { data, error } = await client.from('homeworks').select('*').order('created_at', { ascending: false }).limit(20);
-            if (error) {
-                const resAlt = await client.from('assignments').select('*').order('created_at', { ascending: false }).limit(20);
-                data = resAlt.data || [];
+            let rows = [];
+            const { data: d1, error: e1 } = await client.from('academic_assignments').select('*').limit(30);
+            if (!e1 && d1) {
+                rows = d1;
+            } else {
+                const { data: d2, error: e2 } = await client.from('homeworks').select('*').limit(30);
+                if (!e2 && d2) rows = d2;
             }
 
-            const filtered = (data || []).filter(h =>
-                String(h.classroom || h.class_name || '').trim() === String(targetGroup).trim()
+            const filtered = rows.filter(h =>
+                String(h.classroom || h.class_room || h.class_name || '').trim() === String(targetGroup).trim()
             );
 
             if (filtered.length === 0) {
@@ -1756,7 +1800,7 @@ let IS_SUBMITTING_ATTENDANCE = false;
             listEl.innerHTML = filtered.map(h => `
                 <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
                     <div class="min-w-0">
-                        <div class="font-medium text-slate-800 truncate">${h.title || h.homework_title || '-'}</div>
+                        <div class="font-medium text-slate-800 truncate">${h.task_title || h.title || h.homework_title || '-'}</div>
                         <div class="text-[11px] text-slate-500 mt-0.5">
                             วิชา ${h.course_code || courseCode} &bull; กำหนดส่ง: <span class="text-indigo-700 font-medium">${h.due_date || 'ไม่ระบุ'}</span>
                         </div>
@@ -1794,7 +1838,15 @@ let IS_SUBMITTING_ATTENDANCE = false;
         try {
             if (!client) throw new Error('ไม่พบการเชื่อมต่อ Supabase');
 
-            const record = {
+            const recordAcademic = {
+                task_title: title,
+                subject_name: courseName || courseCode || '-',
+                class_room: targetGroup,
+                due_date: dueDate,
+                teacher_id: String(teacherId)
+            };
+
+            const recordFallback = {
                 title: title,
                 course_code: courseCode || '-',
                 subject_name: courseName || courseCode || '-',
@@ -1804,10 +1856,10 @@ let IS_SUBMITTING_ATTENDANCE = false;
                 assigned_date: getLocalTodayStr()
             };
 
-            let { error } = await client.from('homeworks').insert([record]);
+            let { error } = await client.from('academic_assignments').insert([recordAcademic]);
             if (error) {
-                const resAlt = await client.from('assignments').insert([record]);
-                if (resAlt.error) throw error;
+                const resAlt = await client.from('homeworks').insert([recordFallback]);
+                if (resAlt.error) throw resAlt.error;
             }
 
             titleInput.value = '';
@@ -1823,15 +1875,13 @@ let IS_SUBMITTING_ATTENDANCE = false;
         }
     };
     
-        // บังคับเปิดม่านโหลดหน้าจออัตโนมัติ (ป้องกันม่านค้างเมื่อโหลดข้อมูลเสร็จแล้ว)
-        window.addEventListener('load', () => {
-            if (typeof window.hideBCWCurtain === 'function') window.hideBCWCurtain();
-        });
-        setTimeout(() => {
-            if (typeof window.hideBCWCurtain === 'function') window.hideBCWCurtain();
-        }, 1500);
-    
-    </script>
-    <script src="../../core/bcw-profile-modal.js?v=3"></script>
+    window.addEventListener('load', () => {
+        if (typeof window.hideBCWCurtain === 'function') window.hideBCWCurtain();
+    });
+    setTimeout(() => {
+        if (typeof window.hideBCWCurtain === 'function') window.hideBCWCurtain();
+    }, 1500);
+</script>
+<script src="../../core/bcw-profile-modal.js?v=3"></script>
 </body>
 </html>
