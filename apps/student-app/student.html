@@ -2,9 +2,15 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e1b4b">
     <title>BCW Student Portal - นักเรียน โรงเรียนบัวเชดวิทยา</title>
-    <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
+    <link rel="shortcut icon" href="../assets/images/logo_bcw.png" type="image/png">
+    <link rel="apple-touch-icon" href="../assets/images/logo_bcw.png">
+    <link rel="manifest" href="../manifest.json">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,16 +18,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
-        /* ล็อกกรอบนอกสุดไว้กับหน้าจอ และให้เลื่อนผ่านกล่อง #appScrollContainer ด้านในแทน 100% */
+        /* เปิดให้เลื่อนผ่าน window เพื่อซ่อนแถบ URL อัตโนมัติ และเปิดการซูม 2 นิ้ว */
         html, body, body.student-app-body {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
-            height: 100dvh !important;
-            max-height: 100dvh !important;
-            overflow: hidden !important;
-            position: fixed !important;
-            inset: 0 !important;
+            min-height: 100dvh !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            position: relative !important;
+            inset: auto !important;
+            touch-action: manipulation !important;
             font-family: 'Kanit', sans-serif;
             background-color: #f1f5f9;
             color: #0f172a;
@@ -35,15 +44,12 @@
             }
         }
 
-        /* กล่องเลื่อนอิสระหลักของแอป ทำงานลื่น 60fps ไม่โดนสคริปต์อื่นบล็อก */
+        /* ปล่อยให้ขยายตามความสูงเนื้อหาจริง เพื่อให้เบราว์เซอร์ตรวจจับการเลื่อนและหดแถบ URL */
         #appScrollContainer {
             width: 100%;
-            height: 100dvh;
-            overflow-x: hidden;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: contain;
-            touch-action: pan-y;
+            min-height: 100dvh;
+            height: auto;
+            overflow: visible;
             padding-top: max(10px, env(safe-area-inset-top));
             padding-bottom: calc(140px + env(safe-area-inset-bottom));
             padding-left: 12px;
@@ -187,7 +193,7 @@
             opacity: 1;
             pointer-events: auto !important;
         }
-       .bottom-sheet-card {
+        .bottom-sheet-card {
             position: fixed;
             bottom: calc(90px + env(safe-area-inset-bottom)); /* ดันกล่องขึ้นมาลอยเหนือแถบเมนูด้านล่าง */
             left: 10px;
@@ -195,7 +201,7 @@
             max-width: 540px;
             margin: 0 auto;
             background: #ffffff;
-            border-radius: 26px; /* ปรับโค้งมนทั้ง 4 มุมให้รับกับเมนูลอย */
+            border-radius: 26px;
             border: 1.5px solid #e2e8f0;
             box-shadow: 0 10px 40px rgba(15, 23, 42, 0.25);
             z-index: 9995;
@@ -203,7 +209,7 @@
             transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
             will-change: transform;
             overscroll-behavior-y: contain;
-            max-height: calc(100dvh - 120px - env(safe-area-inset-bottom)); /* จำกัดความสูงไม่ให้ชนขอบบน */
+            max-height: calc(100dvh - 120px - env(safe-area-inset-bottom));
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -325,11 +331,11 @@
             box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
         }
     </style>    
-    <script src="../../core/bcw-page-transition.js?v=1"></script>
+    <script src="../core/bcw-page-transition.js?v=1"></script>
 </head>
 <body class="student-app-body">
 
-    <!-- กล่องเลื่อนอิสระหลัก (ครอบเนื้อหาหน้าหลักทั้งหมด) -->
+    <!-- ครอบเนื้อหาหน้าหลักทั้งหมด -->
     <div id="appScrollContainer">
 
         <!-- 1. TOP APP HEADER -->
@@ -338,7 +344,7 @@
                 <div class="flex justify-between items-center gap-2">
                     <div class="flex items-center gap-2.5 min-w-0 flex-1">
                         <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-amber-300/60 flex items-center justify-center">
-                            <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
+                            <img src="../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5">
@@ -1023,8 +1029,7 @@
         if (tab === 'home') {
             closeAllDrawers();
             setActiveBottomNav('navHome');
-            const scroller = document.getElementById('appScrollContainer');
-            if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (tab === 'alert') {
             openDrawerById('notificationDrawerBackdrop');
             setActiveBottomNav('navAlert');
@@ -1082,21 +1087,18 @@
     setInterval(updateHeaderClock, 1000);
     updateHeaderClock();
 
-    /* จับการเลื่อนจากกล่อง #appScrollContainer เพื่อซ่อน/แสดงเมนูลอยด้านล่าง */
+    /* จับการเลื่อนจาก window เพื่อให้ Chrome ซ่อนแถบ URL อัตโนมัติ และซ่อน/แสดงเมนูลอยพร้อมกัน */
     (function initSmartScrollBottomNav() {
-        const scroller = document.getElementById('appScrollContainer');
-        if (!scroller) return;
-
-        let lastScrollY = scroller.scrollTop || 0;
+        let lastScrollY = window.scrollY || 0;
         let ticking = false;
 
         function handleScroll() {
             const nav = document.getElementById('nativeBottomNav');
             if (!nav) return;
 
-            const currentScrollY = scroller.scrollTop || 0;
-            const docHeight = scroller.scrollHeight;
-            const winHeight = scroller.clientHeight;
+            const currentScrollY = window.scrollY || 0;
+            const docHeight = document.documentElement.scrollHeight;
+            const winHeight = window.innerHeight;
 
             if (currentScrollY <= 20 || (currentScrollY + winHeight >= docHeight - 24)) {
                 nav.classList.remove('nav-hidden');
@@ -1110,7 +1112,7 @@
             ticking = false;
         }
 
-        scroller.addEventListener('scroll', () => {
+        window.addEventListener('scroll', () => {
             if (!ticking) {
                 window.requestAnimationFrame(handleScroll);
                 ticking = true;
@@ -1175,10 +1177,10 @@
 
 <!-- Supabase & Core Engine -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../core/supabase-client.js?v=400"></script>
-<script src="../../core/auth-service.js?v=400"></script>
-<script src="../../core/auth-manager.js?v=400"></script>
-<script src="../../core/guard-student-parent.js?v=400"></script>
+<script src="../core/supabase-client.js?v=400"></script>
+<script src="../core/auth-service.js?v=400"></script>
+<script src="../core/auth-manager.js?v=400"></script>
+<script src="../core/guard-student-parent.js?v=400"></script>
 
 <!-- Student Data & Logic Integration -->
 <script>
@@ -2142,8 +2144,14 @@
             }
         });
     }
+
+    /* ลงทะเบียน Service Worker (PWA) เพื่อเปิดโหมดเต็มจอไร้แถบ URL */
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('../sw.js').catch(() => {});
+        });
+    }
 </script>
-<script src="../../core/bcw-profile-modal.js?v=3"></script>
+<script src="../core/bcw-profile-modal.js?v=3"></script>
 </body>
 </html>
-
