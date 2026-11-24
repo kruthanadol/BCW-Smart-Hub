@@ -455,6 +455,14 @@
                     <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
                 </button>
 
+                <button type="button" onclick="window.syncCrossAppAcademicData(true); toggleAcademicDrawer();" class="w-full text-left p-3 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-950 rounded-2xl flex items-center justify-between cursor-pointer active:scale-98">
+                    <span class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-rotate"></i></span>
+                        <span>อัปเดตข้อมูลเชื่อมต่อข้ามแอปทันที</span>
+                    </span>
+                    <i class="fa-solid fa-bolt text-[10px] text-sky-700"></i>
+                </button>
+
                 <a href="teacher.html" class="w-full text-left p-3 bg-slate-50 hover:bg-amber-50 border border-slate-200 rounded-2xl flex items-center justify-between">
                     <span class="flex items-center gap-2.5">
                         <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs"><i class="fa-solid fa-chalkboard-user"></i></span>
@@ -502,7 +510,7 @@
             </div>
         </section>
 
-<!-- 📈 แผนภูมิแสดงจำนวนนักเรียนเสี่ยงติด มส. และเรียนซ้ำ -->
+        <!-- 📈 แผนภูมิแสดงจำนวนนักเรียนเสี่ยงติด มส. และเรียนซ้ำ -->
         <section id="section-charts" class="academic-card p-2.5 md:p-4 flex-1 flex flex-col min-h-0">
             <div class="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-100 pb-2 shrink-0">
                 <div class="min-w-0 flex items-center gap-1.5">
@@ -537,6 +545,7 @@
                 <canvas id="riskChart"></canvas>
             </div>
         </section>
+
         <!-- 📱 APP GRID 4 รายงานวิเคราะห์วิชาการ (มือถือ) -->
         <div class="grid grid-cols-4 gap-2 shrink-0 lg:hidden no-print">
             <button type="button" onclick="openAcademicSheet('levelSummaryDrawer')" class="mobile-app-card border-indigo-200 cursor-pointer">
@@ -721,7 +730,7 @@
         </button>
     </nav>
 
-    <!-- ================= BOTTOM SHEET DRAWERS (รองรับปุ่มส่งออกรายหัวข้อบนมือถือด้วย) ================= -->
+    <!-- ================= BOTTOM SHEET DRAWERS ================= -->
 
     <!-- Drawer A: สรุปรายงานผล มส. แยกระดับชั้นและห้องเรียน -->
     <div id="levelSummaryDrawer" class="bottom-sheet-backdrop" onclick="closeAcademicSheet('levelSummaryDrawer')">
@@ -1153,6 +1162,15 @@
         window.RAW_ACADEMIC_RECORDS = [];
         window.ACTIVE_GRADE_FILTER = 'ALL';
         window.LEVEL_SUMMARY_MODE = 'grade';
+        window.CURRENT_CHART_VIEW = 'room';
+
+        // ฟังก์ชันคืนค่าวันที่ปัจจุบันตามเวลาประเทศไทย (Asia/Bangkok) ป้องกัน UTC เลื่อน
+        window.getThaiTodayISO = function() {
+            const now = new Date();
+            const bangkokStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+            return bangkokStr; // YYYY-MM-DD
+        };
+
         window.globalProcessedData = {
             overallAttendance: 0,
             countWarning: 0,
@@ -1192,10 +1210,9 @@
             if (!tables.length) return alert('ไม่พบตารางข้อมูลในหัวข้อนี้');
 
             const wb = XLSX.utils.book_new();
-            const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' });
 
             tables.forEach((tbl, idx) => {
-                // คัดลอกตารางและตัดคอลัมน์ปุ่มจัดการ/แจ้งเตือน (.no-print) ออกก่อนแปลงเป็น Excel
                 const clonedTbl = tbl.cloneNode(true);
                 clonedTbl.querySelectorAll('.no-print').forEach(el => el.remove());
 
@@ -1220,45 +1237,37 @@
             });
 
             const safeFileName = topicTitle.replace(/[^ก-๙a-zA-Z0-9]/g, '_').replace(/_+/g, '_').slice(0, 40);
-            XLSX.writeFile(wb, `วิชาการ_${safeFileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            XLSX.writeFile(wb, `วิชาการ_${safeFileName}_${window.getThaiTodayISO()}.xlsx`);
         };
 
-        // ===== ฟังก์ชันพิมพ์ PDF เสนอผู้บริหาร เฉพาะหัวข้อที่กด (ไม่ติดหัวข้ออื่น) =====
+        // ===== ฟังก์ชันพิมพ์ PDF เสนอผู้บริหาร เฉพาะหัวข้อที่กด =====
         window.printSingleTopicPDF = function(btnElement) {
             const cardEl = btnElement.closest('.report-topic-card');
             if (!cardEl) return alert('ไม่พบข้อมูลในหัวข้อนี้');
 
             const topicTitle = cardEl.getAttribute('data-topic-title') || 'รายงานสารสนเทศกลุ่มบริหารวิชาการ';
             const printBox = document.getElementById('single-topic-print-box');
-            const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' });
 
-            // คัดลอกเฉพาะการ์ดหัวข้อนี้ และตัดคอลัมน์ปุ่มจัดการ/กราฟ/ตัวกรองออก
             const contentClone = cardEl.cloneNode(true);
             contentClone.querySelectorAll('.no-print, .topic-export-controls, button, input, select').forEach(el => el.remove());
 
-            // ขยายตารางในหัวข้อที่ 1 ให้เต็มความกว้างกระดาษเมื่อซ่อนกราฟด้านซ้าย
             const col7 = contentClone.querySelector('.col-span-7');
             if (col7) col7.className = 'col-span-12 w-full';
 
-            // ลบหัวข้อซ้ำด้านบนของการ์ด (เพราะใส่ไว้ในหัวหนังสือราชการแล้ว)
             const firstHeaderBar = contentClone.querySelector('.border-b');
             if (firstHeaderBar && firstHeaderBar.querySelector('h3')) firstHeaderBar.remove();
 
             printBox.innerHTML = `
                 <div style="font-family: 'Sarabun', 'Kanit', sans-serif; padding: 4px;">
-                    <!-- หัวหนังสือราชการเฉพาะเรื่อง -->
                     <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px;">
                         <div style="font-size: 16px; font-weight: 800;">บันทึกสารสนเทศกลุ่มบริหารวิชาการ • โรงเรียนบัวเชดวิทยา</div>
                         <div style="font-size: 14px; font-weight: 700; color: #1e3a8a; margin-top: 2px;">เรื่อง: ${topicTitle}</div>
                         <div style="font-size: 11px; color: #475569; margin-top: 2px;">สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์ • ประมวลผลข้อมูล ณ วันที่ ${todayTH}</div>
                     </div>
-
-                    <!-- ตารางข้อมูลเฉพาะหัวข้อนี้ -->
                     <div>
                         ${contentClone.innerHTML}
                     </div>
-
-                    <!-- ส่วนลงนามเสนอผู้บริหาร -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; text-align: center; font-size: 11px; margin-top: 28px; page-break-inside: avoid;">
                         <div>
                             <p>ลงชื่อ......................................................</p>
@@ -1285,22 +1294,12 @@
             window.print();
             printBox.classList.add('hidden');
         };
-        // ตัวแปรเก็บสถานะมุมมองกราฟปัจจุบัน ('room' หรือ 'grade')
-        window.CURRENT_CHART_VIEW = 'room';
 
-        // อัปเดตฟังก์ชันสลับมุมมองกราฟให้จำค่าล่าสุดไว้ด้วย
-        const originalSwitchChartView = window.switchChartView;
-        window.switchChartView = function(viewType) {
-            window.CURRENT_CHART_VIEW = viewType;
-            if (originalSwitchChartView) originalSwitchChartView(viewType);
-        };
-
-        // 1. บันทึกรูปกราฟเป็นไฟล์ PNG พื้นหลังสีขาว (พร้อมนำไปใส่สไลด์หรือส่งไลน์)
+        // 1. บันทึกรูปกราฟเป็นไฟล์ PNG พื้นหลังสีขาว
         window.downloadChartImage = function() {
             const canvas = document.getElementById('riskChart');
             if (!canvas) return alert('ไม่พบกราฟข้อมูล');
 
-            // สร้าง Canvas ชั่วคราวเติมพื้นหลังสีขาว (ป้องกันพื้นหลังโปร่งใสอ่านยาก)
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = canvas.width;
             tempCanvas.height = canvas.height;
@@ -1311,25 +1310,23 @@
 
             const link = document.createElement('a');
             const viewLabel = window.CURRENT_CHART_VIEW === 'grade' ? 'ระดับชั้น' : 'รายห้องเรียน';
-            link.download = `กราฟสถิติ_มส_${viewLabel}_${new Date().toISOString().slice(0, 10)}.png`;
+            link.download = `กราฟสถิติ_มส_${viewLabel}_${window.getThaiTodayISO()}.png`;
             link.href = tempCanvas.toDataURL('image/png', 1.0);
             link.click();
         };
 
-        // 2. พิมพ์กราฟติดหน้าบอร์ดประชาสัมพันธ์ (จัดหน้า A4 แนวนอน ตัวใหญ่ อ่านง่าย พร้อมตารางสรุปใต้กราฟ)
+        // 2. พิมพ์กราฟติดหน้าบอร์ดประชาสัมพันธ์
         window.printChartForBoard = function() {
             const canvas = document.getElementById('riskChart');
             const printBox = document.getElementById('single-topic-print-box');
             if (!canvas || !printBox) return alert('ไม่สามารถสร้างหน้าพิมพ์กราฟได้');
 
-            // แปลงกราฟปัจจุบันเป็นรูปภาพความคมชัดสูง
             const chartImgDataUrl = canvas.toDataURL('image/png', 1.0);
-            const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' });
             const viewTitle = window.CURRENT_CHART_VIEW === 'grade'
                 ? 'จำแนกตามระดับชั้น (ม.1 – ม.6)'
                 : 'จำแนกตามห้องเรียน';
 
-            // ดึงข้อมูลตัวเลขมาสร้างตารางสรุปด้านล่างกราฟเพื่อให้อ่านง่ายขึ้นเมื่อติดบอร์ด
             const data = window.globalProcessedData || {};
             const summaryObj = window.CURRENT_CHART_VIEW === 'grade' ? (data.gradeSummary || {}) : (data.roomSummary || {});
             const keys = Object.keys(summaryObj).sort();
@@ -1341,18 +1338,13 @@
 
             printBox.innerHTML = `
                 <div style="font-family: 'Kanit', sans-serif; padding: 6px; text-align: center;">
-                    <!-- หัวป้ายติดบอร์ดขนาดใหญ่ -->
                     <div style="background: #1e1b4b; color: #ffffff; padding: 10px 16px; border-radius: 12px; margin-bottom: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                         <div style="font-size: 20px; font-weight: 800; color: #facc15;">📊 สถิตินักเรียนกลุ่มเฝ้าระวัง เสี่ยงติด มส. และต้องเรียนซ้ำ</div>
                         <div style="font-size: 14px; font-weight: 600; margin-top: 2px;">${viewTitle} • กลุ่มบริหารวิชาการ โรงเรียนบัวเชดวิทยา (ข้อมูล ณ วันที่ ${todayTH})</div>
                     </div>
-
-                    <!-- รูปกราฟขนาดใหญ่เต็มหน้ากระดาษ -->
                     <div style="border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 10px; background: #ffffff; margin-bottom: 12px;">
                         <img src="${chartImgDataUrl}" style="width: 100%; max-height: 360px; object-fit: contain; margin: 0 auto;" />
                     </div>
-
-                    <!-- ตารางตัวเลขสรุปประกอบกราฟด้านล่าง -->
                     <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                         <thead>
                             <tr>
@@ -1476,7 +1468,7 @@
             if (!tbody) return;
             const data = window.globalProcessedData || {};
             const sourceObj = window.LEVEL_SUMMARY_MODE === 'grade' ? (data.gradeSummary || {}) : (data.roomSummary || {});
-            const keys = Object.keys(sourceObj).sort();
+            const keys = Object.keys(sourceObj).sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
 
             if (keys.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">ยังไม่มีข้อมูลสรุปตามระดับชั้น/ห้องเรียน</td></tr>`;
@@ -1568,7 +1560,7 @@
             const data = window.globalProcessedData || {};
             const roomObj = data.roomSummary || {};
             let csv = "\uFEFFระดับชั้น/ห้องเรียน,เฝ้าระวังพิเศษ (80-82%),เสี่ยงติด มส. (60-79%),ต้องเรียนซ้ำ (<60%),รวมทั้งหมด\n";
-            Object.keys(roomObj).sort().forEach(room => {
+            Object.keys(roomObj).sort((a, b) => a.localeCompare(b, 'th', { numeric: true })).forEach(room => {
                 const r = roomObj[room];
                 const total = (r.warning || 0) + (r.risk || 0) + (r.repeat || 0);
                 csv += `${room},${r.warning || 0},${r.risk || 0},${r.repeat || 0},${total}\n`;
@@ -1577,7 +1569,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `รายงานสรุปผล_มส_แยกชั้นห้อง_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = `รายงานสรุปผล_มส_แยกชั้นห้อง_${window.getThaiTodayISO()}.csv`;
             a.click();
             URL.revokeObjectURL(url);
         };
@@ -1678,12 +1670,12 @@
             }
         }
 
-        window.updateChartsWithData = function(data, viewType = 'room') {
+        window.updateChartsWithData = function(data, viewType = window.CURRENT_CHART_VIEW || 'room') {
             if (!window.riskChartInst) initChartsImmediate();
             if (!window.riskChartInst) return;
 
             const summaryObj = (viewType === 'room') ? data.roomSummary : data.gradeSummary;
-            const labels = Object.keys(summaryObj || {});
+            const labels = Object.keys(summaryObj || {}).sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
             
             window.riskChartInst.data.labels = labels;
             window.riskChartInst.data.datasets[0].data = labels.map(k => summaryObj[k].warning || 0);
@@ -1699,6 +1691,7 @@
         };
 
         window.switchChartView = function(viewType) {
+            window.CURRENT_CHART_VIEW = viewType;
             const btnRoom = document.getElementById('btnByRoom');
             const btnGrade = document.getElementById('btnByGrade');
 
@@ -1717,7 +1710,7 @@
             renderLevelSummaryTable();
 
             const dateInput = document.getElementById('teacherMonitorDate');
-            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            if (dateInput) dateInput.value = window.getThaiTodayISO();
 
             // ปัดขวาเพื่อปิด Side Drawer ด้านข้าง
             const sideDrawer = document.getElementById('drawerContent');
@@ -1783,11 +1776,20 @@
         });
     </script>
 
-    <!-- ================= 2. SUPABASE DATABASE CONNECTION ================= -->
+    <!-- ================= 2. CROSS-APP SUPABASE SYNC & ANALYTICS ================= -->
     <script type="module">
-        const db = window.db;
+        // ดึง Supabase Client ให้ครอบคลุมทุกชื่อตัวแปรของ BCW Smart Hub
+        const getDb = () => window.db || window.supabaseClient || window._supabase || null;
         let activeRecordForRemediation = null;
+        let resolvedKeysSet = new Set(); // เก็บรายการที่อนุมัติแก้ มส. แล้วไม่ให้กลับมานับซ้ำ
 
+        // ฟังก์ชันตรวจสอบสถานะการมาเรียนมาตรฐานเดียวกับแอปครู/นักเรียน/ผู้ปกครอง
+        function isPresentStatus(status) {
+            const s = String(status || '').trim().toLowerCase();
+            return ['มาเรียน', 'มา', 'present', 'สาย', 'late'].includes(s);
+        }
+
+        // 1. คำนวณสถิติและจัดกลุ่มเสี่ยง มส. จากข้อมูลที่เชื่อมมาจากทุกแอป
         function processRiskRecords(records = []) {
             let totalPct = 0, validPctCount = 0;
             const warningList = [], riskList = [], repeatList = [];
@@ -1805,8 +1807,11 @@
 
             records.forEach(rec => {
                 if (rec.resolved_at) return;
+                const uniqueKey = `${rec.student_id}_${rec.subject_name}`;
+                if (resolvedKeysSet.has(uniqueKey)) return;
+
                 const s = rec.students || {};
-                const room = s.classroom || 'ไม่ระบุห้อง';
+                const room = String(s.classroom || 'ไม่ระบุห้อง').trim();
                 const gradeMatch = room.match(/ม\.\d/);
                 const grade = gradeMatch ? gradeMatch[0] : 'อื่นๆ';
 
@@ -1855,7 +1860,7 @@
                 .slice(0, 10);
 
             return {
-                overallAttendance: validPctCount > 0 ? Math.round(totalPct / validPctCount) : 0,
+                overallAttendance: validPctCount > 0 ? Math.round(totalPct / validPctCount) : (window.DAILY_ATTENDANCE_FALLBACK || 0),
                 countWarning: warningList.length,
                 countRisk: riskList.length,
                 countRepeat: repeatList.length,
@@ -1883,40 +1888,153 @@
 
             renderTopSubjects(data.topSubjects);
             window.renderLevelSummaryTable();
-            window.updateChartsWithData(data, 'room');
+            window.updateChartsWithData(data, window.CURRENT_CHART_VIEW);
         };
 
+        // 2. เชื่อมต่อสถานะ "เช็กชื่อสอนวันนี้" จากแอปครู (attendance_logs / teacher_schedules)
         async function updateDailyTeacherCheckProgress() {
+            const db = getDb();
             if (!db) return;
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = window.getThaiTodayISO();
+
             try {
-                const { data: logs, error } = await db.from('teacher_attendance')
-                    .select('status')
-                    .eq('date', todayStr);
-        
-                if (!error && logs && logs.length > 0) {
-                    const totalClasses = logs.length;
-                    const checkedClasses = logs.filter(l => l.status === 'checked').length;
-                    const percent = Math.round((checkedClasses / totalClasses) * 100);
-        
-                    const percentElem = document.getElementById('subHeaderAttendance');
-                    const countElem = document.getElementById('subHeaderClassCount');
-                    if (percentElem) percentElem.innerText = `${percent}%`;
-                    if (countElem) countElem.innerText = `(${checkedClasses}/${totalClasses} คาบ)`;
+                // ดึงรายการเช็กชื่อรายคาบวันนี้จาก attendance_logs (ที่แอปครูบันทึก)
+                const { data: logs } = await db.from('attendance_logs')
+                    .select('period_no, classroom, subject_name, status')
+                    .eq('date', todayStr)
+                    .gt('period_no', 0);
+
+                // ดึงตารางสอนวันนี้เพื่อหาจำนวนคาบสอนทั้งหมด (ถ้ามี)
+                const dayOfWeek = new Date().getDay(); // 0=อาทิตย์ .. 6=เสาร์
+                const { data: schedules } = await db.from('teacher_schedules')
+                    .select('id')
+                    .eq('day_of_week', dayOfWeek);
+
+                const checkedSessionSet = new Set();
+                let presentCount = 0;
+
+                if (logs && logs.length > 0) {
+                    logs.forEach(l => {
+                        const sessionKey = `${l.period_no}_${l.classroom || ''}_${l.subject_name || ''}`;
+                        checkedSessionSet.add(sessionKey);
+                        if (isPresentStatus(l.status)) presentCount++;
+                    });
+                    // เก็บ % เข้าเรียนรายวันเป็นค่าสำรองหากยังไม่มีสรุปรายภาคเรียน
+                    window.DAILY_ATTENDANCE_FALLBACK = Math.round((presentCount / logs.length) * 100);
                 }
-            } catch (e) {}
+
+                const checkedClasses = checkedSessionSet.size;
+                const totalClasses = (schedules && schedules.length >= checkedClasses && schedules.length > 0)
+                    ? schedules.length
+                    : checkedClasses;
+
+                const percent = totalClasses > 0 ? Math.round((checkedClasses / totalClasses) * 100) : 0;
+
+                const percentElem = document.getElementById('subHeaderAttendance');
+                const countElem = document.getElementById('subHeaderClassCount');
+                if (percentElem) percentElem.innerText = `${percent}%`;
+                if (countElem) countElem.innerText = `(${checkedClasses}/${totalClasses} คาบ)`;
+            } catch (e) {
+                console.warn('Daily teacher progress sync:', e);
+            }
         }
 
+        // 3. เชื่อมต่อข้อมูลนักเรียน + บันทึกเช็กชื่อรายคาบจากแอปครู/นักเรียน/ผู้ปกครอง
         async function loadDashboard() {
-            if (db) {
-                try {
-                    const { data: records, error } = await db.from('academic_risk_summary')
-                        .select('*, students(prefix, first_name, last_name, classroom, advisor_name)');
+            const db = getDb();
+            if (!db) {
+                window.recalculateAndRenderDashboard();
+                return;
+            }
 
-                    if (!error && records) {
-                        window.RAW_ACADEMIC_RECORDS = records;
+            try {
+                // โหลดรายการที่อนุมัติแก้ มส. ไปแล้ว (ถ้ามีตาราง academic_risk_summary)
+                resolvedKeysSet.clear();
+                let precomputedRecords = [];
+                try {
+                    const resSummary = await db.from('academic_risk_summary')
+                        .select('*, students(id, prefix, first_name, last_name, classroom, advisor_name)');
+                    if (!resSummary.error && resSummary.data) {
+                        precomputedRecords = resSummary.data;
+                        resSummary.data.forEach(r => {
+                            if (r.resolved_at) resolvedKeysSet.add(`${r.student_id}_${r.subject_name}`);
+                        });
                     }
-                } catch (e) {}
+                } catch (_) {}
+
+                // ดึงฐานข้อมูลนักเรียนทั้งหมดเพื่อสร้างโครงสร้างห้องเรียนจริงครบทุกห้อง
+                const { data: studentsData } = await db.from('students')
+                    .select('id, student_code, prefix, first_name, last_name, classroom, advisor_name');
+
+                const studentMap = {};
+                const initialRooms = {};
+                if (studentsData && studentsData.length > 0) {
+                    studentsData.forEach(st => {
+                        studentMap[st.id] = st;
+                        if (st.student_code) studentMap[st.student_code] = st;
+                        const room = String(st.classroom || '').trim();
+                        if (room && !initialRooms[room]) {
+                            initialRooms[room] = { warning: 0, risk: 0, repeat: 0 };
+                        }
+                    });
+                    if (Object.keys(initialRooms).length > 0) {
+                        window.globalProcessedData.roomSummary = initialRooms;
+                    }
+                }
+
+                // คำนวณเปอร์เซ็นต์เข้าเรียนรายวิชาจาก attendance_logs (period_no > 0) โดยตรง
+                const { data: attLogs, error: attErr } = await db.from('attendance_logs')
+                    .select('student_id, subject_name, subject_code, teacher_name, status, period_no')
+                    .gt('period_no', 0);
+
+                if (!attErr && attLogs && attLogs.length > 0) {
+                    const pairStats = {};
+                    attLogs.forEach(log => {
+                        const sid = log.student_id;
+                        const subName = log.subject_name || log.subject_code || 'รายวิชาทั่วไป';
+                        if (!sid) return;
+
+                        const key = `${sid}__${subName}`;
+                        if (!pairStats[key]) {
+                            pairStats[key] = {
+                                student_id: sid,
+                                subject_name: subName,
+                                teacher_name: log.teacher_name || '-',
+                                total: 0,
+                                present: 0
+                            };
+                        }
+                        pairStats[key].total++;
+                        if (isPresentStatus(log.status)) {
+                            pairStats[key].present++;
+                        }
+                        if (log.teacher_name && pairStats[key].teacher_name === '-') {
+                            pairStats[key].teacher_name = log.teacher_name;
+                        }
+                    });
+
+                    const computedRecords = Object.values(pairStats).map((item, idx) => {
+                        const pct = item.total > 0 ? Math.round((item.present / item.total) * 100) : 100;
+                        const st = studentMap[item.student_id] || { classroom: 'ไม่ระบุห้อง', first_name: 'รหัส ' + item.student_id };
+                        // ค้นหา record เดิมใน academic_risk_summary (ถ้ามี) เพื่อคง id ไว้ตอนอัปเดต
+                        const existing = precomputedRecords.find(p => String(p.student_id) === String(item.student_id) && p.subject_name === item.subject_name);
+                        return {
+                            id: existing ? existing.id : `computed_${idx}_${item.student_id}`,
+                            student_id: item.student_id,
+                            subject_name: item.subject_name,
+                            teacher_name: item.teacher_name,
+                            attendance_percentage: pct,
+                            resolved_at: existing ? existing.resolved_at : null,
+                            students: st
+                        };
+                    });
+
+                    window.RAW_ACADEMIC_RECORDS = computedRecords;
+                } else if (precomputedRecords.length > 0) {
+                    window.RAW_ACADEMIC_RECORDS = precomputedRecords;
+                }
+            } catch (e) {
+                console.warn('Load academic dashboard error:', e);
             }
 
             window.recalculateAndRenderDashboard();
@@ -1976,6 +2094,7 @@
 
         async function loadResolvedTable() {
             const tbody = document.getElementById('resolvedTableBody');
+            const db = getDb();
             if (!tbody) return;
             if (!db) {
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">ยังไม่มีรายการที่ได้รับการอนุมัติแก้ไข</td></tr>`;
@@ -2012,39 +2131,63 @@
             }
         }
 
+        // 4. เชื่อมต่อภาระงาน/การบ้านจากตาราง homeworks (แอปครู/นักเรียน) และ assignments
         async function loadSubjectGroupSummary() {
             const tbody = document.getElementById('subjectGroupTableBody');
+            const db = getDb();
             if (!tbody) return;
 
-            const groups = ["คณิตศาสตร์", "ภาษาต่างประเทศ", "วิทยาศาสตร์และเทคโนโลยี", "ภาษาไทย", "สังคมศึกษา ศาสนา และวัฒนธรรม", "สุขศึกษาและพลศึกษา", "ศิลปะ", "การงานอาชีพ"];
-            let assignments = [];
+            const groups = [
+                "คณิตศาสตร์",
+                "ภาษาต่างประเทศ",
+                "วิทยาศาสตร์และเทคโนโลยี",
+                "ภาษาไทย",
+                "สังคมศึกษา ศาสนา และวัฒนธรรม",
+                "สุขศึกษาและพลศึกษา",
+                "ศิลปะ",
+                "การงานอาชีพ"
+            ];
+
+            let allWorks = [];
             if (db) {
                 try {
-                    const res = await db.from('assignments').select('subject_group, subject_name');
-                    if (!res.error && res.data) assignments = res.data;
+                    const [resHw, resAss] = await Promise.all([
+                        db.from('homeworks').select('*'),
+                        db.from('assignments').select('*')
+                    ]);
+                    if (!resHw.error && resHw.data) allWorks.push(...resHw.data);
+                    if (!resAss.error && resAss.data) allWorks.push(...resAss.data);
                 } catch (e) {}
             }
+            window.CACHED_HOMEWORKS = allWorks;
 
             tbody.innerHTML = '';
             groups.forEach(group => {
-                const count = assignments.filter(a => a.subject_group === group).length;
+                const matched = allWorks.filter(a => {
+                    const g = String(a.subject_group || a.department || a.subject_name || '');
+                    return g.includes(group) || group.includes(g && g.length > 3 ? g : '___');
+                });
+                const uniqueSubjects = new Set(matched.map(m => m.subject_name || m.subject_code).filter(Boolean));
+
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-indigo-50/50 cursor-pointer transition";
                 tr.onclick = () => window.showAcademicModal(group);
                 tr.innerHTML = `
                     <td class="py-2.5 px-2 text-slate-900 font-bold">${group}</td>
-                    <td class="py-2.5 px-2 text-center font-bold text-slate-600">8 วิชา</td>
-                    <td class="py-2.5 px-2 text-center font-bold text-indigo-700">${count} รายการ</td>
+                    <td class="py-2.5 px-2 text-center font-bold text-slate-600">${uniqueSubjects.size || '-'} วิชา</td>
+                    <td class="py-2.5 px-2 text-center font-bold text-indigo-700">${matched.length} รายการ</td>
                     <td class="py-2.5 px-2 text-center no-print"><button type="button" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 text-[11px] font-bold px-2 py-1 rounded-lg whitespace-nowrap cursor-pointer"><i class="fa-solid fa-search mr-1"></i> ดูการบ้าน</button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
+        // 5. ติดตามการเข้าสอนและการเช็กชื่อรายคาบจาก attendance_logs + teacher_schedules
         window.loadTeacherAttendanceMonitor = async function() {
-            const dateVal = document.getElementById('teacherMonitorDate')?.value;
-            const periodVal = document.getElementById('teacherMonitorPeriod')?.value || '1';
+            const dateVal = document.getElementById('teacherMonitorDate')?.value || window.getThaiTodayISO();
+            const periodVal = Number(document.getElementById('teacherMonitorPeriod')?.value || '1');
             const tbody = document.getElementById('teacherMonitorTableBody');
+            const db = getDb();
             if (!tbody) return;
 
             if (!db) {
@@ -2055,24 +2198,68 @@
             tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-400">กำลังดึงข้อมูลเข้าสอน...</td></tr>`;
 
             try {
-                const { data: logs, error } = await db.from('teacher_attendance')
-                    .select('*, teachers(prefix, first_name, last_name)')
+                // ดึงรายการเช็กชื่อจริงของวันที่และคาบที่เลือกจาก attendance_logs
+                const { data: logs } = await db.from('attendance_logs')
+                    .select('teacher_name, teacher_id, subject_name, classroom, created_at')
                     .eq('date', dateVal)
-                    .eq('period', periodVal);
+                    .eq('period_no', periodVal);
+
+                // ดึงตารางสอนตามวันในสัปดาห์ของวันที่เลือก
+                const selectedDateObj = new Date(dateVal + 'T12:00:00+07:00');
+                const dayOfWeek = selectedDateObj.getDay();
+                const { data: schedules } = await db.from('teacher_schedules')
+                    .select('*')
+                    .eq('day_of_week', dayOfWeek)
+                    .eq('period_no', periodVal);
+
+                const checkedMap = new Map();
+                (logs || []).forEach(l => {
+                    const key = `${l.classroom || ''}_${l.subject_name || ''}`;
+                    if (!checkedMap.has(key)) {
+                        const timeStr = l.created_at
+                            ? new Date(l.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.'
+                            : 'เช็กแล้ว';
+                        checkedMap.set(key, {
+                            teacher_name: l.teacher_name || 'ครูผู้สอน',
+                            subject_name: l.subject_name || '-',
+                            classroom: l.classroom || '-',
+                            check_time: timeStr,
+                            status: 'checked'
+                        });
+                    }
+                });
+
+                const rowsList = [];
+                if (schedules && schedules.length > 0) {
+                    schedules.forEach(sch => {
+                        const key = `${sch.classroom || ''}_${sch.subject_name || ''}`;
+                        if (checkedMap.has(key)) {
+                            rowsList.push(checkedMap.get(key));
+                            checkedMap.delete(key);
+                        } else {
+                            rowsList.push({
+                                teacher_name: sch.teacher_name || 'ครูผู้สอน',
+                                subject_name: sch.subject_name || '-',
+                                classroom: sch.classroom || '-',
+                                check_time: '-',
+                                status: dateVal === window.getThaiTodayISO() ? 'pending' : 'missing'
+                            });
+                        }
+                    });
+                }
+                // เพิ่มคาบที่มีการเช็กชื่อจริงแต่ไม่อยู่ในตารางสอนหลัก (เช่น สอนชดเชย/สอนแทน)
+                checkedMap.forEach(val => rowsList.push(val));
 
                 let checked = 0, pending = 0, missing = 0;
                 tbody.innerHTML = '';
 
-                if (!error && logs && logs.length > 0) {
-                    logs.forEach(log => {
-                        const t = log.teachers || {};
-                        const name = `${t.prefix || ''}${t.first_name || ''} ${t.last_name || ''}`.trim() || 'ครูผู้สอน';
-                        
+                if (rowsList.length > 0) {
+                    rowsList.forEach(item => {
                         let statusBadge = '';
-                        if (log.status === 'checked') {
+                        if (item.status === 'checked') {
                             checked++;
                             statusBadge = `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">🟢 เช็กชื่อแล้ว</span>`;
-                        } else if (log.status === 'pending') {
+                        } else if (item.status === 'pending') {
                             pending++;
                             statusBadge = `<span class="bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">🟡 รอเช็ก</span>`;
                         } else {
@@ -2084,17 +2271,17 @@
                         tr.className = "hover:bg-slate-50 border-b border-slate-200";
                         tr.innerHTML = `
                             <td class="py-2 px-1 text-center font-bold text-indigo-900">${periodVal}</td>
-                            <td class="py-2 px-2 font-bold">${name}</td>
-                            <td class="py-2 px-2">${log.subject_name || '-'}</td>
-                            <td class="py-2 px-2 text-center font-bold">${log.classroom || '-'}</td>
-                            <td class="py-2 px-2 text-center text-slate-500 font-bold">${log.check_time || '-'}</td>
+                            <td class="py-2 px-2 font-bold">${item.teacher_name}</td>
+                            <td class="py-2 px-2">${item.subject_name}</td>
+                            <td class="py-2 px-2 text-center font-bold">${item.classroom}</td>
+                            <td class="py-2 px-2 text-center text-slate-500 font-bold">${item.check_time}</td>
                             <td class="py-2 px-2 text-center">${statusBadge}</td>
-                            <td class="py-2 px-2 text-center no-print"><button type="button" onclick="alert('ส่งแจ้งเตือนไปยัง ${name} เรียบร้อยแล้ว')" class="bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap cursor-pointer">🔔 เตือน</button></td>
+                            <td class="py-2 px-2 text-center no-print"><button type="button" onclick="alert('ส่งแจ้งเตือนไปยัง ${item.teacher_name} เรียบร้อยแล้ว')" class="bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap cursor-pointer">🔔 เตือน</button></td>
                         `;
                         tbody.appendChild(tr);
                     });
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-400">ไม่มีตารางการสอนในคาบนี้สำหรับวันที่เลือก</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-400">ไม่มีตารางการสอนหรือบันทึกเช็กชื่อในคาบนี้สำหรับวันที่เลือก</td></tr>`;
                 }
 
                 document.getElementById('pTotalClasses').innerText = `${checked + pending + missing} วิชา`;
@@ -2121,22 +2308,37 @@
 
         window.submitRemediationForm = async function(e) {
             e.preventDefault();
+            const db = getDb();
             if (!activeRecordForRemediation || !db) return;
 
             const statusSelect = document.getElementById('remStatusSelect').value;
             const note = document.getElementById('remNote').value.trim();
 
             try {
-                const { error } = await db.from('academic_risk_summary')
-                    .update({
+                const isComputed = String(activeRecordForRemediation.id).startsWith('computed_');
+                if (isComputed) {
+                    const { error } = await db.from('academic_risk_summary').insert({
+                        student_id: activeRecordForRemediation.student_id,
+                        subject_name: activeRecordForRemediation.subject_name,
+                        teacher_name: activeRecordForRemediation.teacher_name,
+                        attendance_percentage: activeRecordForRemediation.attendance_percentage,
                         status: statusSelect,
                         remediation_note: note,
                         resolved_at: new Date().toISOString()
-                    })
-                    .eq('id', activeRecordForRemediation.id);
+                    });
+                    if (error) throw error;
+                } else {
+                    const { error } = await db.from('academic_risk_summary')
+                        .update({
+                            status: statusSelect,
+                            remediation_note: note,
+                            resolved_at: new Date().toISOString()
+                        })
+                        .eq('id', activeRecordForRemediation.id);
+                    if (error) throw error;
+                }
 
-                if (error) throw error;
-                alert('🎉 บันทึกการอนุมัติลง Supabase เรียบร้อยแล้ว!');
+                alert('🎉 บันทึกการอนุมัติลงฐานข้อมูล BCW Smart Hub เรียบร้อยแล้ว!');
                 window.closeRemediationModal();
                 await loadDashboard();
             } catch (err) {
@@ -2150,46 +2352,59 @@
             const tbody = document.getElementById('modalAssignmentTableBody');
 
             title.innerText = `รายละเอียดภาระงานกลุ่มสาระฯ: ${subjectGroup}`;
-            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">กำลังดึงข้อมูลภาระงาน...</td></tr>`;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
 
-            if (!db) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">ไม่พบภาระงานในกลุ่มสาระนี้</td></tr>`;
-                return;
-            }
+            const allWorks = window.CACHED_HOMEWORKS || [];
+            const filtered = allWorks.filter(a => {
+                const g = String(a.subject_group || a.department || a.subject_name || '');
+                return g.includes(subjectGroup) || subjectGroup.includes(g && g.length > 3 ? g : '___');
+            });
 
-            try {
-                const { data: assignments } = await db.from('assignments')
-                    .select('*')
-                    .eq('subject_group', subjectGroup);
-
-                tbody.innerHTML = '';
-                if (!assignments || assignments.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">ไม่พบภาระงานในกลุ่มสาระนี้</td></tr>`;
-                } else {
-                    assignments.forEach(a => {
-                        const tr = document.createElement('tr');
-                        tr.className = "hover:bg-slate-50 border-b border-slate-200";
-                        tr.innerHTML = `
-                            <td class="py-2 px-2 font-bold text-indigo-900">${a.subject_name || '-'}</td>
-                            <td class="py-2 px-2">${a.title || '-'}</td>
-                            <td class="py-2 px-2">${a.teacher_name || '-'}</td>
-                            <td class="py-2 px-2 text-center font-bold">${a.classroom || '-'}</td>
-                            <td class="py-2 px-2 text-center font-bold text-rose-600">${a.due_date || '-'}</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-            } catch (e) {
+            tbody.innerHTML = '';
+            if (filtered.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">ไม่พบภาระงานในกลุ่มสาระนี้</td></tr>`;
+            } else {
+                filtered.forEach(a => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 border-b border-slate-200";
+                    tr.innerHTML = `
+                        <td class="py-2 px-2 font-bold text-indigo-900">${a.subject_name || a.subject_code || '-'}</td>
+                        <td class="py-2 px-2">${a.title || a.detail || a.description || '-'}</td>
+                        <td class="py-2 px-2">${a.teacher_name || '-'}</td>
+                        <td class="py-2 px-2 text-center font-bold">${a.classroom || a.grade_level || '-'}</td>
+                        <td class="py-2 px-2 text-center font-bold text-rose-600">${a.due_date || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             }
         };
 
-        await updateDailyTeacherCheckProgress();
-        await loadDashboard();
-        await loadSubjectGroupSummary();
-        await window.loadTeacherAttendanceMonitor();
+        // ฟังก์ชันซิงค์ข้อมูลข้ามแอปทั้งหมด (เรียกได้ทั้งตอนเปิดหน้าเว็บและกดปุ่มรีเฟรช)
+        window.syncCrossAppAcademicData = async function(showToast = false) {
+            await updateDailyTeacherCheckProgress();
+            await loadDashboard();
+            await loadSubjectGroupSummary();
+            await window.loadTeacherAttendanceMonitor();
+            if (showToast) alert('✅ อัปเดตข้อมูลเชื่อมต่อจากแอปครู นักเรียน และผู้ปกครองเรียบร้อยแล้ว');
+        };
+
+        await window.syncCrossAppAcademicData(false);
+
+        // เปิด Real-time Subscription รับข้อมูลทันทีเมื่อครูเช็กชื่อหรือสั่งการบ้านใหม่
+        const db = getDb();
+        if (db && db.channel) {
+            db.channel('academic-cross-app-sync')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => {
+                    updateDailyTeacherCheckProgress();
+                    loadDashboard();
+                    window.loadTeacherAttendanceMonitor();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'homeworks' }, () => {
+                    loadSubjectGroupSummary();
+                })
+                .subscribe();
+        }
     </script>
 </body>
 </html>
