@@ -34,7 +34,71 @@
             overflow-y: auto;
             font-size: 16px;
         }
-
+    /* ล็อกพื้นหลังไม่ให้เลื่อนและกัน Pull-to-Refresh ตอนเปิด Bottom Sheet */
+    body.sheet-open {
+        overflow: hidden !important;
+        overscroll-behavior-y: none !important;
+    }
+    
+    .bottom-sheet-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 9990;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        overscroll-behavior: contain;
+    }
+    
+    .bottom-sheet-card {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 860px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-top-left-radius: 26px;
+        border-top-right-radius: 26px;
+        border: 1.5px solid #cbd5e1;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+        z-index: 9995;
+        transform: translate3d(0, 105%, 0);
+        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+        max-height: 86vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding-bottom: 84px;
+        overscroll-behavior: contain;
+    }
+    
+    .bottom-sheet-backdrop.active .bottom-sheet-card {
+        transform: translate3d(0, 0, 0);
+    }
+    
+    .drawer-scroll-content {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+    }
+    
+    .swipe-handle-area {
+        width: 100%;
+        padding: 12px 0;
+        display: flex;
+        justify-content: center;
+        cursor: grab;
+        flex-shrink: 0;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        touch-action: none; /* ป้องกันเบราว์เซอร์ดึงรีโหลดเมื่อแตะแถบจับ */
+    }
+        
         body.academic-app-body {
             font-family: 'Kanit', 'Sarabun', sans-serif;
             background-color: #f1f5f9;
@@ -309,6 +373,7 @@
                 color: #000 !important;
             }
         }
+        
     </style>
     <script>
         window.handleLogout = async function() {
@@ -334,43 +399,45 @@
     <!-- 1. TOP APP HEADER (ปรับโครงสร้างให้ชื่อเว็บไซต์ยาวเต็มบรรทัด ไม่โดนตัด) -->
     <div class="max-w-7xl mx-auto w-full space-y-2 no-print">
         <header class="w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md rounded-2xl p-3 md:p-4 border-b-2 border-amber-400">
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-3">
                 <!-- โลโก้โรงเรียน -->
-                <div class="bg-white p-1.5 rounded-xl shadow-sm shrink-0 border border-amber-300/60 flex items-center justify-center">
-                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-11 h-11 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
+                <div class="bg-white p-1.5 rounded-2xl shadow-sm shrink-0 border border-amber-300/60 flex items-center justify-center">
+                    <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-14 h-14 md:w-16 md:h-16 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
                 </div>
-
-                <!-- ส่วนข้อความชื่อเว็บไซต์ + ปุ่มไอคอนขวา -->
+        
+                <!-- โครงสร้าง 3 บรรทัด -->
                 <div class="min-w-0 flex-1 flex flex-col justify-center">
-                    <!-- แถวบน: ชื่อเว็บไซต์ยาวเต็มพื้นที่ ไม่โดนตัดบรรทัด -->
-                    <div class="flex items-center justify-between gap-2">
-                        <h1 class="text-base sm:text-xl md:text-2xl font-extrabold text-amber-400 tracking-tight leading-none uppercase whitespace-nowrap">BCW SMART HUB</h1>
-                        <span class="hidden sm:inline-block bg-amber-400/20 text-amber-200 border border-amber-400/60 px-2 py-0.5 rounded-md text-xs font-bold shrink-0">ฝ่ายวิชาการ</span>
+                    <!-- บรรทัดที่ 1: ชื่อระบบ -->
+                    <h1 class="text-base sm:text-xl md:text-2xl font-extrabold text-amber-400 tracking-tight leading-tight uppercase">
+                        BCW SMART HUB
+                    </h1>
+        
+                    <!-- บรรทัดที่ 2: ชื่อโรงเรียนเต็มๆ ไม่โดนตัดคำ -->
+                    <div class="text-sm sm:text-base md:text-lg font-semibold text-white leading-snug mt-0.5">
+                        โรงเรียนบัวเชดวิทยา
                     </div>
-
-                    <!-- แถวล่าง: ชื่อโรงเรียน + ป้ายฝ่ายวิชาการ + ปุ่มไอคอน 3 ปุ่ม -->
-                    <div class="flex items-center justify-between gap-1.5 mt-1.5">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                            <span class="sm:hidden bg-amber-400/20 text-amber-200 border border-amber-400/60 px-1.5 py-0.5 rounded text-[11px] font-bold shrink-0">วิชาการ</span>
-                            <span class="text-xs sm:text-sm md:text-base font-medium text-indigo-100 truncate">โรงเรียนบัวเชดวิทยา</span>
-                        </div>
-
-                        <!-- ปุ่มเครื่องมือ + หน้าหลัก + ออกจากระบบ -->
+        
+                    <!-- บรรทัดที่ 3: ป้ายฝ่ายวิชาการ + ปุ่มไอคอน 3 ปุ่ม -->
+                    <div class="flex items-center justify-between gap-2 mt-1.5">
+                        <span class="bg-amber-400/20 text-amber-200 border border-amber-400/60 px-2.5 py-0.5 rounded-md text-xs font-bold shrink-0">
+                            ฝ่ายวิชาการ
+                        </span>
+        
                         <div class="flex items-center gap-1.5 shrink-0">
                             <button type="button" onclick="toggleAcademicDrawer()" title="เครื่องมือวิชาการ" class="relative h-8 px-2.5 bg-indigo-800/90 hover:bg-indigo-700 text-indigo-100 rounded-lg text-xs font-semibold border border-indigo-500 transition flex items-center gap-1 cursor-pointer active:scale-95">
                                 <i class="fa-solid fa-sliders text-amber-400"></i>
                                 <span class="hidden md:inline">เครื่องมือ</span>
                                 <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border border-indigo-950"></span>
                             </button>
-
+        
                             <a href="teacher.html" title="ระบบครูผู้สอน" class="hidden md:flex h-8 bg-indigo-700 hover:bg-indigo-600 text-white px-3 rounded-lg text-xs font-semibold border border-indigo-500 transition items-center gap-1.5">
                                 <i class="fa-solid fa-chalkboard-user"></i> <span>ครูผู้สอน</span>
                             </a>
-
+        
                             <a href="../../landing.html" title="กลับหน้าหลักระบบ" class="w-8 h-8 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg font-bold transition shadow-sm flex items-center justify-center active:scale-95">
                                 <i class="fa-solid fa-house text-xs"></i>
                             </a>
-
+        
                             <button type="button" onclick="window.handleLogout()" title="ออกจากระบบ" class="w-8 h-8 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold transition shadow-sm flex items-center justify-center border border-rose-400/50 active:scale-95 cursor-pointer">
                                 <i class="fa-solid fa-right-from-bracket text-xs"></i>
                             </button>
@@ -378,9 +445,9 @@
                     </div>
                 </div>
             </div>
-
-            <!-- แถบสถานะ Real-time: เช็กชื่อสอนวันนี้ + วันที่/นาฬิกา -->
-            <div id="dynamicSubHeader" class="bg-indigo-950/90 border-t border-indigo-800/70 mt-2 pt-1.5 px-1.5 flex justify-between items-center text-xs md:text-sm gap-2">
+        
+            <!-- แถบสถานะ Real-time -->
+            <div id="dynamicSubHeader" class="bg-indigo-950/90 border-t border-indigo-800/70 mt-2.5 pt-1.5 px-1.5 flex justify-between items-center text-xs md:text-sm gap-2">
                 <span class="font-semibold text-emerald-400 flex items-center gap-1.5 truncate">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
                     <span class="truncate">เช็กชื่อสอนวันนี้: <strong id="subHeaderAttendance" class="text-amber-300">0%</strong> <span id="subHeaderClassCount" class="text-xs text-indigo-200 font-normal">(0/0 คาบ)</span></span>
@@ -1413,19 +1480,112 @@
         window.openAcademicSheet = function(id) {
             closeAllAcademicSheets();
             const el = document.getElementById(id);
-            if (el) el.classList.add('active');
+            if (el) {
+                const card = el.querySelector('.bottom-sheet-card');
+                if (card) {
+                    card.style.transition = '';
+                    card.style.transform = '';
+                }
+                el.classList.add('active');
+                document.body.classList.add('sheet-open'); // ล็อกหน้าหลังไม่ให้เลื่อนและกันรีโหลด
+            }
             if (id === 'levelSummaryDrawer') renderLevelSummaryTable();
         };
-
+        
         window.closeAcademicSheet = function(id) {
             const el = document.getElementById(id);
-            if (el) el.classList.remove('active');
+            if (el) {
+                const card = el.querySelector('.bottom-sheet-card');
+                if (card) {
+                    card.style.transition = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
+                    card.style.transform = '';
+                }
+                el.classList.remove('active');
+            }
+            document.body.classList.remove('sheet-open');
             setActiveAcadNav('navAcadHome');
         };
-
+        
         function closeAllAcademicSheets() {
-            document.querySelectorAll('.bottom-sheet-backdrop').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.bottom-sheet-backdrop').forEach(el => {
+                const card = el.querySelector('.bottom-sheet-card');
+                if (card) {
+                    card.style.transition = '';
+                    card.style.transform = '';
+                }
+                el.classList.remove('active');
+            });
+            document.body.classList.remove('sheet-open');
         }
+        
+        // ระบบสไลด์ลงเพื่อปิด Bottom Sheet แบบสมูท ไม่กระตุก และไม่ดึงหน้าหลังรีโหลด
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.bottom-sheet-card').forEach(card => {
+                const handleArea = card.querySelector('.swipe-handle-area');
+                const scrollContent = card.querySelector('.drawer-scroll-content');
+                let startY = 0;
+                let currentY = 0;
+                let isDragging = false;
+        
+                const onTouchStart = (e) => {
+                    if (window.innerWidth >= 1024) return;
+                    const touchedHandle = handleArea && handleArea.contains(e.target);
+                    const atTopOfScroll = !scrollContent || scrollContent.scrollTop <= 0;
+        
+                    if (touchedHandle || atTopOfScroll) {
+                        startY = e.touches[0].clientY;
+                        currentY = startY;
+                        isDragging = true;
+                        card.style.transition = 'none'; // ปิด transition ระหว่างนิ้วลากเพื่อให้ติดนิ้ว 100%
+                    }
+                };
+
+        const onTouchMove = (e) => {
+            if (!isDragging) return;
+            currentY = e.touches[0].clientY;
+            const diffY = currentY - startY;
+
+            if (diffY > 0) {
+                // ป้องกันเบราว์เซอร์ตีความว่าเป็นการดึงลงเพื่อรีโหลดหน้าเว็บ
+                if (e.cancelable) e.preventDefault();
+                card.style.transform = `translate3d(0, ${diffY}px, 0)`;
+            } else {
+                isDragging = false;
+                card.style.transition = '';
+                card.style.transform = '';
+            }
+        };
+
+        const onTouchEnd = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            const diffY = currentY - startY;
+            card.style.transition = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
+
+            if (diffY > 90) {
+                const parent = card.closest('.bottom-sheet-backdrop');
+                if (parent) {
+                    card.style.transform = 'translate3d(0, 105%, 0)';
+                    setTimeout(() => {
+                        closeAcademicSheet(parent.id);
+                    }, 220);
+                }
+            } else {
+                // เด้งกลับตำแหน่งเดิมอย่างนุ่มนวลถ้าลากไม่ถึงระยะปิด
+                card.style.transform = 'translate3d(0, 0, 0)';
+                setTimeout(() => {
+                    card.style.transform = '';
+                }, 280);
+            }
+            startY = 0;
+            currentY = 0;
+        };
+
+        card.addEventListener('touchstart', onTouchStart, { passive: true });
+        card.addEventListener('touchmove', onTouchMove, { passive: false }); // passive: false เพื่อให้ preventDefault กันรีโหลดได้
+        card.addEventListener('touchend', onTouchEnd, { passive: true });
+    });
+});
 
         function setActiveAcadNav(btnId) {
             document.querySelectorAll('.nav-item-btn').forEach(btn => btn.classList.remove('active'));
