@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    
+    <link href="[https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap)" rel="stylesheet">
     <style>
         @media (max-width: 1023px) {
             html, body {
@@ -205,10 +205,41 @@
             box-shadow: 0 2px 8px rgba(225, 29, 72, 0.4);
         }
 
-        @media print {
-            .no-print, .native-bottom-nav, .bottom-sheet-backdrop { display: none !important; }
-            body { background: #fff !important; overflow: visible !important; height: auto !important; }
-        }
+@page {
+    size: A4 portrait;
+    margin: 12mm 14mm;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    html, body {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    #official-clinic-print-area, #official-clinic-print-area * {
+        visibility: visible;
+    }
+    #official-clinic-print-area {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-family: 'Sarabun', 'Kanit', sans-serif !important;
+    }
+    .no-print, .native-bottom-nav, .bottom-sheet-backdrop {
+        display: none !important;
+    }
+}
     </style>
     <script src="../../core/bcw-page-transition.js?v=1"></script>
 </head>
@@ -278,8 +309,8 @@
                 <span class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-1.5">
                     <i class="fa-solid fa-heart-pulse text-rose-600"></i> การดูแลสุขภาพและงานห้องพยาบาล
                 </span>
-                <button type="button" onclick="window.print()" class="no-print bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs sm:text-sm font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition">
-                    <i class="fa-solid fa-print text-xs"></i> พิมพ์รายงาน
+                  <button type="button" onclick="printOfficialClinicReport()" class="no-print bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs sm:text-sm font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition">
+                <i class="fa-solid fa-print text-xs"></i> พิมพ์รายงาน
                 </button>
             </div>
 
@@ -352,7 +383,8 @@
             </div>
         </section>
     </main>
-
+    
+    <div id="official-clinic-print-area" class="hidden"></div>
     <!-- 3. FLOATING BOTTOM NAVIGATION BAR -->
     <nav id="nativeBottomNav" class="native-bottom-nav no-print">
         <button id="navClinicHome" type="button" class="nav-item-btn active" onclick="switchClinicTab('home')">
@@ -981,6 +1013,146 @@
             }
         }
     }
+    let TODAY_CLINIC_RECORDS_CACHE = [];
+let TODAY_REST_MINUTES_CACHE = 0;
+
+// ในฟังก์ชัน loadTodayClinicRecords() ให้เพิ่ม 2 บรรทัดนี้หลังจากคำนวณ todayList และ totalRestMinutes เสร็จ:
+// TODAY_CLINIC_RECORDS_CACHE = todayList;
+// TODAY_REST_MINUTES_CACHE = totalRestMinutes;
+
+function printOfficialClinicReport() {
+    const printArea = document.getElementById('official-clinic-print-area');
+    if (!printArea) return;
+
+    const now = new Date();
+    const thaiDateFull = now.toLocaleDateString('th-TH', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'Asia/Bangkok'
+    });
+    const printTime = now.toLocaleTimeString('th-TH', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Bangkok'
+    });
+
+    const list = TODAY_CLINIC_RECORDS_CACHE || [];
+    const totalCount = list.length;
+    const illnessCount = list.filter(r => r.case_type !== 'accident').length;
+    const accidentCount = list.filter(r => r.case_type === 'accident').length;
+    const restingCount = list.filter(r => r.status === 'resting').length;
+    const sentHomeCount = list.filter(r => r.status === 'sent_home').length;
+
+    const statusTextMap = {
+        resting: 'กำลังนอนพักฟื้น',
+        returned: 'รับยา/กลับเข้าเรียน',
+        sent_home: 'ผู้ปกครองรับกลับ/ส่ง รพ.'
+    };
+
+    const tableRowsHtml = list.length === 0
+        ? `<tr>
+               <td colspan="8" style="border: 1px solid #000; padding: 14px; text-align: center; color: #333;">
+                   — ไม่มีนักเรียนเข้ารับบริการในห้องพยาบาลประจำวันนี้ —
+               </td>
+           </tr>`
+        : list.slice().reverse().map((item, idx) => {
+            const timeIn = item.created_at
+                ? new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.'
+                : '-';
+            const caseLabel = item.case_type === 'accident' ? 'อุบัติเหตุ' : 'เจ็บป่วย';
+            const statusLabel = statusTextMap[item.status] || 'เรียบร้อย';
+
+            return `
+                <tr>
+                    <td style="border: 1px solid #000; padding: 5px 4px; text-align: center;">${idx + 1}</td>
+                    <td style="border: 1px solid #000; padding: 5px 4px; text-align: center; white-space: nowrap;">${timeIn}</td>
+                    <td style="border: 1px solid #000; padding: 5px 6px;">${item.student_name || item.student_id || '-'}</td>
+                    <td style="border: 1px solid #000; padding: 5px 4px; text-align: center; white-space: nowrap;">${item.class_name || '-'}</td>
+                    <td style="border: 1px solid #000; padding: 5px 4px; text-align: center;">${caseLabel}</td>
+                    <td style="border: 1px solid #000; padding: 5px 6px;">${item.symptom || '-'}</td>
+                    <td style="border: 1px solid #000; padding: 5px 6px;">${item.treatment || '-'}</td>
+                    <td style="border: 1px solid #000; padding: 5px 6px; text-align: center;">${statusLabel}</td>
+                </tr>
+            `;
+        }).join('');
+
+    printArea.innerHTML = `
+        <div style="font-family: 'Sarabun', sans-serif; font-size: 13px; line-height: 1.45; color: #000;">
+            <!-- ส่วนหัวหนังสือราชการ -->
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+                <div style="font-size: 17px; font-weight: 700;">แบบรายงานผลการดำเนินงานห้องพยาบาลประจำวัน</div>
+                <div style="font-size: 15px; font-weight: 700;">งานอนามัยโรงเรียน กลุ่มบริหารทั่วไป โรงเรียนบัวเชดวิทยา</div>
+                <div style="font-size: 13px;">สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาสุรินทร์</div>
+                <div style="font-size: 13px; margin-top: 2px;">ประจำ${thaiDateFull} (พิมพ์รายงานเวลา ${printTime} น.)</div>
+            </div>
+
+            <!-- กล่องสรุปข้อมูลสถิติ -->
+            <div style="margin-bottom: 10px; font-weight: 700;">๑. สรุปสถิติผู้เข้ารับบริการห้องพยาบาลประจำวัน</div>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12.5px;">
+                <tr>
+                    <td style="border: 1px solid #000; padding: 6px 8px; width: 33.33%;"><strong>ผู้รับบริการทั้งหมด:</strong> ${totalCount} คน</td>
+                    <td style="border: 1px solid #000; padding: 6px 8px; width: 33.33%;"><strong>เจ็บป่วยทั่วไป:</strong> ${illnessCount} คน</td>
+                    <td style="border: 1px solid #000; padding: 6px 8px; width: 33.33%;"><strong>อุบัติเหตุ:</strong> ${accidentCount} เคส</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #000; padding: 6px 8px;"><strong>กำลังนอนพักฟื้น:</strong> ${restingCount} คน</td>
+                    <td style="border: 1px solid #000; padding: 6px 8px;"><strong>ส่งกลับบ้าน / รพ.:</strong> ${sentHomeCount} คน</td>
+                    <td style="border: 1px solid #000; padding: 6px 8px;"><strong>เวลาพักฟื้นสะสมรวม:</strong> ${TODAY_REST_MINUTES_CACHE} นาที</td>
+                </tr>
+            </table>
+
+            <!-- ตารางทะเบียนคุมผู้รับบริการ -->
+            <div style="margin-bottom: 6px; font-weight: 700;">๒. ทะเบียนรายชื่อนักเรียนผู้เข้ารับบริการและให้การปฐมพยาบาล</div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px;">
+                <thead>
+                    <tr style="background-color: #f1f5f9; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                        <th style="border: 1px solid #000; padding: 6px 4px; text-align: center; width: 36px;">ที่</th>
+                        <th style="border: 1px solid #000; padding: 6px 4px; text-align: center; width: 64px;">เวลาเข้า</th>
+                        <th style="border: 1px solid #000; padding: 6px 6px; text-align: left;">ชื่อ - นามสกุล</th>
+                        <th style="border: 1px solid #000; padding: 6px 4px; text-align: center; width: 58px;">ชั้น</th>
+                        <th style="border: 1px solid #000; padding: 6px 4px; text-align: center; width: 68px;">ประเภท</th>
+                        <th style="border: 1px solid #000; padding: 6px 6px; text-align: left;">อาการเบื้องต้น</th>
+                        <th style="border: 1px solid #000; padding: 6px 6px; text-align: left;">การปฐมพยาบาล / ยา</th>
+                        <th style="border: 1px solid #000; padding: 6px 6px; text-align: center; width: 110px;">ผลการดูแล</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRowsHtml}
+                </tbody>
+            </table>
+
+            <!-- ส่วนลงนามรับรองตามลำดับขั้น -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; text-align: center; font-size: 12.5px; margin-top: 28px; page-break-inside: avoid;">
+                <div>
+                    <p style="margin-bottom: 24px;">ลงชื่อ..........................................................</p>
+                    <p>(..........................................................)</p>
+                    <p style="font-weight: 700;">เจ้าหน้าที่งานอนามัยโรงเรียน / ผู้รายงาน</p>
+                </div>
+                <div>
+                    <p style="margin-bottom: 24px;">ลงชื่อ..........................................................</p>
+                    <p>(..........................................................)</p>
+                    <p style="font-weight: 700;">หัวหน้ากลุ่มบริหารทั่วไป</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 26px; text-align: center; font-size: 12.5px; page-break-inside: avoid;">
+                <p style="font-weight: 700; margin-bottom: 6px;">ความเห็นผู้อำนวยการสถานศึกษา</p>
+                <p style="margin-bottom: 22px;">[ &nbsp;&nbsp; ] ทราบ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [ &nbsp;&nbsp; ] อนุมัติดำเนินการตามเสนอ</p>
+                <p style="margin-bottom: 4px;">ลงชื่อ..........................................................</p>
+                <p>(..........................................................)</p>
+                <p style="font-weight: 700;">ผู้อำนวยการโรงเรียนบัวเชดวิทยา</p>
+            </div>
+        </div>
+    `;
+
+    printArea.classList.remove('hidden');
+    setTimeout(() => {
+        window.print();
+        printArea.classList.add('hidden');
+    }, 100);
+}
 </script>
 </body>
 </html>
