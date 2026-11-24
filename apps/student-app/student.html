@@ -8,9 +8,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e1b4b">
     <title>BCW Student Portal - นักเรียน โรงเรียนบัวเชดวิทยา</title>
-    <link rel="shortcut icon" href="../assets/images/logo_bcw.png" type="image/png">
-    <link rel="apple-touch-icon" href="../assets/images/logo_bcw.png">
-    <link rel="manifest" href="../manifest.json">
+    <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
+    <link rel="apple-touch-icon" href="../../assets/images/logo_bcw.png">
+    <link rel="manifest" href="../../manifest.json">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -331,7 +331,7 @@
             box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
         }
     </style>    
-    <script src="../core/bcw-page-transition.js?v=1"></script>
+    <script src="../../core/bcw-page-transition.js?v=1"></script>
 </head>
 <body class="student-app-body">
 
@@ -344,7 +344,7 @@
                 <div class="flex justify-between items-center gap-2">
                     <div class="flex items-center gap-2.5 min-w-0 flex-1">
                         <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-amber-300/60 flex items-center justify-center">
-                            <img src="../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
+                            <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 md:w-12 md:h-12 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5">
@@ -1177,10 +1177,10 @@
 
 <!-- Supabase & Core Engine -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../core/supabase-client.js?v=400"></script>
-<script src="../core/auth-service.js?v=400"></script>
-<script src="../core/auth-manager.js?v=400"></script>
-<script src="../core/guard-student-parent.js?v=400"></script>
+<script src="../../core/supabase-client.js?v=400"></script>
+<script src="../../core/auth-service.js?v=400"></script>
+<script src="../../core/auth-manager.js?v=400"></script>
+<script src="../../core/guard-student-parent.js?v=400"></script>
 
 <!-- Student Data & Logic Integration -->
 <script>
@@ -1203,6 +1203,19 @@
         { p: 7, start: '14:20', end: '15:10' },
         { p: 8, start: '15:10', end: '16:00' }
     ];
+
+    function getSupabaseClientSafe() {
+        return window.supabaseClient || window.db || (window.supabase && typeof window.supabase.from === 'function' ? window.supabase : null);
+    }
+
+    async function waitForSupabaseClient(maxRetries = 20) {
+        for (let i = 0; i < maxRetries; i++) {
+            const client = getSupabaseClientSafe();
+            if (client) return client;
+            await new Promise(r => setTimeout(r, 150));
+        }
+        return null;
+    }
 
     function formatCompactTeacherName(fullName) {
         return String(fullName || '')
@@ -1233,15 +1246,32 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         try {
-            let currentUser = window.AuthManager ? AuthManager.getCurrentUser() : null;
-            if (!currentUser) {
-                const raw = localStorage.getItem('bcw_user_session') || sessionStorage.getItem('bcw_user_session');
-                if (raw) currentUser = JSON.parse(raw);
-            }
-            if (!currentUser) return;
+            let currentUser = window.AuthManager && typeof AuthManager.getCurrentUser === 'function'
+                ? AuthManager.getCurrentUser()
+                : null;
 
-            const client = window.supabaseClient || window.db || window.supabase;
-            const rawId = String(currentUser.studentId || currentUser.student_id || currentUser.id || '').trim();
+            if (!currentUser) {
+                const raw = localStorage.getItem('bcw_user_session')
+                    || sessionStorage.getItem('bcw_user_session')
+                    || localStorage.getItem('currentUser')
+                    || sessionStorage.getItem('currentUser');
+                if (raw) {
+                    try { currentUser = JSON.parse(raw); } catch (e) {}
+                }
+            }
+
+            if (!currentUser) {
+                console.warn('[StudentPortal] ไม่พบข้อมูล Session ผู้ใช้');
+                return;
+            }
+
+            const client = await waitForSupabaseClient();
+            if (!client) {
+                console.error('[StudentPortal] เชื่อมต่อฐานข้อมูล Supabase ไม่สำเร็จ');
+                return;
+            }
+
+            const rawId = String(currentUser.studentId || currentUser.student_id || currentUser.user_id || currentUser.id || '').trim();
             const email = String(currentUser.email || '').toLowerCase().trim();
             CURRENT_STUDENT_ID = rawId;
 
@@ -1253,23 +1283,21 @@
             }
 
             let student = null;
-            if (client) {
-                try {
-                    if (rawId) {
-                        const { data: byStuId } = await client.from('students').select('*').eq('student_id', rawId).maybeSingle();
-                        student = byStuId;
-                    }
-                    if (!student && email) {
-                        const { data: byEmail } = await client.from('students').select('*').eq('email', email).maybeSingle();
-                        student = byEmail;
-                    }
-                    if (!student && rawId) {
-                        const { data: byPk } = await client.from('students').select('*').eq('id', rawId).maybeSingle();
-                        student = byPk;
-                    }
-                } catch (e) {
-                    console.warn('[StudentPortal] Fetch student notice:', e);
+            try {
+                if (rawId) {
+                    const { data: byStuId } = await client.from('students').select('*').eq('student_id', rawId).maybeSingle();
+                    student = byStuId;
                 }
+                if (!student && email) {
+                    const { data: byEmail } = await client.from('students').select('*').eq('email', email).maybeSingle();
+                    student = byEmail;
+                }
+                if (!student && rawId) {
+                    const { data: byPk } = await client.from('students').select('*').eq('id', rawId).maybeSingle();
+                    student = byPk;
+                }
+            } catch (e) {
+                console.warn('[StudentPortal] Fetch student notice:', e);
             }
 
             if (student) {
@@ -1399,7 +1427,7 @@
     async function renderHomeroomAdvisors(classroom) {
         const cardListEl = document.getElementById('advisorCardList');
         const drawerListEl = document.getElementById('advisorDrawerList');
-        const client = window.supabaseClient || window.db || window.supabase;
+        const client = getSupabaseClientSafe();
         const defaultTeacherAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png';
 
         if (!client || !classroom || classroom === '-') {
@@ -1602,7 +1630,7 @@
         const container = document.getElementById('behaviorHistoryList');
         const desktopContainer = document.getElementById('desktopBehaviorLogsContainer');
         const scoreEl = document.getElementById('student-behavior-score');
-        const client = window.supabaseClient || window.db || window.supabase;
+        const client = getSupabaseClientSafe();
         if (!client || !studentId) return;
 
         try {
@@ -1667,7 +1695,7 @@
 
     async function renderActiveGatepass() {
         if (!CURRENT_STUDENT_ID) return;
-        const client = window.supabaseClient || window.db || window.supabase;
+        const client = getSupabaseClientSafe();
         if (!client) return;
         
         try {
@@ -1760,7 +1788,7 @@
         const container = document.getElementById('scheduleContainer');
         const desktopContainer = document.getElementById('desktopScheduleContainer');
         const nextBar = document.getElementById('nextClassBarText');
-        const client = window.supabaseClient || window.db || window.supabase;
+        const client = getSupabaseClientSafe();
         const defaultTeacherAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135768.png';
 
         if (!client) return;
@@ -2010,7 +2038,7 @@
 
     async function renderHomeworkData(className) {
         const container = document.getElementById('studentHomeworkList');
-        const client = window.supabaseClient || window.db || window.supabase;
+        const client = getSupabaseClientSafe();
         if (!container || !client || !className) return;
 
         try {
@@ -2038,7 +2066,7 @@
 
     async function renderClinicData(studentId) {
         const container = document.getElementById('studentClinicList');
-        const client = window.supabaseClient || window.db || window.supabase;
+        const client = getSupabaseClientSafe();
         if (!container || !client || !studentId) return;
 
         try {
@@ -2116,7 +2144,7 @@
         document.getElementById('gatepassForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
-                const client = window.supabaseClient || window.db || window.supabase;
+                const client = getSupabaseClientSafe();
                 if (!client) throw new Error("ไม่พบการเชื่อมต่อ Supabase");
 
                 const selectVal = document.getElementById('requestReasonSelect').value;
@@ -2148,10 +2176,13 @@
     /* ลงทะเบียน Service Worker (PWA) เพื่อเปิดโหมดเต็มจอไร้แถบ URL */
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('../sw.js').catch(() => {});
+            const swPath = window.location.pathname.includes('/BCW-Smart-Hub')
+                ? '/BCW-Smart-Hub/sw.js'
+                : '../../sw.js';
+            navigator.serviceWorker.register(swPath).catch(() => {});
         });
     }
 </script>
-<script src="../core/bcw-profile-modal.js?v=3"></script>
+<script src="../../core/bcw-profile-modal.js?v=3"></script>
 </body>
 </html>
