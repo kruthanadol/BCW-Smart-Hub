@@ -1882,6 +1882,144 @@
         if (typeof window.hideBCWCurtain === 'function') window.hideBCWCurtain();
     }, 1500);
 </script>
+    <!-- ================= กล่องรับการแจ้งเตือนจากฝ่ายวิชาการ (เด้งขึ้นทันที) ================= -->
+<div id="academicPopupOverlay" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs hidden items-center justify-center p-4" style="z-index: 99999;">
+    <div class="bg-white rounded-2xl max-w-md w-full border-2 border-amber-400 shadow-2xl overflow-hidden animate-bounce-once">
+        <div class="bg-gradient-to-r from-indigo-950 to-indigo-900 text-white px-4 py-3 flex items-center justify-between border-b-2 border-amber-400">
+            <div class="flex items-center gap-2">
+                <span class="bg-amber-400 text-slate-950 text-xs font-extrabold px-2 py-0.5 rounded-md">🔔 แจ้งเตือนด่วน</span>
+                <h3 class="text-sm font-bold text-amber-300">ข้อความจากฝ่ายวิชาการ</h3>
+            </div>
+            <button type="button" onclick="document.getElementById('academicPopupOverlay').classList.add('hidden')" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center justify-center cursor-pointer">✕</button>
+        </div>
+
+        <div id="academicPopupList" class="p-3.5 space-y-2.5 max-h-[65vh] overflow-y-auto bg-slate-50">
+            <!-- รายการแจ้งเตือนจะมาแสดงตรงนี้ -->
+        </div>
+
+        <div class="p-3 bg-white border-t border-slate-200 flex justify-end">
+            <button type="button" onclick="document.getElementById('academicPopupOverlay').classList.add('hidden')" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl cursor-pointer">
+                ปิดหน้าต่างชั่วคราว
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ปุ่มกระดิ่งลอยมุมขวาล่าง เผื่อกดเปิดดูย้อนหลัง -->
+<button type="button" id="floatingAcademicBell" onclick="window.openAcademicPopup()" class="hidden fixed bottom-20 right-4 bg-indigo-900 text-amber-300 border-2 border-amber-400 shadow-xl rounded-full px-3.5 py-2 text-xs font-bold items-center gap-1.5 cursor-pointer" style="z-index: 99990;">
+    <i class="fa-solid fa-bell animate-bounce"></i>
+    <span>แจ้งเตือนวิชาการ (<span id="academicUnreadCount">0</span>)</span>
+</button>
+
+<script>
+(async function initTeacherAcademicPopup() {
+    // 1. รอการเชื่อมต่อ Supabase
+    let client = null;
+    for (let i = 0; i < 30; i++) {
+        const c = window.supabaseClient || window.db || window.supabase;
+        if (c && typeof c.from === 'function') {
+            client = c;
+            break;
+        }
+        await new Promise(r => setTimeout(r, 150));
+    }
+    if (!client) {
+        console.warn('Teacher Popup: ไม่พบการเชื่อมต่อ Supabase');
+        return;
+    }
+
+    // 2. ฟังก์ชันเปิด/ปิดป๊อปอัป
+    window.openAcademicPopup = function() {
+        const overlay = document.getElementById('academicPopupOverlay');
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+        }
+    };
+
+    window.markAcademicNotifRead = async function(notifId) {
+        try {
+            await client.from('notifications').update({ is_read: true }).eq('id', notifId);
+            await fetchAndShowAcademicNotifs(false);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    // 3. ดึงรายการแจ้งเตือนที่ยังไม่ได้อ่านมาแสดง
+    async function fetchAndShowAcademicNotifs(autoOpen = true) {
+        const { data, error } = await client
+            .from('notifications')
+            .select('*')
+            .eq('target_role', 'teacher')
+            .eq('is_read', false)
+            .order('created_at', { ascending: false })
+            .limit(15);
+
+        if (error) {
+            console.warn('โหลดแจ้งเตือนไม่สำเร็จ (ตรวจสอบว่าสร้างตาราง notifications แล้วหรือยัง):', error.message);
+            return;
+        }
+
+        const listEl = document.getElementById('academicPopupList');
+        const bellBtn = document.getElementById('floatingAcademicBell');
+        const countEl = document.getElementById('academicUnreadCount');
+        const overlay = document.getElementById('academicPopupOverlay');
+
+        if (!data || data.length === 0) {
+            if (bellBtn) { bellBtn.classList.add('hidden'); bellBtn.classList.remove('flex'); }
+            if (overlay) { overlay.classList.add('hidden'); overlay.classList.remove('flex'); }
+            return;
+        }
+
+        // แสดงปุ่มกระดิ่งแจ้งเตือนพร้อมตัวเลข
+        if (countEl) countEl.innerText = data.length;
+        if (bellBtn) { bellBtn.classList.remove('hidden'); bellBtn.classList.add('flex'); }
+
+        // สร้างการ์ดข้อความแต่ละรายการ
+        if (listEl) {
+            listEl.innerHTML = data.map(n => {
+                const timeStr = n.created_at
+                    ? new Date(n.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+                    : '';
+                const toTeacher = n.target_teacher_name ? `ถึง: ${n.target_teacher_name}` : 'ถึง: ครูผู้สอน';
+                return `
+                    <div class="bg-white border border-amber-300 rounded-xl p-3 shadow-xs space-y-1.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[11px] font-bold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded">${toTeacher}</span>
+                            <span class="text-[11px] text-slate-400">${timeStr}</span>
+                        </div>
+                        <div class="text-xs font-extrabold text-slate-900">${n.title || 'แจ้งเตือนจากฝ่ายวิชาการ'}</div>
+                        <p class="text-xs text-slate-700 leading-relaxed">${n.message || ''}</p>
+                        <div class="pt-1 flex justify-end">
+                            <button type="button" onclick="window.markAcademicNotifRead('${n.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1 rounded-lg cursor-pointer">
+                                ✓ รับทราบ
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // เด้งป๊อปอัปขึ้นกลางจอทันที
+        if (autoOpen) {
+            window.openAcademicPopup();
+        }
+    }
+
+    // โหลดครั้งแรกเมื่อเข้าหน้าแอปครู
+    await fetchAndShowAcademicNotifs(true);
+
+    // 4. รอรับการแจ้งเตือนใหม่แบบ Real-time ทันทีที่ฝ่ายวิชาการกดส่ง
+    if (client.channel) {
+        client.channel('teacher-academic-popup-realtime')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
+                fetchAndShowAcademicNotifs(true);
+            })
+            .subscribe();
+    }
+})();
+</script>
 <script src="../../core/bcw-profile-modal.js?v=3"></script>
 </body>
 </html>
