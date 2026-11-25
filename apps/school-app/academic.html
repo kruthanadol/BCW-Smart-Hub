@@ -2347,11 +2347,72 @@
             });
         }
 
-        window.sendRiskAlertToAll = function(studentName, classroom, subjectName, missed, quota, remaining) {
+window.pushNotificationToSupabase = async function({ targetRole = 'teacher', teacherId = '', teacherName = '', title = '', message = '', classroom = '', subjectName = '' }) {
+            const client = window.supabaseClient || window.db || window.supabase;
+            if (!client) {
+                alert('❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+                return false;
+            }
+            try {
+                const { error } = await client.from('notifications').insert({
+                    target_role: targetRole,
+                    target_teacher_id: teacherId || null,
+                    target_teacher_name: teacherName || null,
+                    sender_role: 'academic',
+                    title: title,
+                    message: message,
+                    classroom: classroom || null,
+                    subject_name: subjectName || null,
+                    is_read: false
+                });
+                if (error) throw error;
+                return true;
+            } catch (err) {
+                console.error('Send notification failed:', err);
+                alert('❌ ส่งการแจ้งเตือนไม่สำเร็จ: ' + err.message);
+                return false;
+            }
+        };
+
+        window.sendRiskAlertToAll = async function(studentName, classroom, subjectName, missed, quota, remaining, teacherName = '') {
+            const title = remaining > 0
+                ? `⚠️ เฝ้าระวังเวลาเรียน: ${studentName} (${classroom})`
+                : `🚨 แจ้งเตือนด่วน (เสี่ยง มส.): ${studentName} (${classroom})`;
+
             const msg = remaining > 0
-                ? `แจ้งเตือนสิทธิ์สอบ: ${studentName} (${classroom}) วิชา ${subjectName} ขาด/ลา/หนีเรียนไปแล้ว ${missed}/${quota} คาบ (เหลือสิทธิ์ขาดอีกเพียง ${remaining} คาบ)`
-                : `แจ้งเตือนด่วน (เสี่ยง มส.): ${studentName} (${classroom}) วิชา ${subjectName} ขาด/ลา/หนีเรียน ${missed}/${quota} คาบ (เกินโควตา 20% แล้ว)`;
-            alert(`📢 ส่งการแจ้งเตือนไปยัง ผู้ปกครอง, นักเรียน, ครูผู้สอน และฝ่ายวิชาการ เรียบร้อยแล้ว:\n\n"${msg}"`);
+                ? `วิชา ${subjectName} ขาด/ลา/หนีเรียนไปแล้ว ${missed}/${quota} คาบ (เหลือสิทธิ์ขาดอีก ${remaining} คาบ)`
+                : `วิชา ${subjectName} ขาด/ลา/หนีเรียน ${missed}/${quota} คาบ (เกินโควตา 20% แล้ว กรุณาติดตามนักเรียน)`;
+
+            const ok = await window.pushNotificationToSupabase({
+                targetRole: 'teacher',
+                teacherName: teacherName,
+                title: title,
+                message: msg,
+                classroom: classroom,
+                subjectName: subjectName
+            });
+
+            if (ok) {
+                alert(`✅ ส่งการแจ้งเตือนไปยังแอปครู (${teacherName || 'ครูผู้สอน'}) เรียบร้อยแล้ว:\n\n"${msg}"`);
+            }
+        };
+
+        window.sendTeacherCheckReminder = async function(teacherName, subjectName, classroom, periodVal) {
+            const title = `🔔 แจ้งเตือนเช็กชื่อเข้าสอน (คาบที่ ${periodVal})`;
+            const msg = `ฝ่ายวิชาการขอความร่วมมือบันทึกการเช็กชื่อวิชา ${subjectName} ห้อง ${classroom} (คาบที่ ${periodVal})`;
+
+            const ok = await window.pushNotificationToSupabase({
+                targetRole: 'teacher',
+                teacherName: teacherName,
+                title: title,
+                message: msg,
+                classroom: classroom,
+                subjectName: subjectName
+            });
+
+            if (ok) {
+                alert(`✅ ส่งแจ้งเตือนไปที่หน้าจอแอปครูของ "${teacherName}" เรียบร้อยแล้ว`);
+            }
         };
 
         function renderRiskGroupTable(tbodyId, list, pctClass, btnClass, btnLabel, emptyText) {
@@ -2394,7 +2455,7 @@
                         <div class="text-[11px] text-slate-500">เหลือ ${rec.remaining_quota ?? 0} คาบ</div>
                     </td>
                     <td class="py-2 px-2 text-center no-print space-y-1 whitespace-nowrap">
-                        <button type="button" onclick="window.sendRiskAlertToAll('${name.replace(/'/g, '')}', '${s.classroom || '-'}', '${(rec.subject_name || '-').replace(/'/g, '')}', ${rec.missed_periods || 0}, ${rec.max_absent_quota || 8}, ${rec.remaining_quota ?? 0})" class="w-full bg-sky-600 hover:bg-sky-700 text-white px-2 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap cursor-pointer block">
+                        <button type="button" onclick="window.sendRiskAlertToAll('${name.replace(/'/g, '')}', '${s.classroom || '-'}', '${(rec.subject_name || '-').replace(/'/g, '')}', ${rec.missed_periods || 0}, ${rec.max_absent_quota || 8}, ${rec.remaining_quota ?? 0}, '${(rec.teacher_name || '').replace(/'/g, '')}')" class="w-full bg-sky-600 hover:bg-sky-700 text-white px-2 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap cursor-pointer block">
                             🔔 แจ้งเตือน
                         </button>
                         <button type="button" onclick='window.openRemediationModal(${JSON.stringify(rec).replace(/'/g, "&apos;")})' class="w-full ${btnClass} border px-2 py-1 rounded-lg text-[11px] font-bold transition whitespace-nowrap cursor-pointer block">
@@ -2601,7 +2662,7 @@
                             <td class="py-2 px-2 text-center font-bold whitespace-nowrap">${item.classroom}</td>
                             <td class="py-2 px-2 text-center text-slate-600 font-bold whitespace-nowrap">${item.check_time}</td>
                             <td class="py-2 px-2 text-center whitespace-nowrap">${statusBadge}</td>
-                            <td class="py-2 px-2 text-center no-print whitespace-nowrap"><button type="button" onclick="alert('ส่งแจ้งเตือนไปยัง ${item.teacher_name} เรียบร้อยแล้ว')" class="bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold px-2 py-1 rounded-lg whitespace-nowrap cursor-pointer">🔔 เตือน</button></td>
+                            <td class="py-2 px-2 text-center no-print whitespace-nowrap"><button type="button" onclick="window.sendTeacherCheckReminder('${item.teacher_name.replace(/'/g, '')}', '${item.subject_name.replace(/'/g, '')}', '${item.classroom}', '${periodVal}')" class="bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold px-2 py-1 rounded-lg whitespace-nowrap cursor-pointer">🔔 เตือน</button></td>
                         `;
                         tbody.appendChild(tr);
                     });
