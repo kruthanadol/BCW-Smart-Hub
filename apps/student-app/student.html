@@ -86,7 +86,7 @@
             overflow: hidden;
         }
 
-        /* เลื่อนป๊อปอัปคาบเรียนถัดไปลงมาไม่ให้โดนกล่องโปรไฟล์ทับ */
+        /* ป๊อปอัปคาบเรียนถัดไป พร้อมเอฟเฟกต์จางหายอย่างสมูทเมื่อเลื่อนถึงกล่องครูที่ปรึกษา */
         .glass-next-class {
             position: fixed;
             top: 154px;
@@ -97,9 +97,21 @@
             box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.18);
             border-radius: 18px;
             padding: 10px 12px;
-            transition: transform 0.25s ease, opacity 0.25s ease;
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale(1);
+            visibility: visible;
+            transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+                        transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+                        visibility 0.32s ease;
+            will-change: opacity, transform;
             width: 280px;
             max-width: 86vw;
+        }
+        .glass-next-class.scroll-faded {
+            opacity: 0 !important;
+            transform: translate3d(0, -14px, 0) scale(0.96) !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
         }
         @media (min-width: 1024px) {
             .glass-next-class {
@@ -449,7 +461,7 @@
             </div>
 
             <!-- การ์ดรายละเอียดการเข้าเรียน ครูที่ปรึกษา และสถิติ 4 ช่อง -->
-            <section class="unified-student-card shrink-0">
+            <section id="advisorUnifiedCard" class="unified-student-card shrink-0">
                 <!-- แถบครูที่ปรึกษาประจำห้อง -->
                 <div onclick="openDrawerById('advisorDrawerBackdrop')" class="px-3 py-2 bg-indigo-50/60 border-b border-indigo-100/80 space-y-1.5 cursor-pointer hover:bg-indigo-50 transition">
                     <div class="flex items-center justify-between">
@@ -687,7 +699,7 @@
             </span>
             <div class="flex items-center gap-1.5">
                 <span id="widgetCurrentPeriodText" class="text-[11px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-md">คาบปัจจุบัน: -</span>
-                <button type="button" onclick="document.getElementById('glassNextClassWidget').classList.add('hidden')" class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-xs flex items-center justify-center cursor-pointer">✕</button>
+                <button type="button" onclick="closeGlassNextClassWidget()" class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
         </div>
         <div id="glassNextClassBody" class="space-y-1.5">
@@ -1058,9 +1070,25 @@
         }
     };
 
+    let isGlassWidgetManuallyDismissed = false;
+
     function toggleGlassNextClassWidget() {
         const widget = document.getElementById('glassNextClassWidget');
-        if (widget) widget.classList.toggle('hidden');
+        if (!widget) return;
+        const willShow = widget.classList.contains('hidden') || widget.classList.contains('scroll-faded');
+        if (willShow) {
+            isGlassWidgetManuallyDismissed = false;
+            widget.classList.remove('hidden', 'scroll-faded');
+        } else {
+            isGlassWidgetManuallyDismissed = true;
+            widget.classList.add('hidden');
+        }
+    }
+
+    function closeGlassNextClassWidget() {
+        const widget = document.getElementById('glassNextClassWidget');
+        isGlassWidgetManuallyDismissed = true;
+        if (widget) widget.classList.add('hidden');
     }
 
     function openGatepassModal() {
@@ -1107,25 +1135,39 @@
     setInterval(updateHeaderClock, 1000);
     updateHeaderClock();
 
-    /* จับการเลื่อนจาก window เพื่อให้ Chrome ซ่อนแถบ URL อัตโนมัติ และซ่อน/แสดงเมนูลอยพร้อมกัน */
-    (function initSmartScrollBottomNav() {
+    /* จับการเลื่อนจาก window: ซ่อน/แสดงเมนูลอยล่าง และให้ป๊อปอัปตารางเรียนจางหายอย่างสมูทเมื่อเลื่อนถึงกล่องครูที่ปรึกษา */
+    (function initSmartScrollHandlers() {
         let lastScrollY = window.scrollY || 0;
         let ticking = false;
 
         function handleScroll() {
             const nav = document.getElementById('nativeBottomNav');
-            if (!nav) return;
+            const widget = document.getElementById('glassNextClassWidget');
+            const advisorCard = document.getElementById('advisorUnifiedCard');
+            const profileBar = document.getElementById('section-profile');
 
             const currentScrollY = window.scrollY || 0;
             const docHeight = document.documentElement.scrollHeight;
             const winHeight = window.innerHeight;
 
-            if (currentScrollY <= 20 || (currentScrollY + winHeight >= docHeight - 24)) {
-                nav.classList.remove('nav-hidden');
-            } else if (currentScrollY > lastScrollY + 12) {
-                nav.classList.add('nav-hidden');
-            } else if (currentScrollY < lastScrollY - 12) {
-                nav.classList.remove('nav-hidden');
+            if (nav) {
+                if (currentScrollY <= 20 || (currentScrollY + winHeight >= docHeight - 24)) {
+                    nav.classList.remove('nav-hidden');
+                } else if (currentScrollY > lastScrollY + 12) {
+                    nav.classList.add('nav-hidden');
+                } else if (currentScrollY < lastScrollY - 12) {
+                    nav.classList.remove('nav-hidden');
+                }
+            }
+
+            if (widget && !widget.classList.contains('hidden') && !isGlassWidgetManuallyDismissed && advisorCard) {
+                const advisorTop = advisorCard.getBoundingClientRect().top;
+                const profileBottom = profileBar ? profileBar.getBoundingClientRect().bottom : 84;
+                if (advisorTop <= profileBottom + 10) {
+                    widget.classList.add('scroll-faded');
+                } else {
+                    widget.classList.remove('scroll-faded');
+                }
             }
 
             lastScrollY = currentScrollY;
@@ -2039,7 +2081,16 @@
             nextBar.textContent = `⚡ ${isWeekend ? 'วันจันทร์ ' : dayLabelPrefix}คาบ ${pNo}: ${label}`;
         }
 
-        widget.classList.remove('hidden');
+        if (!isGlassWidgetManuallyDismissed) {
+            widget.classList.remove('hidden');
+            const advisorCard = document.getElementById('advisorUnifiedCard');
+            const profileBar = document.getElementById('section-profile');
+            if (advisorCard) {
+                const advisorTop = advisorCard.getBoundingClientRect().top;
+                const profileBottom = profileBar ? profileBar.getBoundingClientRect().bottom : 84;
+                widget.classList.toggle('scroll-faded', advisorTop <= profileBottom + 10);
+            }
+        }
         widgetBody.innerHTML = upcoming.map((nc, i) => {
             const pNo = nc.period_no || nc.period || (i + 1);
             const cCode = String(nc.course_code || nc.subject_code || '').trim().toUpperCase();
