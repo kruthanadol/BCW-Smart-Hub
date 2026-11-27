@@ -1053,6 +1053,7 @@
     </div>
 
     <!-- ================= MAIN APPLICATION SCRIPT (UNIFIED WITH ALL APPS) ================= -->
+<!-- ================= MAIN APPLICATION SCRIPT (ALL-SYSTEM SYNC) ================= -->
     <script>
         const db = window.supabaseClient || window.db || window.supabase;
 
@@ -1062,6 +1063,7 @@
             gatePassLogs: [],
             attendanceLogs: [],
             clinicRecords: [],
+            academicNotices: [],
             roomStats: {}
         };
 
@@ -1111,10 +1113,25 @@
             const s = String(raw || '').trim().toLowerCase();
             if (['present', 'มา', 'มาเรียน'].includes(s)) return 'present';
             if (['late', 'สาย', 'มาสาย'].includes(s)) return 'late';
-            if (['leave', 'ลา', 'ลากิจ', 'ลาป่วย'].includes(s)) return 'leave';
+            if (['leave', 'ลา', 'ลากิจ', 'ลาป่วย', 'clinic', 'พยาบาล', 'ห้องพยาบาล'].includes(s)) return 'leave';
             if (['absent', 'ขาด', 'ขาดเรียน'].includes(s)) return 'absent';
             if (['truant', 'หนี', 'หนีเรียน'].includes(s)) return 'truant';
             return '';
+        }
+
+        // เช็กว่าเคสห้องพยาบาลยังนอนพักรักษาตัวอยู่หรือไม่ (รองรับทั้งไทยและอังกฤษ)
+        function isActiveClinicCase(c) {
+            const st = String(c?.status || '').trim().toLowerCase();
+            if (!st) return true;
+            const finishedKeywords = ['returned', 'sent_home', 'discharged', 'กลับเข้าเรียน', 'กลับบ้าน', 'ส่งต่อ', 'จำหน่าย'];
+            return !finishedKeywords.some(k => st.includes(k));
+        }
+
+        function getClinicStatusLabel(raw) {
+            const st = String(raw || '').trim().toLowerCase();
+            if (st.includes('returned') || st.includes('กลับเข้าเรียน')) return 'กลับเข้าเรียนแล้ว';
+            if (st.includes('sent_home') || st.includes('กลับบ้าน')) return 'อนุญาตกลับบ้าน';
+            return 'กำลังนอนพักรักษาตัว';
         }
 
         // 1. สลับแท็บตารางฝั่งขวา
@@ -1257,7 +1274,7 @@
                 summaryNote = `รวมรายการทำความดีที่บันทึกในระบบจำนวน ${goodLogs.length} รายการ`;
             } else if (reportKey === 4) {
                 title = "รายงานสถิติการเข้าแถวเคารพธงชาติและการมาเรียนประจำวัน";
-                headers = ["ที่", "ห้องเรียน", "นักเรียนทั้งหมด", "มาตรงเวลา", "มาสาย", "ขาด", "ลา", "หนีเรียน", "ร้อยละการมาเรียน"];
+                headers = ["ที่", "ห้องเรียน", "นักเรียนทั้งหมด", "มาตรงเวลา", "มาสาย", "ขาด", "ลา/พยาบาล", "หนีเรียน", "ร้อยละการมาเรียน"];
                 const sortedRooms = Object.keys(data.roomStats).sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
                 sortedRooms.forEach((rm, i) => {
                     const r = data.roomStats[rm];
@@ -1305,9 +1322,8 @@
             } else if (reportKey === 8) {
                 title = "รายงานสถิติการเข้ารับบริการห้องพยาบาลประจำวัน";
                 headers = ["ที่", "ชื่อ - นามสกุล", "ชั้นเรียน", "อาการเบื้องต้น / สาเหตุ", "สถานะการดูแล"];
-                const statusLabel = { resting: 'กำลังนอนพักฟื้น', in_clinic: 'กำลังนอนพักฟื้น', returned: 'กลับเข้าเรียนแล้ว', sent_home: 'ส่งกลับบ้าน/รพ.' };
                 data.clinicRecords.forEach((c, i) => {
-                    rows.push([i + 1, c.student_name || c.student_id || '-', c.class_name || '-', c.symptom || '-', statusLabel[c.status] || c.status || '-']);
+                    rows.push([i + 1, c.student_name || c.student_id || '-', c.class_name || c.classroom || '-', c.symptom || '-', getClinicStatusLabel(c.status)]);
                 });
                 summaryNote = `รวมจำนวนนักเรียนเข้ารับบริการห้องพยาบาล ${data.clinicRecords.length} คน`;
             } else if (reportKey === 'hist') {
@@ -1526,7 +1542,38 @@
             }
         }
 
-        // 8. KPI Pop-up Modal
+        // 8. KPI Pop-up Modal (รวมข้อมูลห้องพยาบาลจากทั้ง clinic_records, clinic_visits และ attendance_logs)
+        function getCombinedActiveClinicList() {
+            const data = window.BCW_APP_DATA;
+            const mapByStudent = new Map();
+
+            // 1) เคสจากตารางห้องพยาบาลโดยตรง
+            data.clinicRecords.filter(isActiveClinicCase).forEach(c => {
+                const key = String(c.student_id || c.student_name || Math.random()).trim();
+                const st = data.students.find(s => getStuCode(s) === String(c.student_id).trim());
+                mapByStudent.set(key, {
+                    name: c.student_name || (st ? getStuFullName(st) : c.student_id || 'ไม่ระบุชื่อ'),
+                    classroom: c.class_name || c.classroom || st?.classroom || '-',
+                    detail: `${c.symptom || 'เข้าพักรักษาอาการ'} (${getClinicStatusLabel(c.status)})`
+                });
+            });
+
+            // 2) เคสที่ครูผู้สอนเช็กชื่อรายคาบว่าอยู่ห้องพยาบาล
+            data.attendanceLogs.filter(a => ['clinic', 'พยาบาล', 'ห้องพยาบาล'].includes(String(a.status || '').trim().toLowerCase())).forEach(a => {
+                const key = String(a.student_id || '').trim();
+                if (!mapByStudent.has(key)) {
+                    const st = data.students.find(s => getStuCode(s) === key);
+                    mapByStudent.set(key, {
+                        name: st ? getStuFullName(st) : (a.student_id || 'ไม่ระบุชื่อ'),
+                        classroom: st?.classroom || a.classroom || '-',
+                        detail: `ครูเช็กสถานะห้องพยาบาล (วิชา ${a.subject_name || a.subject_code || '-'} คาบ ${a.period_no || '-'})`
+                    });
+                }
+            });
+
+            return Array.from(mapByStudent.values());
+        }
+
         window.openKpiModal = function(type) {
             const modal = document.getElementById('kpiListModal');
             const title = document.getElementById('modalKpiTitle');
@@ -1561,12 +1608,12 @@
                 }).join('') : `<tr><td colspan="3" class="text-center py-8 text-slate-500 font-bold">✨ ยังไม่มีรายการขอออกนอกโรงเรียนวันนี้</td></tr>`;
             } else if (type === 'infirmary') {
                 title.innerHTML = `<i class="fa-solid fa-hospital-user text-sky-600"></i> รายชื่อนักเรียนเข้าใช้ห้องพยาบาลวันนี้`;
-                const list = data.clinicRecords.filter(c => ['resting', 'in_clinic'].includes(String(c.status || '').toLowerCase()));
+                const list = getCombinedActiveClinicList();
                 rowsHtml = list.length ? list.map(c => `
                     <tr>
-                        <td class="py-2.5 px-2 font-bold text-slate-900">${c.student_name || c.student_id || '-'}</td>
-                        <td class="py-2.5 px-2 text-center font-bold">${c.class_name || '-'}</td>
-                        <td class="py-2.5 px-2 text-sky-700 font-bold">${c.symptom || 'เข้าพักรักษาอาการ'} (กำลังนอนพักฟื้น)</td>
+                        <td class="py-2.5 px-2 font-bold text-slate-900">${c.name}</td>
+                        <td class="py-2.5 px-2 text-center font-bold">${c.classroom}</td>
+                        <td class="py-2.5 px-2 text-sky-700 font-bold">${c.detail}</td>
                     </tr>
                 `).join('') : `<tr><td colspan="3" class="text-center py-8 text-slate-500 font-bold">✨ ไม่มีนักเรียนพักรักษาในห้องพยาบาลขณะนี้</td></tr>`;
             } else if (type === 'truancy') {
@@ -1629,11 +1676,11 @@
             }
         };
 
-        // 9. แสดงผลรายงานเข้าแถว / รายห้อง (เชื่อมกับ attendance_logs ทั้งประตู AI Gate และรายคาบ)
+        // 9. แสดงผลรายงานเข้าแถว / รายห้อง
         function getStatusBadge(status) {
             if (status === 'late') return `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-extrabold">มาสาย</span>`;
             if (status === 'absent') return `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ขาด</span>`;
-            if (status === 'leave') return `<span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ลา</span>`;
+            if (status === 'leave') return `<span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ลา / พยาบาล</span>`;
             if (status === 'truant') return `<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-extrabold">หนีเรียน</span>`;
             return `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-extrabold">มาตรงเวลา</span>`;
         }
@@ -1681,7 +1728,8 @@
                 const hasTruant = stuAttToday.some(a => normalizeAttendanceStatus(a.status) === 'truant');
                 const hasAbsent = stuAttToday.some(a => normalizeAttendanceStatus(a.status) === 'absent');
                 const hasLeave = stuAttToday.some(a => normalizeAttendanceStatus(a.status) === 'leave') ||
-                                 appData.gatePassLogs.some(g => String(g.student_id).trim() === sCode);
+                                 appData.gatePassLogs.some(g => String(g.student_id).trim() === sCode) ||
+                                 appData.clinicRecords.filter(isActiveClinicCase).some(c => String(c.student_id).trim() === sCode);
                 const hasLate = stuAttToday.some(a => normalizeAttendanceStatus(a.status) === 'late') ||
                                 appData.behaviorLogs.some(l => String(l.student_id).trim() === sCode && (l.reason || '').includes('มาสาย'));
 
@@ -1974,18 +2022,46 @@
             }
         }
 
+        // แสดงแถบประกาศจากฝ่ายวิชาการ (ถ้ามี)
+        function renderAcademicNoticeBanner() {
+            const notices = window.BCW_APP_DATA.academicNotices;
+            let banner = document.getElementById('academicNoticeBanner');
+            if (!notices || notices.length === 0) {
+                if (banner) banner.remove();
+                return;
+            }
+            const latest = notices[0];
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'academicNoticeBanner';
+                banner.className = 'bg-indigo-900 text-white px-3 py-2 rounded-xl border border-indigo-400 shadow-sm flex items-center justify-between gap-2 text-xs sm:text-sm shrink-0';
+                const kpiSection = document.getElementById('section-kpis');
+                if (kpiSection && kpiSection.parentNode) {
+                    kpiSection.parentNode.insertBefore(banner, kpiSection);
+                }
+            }
+            banner.innerHTML = `
+                <div class="flex items-center gap-2 truncate">
+                    <span class="bg-amber-400 text-slate-950 font-extrabold px-2 py-0.5 rounded text-[11px] shrink-0">📢 ฝ่ายวิชาการ</span>
+                    <span class="font-bold truncate">${latest.title || 'แจ้งเตือนระบบ'}: <span class="font-normal text-indigo-100">${latest.message || ''}</span></span>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" class="text-indigo-200 hover:text-white font-bold px-1.5 cursor-pointer">✕</button>
+            `;
+        }
+
         function updateAllUI() {
             const appData = window.BCW_APP_DATA;
             const riskStudents = appData.students.filter(s => Number(s.behavior_score ?? 100) < 80);
             document.getElementById('kpiRiskCount').innerText = `${riskStudents.length} คน`;
             document.getElementById('kpiGatePassCount').innerText = `${appData.gatePassLogs.length} คน`;
 
-            const activeClinic = appData.clinicRecords.filter(c => ['resting', 'in_clinic'].includes(String(c.status || '').toLowerCase()));
-            document.getElementById('kpiInfirmaryCount').innerText = `${activeClinic.length} คน`;
+            const activeClinicList = getCombinedActiveClinicList();
+            document.getElementById('kpiInfirmaryCount').innerText = `${activeClinicList.length} คน`;
 
             const truantCases = appData.attendanceLogs.filter(a => ['absent', 'truant'].includes(normalizeAttendanceStatus(a.status)));
             document.getElementById('kpiTruancyCount').innerText = `${truantCases.length} เคส`;
 
+            renderAcademicNoticeBanner();
             renderAssemblyReport();
             renderDisciplineTable();
             renderRiskTable();
@@ -2151,7 +2227,7 @@
             });
         }
 
-        // 12. ดึงข้อมูลครบทุกตารางกลาง (ซิงก์กับ clinic, teacher, ai-gate, parent, student)
+        // 12. ดึงข้อมูลครบทุกตาราง (ห้องพยาบาล 2 ตาราง, ครู, ประตู AI Gate, วิชาการ, คะแนนความประพฤติ)
         window.reloadAffairsData = async function() {
             if (!db) {
                 console.warn('Supabase client not found.');
@@ -2161,14 +2237,16 @@
             try {
                 const todayStr = getThaiTodayISO();
 
-                const [s1, s2, s3, behRes, gpRes, attRes, clinicRes] = await Promise.all([
+                const [s1, s2, s3, behRes, gpRes, attRes, clinicRecRes, clinicVisRes, notifRes] = await Promise.all([
                     db.from('students').select('*').range(0, 999),
                     db.from('students').select('*').range(1000, 1999),
                     db.from('students').select('*').range(2000, 2999),
                     db.from('behavior_logs').select('*').order('created_at', { ascending: false }).limit(150),
                     db.from('gate_pass_logs').select('*').order('created_at', { ascending: false }).limit(150),
                     db.from('attendance_logs').select('*').eq('date', todayStr).limit(3000),
-                    db.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(150)
+                    db.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(150),
+                    db.from('clinic_visits').select('*').order('created_at', { ascending: false }).limit(150),
+                    db.from('notifications').select('*').order('created_at', { ascending: false }).limit(20)
                 ]);
 
                 const mergedStudents = [...(s1.data || []), ...(s2.data || []), ...(s3.data || [])]
@@ -2189,12 +2267,16 @@
                     window.BCW_APP_DATA.attendanceLogs = attRes.data;
                 }
 
-                if (clinicRes.data) {
-                    window.BCW_APP_DATA.clinicRecords = clinicRes.data.filter(c => {
-                        if (!c.created_at) return true;
-                        const dThai = new Date(c.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
-                        return dThai === todayStr;
-                    });
+                // รวมข้อมูลห้องพยาบาลจากทั้ง clinic_records และ clinic_visits (กรองเฉพาะวันนี้)
+                const allClinic = [...(clinicRecRes.data || []), ...(clinicVisRes.data || [])].filter(c => {
+                    if (!c.created_at) return true;
+                    const dThai = new Date(c.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+                    return dThai === todayStr;
+                });
+                window.BCW_APP_DATA.clinicRecords = allClinic;
+
+                if (notifRes.data) {
+                    window.BCW_APP_DATA.academicNotices = notifRes.data.filter(n => !n.is_read);
                 }
 
                 updateAllUI();
@@ -2220,13 +2302,15 @@
             bindAllEvents();
             window.reloadAffairsData();
 
-            // ซิงก์ข้อมูล Real-time ทันทีเมื่อมีบันทึกใหม่จากห้องพยาบาล, ครูผู้สอน หรือ AI Gate
+            // ซิงก์ข้อมูล Real-time ทันทีจากทุกแอป
             if (db && db.channel) {
                 db.channel('bcw-affairs-realtime-sync')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_records' }, () => window.reloadAffairsData())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_visits' }, () => window.reloadAffairsData())
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_pass_logs' }, () => window.reloadAffairsData())
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => window.reloadAffairsData())
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'behavior_logs' }, () => window.reloadAffairsData())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => window.reloadAffairsData())
                     .subscribe();
             }
         });
