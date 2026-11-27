@@ -263,7 +263,7 @@
             box-shadow: 0 2px 8px rgba(217, 119, 6, 0.4);
         }
 
-        /* Official Print Mode (แสดงเฉพาะเอกสารราชการเมื่อกดพิมพ์/PDF) */
+        /* Official Print Mode */
         #officialPrintContainer { display: none; }
         @media print {
             body > *:not(#officialPrintContainer) { display: none !important; }
@@ -501,9 +501,9 @@
             </div>
         </section>
 
-        <!-- APP GRID 4 ปุ่มลัดสำหรับมือถือ -->
+        <!-- APP GRID 4 ปุ่มลัดสำหรับมือถือ (ลิงก์ไป ai-gate.html ที่เชื่อมตาราง attendance_logs ถูกต้อง) -->
         <div class="grid grid-cols-4 gap-2 shrink-0 lg:hidden no-print">
-            <a href="scanner.html" onclick="if(window.openSmartPage){openSmartPage('scanner.html'); return false;}" class="mobile-app-card border-amber-200">
+            <a href="ai-gate.html" onclick="if(window.openSmartPage){openSmartPage('ai-gate.html'); return false;}" class="mobile-app-card border-amber-200">
                 <div class="mobile-app-icon bg-amber-100 text-amber-700 border border-amber-200">
                     <i class="fa-solid fa-camera-retro"></i>
                 </div>
@@ -532,9 +532,9 @@
             </button>
         </div>
 
-        <!-- DESKTOP VIEW: ฟอร์มบันทึกคะแนน, ตารางแท็บ 3 หมวด, สถิติผู้บริหาร และรายงาน 12 ชุด -->
+        <!-- DESKTOP VIEW -->
         <div id="desktopExtendedSections" class="hidden lg:block space-y-5 mt-2">
-            <!-- ฟอร์มบันทึกคะแนนความประพฤติ + ตารางประวัติ/กลุ่มเสี่ยง/ขอออกนอก รร. -->
+            <!-- ฟอร์มบันทึกคะแนนความประพฤติ + ตารางแท็บ 3 หมวด -->
             <section id="section-form-behavior" class="grid grid-cols-3 gap-5">
                 <div class="affairs-card p-5 space-y-4">
                     <div class="border-b pb-3">
@@ -598,7 +598,7 @@
                     </form>
                 </div>
 
-                <!-- แถบแท็บ 3 หมวด + ปุ่มส่งออก Excel / PDF ประจำแท็บ -->
+                <!-- แถบแท็บ 3 หมวด -->
                 <div class="col-span-2 affairs-card p-5 space-y-4">
                     <div class="flex flex-wrap justify-between items-center border-b gap-2 pb-1">
                         <div class="flex flex-wrap gap-4 text-sm font-bold">
@@ -735,7 +735,7 @@
                 </div>
             </section>
 
-            <!-- 12 Standard Reports (แบบทางการ พร้อมปุ่ม Excel และ PDF แยกตามหัวข้อ) -->
+            <!-- 12 Standard Reports -->
             <section id="section-12-reports" class="affairs-card p-5 space-y-4">
                 <div class="flex flex-wrap justify-between items-center gap-3 border-b pb-3">
                     <div class="flex items-center gap-2.5">
@@ -793,16 +793,12 @@
                 </div>
             </div>
 
-            <!-- พื้นที่จำลองกระดาษ A4 -->
             <div class="p-4 sm:p-6 overflow-y-auto bg-slate-200 flex-1">
-                <div id="officialPaperPreviewArea" class="bg-white mx-auto max-w-[210mm] min-h-[260mm] p-6 sm:p-10 shadow-lg border border-slate-300 text-black font-sarabun">
-                    <!-- เติมเนื้อหาเอกสารราชการอัตโนมัติด้วย JS -->
-                </div>
+                <div id="officialPaperPreviewArea" class="bg-white mx-auto max-w-[210mm] min-h-[260mm] p-6 sm:p-10 shadow-lg border border-slate-300 text-black font-sarabun"></div>
             </div>
         </div>
     </div>
 
-    <!-- พื้นที่สำหรับสั่งพิมพ์ออกเครื่องพิมพ์ / Save as PDF -->
     <div id="officialPrintContainer"></div>
 
     <!-- ================= BOTTOM SHEET DRAWERS (สำหรับมือถือ) ================= -->
@@ -1056,16 +1052,16 @@
         </div>
     </div>
 
-    <!-- ================= MAIN APPLICATION SCRIPT (UNIFIED & RELIABLE) ================= -->
+    <!-- ================= MAIN APPLICATION SCRIPT (UNIFIED WITH ALL APPS) ================= -->
     <script>
         const db = window.supabaseClient || window.db || window.supabase;
 
         window.BCW_APP_DATA = {
             students: [],
-            disciplineLogs: [],
+            behaviorLogs: [],
             gatePassLogs: [],
             attendanceLogs: [],
-            clinicLogs: [],
+            clinicRecords: [],
             roomStats: {}
         };
 
@@ -1093,6 +1089,10 @@
             { id: 12, title: "แบบสรุปรายงานระบบดูแลช่วยเหลือนักเรียนเสนอผู้บริหาร", desc: "เอกสารสรุปภาพรวมกิจการนักเรียนเสนอผู้อำนวยการโรงเรียน" }
         ];
 
+        function getThaiTodayISO() {
+            return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+        }
+
         function getStuCode(st) {
             return String(st?.student_id || st?.student_code || '').trim();
         }
@@ -1107,7 +1107,17 @@
             return `${dateObj.getDate()} ${months[dateObj.getMonth()]} พ.ศ. ${dateObj.getFullYear() + 543}`;
         }
 
-        // 1. สลับแท็บตารางฝั่งขวา (ประวัติ | กลุ่มเสี่ยง | ขออนุญาตออกนอก)
+        function normalizeAttendanceStatus(raw) {
+            const s = String(raw || '').trim().toLowerCase();
+            if (['present', 'มา', 'มาเรียน'].includes(s)) return 'present';
+            if (['late', 'สาย', 'มาสาย'].includes(s)) return 'late';
+            if (['leave', 'ลา', 'ลากิจ', 'ลาป่วย'].includes(s)) return 'leave';
+            if (['absent', 'ขาด', 'ขาดเรียน'].includes(s)) return 'absent';
+            if (['truant', 'หนี', 'หนีเรียน'].includes(s)) return 'truant';
+            return '';
+        }
+
+        // 1. สลับแท็บตารางฝั่งขวา
         window.switchTableTab = function(tab) {
             activeDesktopTableTab = tab;
             ['hist', 'risk', 'gate'].forEach(t => {
@@ -1119,7 +1129,7 @@
             document.getElementById('viewGatepass')?.classList.toggle('hidden', tab !== 'gate');
         };
 
-        // 2. สลับโหมดฟอร์มบันทึกคะแนน (ตัดคะแนน / ทำความดี)
+        // 2. สลับโหมดฟอร์มบันทึกคะแนน
         window.switchFormMode = function(mode) {
             currentFormMode = mode;
             const btnDeduct = document.getElementById('btnTabDeduct');
@@ -1157,7 +1167,7 @@
             }
         };
 
-        // 3. สลับแผงตรงกลาง (เข้าแถว | มาเรียน | รายห้อง | กราฟสถิติ)
+        // 3. สลับแผงตรงกลาง
         window.switchCenterPanel = function(mode) {
             const btns = {
                 assembly: document.getElementById('btnModeAssembly'),
@@ -1201,7 +1211,7 @@
             }
         };
 
-        // 4. สร้างชุดข้อมูลสำหรับส่งออก Excel และเอกสารราชการตามหัวข้อรายงาน
+        // 4. สร้างชุดข้อมูลสำหรับส่งออก Excel และเอกสารราชการ
         function buildReportDataset(reportKey) {
             const data = window.BCW_APP_DATA;
             const todayThai = getThaiFullDate();
@@ -1240,9 +1250,9 @@
             } else if (reportKey === 3) {
                 title = "รายงานประวัติการทำความดีและบำเพ็ญประโยชน์ (+คะแนนความประพฤติ)";
                 headers = ["ที่", "รหัสนักเรียน", "ชื่อ - นามสกุล", "รายการทำความดี", "คะแนนที่เพิ่ม", "คะแนนรวมใหม่"];
-                const goodLogs = data.disciplineLogs.filter(l => Number(l.points_change) > 0);
+                const goodLogs = data.behaviorLogs.filter(l => Number(l.points) > 0);
                 goodLogs.forEach((l, i) => {
-                    rows.push([i + 1, l.student_code || '-', l.student_name || '-', l.action || '-', `+${l.points_change}`, l.remaining_score ?? '-']);
+                    rows.push([i + 1, l.student_id || '-', l.student_name || '-', l.reason || '-', `+${l.points}`, l.remaining_score ?? '-']);
                 });
                 summaryNote = `รวมรายการทำความดีที่บันทึกในระบบจำนวน ${goodLogs.length} รายการ`;
             } else if (reportKey === 4) {
@@ -1259,23 +1269,34 @@
                 title = "รายงานทะเบียนคุมการขออนุญาตออกนอกสถานศึกษาประจำวัน";
                 headers = ["ที่", "รหัสนักเรียน", "ชื่อ - นามสกุล", "ชั้นเรียน", "เวลาออก - กลับ", "เหตุผลความจำเป็น", "ผู้อนุมัติ"];
                 data.gatePassLogs.forEach((g, i) => {
-                    rows.push([i + 1, g.student_code || '-', g.student_name || '-', g.classroom || '-', `${g.exit_time || '-'} - ${g.return_time || 'ยังไม่กลับ'}`, g.reason || '-', g.approved_by || 'ฝ่ายปกครอง']);
+                    const st = data.students.find(s => getStuCode(s) === String(g.student_id));
+                    rows.push([
+                        i + 1,
+                        g.student_id || '-',
+                        g.student_name || (st ? getStuFullName(st) : '-'),
+                        g.classroom || st?.classroom || '-',
+                        `${g.exit_time || '-'} - ${g.return_time || 'ยังไม่กลับ'}`,
+                        g.reason || '-',
+                        g.approved_by || 'ฝ่ายปกครอง'
+                    ]);
                 });
                 summaryNote = `รวมรายการขออนุญาตออกนอกบริเวณโรงเรียนจำนวน ${data.gatePassLogs.length} รายการ`;
             } else if (reportKey === 6) {
                 title = "รายงานสรุปการหนีเรียน / ขาดเรียนรายคาบประจำวัน";
+                const truantList = data.attendanceLogs.filter(a => ['absent', 'truant'].includes(normalizeAttendanceStatus(a.status)));
                 headers = ["ที่", "รหัสนักเรียน", "ชื่อ - นามสกุล", "ชั้นเรียน", "รายวิชา", "คาบเรียน", "สถานะ"];
-                data.attendanceLogs.forEach((t, i) => {
-                    const st = data.students.find(s => getStuCode(s) === String(t.student_id || t.student_code));
-                    rows.push([i + 1, t.student_id || t.student_code || '-', st ? getStuFullName(st) : '-', st?.classroom || t.classroom || '-', t.subject_name || t.subject_code || '-', t.period || '-', 'ขาด/หนีเรียน']);
+                truantList.forEach((t, i) => {
+                    const st = data.students.find(s => getStuCode(s) === String(t.student_id));
+                    const stLabel = normalizeAttendanceStatus(t.status) === 'truant' ? 'หนีเรียน' : 'ขาดเรียน';
+                    rows.push([i + 1, t.student_id || '-', st ? getStuFullName(st) : '-', st?.classroom || t.classroom || '-', t.subject_name || t.subject_code || '-', t.period_no || '-', stLabel]);
                 });
-                summaryNote = `รวมเคสไม่เข้าเรียนรายคาบจำนวน ${data.attendanceLogs.length} รายการ`;
+                summaryNote = `รวมเคสไม่เข้าเรียนรายคาบจำนวน ${truantList.length} รายการ`;
             } else if (reportKey === 7) {
                 title = "รายงานวิเคราะห์สถิติฐานความผิดวินัยนักเรียน";
                 headers = ["อันดับ", "ฐานความผิด / พฤติกรรมที่ไม่พึงประสงค์", "จำนวนครั้งที่พบ (เคส)", "ร้อยละ"];
-                const offenses = data.disciplineLogs.filter(l => Number(l.points_change) < 0);
+                const offenses = data.behaviorLogs.filter(l => Number(l.points) < 0);
                 const mapReason = {};
-                offenses.forEach(o => { mapReason[o.action] = (mapReason[o.action] || 0) + 1; });
+                offenses.forEach(o => { mapReason[o.reason] = (mapReason[o.reason] || 0) + 1; });
                 Object.entries(mapReason).sort((a, b) => b[1] - a[1]).forEach(([reason, cnt], i) => {
                     const pct = offenses.length > 0 ? ((cnt / offenses.length) * 100).toFixed(2) + '%' : '0%';
                     rows.push([i + 1, reason, cnt, pct]);
@@ -1284,23 +1305,24 @@
             } else if (reportKey === 8) {
                 title = "รายงานสถิติการเข้ารับบริการห้องพยาบาลประจำวัน";
                 headers = ["ที่", "ชื่อ - นามสกุล", "ชั้นเรียน", "อาการเบื้องต้น / สาเหตุ", "สถานะการดูแล"];
-                data.clinicLogs.forEach((c, i) => {
-                    rows.push([i + 1, c.student_name || '-', c.classroom || '-', c.symptom || '-', c.status || 'กำลังพักรักษา']);
+                const statusLabel = { resting: 'กำลังนอนพักฟื้น', in_clinic: 'กำลังนอนพักฟื้น', returned: 'กลับเข้าเรียนแล้ว', sent_home: 'ส่งกลับบ้าน/รพ.' };
+                data.clinicRecords.forEach((c, i) => {
+                    rows.push([i + 1, c.student_name || c.student_id || '-', c.class_name || '-', c.symptom || '-', statusLabel[c.status] || c.status || '-']);
                 });
-                summaryNote = `รวมจำนวนนักเรียนเข้ารับบริการห้องพยาบาล ${data.clinicLogs.length} คน`;
+                summaryNote = `รวมจำนวนนักเรียนเข้ารับบริการห้องพยาบาล ${data.clinicRecords.length} คน`;
             } else if (reportKey === 'hist') {
                 title = "รายงานทะเบียนประวัติการตัดคะแนนและเพิ่มคะแนนความประพฤติ";
                 headers = ["ที่", "รหัสนักเรียน", "ชื่อ - นามสกุล", "รายการพฤติกรรม / กิจกรรม", "คะแนนเปลี่ยนแปลง", "คะแนนคงเหลือ"];
-                data.disciplineLogs.forEach((l, i) => {
-                    const chg = Number(l.points_change) > 0 ? `+${l.points_change}` : `${l.points_change}`;
-                    rows.push([i + 1, l.student_code || '-', l.student_name || '-', l.action || '-', chg, l.remaining_score ?? '-']);
+                data.behaviorLogs.forEach((l, i) => {
+                    const chg = Number(l.points) > 0 ? `+${l.points}` : `${l.points}`;
+                    rows.push([i + 1, l.student_id || '-', l.student_name || '-', l.reason || '-', chg, l.remaining_score ?? '-']);
                 });
-                summaryNote = `รวมรายการบันทึกความประพฤติทั้งหมด ${data.disciplineLogs.length} รายการ`;
+                summaryNote = `รวมรายการบันทึกความประพฤติทั้งหมด ${data.behaviorLogs.length} รายการ`;
             } else {
                 const found = OBEC_12_REPORTS.find(r => r.id === reportKey);
                 title = found ? found.title : "รายงานสรุปสถิติพฤติกรรมและการดำเนินงานกลุ่มบริหารกิจการนักเรียน";
-                const offenses = data.disciplineLogs.filter(l => Number(l.points_change) < 0);
-                const repairs = data.disciplineLogs.filter(l => Number(l.points_change) > 0);
+                const offenses = data.behaviorLogs.filter(l => Number(l.points) < 0);
+                const repairs = data.behaviorLogs.filter(l => Number(l.points) > 0);
                 const riskCount = data.students.filter(s => Number(s.behavior_score ?? 100) < 80).length;
                 const avgScore = data.students.length > 0
                     ? (data.students.reduce((sum, s) => sum + Number(s.behavior_score ?? 100), 0) / data.students.length).toFixed(2)
@@ -1314,7 +1336,7 @@
                     [4, "สถิติการกระทำผิดระเบียบสะสม", `${offenses.length} ครั้ง`, "บันทึกตัดคะแนน"],
                     [5, "สถิติการทำความดีและจิตอาสา (+คะแนน)", `${repairs.length} ครั้ง`, "ยกย่องเชิดชูเกียรติ"],
                     [6, "การขออนุญาตออกนอกสถานศึกษาประจำวัน", `${data.gatePassLogs.length} ฉบับ`, "ผ่านการอนุมัติ"],
-                    [7, "การเข้ารับบริการห้องพยาบาลประจำวัน", `${data.clinicLogs.length} คน`, "รายงานพยาบาล"]
+                    [7, "การเข้ารับบริการห้องพยาบาลประจำวัน", `${data.clinicRecords.length} คน`, "รายงานพยาบาล"]
                 ];
                 summaryNote = `ข้อมูลสรุป ณ วันที่ ${todayThai} กลุ่มบริหารกิจการนักเรียน โรงเรียนบัวเชดวิทยา`;
             }
@@ -1326,7 +1348,7 @@
             return { title, docCode, todayThai, headers, rows, summaryNote };
         }
 
-        // 5. ดาวน์โหลดไฟล์ Excel (.xlsx) แยกตามหัวข้อ
+        // 5. ดาวน์โหลดไฟล์ Excel (.xlsx)
         window.exportReportExcel = function(reportKey) {
             if (typeof XLSX === 'undefined') return alert('กำลังโหลดไลบรารี Excel กรุณารอสักครู่ครับ');
             const rep = buildReportDataset(reportKey);
@@ -1362,7 +1384,6 @@
 
             const officialHtml = `
                 <div style="font-family: 'Sarabun', sans-serif; color: #000; line-height: 1.55;">
-                    <!-- ส่วนหัวหนังสือราชการ -->
                     <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 16px;">
                         <div style="display: flex; align-items: center; gap: 14px;">
                             <img src="../../assets/images/logo_bcw.png" alt="Logo" style="width: 64px; height: 64px; object-fit: contain;" onerror="this.style.display='none'">
@@ -1378,7 +1399,6 @@
                         </div>
                     </div>
 
-                    <!-- เรื่อง / เรียน -->
                     <div style="font-size: 13pt; margin-bottom: 14px;">
                         <div><strong>เรื่อง:</strong> ${rep.title}</div>
                         <div><strong>เรียน:</strong> ผู้อำนวยการโรงเรียนบัวเชดวิทยา</div>
@@ -1387,7 +1407,6 @@
                         </p>
                     </div>
 
-                    <!-- ตารางข้อมูลทางการ -->
                     <table style="width: 100%; border-collapse: collapse; font-size: 11.5pt; margin-bottom: 14px;">
                         <thead>
                             <tr style="background-color: #f1f5f9;">
@@ -1407,7 +1426,6 @@
                         สรุปผลการรายงาน: <span style="font-weight: 400;">${rep.summaryNote}</span>
                     </div>
 
-                    <!-- ส่วนลงนามรับรองตามระเบียบงานสารบรรณ -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; font-size: 12pt; text-align: center; page-break-inside: avoid;">
                         <div>
                             <div>ลงชื่อ......................................................ผู้รายงาน</div>
@@ -1531,33 +1549,37 @@
             } else if (type === 'gatepass') {
                 title.innerHTML = `<i class="fa-solid fa-door-open text-amber-600"></i> รายชื่อนักเรียนขอออกนอกสถานศึกษาวันนี้`;
                 const list = data.gatePassLogs;
-                rowsHtml = list.length ? list.map(g => `
-                    <tr>
-                        <td class="py-2.5 px-2 font-bold text-slate-900">${g.student_name}</td>
-                        <td class="py-2.5 px-2 text-center font-bold">${g.classroom || '-'}</td>
-                        <td class="py-2.5 px-2 text-slate-700">${g.reason || '-'} (${g.exit_time || '-'} - ${g.return_time || 'ยังไม่กลับ'})</td>
-                    </tr>
-                `).join('') : `<tr><td colspan="3" class="text-center py-8 text-slate-500 font-bold">✨ ยังไม่มีรายการขอออกนอกโรงเรียนวันนี้</td></tr>`;
+                rowsHtml = list.length ? list.map(g => {
+                    const st = data.students.find(s => getStuCode(s) === String(g.student_id));
+                    return `
+                        <tr>
+                            <td class="py-2.5 px-2 font-bold text-slate-900">${g.student_name || (st ? getStuFullName(st) : g.student_id)}</td>
+                            <td class="py-2.5 px-2 text-center font-bold">${g.classroom || st?.classroom || '-'}</td>
+                            <td class="py-2.5 px-2 text-slate-700">${g.reason || '-'} (${g.exit_time || '-'} - ${g.return_time || 'ยังไม่กลับ'})</td>
+                        </tr>
+                    `;
+                }).join('') : `<tr><td colspan="3" class="text-center py-8 text-slate-500 font-bold">✨ ยังไม่มีรายการขอออกนอกโรงเรียนวันนี้</td></tr>`;
             } else if (type === 'infirmary') {
                 title.innerHTML = `<i class="fa-solid fa-hospital-user text-sky-600"></i> รายชื่อนักเรียนเข้าใช้ห้องพยาบาลวันนี้`;
-                const list = data.clinicLogs.filter(c => c.status !== 'กลับเข้าเรียนแล้ว');
+                const list = data.clinicRecords.filter(c => ['resting', 'in_clinic'].includes(String(c.status || '').toLowerCase()));
                 rowsHtml = list.length ? list.map(c => `
                     <tr>
-                        <td class="py-2.5 px-2 font-bold text-slate-900">${c.student_name || '-'}</td>
-                        <td class="py-2.5 px-2 text-center font-bold">${c.classroom || '-'}</td>
-                        <td class="py-2.5 px-2 text-sky-700 font-bold">${c.symptom || 'เข้าพักรักษาอาการ'} (${c.status || 'กำลังพักรักษา'})</td>
+                        <td class="py-2.5 px-2 font-bold text-slate-900">${c.student_name || c.student_id || '-'}</td>
+                        <td class="py-2.5 px-2 text-center font-bold">${c.class_name || '-'}</td>
+                        <td class="py-2.5 px-2 text-sky-700 font-bold">${c.symptom || 'เข้าพักรักษาอาการ'} (กำลังนอนพักฟื้น)</td>
                     </tr>
                 `).join('') : `<tr><td colspan="3" class="text-center py-8 text-slate-500 font-bold">✨ ไม่มีนักเรียนพักรักษาในห้องพยาบาลขณะนี้</td></tr>`;
             } else if (type === 'truancy') {
                 title.innerHTML = `<i class="fa-solid fa-person-running text-purple-600"></i> รายชื่อนักเรียนหนีเรียน / ขาดเรียนรายคาบวันนี้`;
-                const list = data.attendanceLogs;
+                const list = data.attendanceLogs.filter(a => ['absent', 'truant'].includes(normalizeAttendanceStatus(a.status)));
                 rowsHtml = list.length ? list.map(t => {
-                    const st = data.students.find(s => getStuCode(s) === String(t.student_id || t.student_code));
+                    const st = data.students.find(s => getStuCode(s) === String(t.student_id));
+                    const isTruant = normalizeAttendanceStatus(t.status) === 'truant';
                     return `
                         <tr>
-                            <td class="py-2.5 px-2 font-bold text-slate-900">${st ? getStuFullName(st) : (t.student_id || t.student_code || 'ไม่ระบุรหัส')}</td>
+                            <td class="py-2.5 px-2 font-bold text-slate-900">${st ? getStuFullName(st) : (t.student_id || 'ไม่ระบุรหัส')}</td>
                             <td class="py-2.5 px-2 text-center font-bold">${st?.classroom || t.classroom || '-'}</td>
-                            <td class="py-2.5 px-2 text-purple-700 font-bold">วิชา: ${t.subject_name || t.subject_code || '-'} (คาบ ${t.period || '-'})</td>
+                            <td class="py-2.5 px-2 ${isTruant ? 'text-purple-700' : 'text-rose-700'} font-bold">${isTruant ? 'หนีเรียน' : 'ขาดเรียน'}: ${t.subject_name || t.subject_code || '-'} (คาบ ${t.period_no || '-'})</td>
                         </tr>
                     `;
                 }).join('') : `<tr><td colspan="3" class="text-center py-8 text-slate-500 font-bold">✨ ไม่มีข้อมูลการหนีเรียนรายคาบวันนี้</td></tr>`;
@@ -1607,7 +1629,7 @@
             }
         };
 
-        // 9. แสดงผลรายงานเข้าแถว / รายห้อง
+        // 9. แสดงผลรายงานเข้าแถว / รายห้อง (เชื่อมกับ attendance_logs ทั้งประตู AI Gate และรายคาบ)
         function getStatusBadge(status) {
             if (status === 'late') return `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-extrabold">มาสาย</span>`;
             if (status === 'absent') return `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full text-xs font-extrabold">ขาด</span>`;
@@ -1628,7 +1650,7 @@
             } else {
                 tbody.innerHTML = roomStudents.map((st, idx) => `
                     <tr class="hover:bg-slate-50">
-                        <td class="p-2 font-bold text-slate-500">${st.no || st.student_number || (idx + 1)}</td>
+                        <td class="p-2 font-bold text-slate-500">${st.no || st.student_no || (idx + 1)}</td>
                         <td class="p-2 font-bold text-slate-900">${getStuFullName(st)} <span class="block text-[11px] text-slate-400 font-normal">รหัส: ${getStuCode(st)}</span></td>
                         <td class="p-2 text-center">${getStatusBadge(st.computedStatus)}</td>
                     </tr>
@@ -1655,11 +1677,18 @@
                 if (!roomStats[room]) roomStats[room] = { total: 0, present: 0, late: 0, absent: 0, leave: 0, truant: 0 };
 
                 let status = 'present';
-                const isLate = appData.disciplineLogs.some(l => String(l.student_code) === sCode && (l.action || '').includes('มาสาย'));
-                const isTruant = appData.attendanceLogs.some(a => String(a.student_id || a.student_code) === sCode);
+                const stuAttToday = appData.attendanceLogs.filter(a => String(a.student_id).trim() === sCode);
+                const hasTruant = stuAttToday.some(a => normalizeAttendanceStatus(a.status) === 'truant');
+                const hasAbsent = stuAttToday.some(a => normalizeAttendanceStatus(a.status) === 'absent');
+                const hasLeave = stuAttToday.some(a => normalizeAttendanceStatus(a.status) === 'leave') ||
+                                 appData.gatePassLogs.some(g => String(g.student_id).trim() === sCode);
+                const hasLate = stuAttToday.some(a => normalizeAttendanceStatus(a.status) === 'late') ||
+                                appData.behaviorLogs.some(l => String(l.student_id).trim() === sCode && (l.reason || '').includes('มาสาย'));
 
-                if (isTruant) status = 'truant';
-                else if (isLate) status = 'late';
+                if (hasTruant) status = 'truant';
+                else if (hasAbsent) status = 'absent';
+                else if (hasLeave) status = 'leave';
+                else if (hasLate) status = 'late';
 
                 roomStats[room].total++;
                 roomStats[room][status]++;
@@ -1695,7 +1724,7 @@
             document.getElementById('badgeMplayPercent').innerText = `ตรงเวลา ${mplayPct}%`;
 
             const grandTotal = mtonTotal + mplayTotal;
-            const grandPresent = mtonPresent + mplayPresent;
+            const grandPresent = mtonPresent + mplayPresent + mtonLate + mplayLate;
             const grandPct = grandTotal > 0 ? ((grandPresent / grandTotal) * 100).toFixed(1) : '100.0';
             const subHeaderAtt = document.getElementById('subHeaderAttendance');
             const subHeaderTot = document.getElementById('subHeaderStudentTotal');
@@ -1757,8 +1786,8 @@
 
         window.renderInlineBehaviorChart = function() {
             const appData = window.BCW_APP_DATA;
-            const offenses = appData.disciplineLogs.filter(l => Number(l.points_change) < 0);
-            const repairs = appData.disciplineLogs.filter(l => Number(l.points_change) > 0);
+            const offenses = appData.behaviorLogs.filter(l => Number(l.points) < 0);
+            const repairs = appData.behaviorLogs.filter(l => Number(l.points) > 0);
             const totalScore = appData.students.reduce((sum, s) => sum + Number(s.behavior_score ?? 100), 0);
             const avgScore = appData.students.length > 0 ? (totalScore / appData.students.length).toFixed(1) : '100.0';
 
@@ -1779,10 +1808,10 @@
                     datasets: [{
                         label: 'จำนวนรายการ',
                         data: [
-                            offenses.filter(o => (o.action || '').includes('มาสาย')).length,
-                            offenses.filter(o => (o.action || '').includes('แต่งกาย')).length,
-                            offenses.filter(o => (o.action || '').includes('หนีเรียน')).length,
-                            offenses.filter(o => (o.action || '').includes('ทะเลาะ')).length,
+                            offenses.filter(o => (o.reason || '').includes('มาสาย')).length,
+                            offenses.filter(o => (o.reason || '').includes('แต่งกาย')).length,
+                            offenses.filter(o => (o.reason || '').includes('หนีเรียน')).length,
+                            offenses.filter(o => (o.reason || '').includes('ทะเลาะ')).length,
                             repairs.length
                         ],
                         backgroundColor: ['#f59e0b', '#3b82f6', '#8b5cf6', '#e11d48', '#10b981'],
@@ -1802,20 +1831,20 @@
             const appData = window.BCW_APP_DATA;
             const tbody = document.getElementById('disciplineTableBody');
             const mTbody = document.getElementById('mobileDisciplineTableBody');
-            if (!appData.disciplineLogs.length) {
+            if (!appData.behaviorLogs.length) {
                 if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 font-medium">✨ ยังไม่มีประวัติบันทึกคะแนนความประพฤติ</td></tr>`;
                 if (mTbody) mTbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">✨ ยังไม่มีประวัติบันทึกคะแนน</td></tr>`;
                 return;
             }
             if (tbody) {
-                tbody.innerHTML = appData.disciplineLogs.slice(0, 30).map(log => {
-                    const isPositive = Number(log.points_change) > 0;
-                    const timeStr = log.created_at ? new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.' : 'วันนี้';
+                tbody.innerHTML = appData.behaviorLogs.slice(0, 30).map(log => {
+                    const isPositive = Number(log.points) > 0;
+                    const timeStr = log.created_at ? new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.' : 'วันนี้';
                     return `
                         <tr class="hover:bg-slate-50">
-                            <td class="p-2.5 font-bold text-slate-900">${log.student_name} <span class="block text-xs text-slate-500 font-normal">รหัส: ${log.student_code}</span></td>
-                            <td class="p-2.5 text-slate-700">${log.action}</td>
-                            <td class="p-2.5 text-center font-extrabold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}">${isPositive ? '+' : ''}${log.points_change}</td>
+                            <td class="p-2.5 font-bold text-slate-900">${log.student_name || log.student_id} <span class="block text-xs text-slate-500 font-normal">รหัส: ${log.student_id}</span></td>
+                            <td class="p-2.5 text-slate-700">${log.reason}</td>
+                            <td class="p-2.5 text-center font-extrabold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}">${isPositive ? '+' : ''}${log.points}</td>
                             <td class="p-2.5 text-center font-extrabold text-slate-800">${log.remaining_score ?? '-'}</td>
                             <td class="p-2.5 text-xs text-slate-500">${timeStr}</td>
                         </tr>
@@ -1823,13 +1852,13 @@
                 }).join('');
             }
             if (mTbody) {
-                mTbody.innerHTML = appData.disciplineLogs.slice(0, 25).map(log => {
-                    const isPositive = Number(log.points_change) > 0;
+                mTbody.innerHTML = appData.behaviorLogs.slice(0, 25).map(log => {
+                    const isPositive = Number(log.points) > 0;
                     return `
                         <tr>
-                            <td class="p-2 font-bold text-slate-900">${log.student_name}</td>
-                            <td class="p-2 text-slate-700">${log.action}</td>
-                            <td class="p-2 text-center font-extrabold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}">${isPositive ? '+' : ''}${log.points_change}</td>
+                            <td class="p-2 font-bold text-slate-900">${log.student_name || log.student_id}</td>
+                            <td class="p-2 text-slate-700">${log.reason}</td>
+                            <td class="p-2 text-center font-extrabold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}">${isPositive ? '+' : ''}${log.points}</td>
                             <td class="p-2 text-center font-extrabold text-slate-800">${log.remaining_score ?? '-'}</td>
                         </tr>
                     `;
@@ -1866,21 +1895,27 @@
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 font-medium">✨ ยังไม่มีรายการขออนุญาตออกนอกสถานศึกษา</td></tr>`;
                 return;
             }
-            tbody.innerHTML = logs.map(gp => `
-                <tr class="hover:bg-amber-50/30">
-                    <td class="p-2.5 font-bold text-slate-900">${gp.student_name} <span class="text-xs text-slate-500">(${gp.classroom || '-'})</span></td>
-                    <td class="p-2.5 font-bold text-amber-800">${gp.exit_time || '-'} - ${gp.return_time || 'ยังไม่กลับ'}</td>
-                    <td class="p-2.5 text-slate-700">${gp.reason}</td>
-                    <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-bold">${gp.status || 'อนุมัติแล้ว'}</span></td>
-                    <td class="p-2.5 text-xs text-slate-600">${gp.approved_by || 'ฝ่ายปกครอง'}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = logs.map(gp => {
+                const st = window.BCW_APP_DATA.students.find(s => getStuCode(s) === String(gp.student_id));
+                const stName = gp.student_name || (st ? getStuFullName(st) : gp.student_id);
+                const stRoom = gp.classroom || st?.classroom || '-';
+                const isApproved = ['approved', 'อนุมัติแล้ว'].includes(String(gp.status || '').toLowerCase());
+                return `
+                    <tr class="hover:bg-amber-50/30">
+                        <td class="p-2.5 font-bold text-slate-900">${stName} <span class="text-xs text-slate-500">(${stRoom})</span></td>
+                        <td class="p-2.5 font-bold text-amber-800">${gp.exit_time || '-'} - ${gp.return_time || 'ยังไม่กลับ'}</td>
+                        <td class="p-2.5 text-slate-700">${gp.reason}</td>
+                        <td class="p-2.5 text-center"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-bold">${isApproved ? 'อนุมัติแล้ว' : (gp.status || 'อนุมัติแล้ว')}</span></td>
+                        <td class="p-2.5 text-xs text-slate-600">${gp.approved_by || 'ฝ่ายปกครอง / ห้องพยาบาล'}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function renderExecutiveDashboard() {
             const appData = window.BCW_APP_DATA;
-            const offenses = appData.disciplineLogs.filter(l => Number(l.points_change) < 0);
-            const repairs = appData.disciplineLogs.filter(l => Number(l.points_change) > 0);
+            const offenses = appData.behaviorLogs.filter(l => Number(l.points) < 0);
+            const repairs = appData.behaviorLogs.filter(l => Number(l.points) > 0);
 
             const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
             setTxt('execTotalOffenseCount', `${offenses.length} ครั้ง`);
@@ -1899,7 +1934,7 @@
             setTxt('mExecGatepassTotal', `${appData.gatePassLogs.length} ฉบับ`);
 
             const countByReason = {};
-            offenses.forEach(o => { countByReason[o.action] = (countByReason[o.action] || 0) + 1; });
+            offenses.forEach(o => { countByReason[o.reason] = (countByReason[o.reason] || 0) + 1; });
             const sortedOffenses = Object.entries(countByReason).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
             const top3Html = sortedOffenses.length ? sortedOffenses.map(([reason, count], i) => `
@@ -1924,10 +1959,10 @@
                         datasets: [{
                             label: 'จำนวนรายการ',
                             data: [
-                                offenses.filter(o => (o.action || '').includes('มาสาย')).length,
-                                offenses.filter(o => (o.action || '').includes('แต่งกาย')).length,
-                                offenses.filter(o => (o.action || '').includes('หนีเรียน')).length,
-                                offenses.filter(o => (o.action || '').includes('ทะเลาะ')).length,
+                                offenses.filter(o => (o.reason || '').includes('มาสาย')).length,
+                                offenses.filter(o => (o.reason || '').includes('แต่งกาย')).length,
+                                offenses.filter(o => (o.reason || '').includes('หนีเรียน')).length,
+                                offenses.filter(o => (o.reason || '').includes('ทะเลาะ')).length,
                                 repairs.length
                             ],
                             backgroundColor: ['#f59e0b', '#3b82f6', '#8b5cf6', '#e11d48', '#10b981'],
@@ -1945,9 +1980,11 @@
             document.getElementById('kpiRiskCount').innerText = `${riskStudents.length} คน`;
             document.getElementById('kpiGatePassCount').innerText = `${appData.gatePassLogs.length} คน`;
 
-            const activeClinic = appData.clinicLogs.filter(c => c.status !== 'กลับเข้าเรียนแล้ว');
+            const activeClinic = appData.clinicRecords.filter(c => ['resting', 'in_clinic'].includes(String(c.status || '').toLowerCase()));
             document.getElementById('kpiInfirmaryCount').innerText = `${activeClinic.length} คน`;
-            document.getElementById('kpiTruancyCount').innerText = `${appData.attendanceLogs.length} เคส`;
+
+            const truantCases = appData.attendanceLogs.filter(a => ['absent', 'truant'].includes(normalizeAttendanceStatus(a.status)));
+            document.getElementById('kpiTruancyCount').innerText = `${truantCases.length} เคส`;
 
             renderAssemblyReport();
             renderDisciplineTable();
@@ -1957,7 +1994,7 @@
             window.renderInlineBehaviorChart();
         }
 
-        // 10. บันทึกคะแนนความประพฤติ (รองรับทั้ง student_id และ student_code)
+        // 10. บันทึกคะแนนความประพฤติลงตารางกลาง behavior_logs
         async function submitBehaviorRecord({ studentCode, action, points, note, onSuccess }) {
             const st = window.BCW_APP_DATA.students.find(s => getStuCode(s) === studentCode);
             if (!st) return alert(`ไม่พบรหัสนักเรียน "${studentCode}" กรุณาตรวจสอบอีกครั้ง`);
@@ -1967,11 +2004,15 @@
             st.behavior_score = newScore;
 
             const logRecord = {
-                student_code: getStuCode(st),
+                student_id: getStuCode(st),
                 student_name: getStuFullName(st),
-                action: note ? `${action} (${note})` : action,
-                points_change: points,
+                classroom: st.classroom || '-',
+                type: points >= 0 ? 'add' : 'deduct',
+                points: points,
                 remaining_score: newScore,
+                reason: note ? `${action} (${note})` : action,
+                recorder_name: 'ฝ่ายปกครอง (ห้องกิจการนักเรียน)',
+                date: getThaiTodayISO(),
                 created_at: new Date().toISOString()
             };
 
@@ -1982,11 +2023,12 @@
                     } else if (st.student_code) {
                         await db.from('students').update({ behavior_score: newScore }).eq('student_code', st.student_code);
                     }
-                    await db.from('discipline_logs').insert([logRecord]);
+                    const { error } = await db.from('behavior_logs').insert([logRecord]);
+                    if (error) console.warn('Insert behavior_logs warning:', error.message);
                 }
             } catch (err) { console.warn('Sync discipline error:', err); }
 
-            window.BCW_APP_DATA.disciplineLogs.unshift(logRecord);
+            window.BCW_APP_DATA.behaviorLogs.unshift(logRecord);
             updateAllUI();
             if (onSuccess) onSuccess();
             alert(`✅ บันทึกข้อมูลเรียบร้อย! คะแนนคงเหลือของ ${logRecord.student_name} คือ ${newScore} คะแนน`);
@@ -2083,19 +2125,22 @@
                 if (!selectedStudentForGatepass) return;
 
                 const newRecord = {
-                    student_code: getStuCode(selectedStudentForGatepass),
+                    student_id: getStuCode(selectedStudentForGatepass),
                     student_name: getStuFullName(selectedStudentForGatepass),
                     classroom: selectedStudentForGatepass.classroom || '-',
                     reason: document.getElementById('gateReason').value,
                     exit_time: document.getElementById('gateExitTime').value,
                     return_time: document.getElementById('gateReturnTime').value,
                     approved_by: document.getElementById('gateApprovedBy').value,
-                    status: 'อนุมัติแล้ว',
+                    status: 'approved',
                     created_at: new Date().toISOString()
                 };
 
                 try {
-                    if (db) await db.from('gatepass_logs').insert([newRecord]);
+                    if (db) {
+                        const { error } = await db.from('gate_pass_logs').insert([newRecord]);
+                        if (error) console.warn('Insert gate_pass_logs warning:', error.message);
+                    }
                 } catch (err) {}
 
                 window.BCW_APP_DATA.gatePassLogs.unshift(newRecord);
@@ -2106,7 +2151,7 @@
             });
         }
 
-        // 12. ดึงข้อมูลนักเรียนครบทุกห้อง (ทะลุขีดจำกัด 1,000 แถวของ Supabase)
+        // 12. ดึงข้อมูลครบทุกตารางกลาง (ซิงก์กับ clinic, teacher, ai-gate, parent, student)
         window.reloadAffairsData = async function() {
             if (!db) {
                 console.warn('Supabase client not found.');
@@ -2114,26 +2159,43 @@
                 return;
             }
             try {
-                const todayStr = new Date().toISOString().split('T')[0];
+                const todayStr = getThaiTodayISO();
 
-                const [s1, s2, s3, discRes, gpRes, attRes, clinicRes] = await Promise.all([
+                const [s1, s2, s3, behRes, gpRes, attRes, clinicRes] = await Promise.all([
                     db.from('students').select('*').range(0, 999),
                     db.from('students').select('*').range(1000, 1999),
                     db.from('students').select('*').range(2000, 2999),
-                    db.from('discipline_logs').select('*').order('created_at', { ascending: false }).limit(100),
-                    db.from('gatepass_logs').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false }),
-                    db.from('attendance_records').select('*').eq('date', todayStr).in('status', ['absent', 'truant', 'หนีเรียน']),
-                    db.from('clinic_logs').select('*').gte('created_at', `${todayStr}T00:00:00`).order('created_at', { ascending: false })
+                    db.from('behavior_logs').select('*').order('created_at', { ascending: false }).limit(150),
+                    db.from('gate_pass_logs').select('*').order('created_at', { ascending: false }).limit(150),
+                    db.from('attendance_logs').select('*').eq('date', todayStr).limit(3000),
+                    db.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(150)
                 ]);
 
                 const mergedStudents = [...(s1.data || []), ...(s2.data || []), ...(s3.data || [])]
                     .filter(s => (s.status || 'active') === 'active');
 
                 window.BCW_APP_DATA.students = mergedStudents;
-                if (discRes.data) window.BCW_APP_DATA.disciplineLogs = discRes.data;
-                if (gpRes.data) window.BCW_APP_DATA.gatePassLogs = gpRes.data;
-                if (attRes.data) window.BCW_APP_DATA.attendanceLogs = attRes.data;
-                if (clinicRes.data) window.BCW_APP_DATA.clinicLogs = clinicRes.data;
+                if (behRes.data) window.BCW_APP_DATA.behaviorLogs = behRes.data;
+
+                if (gpRes.data) {
+                    window.BCW_APP_DATA.gatePassLogs = gpRes.data.filter(g => {
+                        if (!g.created_at) return true;
+                        const dThai = new Date(g.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+                        return dThai === todayStr;
+                    });
+                }
+
+                if (attRes.data) {
+                    window.BCW_APP_DATA.attendanceLogs = attRes.data;
+                }
+
+                if (clinicRes.data) {
+                    window.BCW_APP_DATA.clinicRecords = clinicRes.data.filter(c => {
+                        if (!c.created_at) return true;
+                        const dThai = new Date(c.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+                        return dThai === todayStr;
+                    });
+                }
 
                 updateAllUI();
             } catch (err) {
@@ -2157,6 +2219,16 @@
             render12ReportsLists();
             bindAllEvents();
             window.reloadAffairsData();
+
+            // ซิงก์ข้อมูล Real-time ทันทีเมื่อมีบันทึกใหม่จากห้องพยาบาล, ครูผู้สอน หรือ AI Gate
+            if (db && db.channel) {
+                db.channel('bcw-affairs-realtime-sync')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_records' }, () => window.reloadAffairsData())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_pass_logs' }, () => window.reloadAffairsData())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => window.reloadAffairsData())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'behavior_logs' }, () => window.reloadAffairsData())
+                    .subscribe();
+            }
         });
     </script>
 </body>
