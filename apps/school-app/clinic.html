@@ -61,7 +61,6 @@
             border: 1.5px solid #e2e8f0;
             border-radius: 18px;
             box-shadow: 0 2px 8px rgba(15, 23, 42, 0.045);
-            overflow: hidden;
         }
 
         /* Bottom Sheet Drawer มาตรฐาน App */
@@ -302,11 +301,11 @@
             </div>
         </header>
 
-        <!-- 2. MAIN CONTENT AREA (เลื่อนขึ้น-ลงได้ทั้งหน้าเมื่อมีรายการมาก) -->
+        <!-- 2. MAIN CONTENT AREA -->
         <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 pt-2.5 flex flex-col gap-2.5">
 
             <!-- การ์ดสรุปสถิติห้องพยาบาล 3 ช่องแนวนอน -->
-            <section class="clinic-main-card p-2.5 sm:p-3">
+            <section class="clinic-main-card p-2.5 sm:p-3 overflow-hidden">
                 <div class="flex items-center justify-between mb-2 px-0.5 gap-2">
                     <span class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5 truncate">
                         <i class="fa-solid fa-heart-pulse text-rose-600 shrink-0"></i> การดูแลสุขภาพและงานห้องพยาบาล
@@ -352,24 +351,27 @@
                 </div>
             </section>
 
-            <!-- แถบสแกนบัตรนักเรียน + ค้นหาด่วน -->
-            <section class="clinic-main-card p-2 no-print">
+            <!-- แถบสแกนบัตรนักเรียน + ค้นหาด่วนแบบแสดงรายชื่อให้เลือกเมื่อชื่อซ้ำ -->
+            <section class="clinic-main-card p-2 no-print relative z-30">
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="openStudentScannerModal()" class="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 active:scale-95 text-white px-3 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer">
                         <i class="fa-solid fa-qrcode text-sm"></i>
                         <span>สแกนบัตร</span>
                     </button>
                     <div class="relative flex-1 min-w-0">
-                        <input type="text" id="quickStudentSearchInput" placeholder="รหัส / ชื่อนักเรียน..." class="w-full bg-slate-50 border border-slate-300 focus:border-rose-500 focus:bg-white rounded-xl py-1.5 pl-3 pr-9 text-sm font-medium outline-none">
+                        <input type="text" id="quickStudentSearchInput" autocomplete="off" placeholder="พิมพ์ชื่อ หรือ รหัสนักเรียน..." oninput="handleQuickSearchInput(this.value)" onfocus="handleQuickSearchInput(this.value)" class="w-full bg-slate-50 border border-slate-300 focus:border-rose-500 focus:bg-white rounded-xl py-1.5 pl-3 pr-9 text-sm font-medium outline-none">
                         <button type="button" onclick="searchStudentForClinic()" title="ค้นหานักเรียน" class="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-800 flex items-center justify-center text-xs cursor-pointer">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </button>
+
+                        <!-- กล่องรายการรายชื่อนักเรียนที่ตรงกัน (แสดงเมื่อพิมพ์ชื่อ/รหัส เพื่อเลือกคนที่ถูกต้องหากชื่อซ้ำ) -->
+                        <div id="quickSearchDropdown" class="hidden absolute left-0 right-0 top-[calc(100%+6px)] bg-white border-2 border-indigo-200 rounded-2xl shadow-xl max-h-64 overflow-y-auto z-50 divide-y divide-slate-100"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- รายการนักเรียนที่กำลังพักฟื้น / ผู้รับบริการวันนี้ (ขยายความสูงตามจำนวนรายการและเลื่อนดูได้ไม่จำกัด) -->
-            <section class="clinic-main-card">
+            <!-- รายการนักเรียนที่กำลังพักฟื้น / ผู้รับบริการวันนี้ -->
+            <section class="clinic-main-card overflow-hidden">
                 <div class="px-3 py-2.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                     <span class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
                         <i class="fa-solid fa-clipboard-user text-indigo-600"></i> รายชื่อผู้รับบริการวันนี้
@@ -380,7 +382,7 @@
                     <div class="flex flex-col items-center justify-center text-center text-slate-500 py-8">
                         <i class="fa-solid fa-notes-medical text-2xl text-slate-300 mb-1.5"></i>
                         <p class="font-bold text-xs sm:text-sm text-slate-600">ยังไม่มีรายการเข้าใช้ห้องพยาบาลวันนี้</p>
-                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">กดปุ่ม "สแกนบัตร" หรือปุ่ม "+" ด้านล่างเพื่อบันทึกเคส</p>
+                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">กดปุ่ม "สแกนบัตร" หรือพิมพ์ชื่อนักเรียนด้านบนเพื่อบันทึกเคส</p>
                     </div>
                 </div>
             </section>
@@ -470,24 +472,27 @@
                     </div>
                     <div>
                         <h3 class="text-sm sm:text-base font-bold text-slate-900">สแกนบัตรนักเรียน / รับเคส</h3>
-                        <p class="text-[11px] sm:text-xs text-slate-600">ส่อง QR Code บัตรประจำตัว หรือพิมพ์รหัส/ชื่อ</p>
+                        <p class="text-[11px] sm:text-xs text-slate-600">ส่อง QR Code หรือพิมพ์ชื่อ/รหัสเพื่อเลือกนักเรียน</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeStudentScannerModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold cursor-pointer">✕</button>
             </div>
 
             <div class="bg-slate-950 rounded-2xl overflow-hidden relative border border-slate-800">
-                <div id="qrReaderContainer" class="w-full min-h-[175px]"></div>
+                <div id="qrReaderContainer" class="w-full min-h-[165px]"></div>
                 <div id="scannerStatusText" class="text-[11px] sm:text-xs text-amber-300 bg-slate-900/95 text-center py-1.5 px-2 font-medium">
-                    ส่อง QR Code หรือบาร์โค้ดนักเรียนในกรอบกล้อง
+                    ส่อง QR Code หรือพิมพ์ชื่อนักเรียนด้านล่างเพื่อเลือก
                 </div>
             </div>
 
             <form id="clinicRecordForm" class="space-y-2.5 text-xs sm:text-sm">
                 <div class="grid grid-cols-3 gap-2">
-                    <div class="col-span-2">
-                        <label class="font-bold text-slate-800 block mb-1">รหัสนักเรียน / ชื่อ <span class="text-rose-500">*</span></label>
-                        <input type="text" id="clinicStudentIdInput" required placeholder="สแกน QR หรือพิมพ์รหัส..." oninput="lookupStudentById(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-sm font-bold text-indigo-950 outline-none focus:border-rose-500">
+                    <div class="col-span-2 relative">
+                        <label class="font-bold text-slate-800 block mb-1">ชื่อ หรือ รหัสนักเรียน <span class="text-rose-500">*</span></label>
+                        <input type="text" id="clinicStudentIdInput" required autocomplete="off" placeholder="พิมพ์ชื่อ หรือ รหัส..." oninput="handleModalStudentInput(this.value)" onfocus="handleModalStudentInput(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-sm font-bold text-indigo-950 outline-none focus:border-rose-500">
+                        
+                        <!-- รายชื่อให้เลือกใน Modal กรณีพิมพ์ชื่อแล้วมีคนชื่อซ้ำ -->
+                        <div id="modalStudentSearchDropdown" class="hidden absolute left-0 right-0 top-[calc(100%+4px)] bg-white border-2 border-indigo-200 rounded-2xl shadow-xl max-h-52 overflow-y-auto z-50 divide-y divide-slate-100"></div>
                     </div>
                     <div>
                         <label class="font-bold text-slate-800 block mb-1">ประเภทเคส</label>
@@ -498,12 +503,16 @@
                     </div>
                 </div>
 
-                <div id="scannedStudentPreview" class="p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center gap-2.5 hidden">
-                    <img id="scannedStudentAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-10 h-10 rounded-xl object-cover border border-indigo-200">
-                    <div class="min-w-0">
-                        <div id="scannedStudentName" class="text-sm font-bold text-slate-900 truncate">-</div>
-                        <div id="scannedStudentClass" class="text-xs text-indigo-800 font-semibold">ชั้น -</div>
+                <!-- กล่องแสดงข้อมูลนักเรียนที่เลือกแล้ว -->
+                <div id="scannedStudentPreview" class="p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between gap-2.5 hidden">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <img id="scannedStudentAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-10 h-10 rounded-xl object-cover border border-indigo-200 shrink-0">
+                        <div class="min-w-0">
+                            <div id="scannedStudentName" class="text-sm font-bold text-slate-900 truncate">-</div>
+                            <div id="scannedStudentClass" class="text-xs text-indigo-800 font-semibold">ชั้น -</div>
+                        </div>
                     </div>
+                    <button type="button" onclick="clearSelectedClinicStudent()" title="เปลี่ยนคน" class="text-[11px] bg-white border border-indigo-200 text-indigo-700 font-bold px-2 py-1 rounded-lg shrink-0 cursor-pointer">เปลี่ยน</button>
                 </div>
 
                 <div>
@@ -615,12 +624,17 @@
 
     async function openStudentScannerModal(prefillStudentId = '') {
         closeAllDrawers();
+        document.getElementById('quickSearchDropdown')?.classList.add('hidden');
+        document.getElementById('modalStudentSearchDropdown')?.classList.add('hidden');
+
         const modal = document.getElementById('studentScannerModal');
         if (modal) modal.classList.remove('hidden');
 
         if (prefillStudentId) {
             document.getElementById('clinicStudentIdInput').value = prefillStudentId;
-            if (window.lookupStudentById) window.lookupStudentById(prefillStudentId);
+            if (window.selectClinicStudentById) {
+                window.selectClinicStudentById(prefillStudentId);
+            }
         }
 
         try {
@@ -633,20 +647,23 @@
                         const cleanId = decodedText.replace(/^(GATEPASS:\d+:|STUDENT:|BCW:)/i, '').trim();
                         document.getElementById('clinicStudentIdInput').value = cleanId;
                         document.getElementById('scannerStatusText').textContent = `✅ สแกนสำเร็จ: ${cleanId}`;
-                        if (window.lookupStudentById) window.lookupStudentById(cleanId);
+                        if (window.selectClinicStudentById) {
+                            window.selectClinicStudentById(cleanId);
+                        }
                     },
                     () => {}
                 );
             }
         } catch (err) {
             const statusEl = document.getElementById('scannerStatusText');
-            if (statusEl) statusEl.textContent = "กรอกรหัสนักเรียนด้านล่าง หรือใช้เครื่องสแกน USB ได้ทันที";
+            if (statusEl) statusEl.textContent = "พิมพ์ชื่อ หรือ รหัสนักเรียนด้านล่างเพื่อเลือก";
         }
     }
 
     async function closeStudentScannerModal() {
         const modal = document.getElementById('studentScannerModal');
         if (modal) modal.classList.add('hidden');
+        document.getElementById('modalStudentSearchDropdown')?.classList.add('hidden');
         if (html5QrScannerInstance) {
             try {
                 await html5QrScannerInstance.stop();
@@ -719,6 +736,21 @@
                 searchStudentForClinic();
             }
         });
+
+        // ปิด Dropdown เมื่อแตะพื้นที่ว่างด้านนอก
+        document.addEventListener('click', (e) => {
+            const quickInput = document.getElementById('quickStudentSearchInput');
+            const quickDrop = document.getElementById('quickSearchDropdown');
+            if (quickDrop && quickInput && !quickDrop.contains(e.target) && e.target !== quickInput) {
+                quickDrop.classList.add('hidden');
+            }
+
+            const modalInput = document.getElementById('clinicStudentIdInput');
+            const modalDrop = document.getElementById('modalStudentSearchDropdown');
+            if (modalDrop && modalInput && !modalDrop.contains(e.target) && e.target !== modalInput) {
+                modalDrop.classList.add('hidden');
+            }
+        });
     });
 </script>
 
@@ -735,6 +767,146 @@
     let isLoadingClinicRecords = false;
     let isSubmittingClinicForm = false;
 
+    function formatStudentFullName(stu) {
+        return `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim();
+    }
+
+    function getStudentOfficialId(stu) {
+        return String(stu.student_id || stu.student_code || stu.id || '').trim();
+    }
+
+    function getStudentClassroom(stu) {
+        return String(stu.classroom || stu.class_name || '-').trim();
+    }
+
+    function filterMatchingStudents(keyword) {
+        const q = String(keyword || '').trim().toLowerCase();
+        if (!q) return [];
+        return ALL_STUDENTS_CACHE.filter(s => {
+            const idStr = getStudentOfficialId(s).toLowerCase();
+            const fullName = formatStudentFullName(s).toLowerCase();
+            const firstLast = `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase();
+            const roomStr = getStudentClassroom(s).toLowerCase();
+            return idStr.includes(q) || fullName.includes(q) || firstLast.includes(q) || `${firstLast} ${roomStr}`.includes(q);
+        }).slice(0, 15);
+    }
+
+    function renderDropdownStudentItems(matches, onSelectFnName) {
+        if (!matches || matches.length === 0) {
+            return `<div class="p-3 text-center text-xs text-slate-500">ไม่พบรายชื่อนักเรียนที่ตรงกัน</div>`;
+        }
+        return matches.map(stu => {
+            const stuId = getStudentOfficialId(stu);
+            const fullName = formatStudentFullName(stu);
+            const room = getStudentClassroom(stu);
+            const avatar = stu.avatar_url || stu.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+            return `
+                <button type="button" onclick="${onSelectFnName}('${stuId.replace(/'/g, "\\'")}')" class="w-full text-left px-3 py-2 hover:bg-indigo-50 active:bg-indigo-100 flex items-center justify-between gap-2.5 transition cursor-pointer">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <img src="${avatar}" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+                        <div class="min-w-0">
+                            <div class="text-xs sm:text-sm font-bold text-slate-900 truncate">${fullName}</div>
+                            <div class="text-[11px] text-slate-600">ชั้น <strong class="text-indigo-700">${room}</strong> &bull; รหัส ${stuId}</div>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-lg shrink-0">เลือก</span>
+                </button>
+            `;
+        }).join('');
+    }
+
+    // 1. ค้นหาอัตโนมัติในแถบหน้าหลัก (แสดงรายชื่อให้เลือกเมื่อพิมพ์ชื่อ/รหัส)
+    window.handleQuickSearchInput = function(val) {
+        const dropdown = document.getElementById('quickSearchDropdown');
+        if (!dropdown) return;
+        const q = String(val || '').trim();
+        if (!q) {
+            dropdown.classList.add('hidden');
+            return;
+        }
+        const matches = filterMatchingStudents(q);
+        dropdown.innerHTML = renderDropdownStudentItems(matches, 'pickStudentFromQuickSearch');
+        dropdown.classList.remove('hidden');
+    };
+
+    window.pickStudentFromQuickSearch = function(stuId) {
+        const input = document.getElementById('quickStudentSearchInput');
+        const dropdown = document.getElementById('quickSearchDropdown');
+        if (input) input.value = '';
+        if (dropdown) dropdown.classList.add('hidden');
+        openStudentScannerModal(stuId);
+    };
+
+    // 2. ค้นหาอัตโนมัติในหน้าต่าง Modal รับเคส (แสดงรายชื่อให้เลือกหากชื่อซ้ำ)
+    window.handleModalStudentInput = function(val) {
+        const dropdown = document.getElementById('modalStudentSearchDropdown');
+        const q = String(val || '').trim();
+        if (!q) {
+            if (dropdown) dropdown.classList.add('hidden');
+            document.getElementById('scannedStudentPreview')?.classList.add('hidden');
+            return;
+        }
+
+        // ถ้าพิมพ์รหัสนักเรียนตรงเป๊ะ 100% ให้เลือกคนนั้นทันที
+        const exactById = ALL_STUDENTS_CACHE.find(s => getStudentOfficialId(s) === q);
+        if (exactById) {
+            selectClinicStudentById(getStudentOfficialId(exactById));
+            if (dropdown) dropdown.classList.add('hidden');
+            return;
+        }
+
+        // หากพิมพ์ชื่อ หรือรหัสยังไม่ครบ ให้แสดงรายการให้เลือก
+        const matches = filterMatchingStudents(q);
+        if (dropdown) {
+            dropdown.innerHTML = renderDropdownStudentItems(matches, 'selectClinicStudentById');
+            dropdown.classList.remove('hidden');
+        }
+    };
+
+    window.selectClinicStudentById = function(stuId) {
+        const code = String(stuId || '').trim();
+        const previewBox = document.getElementById('scannedStudentPreview');
+        const dropdown = document.getElementById('modalStudentSearchDropdown');
+        const inputEl = document.getElementById('clinicStudentIdInput');
+
+        if (dropdown) dropdown.classList.add('hidden');
+        if (!code || !previewBox) return;
+
+        const stu = ALL_STUDENTS_CACHE.find(s => getStudentOfficialId(s) === code);
+        if (stu) {
+            const officialId = getStudentOfficialId(stu);
+            if (inputEl) inputEl.value = officialId;
+            previewBox.classList.remove('hidden');
+            document.getElementById('scannedStudentName').textContent = formatStudentFullName(stu);
+            document.getElementById('scannedStudentClass').textContent = `ชั้น ${getStudentClassroom(stu)} • รหัส ${officialId}`;
+            document.getElementById('scannedStudentAvatar').src = stu.avatar_url || stu.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+        }
+    };
+
+    window.clearSelectedClinicStudent = function() {
+        const inputEl = document.getElementById('clinicStudentIdInput');
+        document.getElementById('scannedStudentPreview')?.classList.add('hidden');
+        if (inputEl) {
+            inputEl.value = '';
+            inputEl.focus();
+        }
+    };
+
+    function searchStudentForClinic() {
+        const q = document.getElementById('quickStudentSearchInput').value.trim();
+        if (!q) {
+            openStudentScannerModal();
+            return;
+        }
+        const matches = filterMatchingStudents(q);
+        if (matches.length === 1) {
+            pickStudentFromQuickSearch(getStudentOfficialId(matches[0]));
+        } else {
+            // ถ้าพบหลายคนหรือชื่อซ้ำ ให้เปิด Dropdown ค้างไว้ให้ครูเลือกคนที่ถูกต้อง
+            handleQuickSearchInput(q);
+        }
+    }
+
     function parseRecordCaseInfo(item) {
         const rawSymptom = String(item.symptom || '').trim();
         const isAcc = item.case_type === 'accident' || rawSymptom.startsWith('[อุบัติเหตุ]');
@@ -742,6 +914,22 @@
         return {
             isAccident: isAcc,
             cleanSymptom: cleanSymptom || '-'
+        };
+    }
+
+    function enrichClinicRecord(item) {
+        const stuObj = ALL_STUDENTS_CACHE.find(s => getStudentOfficialId(s) === String(item.student_id));
+        const resolvedName = item.student_name
+            || (stuObj ? formatStudentFullName(stuObj) : '')
+            || item.student_id
+            || '-';
+        const resolvedClass = item.class_name
+            || (stuObj ? getStudentClassroom(stuObj) : '')
+            || '-';
+        return {
+            ...item,
+            student_name: resolvedName,
+            class_name: resolvedClass
         };
     }
 
@@ -782,12 +970,12 @@
                 try {
                     const rawInput = document.getElementById('clinicStudentIdInput').value.trim();
                     const stuObj = ALL_STUDENTS_CACHE.find(s =>
-                        String(s.student_id || s.student_code) === rawInput ||
-                        `${s.first_name || ''} ${s.last_name || ''}`.includes(rawInput)
+                        getStudentOfficialId(s) === rawInput ||
+                        formatStudentFullName(s).includes(rawInput)
                     );
-                    const stuId = stuObj ? String(stuObj.student_id || stuObj.student_code) : rawInput;
-                    const stuName = stuObj ? `${stuObj.prefix || ''}${stuObj.first_name || ''} ${stuObj.last_name || ''}`.trim() : rawInput;
-                    const stuClass = stuObj ? (stuObj.classroom || stuObj.class_name || '-') : '-';
+                    const stuId = stuObj ? getStudentOfficialId(stuObj) : rawInput;
+                    const stuName = stuObj ? formatStudentFullName(stuObj) : rawInput;
+                    const stuClass = stuObj ? getStudentClassroom(stuObj) : '-';
                     const statusVal = document.getElementById('clinicStatusSelect').value;
                     const caseTypeVal = document.getElementById('clinicCaseTypeSelect').value;
                     const rawSymptomText = document.getElementById('clinicSymptomInput').value.trim();
@@ -795,22 +983,33 @@
                         ? `[อุบัติเหตุ] ${rawSymptomText}`
                         : rawSymptomText;
 
-                    const basePayload = {
+                    let payload = {
                         student_id: stuId,
                         student_name: stuName,
                         class_name: stuClass,
+                        case_type: caseTypeVal,
                         symptom: symptomWithTag,
                         treatment: document.getElementById('clinicTreatmentInput').value.trim(),
                         status: statusVal
                     };
 
-                    // ลองบันทึกพร้อม case_type ก่อน หากตารางยังไม่มีคอลัมน์นี้ให้บันทึกแบบมาตรฐานทันที
-                    let { error } = await client.from('clinic_records').insert([{ ...basePayload, case_type: caseTypeVal }]);
-                    if (error && (error.message.includes('case_type') || error.message.includes('schema cache'))) {
-                        const retry = await client.from('clinic_records').insert([basePayload]);
-                        error = retry.error;
+                    // บันทึกอัจฉริยะ: หากฐานข้อมูลยังไม่มีคอลัมน์ไหน ระบบจะตัดคอลัมน์นั้นออกแล้วบันทึกให้อัตโนมัติ
+                    let insertError = null;
+                    for (let attempt = 0; attempt < 5; attempt++) {
+                        const { error } = await client.from('clinic_records').insert([payload]);
+                        if (!error) {
+                            insertError = null;
+                            break;
+                        }
+                        insertError = error;
+                        const missingColMatch = error.message.match(/Could not find the '([^']+)' column/);
+                        if (missingColMatch && missingColMatch[1]) {
+                            delete payload[missingColMatch[1]];
+                        } else {
+                            break;
+                        }
                     }
-                    if (error) throw error;
+                    if (insertError) throw insertError;
 
                     if (statusVal === 'sent_home') {
                         const nowTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
@@ -837,47 +1036,6 @@
         }
     });
 
-    window.lookupStudentById = function(rawVal) {
-        const code = String(rawVal || '').trim();
-        const previewBox = document.getElementById('scannedStudentPreview');
-        if (!code || !previewBox) {
-            if (previewBox) previewBox.classList.add('hidden');
-            return;
-        }
-
-        const stu = ALL_STUDENTS_CACHE.find(s =>
-            String(s.student_id || s.student_code) === code ||
-            `${s.first_name || ''} ${s.last_name || ''}`.includes(code)
-        );
-
-        if (stu) {
-            const officialId = stu.student_id || stu.student_code || code;
-            previewBox.classList.remove('hidden');
-            document.getElementById('scannedStudentName').textContent = `${stu.prefix || ''}${stu.first_name || ''} ${stu.last_name || ''}`.trim();
-            document.getElementById('scannedStudentClass').textContent = `ชั้น ${stu.classroom || stu.class_name || '-'} • รหัส ${officialId}`;
-            document.getElementById('scannedStudentAvatar').src = stu.avatar_url || stu.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-            if (String(officialId) === code) {
-                document.getElementById('clinicStudentIdInput').value = officialId;
-            }
-        } else {
-            previewBox.classList.add('hidden');
-        }
-    };
-
-    function searchStudentForClinic() {
-        const q = document.getElementById('quickStudentSearchInput').value.trim();
-        if (!q) {
-            openStudentScannerModal();
-            return;
-        }
-        const stu = ALL_STUDENTS_CACHE.find(s =>
-            String(s.student_id || s.student_code) === q ||
-            `${s.first_name || ''} ${s.last_name || ''}`.includes(q)
-        );
-        openStudentScannerModal(stu ? (stu.student_id || stu.student_code) : q);
-        document.getElementById('quickStudentSearchInput').value = '';
-    }
-
     async function loadTodayClinicRecords() {
         if (isLoadingClinicRecords) return;
         const client = window.supabaseClient || window.db || window.supabase;
@@ -898,7 +1056,7 @@
                 if (seenKeys.has(uniqueKey)) return false;
                 seenKeys.add(uniqueKey);
                 return true;
-            });
+            }).map(enrichClinicRecord);
 
             const todayList = allList.filter(r => {
                 if (!r.created_at) return false;
