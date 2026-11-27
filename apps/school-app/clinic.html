@@ -863,8 +863,6 @@
             from += pageSize;
         }
 
-        // ใช้ข้อมูลจากตาราง students เป็นหลักเพื่อป้องกัน Error 400 จาก schema ตาราง users
-
         return Array.from(studentMap.values());
     }
 
@@ -930,7 +928,7 @@
             const room = getStudentClassroom(stu);
             const avatar = stu.avatar_url || stu.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
             return `
-                <button type="button" onclick="${onSelectFnName}('${stuId.replace(/'/g, "\'")}')" class="w-full text-left px-3 py-2 hover:bg-indigo-50 active:bg-indigo-100 flex items-center justify-between gap-2.5 transition cursor-pointer">
+                <button type="button" onclick="${onSelectFnName}('${stuId.replace(/'/g, "\\'")}')" class="w-full text-left px-3 py-2 hover:bg-indigo-50 active:bg-indigo-100 flex items-center justify-between gap-2.5 transition cursor-pointer">
                     <div class="flex items-center gap-2.5 min-w-0">
                         <img src="${avatar}" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
                         <div class="min-w-0">
@@ -1068,6 +1066,11 @@
         }
     }
 
+    function isStudentCurrentlyResting(statusVal) {
+        const st = String(statusVal || '').trim().toLowerCase();
+        return st === 'resting' || st === 'in_clinic';
+    }
+
     function parseRecordCaseInfo(item) {
         const rawSymptom = String(item.symptom || '').trim();
         const isAcc = item.case_type === 'accident' || rawSymptom.startsWith('[อุบัติเหตุ]');
@@ -1150,6 +1153,9 @@
             const stuClass = stuObj ? getStudentClassroom(stuObj) : '-';
             const statusVal = document.getElementById('clinicStatusSelect').value;
             const caseTypeVal = document.getElementById('clinicCaseTypeSelect').value;
+            const treatmentVal = document.getElementById('clinicTreatmentInput').value.trim();
+            const nowIso = new Date().toISOString();
+
             const symptomWithTag = caseTypeVal === 'accident'
                 ? `[อุบัติเหตุ] ${rawSymptomText}`
                 : rawSymptomText;
@@ -1160,12 +1166,14 @@
                 class_name: stuClass,
                 case_type: caseTypeVal,
                 symptom: symptomWithTag,
-                treatment: document.getElementById('clinicTreatmentInput').value.trim(),
-                status: statusVal
+                treatment: treatmentVal,
+                status: statusVal,
+                check_in: nowIso,
+                check_out: isStudentCurrentlyResting(statusVal) ? null : nowIso
             };
 
             let insertError = null;
-            for (let attempt = 0; attempt < 5; attempt++) {
+            for (let attempt = 0; attempt < 6; attempt++) {
                 const { error } = await client.from('clinic_records').insert([payload]);
                 if (!error) {
                     insertError = null;
@@ -1258,16 +1266,17 @@
             });
 
             const accidentCount = todayList.filter(r => parseRecordCaseInfo(r).isAccident).length;
-            const restingCount = todayList.filter(r => r.status === 'resting').length;
+            const restingCount = todayList.filter(r => isStudentCurrentlyResting(r.status)).length;
 
             let totalRestMinutes = 0;
             const nowMs = Date.now();
             todayList.forEach(r => {
-                if (r.created_at) {
-                    const startMs = new Date(r.created_at).getTime();
-                    const endMs = r.status === 'resting'
+                const startIso = r.check_in || r.created_at;
+                if (startIso) {
+                    const startMs = new Date(startIso).getTime();
+                    const endMs = isStudentCurrentlyResting(r.status)
                         ? nowMs
-                        : (r.updated_at ? new Date(r.updated_at).getTime() : startMs + 1800000);
+                        : (r.check_out ? new Date(r.check_out).getTime() : startMs + 1800000);
                     totalRestMinutes += Math.max(0, Math.round((endMs - startMs) / 60000));
                 }
             });
@@ -1287,11 +1296,15 @@
                        <p class="font-bold text-sm text-slate-600">ยังไม่มีรายการเข้าใช้ห้องพยาบาล</p>
                    </div>`
                 : list.map(item => {
-                    const isResting = item.status === 'resting';
+                    const isResting = isStudentCurrentlyResting(item.status);
                     const { isAccident, cleanSymptom } = parseRecordCaseInfo(item);
-                    const timeStr = item.created_at
-                        ? new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.'
+                    const startIso = item.check_in || item.created_at;
+                    const timeStr = startIso
+                        ? new Date(startIso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.'
                         : '-';
+                    const outTimeStr = (!isResting && item.check_out)
+                        ? ' – ' + new Date(item.check_out).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.'
+                        : '';
                     const typeBadge = isAccident
                         ? `<span class="bg-rose-100 text-rose-800 text-xs font-bold px-2 py-0.5 rounded-md">🩹 อุบัติเหตุ</span>`
                         : `<span class="bg-sky-100 text-sky-800 text-xs font-bold px-2 py-0.5 rounded-md">🤒 เจ็บป่วย</span>`;
@@ -1307,11 +1320,11 @@
                                 </div>
                                 <div class="flex items-center gap-2 pt-0.5">
                                     ${typeBadge}
-                                    <span class="text-xs text-slate-500 font-medium"><i class="fa-regular fa-clock mr-0.5"></i> ${timeStr}</span>
+                                    <span class="text-xs text-slate-500 font-medium"><i class="fa-regular fa-clock mr-0.5"></i> ${timeStr}${outTimeStr}</span>
                                 </div>
                             </div>
                             ${isResting
-                                ? `<button type="button" onclick="dischargeClinicStudent('${item.id}')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-2xs">กลับเข้าเรียน</button>`
+                                ? `<button type="button" onclick="dischargeClinicStudent('${item.id || ''}', '${item.student_id || ''}', '${item.created_at || ''}')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-2xs">กลับเข้าเรียน</button>`
                                 : `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold px-2 py-1 rounded-xl shrink-0">${item.status === 'sent_home' ? 'ส่งกลับบ้าน' : 'เรียบร้อย'}</span>`
                             }
                         </div>
@@ -1442,18 +1455,52 @@
         }
     }
 
-    async function dischargeClinicStudent(recordId) {
+    async function dischargeClinicStudent(recordId, studentId = '', createdAt = '') {
         const client = getSupabaseClientSafe();
-        if (!client || !recordId) return;
+        if (!client) return;
+
+        const nowIso = new Date().toISOString();
+        const possibleStatuses = ['returned', 'completed', 'discharged'];
+        let lastError = null;
+        let updatedRows = null;
+
         try {
-            const { error } = await client
-                .from('clinic_records')
-                .update({ status: 'returned' })
-                .eq('id', recordId);
-            if (error) throw error;
+            for (const st of possibleStatuses) {
+                let query = client.from('clinic_records').update({
+                    status: st,
+                    check_out: nowIso
+                });
+
+                if (recordId && recordId !== 'undefined' && recordId !== 'null') {
+                    query = query.eq('id', recordId);
+                } else if (studentId && createdAt) {
+                    query = query.eq('student_id', studentId).eq('created_at', createdAt);
+                } else {
+                    alert('ไม่พบรหัสอ้างอิงรายการ (recordId เป็นค่าว่าง)');
+                    return;
+                }
+
+                const { data, error } = await query.select();
+                if (!error) {
+                    updatedRows = data;
+                    lastError = null;
+                    break;
+                }
+                lastError = error;
+            }
+
+            if (lastError) {
+                throw lastError;
+            }
+
+            if (!updatedRows || updatedRows.length === 0) {
+                alert('อัปเดตไม่สำเร็จ: สิทธิ์การแก้ไขข้อมูล (RLS Policy) ในตาราง clinic_records ยังไม่ได้เปิดให้ UPDATE');
+                return;
+            }
+
             await loadTodayClinicRecords();
         } catch (e) {
-            alert('ไม่สามารถอัปเดตสถานะได้: ' + (e.message || e));
+            alert('ไม่สามารถอัปเดตสถานะได้: ' + (e.message || JSON.stringify(e)));
         }
     }
 
@@ -1492,12 +1539,15 @@
         const totalCount = list.length;
         const accidentCount = list.filter(r => parseRecordCaseInfo(r).isAccident).length;
         const illnessCount = totalCount - accidentCount;
-        const restingCount = list.filter(r => r.status === 'resting').length;
+        const restingCount = list.filter(r => isStudentCurrentlyResting(r.status)).length;
         const sentHomeCount = list.filter(r => r.status === 'sent_home').length;
 
         const statusTextMap = {
             resting: 'กำลังนอนพักฟื้น',
+            in_clinic: 'กำลังนอนพักฟื้น',
             returned: 'รับยา/กลับเข้าเรียน',
+            completed: 'รับยา/กลับเข้าเรียน',
+            discharged: 'รับยา/กลับเข้าเรียน',
             sent_home: 'ผู้ปกครองรับกลับ/ส่ง รพ.'
         };
 
@@ -1509,8 +1559,9 @@
                </tr>`
             : list.slice().reverse().map((item, idx) => {
                 const { isAccident, cleanSymptom } = parseRecordCaseInfo(item);
-                const timeIn = item.created_at
-                    ? new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.'
+                const startIso = item.check_in || item.created_at;
+                const timeIn = startIso
+                    ? new Date(startIso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.'
                     : '-';
                 const caseLabel = isAccident ? 'อุบัติเหตุ' : 'เจ็บป่วย';
                 const statusLabel = statusTextMap[item.status] || 'เรียบร้อย';
