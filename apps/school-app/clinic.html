@@ -804,26 +804,29 @@
             from += pageSize;
         }
 
-        try {
-            const { data: userStus } = await client
+    try {
+            const { data: userStus, error: userErr } = await client
                 .from('users')
-                .select('*')
-                .eq('role', 'student')
+                .select('student_id, user_id, ref_id, prefix, first_name, full_name, name, last_name, classroom, class_name, avatar_url, photo_url, role')
                 .limit(3000);
 
-            (userStus || []).forEach(u => {
-                const key = String(u.student_id || u.user_id || u.ref_id || '').trim();
-                if (key && !studentMap.has(key)) {
-                    studentMap.set(key, {
-                        student_id: key,
-                        prefix: u.prefix || '',
-                        first_name: u.first_name || u.full_name || u.name || '',
-                        last_name: u.last_name || '',
-                        classroom: u.classroom || u.class_name || '-',
-                        avatar_url: u.avatar_url || u.photo_url || ''
+            if (!userErr && userStus) {
+                userStus
+                    .filter(u => !u.role || u.role === 'student')
+                    .forEach(u => {
+                        const key = String(u.student_id || u.user_id || u.ref_id || '').trim();
+                        if (key && !studentMap.has(key)) {
+                            studentMap.set(key, {
+                                student_id: key,
+                                prefix: u.prefix || '',
+                                first_name: u.first_name || u.full_name || u.name || '',
+                                last_name: u.last_name || '',
+                                classroom: u.classroom || u.class_name || '-',
+                                avatar_url: u.avatar_url || u.photo_url || ''
+                            });
+                        }
                     });
-                }
-            });
+            }
         } catch (e) {}
 
         return Array.from(studentMap.values());
@@ -1320,17 +1323,19 @@
         }
     }
 
-    async function dischargeClinicStudent(recordId) {
+async function dischargeClinicStudent(recordId) {
         const client = getSupabaseClientSafe();
         if (!client || !recordId) return;
         try {
-            await client.from('clinic_records').update({
-                status: 'returned',
-                updated_at: new Date().toISOString()
-            }).eq('id', recordId);
+            const { error } = await client
+                .from('clinic_records')
+                .update({ status: 'returned' })
+                .eq('id', recordId);
+
+            if (error) throw error;
             await loadTodayClinicRecords();
         } catch (e) {
-            alert('ไม่สามารถอัปเดตสถานะได้: ' + e.message);
+            alert('ไม่สามารถอัปเดตสถานะได้: ' + (e.message || e));
         }
     }
 
