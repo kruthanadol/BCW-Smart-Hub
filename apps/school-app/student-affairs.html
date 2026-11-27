@@ -2227,64 +2227,93 @@
             });
         }
 
-        // 12. ดึงข้อมูลครบทุกตาราง (ห้องพยาบาล 2 ตาราง, ครู, ประตู AI Gate, วิชาการ, คะแนนความประพฤติ)
-        window.reloadAffairsData = async function() {
-            if (!db) {
-                console.warn('Supabase client not found.');
-                updateAllUI();
-                return;
+    // 12. ดึงข้อมูลครบทุกตาราง (ห้องพยาบาล, ครู, ประตู AI Gate, วิชาการ, คะแนนความประพฤติ)
+            window.reloadAffairsData = async function() {
+                if (!db) {
+                    console.warn('Supabase client not found.');
+                    updateAllUI();
+                    return;
+                }
+                try {
+                    const todayStr = getThaiTodayISO();
+    
+                    const [s1, s2, s3, behRes, gpRes, attRes, clinicRecRes, notifRes] = await Promise.all([
+                        db.from('students').select('*').range(0, 999),
+                        db.from('students').select('*').range(1000, 1999),
+                        db.from('students').select('*').range(2000, 2999),
+                        db.from('behavior_logs').select('*').order('created_at', { ascending: false }).limit(150),
+                        db.from('gate_pass_logs').select('*').order('created_at', { ascending: false }).limit(150),
+                        db.from('attendance_logs').select('*').eq('date', todayStr).limit(3000),
+                        db.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(150),
+                        db.from('notifications').select('*').order('created_at', { ascending: false }).limit(20)
+                    ]);
+    
+                    const mergedStudents = [...(s1.data || []), ...(s2.data || []), ...(s3.data || [])]
+                        .filter(s => (s.status || 'active') === 'active');
+    
+                    window.BCW_APP_DATA.students = mergedStudents;
+                    if (behRes.data) window.BCW_APP_DATA.behaviorLogs = behRes.data;
+    
+                    if (gpRes.data) {
+                        window.BCW_APP_DATA.gatePassLogs = gpRes.data.filter(g => {
+                            if (!g.created_at) return true;
+                            const dThai = new Date(g.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+                            return dThai === todayStr;
+                        });
+                    }
+    
+                    if (attRes.data) {
+                        window.BCW_APP_DATA.attendanceLogs = attRes.data;
+                    }
+    
+                    // ดึงข้อมูลห้องพยาบาลจาก clinic_records (นับทั้งเคสวันนี้ และเคสที่สถานะยังนอนพักรักษาตัวอยู่)
+                    if (clinicRecRes.data) {
+                        window.BCW_APP_DATA.clinicRecords = clinicRecRes.data.filter(c => {
+                            if (isActiveClinicCase(c)) return true;
+                            if (!c.created_at) return true;
+                            const dThai = new Date(c.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+                            return dThai === todayStr;
+                        });
+                    }
+    
+                    if (notifRes.data) {
+                        window.BCW_APP_DATA.academicNotices = notifRes.data.filter(n => !n.is_read);
+                    }
+    
+                    updateAllUI();
+                } catch (err) {
+                    console.warn('Supabase sync notice:', err.message);
+                    updateAllUI();
+                }
+            };
+
+        function startRealtimeClock() {
+            const now = new Date();
+            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            const dEl = document.getElementById('thaiDateStr');
+            const cEl = document.getElementById('liveClock');
+            if (dEl) dEl.innerText = `วันที่ ${now.getDate()} ${thaiMonths[now.getMonth()]} ${now.getFullYear() + 543}`;
+            if (cEl) cEl.innerText = now.toTimeString().split(' ')[0];
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            startRealtimeClock();
+            setInterval(startRealtimeClock, 1000);
+            render12ReportsLists();
+            bindAllEvents();
+            window.reloadAffairsData();
+
+            // ซิงก์ข้อมูล Real-time ทันทีจากทุกแอป
+            if (db && db.channel) {
+                db.channel('bcw-affairs-realtime-sync')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_records' }, () => window.reloadAffairsData())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_pass_logs' }, () => window.reloadAffairsData())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => window.reloadAffairsData())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'behavior_logs' }, () => window.reloadAffairsData())
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => window.reloadAffairsData())
+                    .subscribe();
             }
-            try {
-                const todayStr = getThaiTodayISO();
-
-                const [s1, s2, s3, behRes, gpRes, attRes, clinicRecRes, clinicVisRes, notifRes] = await Promise.all([
-                    db.from('students').select('*').range(0, 999),
-                    db.from('students').select('*').range(1000, 1999),
-                    db.from('students').select('*').range(2000, 2999),
-                    db.from('behavior_logs').select('*').order('created_at', { ascending: false }).limit(150),
-                    db.from('gate_pass_logs').select('*').order('created_at', { ascending: false }).limit(150),
-                    db.from('attendance_logs').select('*').eq('date', todayStr).limit(3000),
-                    db.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(150),
-                    db.from('clinic_visits').select('*').order('created_at', { ascending: false }).limit(150),
-                    db.from('notifications').select('*').order('created_at', { ascending: false }).limit(20)
-                ]);
-
-                const mergedStudents = [...(s1.data || []), ...(s2.data || []), ...(s3.data || [])]
-                    .filter(s => (s.status || 'active') === 'active');
-
-                window.BCW_APP_DATA.students = mergedStudents;
-                if (behRes.data) window.BCW_APP_DATA.behaviorLogs = behRes.data;
-
-                if (gpRes.data) {
-                    window.BCW_APP_DATA.gatePassLogs = gpRes.data.filter(g => {
-                        if (!g.created_at) return true;
-                        const dThai = new Date(g.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
-                        return dThai === todayStr;
-                    });
-                }
-
-                if (attRes.data) {
-                    window.BCW_APP_DATA.attendanceLogs = attRes.data;
-                }
-
-                // รวมข้อมูลห้องพยาบาลจากทั้ง clinic_records และ clinic_visits (กรองเฉพาะวันนี้)
-                const allClinic = [...(clinicRecRes.data || []), ...(clinicVisRes.data || [])].filter(c => {
-                    if (!c.created_at) return true;
-                    const dThai = new Date(c.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
-                    return dThai === todayStr;
-                });
-                window.BCW_APP_DATA.clinicRecords = allClinic;
-
-                if (notifRes.data) {
-                    window.BCW_APP_DATA.academicNotices = notifRes.data.filter(n => !n.is_read);
-                }
-
-                updateAllUI();
-            } catch (err) {
-                console.warn('Supabase sync notice:', err.message);
-                updateAllUI();
-            }
-        };
+        });
 
         function startRealtimeClock() {
             const now = new Date();
