@@ -12,16 +12,18 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <style>
-        /* เปิดให้เลื่อนหน้าจอได้ทั้งหน้าอย่างอิสระ และหัวเว็บชิดขอบซ้าย-ขวา-บนเต็ม 100% */
+        /* ปรับขนาดตัวอักษรมาตรฐาน 16px เท่ากับแอปอื่นในระบบ */
+        html {
+            font-size: 16px !important;
+        }
+
         html, body, body.clinic-app-body {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
             min-height: 100dvh !important;
             height: auto !important;
-            max-height: none !important;
             overflow-x: clip !important;
-            overflow-y: visible !important;
             position: relative !important;
             touch-action: manipulation;
             font-family: 'Kanit', sans-serif;
@@ -31,24 +33,47 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* บนมือถือจัด Layout ให้พอดี 1 หน้าจอ ไม่ต้องเลื่อนหาส่วนสำคัญ */
         @media (max-width: 1023px) {
-            html {
-                font-size: 15px !important;
+            #clinicScrollContainer {
+                height: 100dvh !important;
+                max-height: 100dvh !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                padding-bottom: calc(74px + env(safe-area-inset-bottom)) !important;
+                box-sizing: border-box;
             }
-        }
-        @media (min-width: 1024px) {
-            html {
-                font-size: 16px !important;
+            #clinicScrollContainer main {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                padding-top: 8px !important;
+                gap: 8px !important;
+            }
+            #clinicTodayListSection {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            #todayClinicListContainer {
+                flex: 1 1 auto !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
             }
         }
 
-        /* พื้นที่เนื้อหาหลัก เผื่อระยะด้านล่างไม่ให้แถบเมนูลอยบังรายการสุดท้าย */
-        #clinicScrollContainer {
-            margin: 0 !important;
-            padding: 0 0 calc(92px + env(safe-area-inset-bottom)) 0 !important;
-            width: 100%;
-            min-height: 100dvh;
-            box-sizing: border-box;
+        @media (min-width: 1024px) {
+            #clinicScrollContainer {
+                margin: 0 !important;
+                padding: 0 0 92px 0 !important;
+                width: 100%;
+                min-height: 100dvh;
+                box-sizing: border-box;
+            }
         }
 
         body.sheet-open {
@@ -61,6 +86,17 @@
             border: 1.5px solid #e2e8f0;
             border-radius: 18px;
             box-shadow: 0 2px 8px rgba(15, 23, 42, 0.045);
+        }
+
+        /* บังคับขนาดวิดีโอกล้องสแกนให้กระชับพอดีจอมือถือ */
+        #qrReaderContainer video {
+            width: 100% !important;
+            height: 105px !important;
+            object-fit: cover !important;
+        }
+        #qrReaderContainer img,
+        #qrReaderContainer__scan_region img {
+            max-height: 80px !important;
         }
 
         /* Bottom Sheet Drawer มาตรฐาน App */
@@ -250,13 +286,13 @@
 
     <div id="clinicScrollContainer">
         <!-- 1. TOP APP HEADER (เต็มจอชิดขอบซ้าย-ขวา-บน ไร้ช่องว่าง) -->
-        <header class="m-0 w-full bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md pt-[max(10px,env(safe-area-inset-top))] pb-2.5 px-3 sm:px-6 border-b-2 border-amber-400 no-print">
+        <header class="m-0 w-full shrink-0 bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 text-white shadow-md pt-[max(8px,env(safe-area-inset-top))] pb-2 px-3 sm:px-6 border-b-2 border-amber-400 no-print">
             <div class="max-w-7xl mx-auto">
                 <div class="flex items-center justify-between gap-2">
                     <!-- ฝั่งซ้าย: โลโก้ขนาดมาตรฐาน + หัวเว็บ BCW SMART HUB -->
                     <div class="flex items-center gap-2.5 min-w-0 flex-1">
                         <div class="bg-white p-1 rounded-xl shadow-sm shrink-0 border border-amber-300/70 flex items-center justify-center">
-                            <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-9 h-9 md:w-10 md:h-10 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
+                            <img src="../../assets/images/logo_bcw.png" alt="BCW Logo" class="w-8 h-8 md:w-10 md:h-10 object-contain" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/kruthanadol/BCW-Smart-Hub/main/assets/images/logo_bcw.png';">
                         </div>
 
                         <div class="min-w-0 flex-1">
@@ -264,11 +300,11 @@
                                 <h1 class="text-base md:text-xl font-extrabold text-amber-400 tracking-wide leading-none uppercase whitespace-nowrap">
                                     BCW SMART HUB
                                 </h1>
-                                <span class="bg-rose-500/25 text-rose-200 border border-rose-400/50 px-2 py-0.5 rounded-md text-[10px] font-semibold leading-none shrink-0">
+                                <span class="bg-rose-500/25 text-rose-200 border border-rose-400/50 px-2 py-0.5 rounded-md text-[11px] font-semibold leading-none shrink-0">
                                     งานห้องพยาบาล
                                 </span>
                             </div>
-                            <div class="text-xs md:text-sm font-medium text-indigo-100 leading-tight truncate mt-1">
+                            <div class="text-xs md:text-sm font-medium text-indigo-100 leading-tight truncate mt-0.5">
                                 โรงเรียนบัวเชดวิทยา <span class="hidden md:inline text-indigo-300 text-xs">• BCW CLINIC SYSTEM</span>
                             </div>
                         </div>
@@ -288,71 +324,71 @@
                 </div>
 
                 <!-- แถบสถานะย่อยด้านล่างหัวเว็บ -->
-                <div class="border-t border-indigo-800/70 mt-2 pt-1.5 flex justify-between items-center text-[11px] sm:text-xs gap-2">
+                <div class="border-t border-indigo-800/70 mt-1.5 pt-1 flex justify-between items-center text-xs gap-2">
                     <div class="flex items-center gap-1.5 min-w-0">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
                         <span class="font-medium text-emerald-200 truncate">เปิดทำการ &bull; พักฟื้นสะสม: <strong id="totalRestingMinutesText" class="text-amber-300">0 นาที</strong></span>
                     </div>
                     <div class="flex items-center gap-1 text-amber-200 font-semibold shrink-0">
-                        <i class="fa-regular fa-clock text-amber-400 text-[10px]"></i>
-                        <span id="header-clock-display" class="bg-indigo-950/90 px-2 py-0.5 rounded-md border border-indigo-700/80 font-mono text-white text-[11px] sm:text-xs">00:00:00</span>
+                        <i class="fa-regular fa-clock text-amber-400 text-[11px]"></i>
+                        <span id="header-clock-display" class="bg-indigo-950/90 px-2 py-0.5 rounded-md border border-indigo-700/80 font-mono text-white text-xs">00:00:00</span>
                     </div>
                 </div>
             </div>
         </header>
 
         <!-- 2. MAIN CONTENT AREA -->
-        <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 pt-2.5 flex flex-col gap-2.5">
+        <main class="max-w-7xl mx-auto w-full px-3 sm:px-6 pt-2 flex flex-col gap-2">
 
             <!-- การ์ดสรุปสถิติห้องพยาบาล 3 ช่องแนวนอน -->
-            <section class="clinic-main-card p-2.5 sm:p-3 overflow-hidden">
-                <div class="flex items-center justify-between mb-2 px-0.5 gap-2">
-                    <span class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5 truncate">
+            <section class="clinic-main-card p-2 sm:p-3 overflow-hidden shrink-0">
+                <div class="flex items-center justify-between mb-1.5 px-0.5 gap-2">
+                    <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5 truncate">
                         <i class="fa-solid fa-heart-pulse text-rose-600 shrink-0"></i> การดูแลสุขภาพและงานห้องพยาบาล
                     </span>
-                    <button type="button" onclick="printOfficialClinicReport()" class="no-print bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-[11px] sm:text-xs font-semibold px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition shrink-0">
-                        <i class="fa-solid fa-print text-[11px]"></i> พิมพ์รายงาน
+                    <button type="button" onclick="printOfficialClinicReport()" class="no-print bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold px-2.5 py-1 rounded-xl flex items-center gap-1.5 cursor-pointer transition shrink-0">
+                        <i class="fa-solid fa-print text-xs"></i> พิมพ์รายงาน
                     </button>
                 </div>
 
                 <div class="grid grid-cols-3 gap-2 text-center">
-                    <div class="bg-sky-50 border border-sky-200 rounded-xl py-2 px-1">
-                        <div class="w-7 h-7 mx-auto mb-1 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-sm">
+                    <div class="bg-sky-50 border border-sky-200 rounded-xl py-1.5 px-1">
+                        <div class="w-6 h-6 mx-auto mb-0.5 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs">
                             <i class="fa-solid fa-hospital-user"></i>
                         </div>
-                        <span class="text-[11px] sm:text-xs font-bold text-sky-900 block leading-tight">เข้าพักวันนี้</span>
+                        <span class="text-xs font-bold text-sky-900 block leading-tight">เข้าพักวันนี้</span>
                         <div class="mt-0.5 leading-none">
                             <span id="kpi-today-total" class="text-base sm:text-lg font-extrabold text-sky-950">0</span>
-                            <span class="text-[11px] sm:text-xs font-bold text-sky-800">คน</span>
+                            <span class="text-xs font-bold text-sky-800">คน</span>
                         </div>
                     </div>
 
-                    <div class="bg-rose-50 border border-rose-200 rounded-xl py-2 px-1">
-                        <div class="w-7 h-7 mx-auto mb-1 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center text-sm">
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl py-1.5 px-1">
+                        <div class="w-6 h-6 mx-auto mb-0.5 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center text-xs">
                             <i class="fa-solid fa-bandage"></i>
                         </div>
-                        <span class="text-[11px] sm:text-xs font-bold text-rose-900 block leading-tight">อุบัติเหตุ</span>
+                        <span class="text-xs font-bold text-rose-900 block leading-tight">อุบัติเหตุ</span>
                         <div class="mt-0.5 leading-none">
                             <span id="kpi-today-accident" class="text-base sm:text-lg font-extrabold text-rose-950">0</span>
-                            <span class="text-[11px] sm:text-xs font-bold text-rose-800">เคส</span>
+                            <span class="text-xs font-bold text-rose-800">เคส</span>
                         </div>
                     </div>
 
-                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl py-2 px-1">
-                        <div class="w-7 h-7 mx-auto mb-1 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm">
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl py-1.5 px-1">
+                        <div class="w-6 h-6 mx-auto mb-0.5 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
                             <i class="fa-solid fa-bed-pulse"></i>
                         </div>
-                        <span class="text-[11px] sm:text-xs font-bold text-emerald-900 block leading-tight">กำลังพักฟื้น</span>
+                        <span class="text-xs font-bold text-emerald-900 block leading-tight">กำลังพักฟื้น</span>
                         <div class="mt-0.5 leading-none">
                             <span id="kpi-resting-now" class="text-base sm:text-lg font-extrabold text-emerald-950">0</span>
-                            <span class="text-[11px] sm:text-xs font-bold text-emerald-800">คน</span>
+                            <span class="text-xs font-bold text-emerald-800">คน</span>
                         </div>
                     </div>
                 </div>
             </section>
 
             <!-- แถบสแกนบัตรนักเรียน + ค้นหาด่วนแบบแสดงรายชื่อให้เลือกเมื่อชื่อซ้ำ -->
-            <section class="clinic-main-card p-2 no-print relative z-30">
+            <section class="clinic-main-card p-2 no-print relative z-30 shrink-0">
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="openStudentScannerModal()" class="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 active:scale-95 text-white px-3 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer">
                         <i class="fa-solid fa-qrcode text-sm"></i>
@@ -365,24 +401,42 @@
                         </button>
 
                         <!-- กล่องรายการรายชื่อนักเรียนที่ตรงกัน -->
-                        <div id="quickSearchDropdown" class="hidden absolute left-0 right-0 top-[calc(100%+6px)] bg-white border-2 border-indigo-200 rounded-2xl shadow-xl max-h-64 overflow-y-auto z-50 divide-y divide-slate-100"></div>
+                        <div id="quickSearchDropdown" class="hidden absolute left-0 right-0 top-[calc(100%+6px)] bg-white border-2 border-indigo-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto z-50 divide-y divide-slate-100"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- รายการนักเรียนที่กำลังพักฟื้น / ผู้รับบริการวันนี้ -->
-            <section class="clinic-main-card overflow-hidden">
-                <div class="px-3 py-2.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+            <!-- สรุปสถิติแยกตามระดับชั้น ม.1 - ม.6 (แสดงบนหน้าหลักทันที) -->
+            <section class="clinic-main-card p-2 sm:p-3 overflow-hidden shrink-0">
+                <div class="flex items-center justify-between mb-1.5 px-0.5 gap-2">
                     <span class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-graduation-cap text-indigo-600"></i> สถิติแยกตามระดับชั้น (สัปดาห์นี้ / วันนี้)
+                    </span>
+                    <span id="gradeStatsPeriodBadge" class="text-[11px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">ม.1 – ม.6</span>
+                </div>
+                <div id="gradeLevelSummaryGrid" class="grid grid-cols-6 gap-1.5 text-center">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.1</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.2</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.3</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.4</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.5</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.6</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
+                </div>
+            </section>
+
+            <!-- รายการนักเรียนที่กำลังพักฟื้น / ผู้รับบริการวันนี้ -->
+            <section id="clinicTodayListSection" class="clinic-main-card overflow-hidden">
+                <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center shrink-0">
+                    <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                         <i class="fa-solid fa-clipboard-user text-indigo-600"></i> รายชื่อผู้รับบริการวันนี้
                     </span>
-                    <span id="todayCaseCountBadge" class="text-[11px] sm:text-xs font-bold bg-indigo-100 text-indigo-900 px-2.5 py-0.5 rounded-full">0 รายการ</span>
+                    <span id="todayCaseCountBadge" class="text-xs font-bold bg-indigo-100 text-indigo-900 px-2.5 py-0.5 rounded-full">0 รายการ</span>
                 </div>
-                <div id="todayClinicListContainer" class="p-2.5 space-y-2 text-xs sm:text-sm">
-                    <div class="flex flex-col items-center justify-center text-center text-slate-500 py-8">
-                        <i class="fa-solid fa-notes-medical text-2xl text-slate-300 mb-1.5"></i>
-                        <p class="font-bold text-xs sm:text-sm text-slate-600">ยังไม่มีรายการเข้าใช้ห้องพยาบาลวันนี้</p>
-                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">กดปุ่ม "สแกนบัตร" หรือพิมพ์ชื่อนักเรียนด้านบนเพื่อบันทึกเคส</p>
+                <div id="todayClinicListContainer" class="p-2.5 space-y-2 text-sm">
+                    <div class="flex flex-col items-center justify-center text-center text-slate-500 py-4">
+                        <i class="fa-solid fa-notes-medical text-2xl text-slate-300 mb-1"></i>
+                        <p class="font-bold text-sm text-slate-600">ยังไม่มีรายการเข้าใช้ห้องพยาบาลวันนี้</p>
+                        <p class="text-xs text-slate-500 mt-0.5">กดปุ่ม "สแกนบัตร" หรือพิมพ์ชื่อนักเรียนด้านบนเพื่อบันทึกเคส</p>
                     </div>
                 </div>
             </section>
@@ -423,12 +477,12 @@
                     <div class="w-8 h-8 bg-rose-100 text-rose-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-bed-pulse"></i></div>
                     <div>
                         <h3 class="text-sm sm:text-base font-bold text-slate-900">เคสล่าสุดและผู้กำลังพักฟื้น</h3>
-                        <p class="text-[11px] sm:text-xs text-slate-600">จัดการสถานะกลับเข้าเรียนหรือส่งตัวกลับบ้าน</p>
+                        <p class="text-xs text-slate-600">จัดการสถานะกลับเข้าเรียนหรือส่งตัวกลับบ้าน</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('casesDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
-            <div id="drawerCasesList" class="p-3 space-y-2 drawer-scroll-content flex-1 text-xs sm:text-sm">
+            <div id="drawerCasesList" class="p-3 space-y-2 drawer-scroll-content flex-1 text-sm">
                 <p class="text-center text-slate-500 py-6">กำลังโหลดข้อมูลเคสล่าสุด...</p>
             </div>
         </div>
@@ -443,17 +497,21 @@
                     <div class="w-8 h-8 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-chart-column"></i></div>
                     <div>
                         <h3 class="text-sm sm:text-base font-bold text-slate-900">สถิติการใช้ห้องพยาบาลประจำสัปดาห์</h3>
-                        <p class="text-[11px] sm:text-xs text-slate-600">จำนวนผู้เข้าใช้บริการวันจันทร์ – วันศุกร์ (สัปดาห์นี้)</p>
+                        <p class="text-xs text-slate-600">จำนวนผู้เข้าใช้บริการวันจันทร์ – วันศุกร์ (สัปดาห์นี้)</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('statsDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
-            <div id="drawerStatsBody" class="p-3 space-y-2.5 drawer-scroll-content flex-1 text-xs sm:text-sm">
+            <div id="drawerStatsBody" class="p-3 space-y-2.5 drawer-scroll-content flex-1 text-sm">
                 <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-                    <div class="font-bold text-slate-900 text-xs sm:text-sm mb-2.5">📊 กราฟสถิติรายวัน (สัปดาห์ปัจจุบัน)</div>
+                    <div class="font-bold text-slate-900 text-sm mb-2">🎓 สรุปจำนวนผู้ใช้บริการแยกตามระดับชั้น (สัปดาห์นี้)</div>
+                    <div id="drawerGradeBreakdownContainer" class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center"></div>
+                </div>
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div class="font-bold text-slate-900 text-sm mb-2.5">📊 กราฟสถิติรายวัน (สัปดาห์ปัจจุบัน)</div>
                     <div id="weeklyBarChartContainer" class="grid grid-cols-5 gap-2 items-end h-36 pt-3 px-2 border-b border-slate-200"></div>
                 </div>
-                <div id="weeklySymptomSummary" class="p-3 bg-indigo-50/80 border border-indigo-200 rounded-2xl text-indigo-950 text-xs sm:text-sm font-medium">
+                <div id="weeklySymptomSummary" class="p-3 bg-indigo-50/80 border border-indigo-200 rounded-2xl text-indigo-950 text-sm font-medium">
                     สรุปกลุ่มอาการยอดฮิตประจำสัปดาห์
                 </div>
             </div>
@@ -462,41 +520,43 @@
 
     <!-- ================= MODALS ================= -->
 
-    <!-- Modal 1: กล้องสแกน QR Code / บัตรนักเรียน + บันทึกอาการ -->
-    <div id="studentScannerModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center hidden z-[10020] p-3" onclick="if(event.target.id==='studentScannerModal') closeStudentScannerModal()">
-        <div class="bg-white rounded-2xl max-w-md w-full p-3.5 sm:p-4 space-y-3 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+    <!-- Modal 1: กล้องสแกน QR Code / บัตรนักเรียน + บันทึกอาการ (ย่อส่วนสแกนให้พอดี 1 หน้าจอมือถือ) -->
+    <div id="studentScannerModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center hidden z-[10020] p-2.5" onclick="if(event.target.id==='studentScannerModal') closeStudentScannerModal()">
+        <div class="bg-white rounded-2xl max-w-md w-full p-3 sm:p-4 space-y-2 shadow-2xl border border-slate-200 max-h-[94dvh] overflow-y-auto" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-1.5">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-sm">
+                    <div class="w-7 h-7 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-xs">
                         <i class="fa-solid fa-qrcode"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm sm:text-base font-bold text-slate-900">สแกนบัตรนักเรียน / รับเคส</h3>
-                        <p class="text-[11px] sm:text-xs text-slate-600">ส่อง QR Code หรือพิมพ์ชื่อ/รหัสเพื่อเลือกนักเรียน</p>
+                        <h3 class="text-sm font-bold text-slate-900 leading-tight">สแกนบัตรนักเรียน / รับเคส</h3>
+                        <p class="text-xs text-slate-600 leading-tight">ส่อง QR Code หรือพิมพ์ชื่อ/รหัสด้านล่าง</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeStudentScannerModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold cursor-pointer">✕</button>
             </div>
 
-            <div class="bg-slate-950 rounded-2xl overflow-hidden relative border border-slate-800">
-                <div id="qrReaderContainer" class="w-full min-h-[165px]"></div>
-                <div id="scannerStatusText" class="text-[11px] sm:text-xs text-amber-300 bg-slate-900/95 text-center py-1.5 px-2 font-medium">
+            <!-- กรอบสแกนขนาดกะทัดรัดพอดี 1 หน้าจอ -->
+            <div class="bg-slate-950 rounded-xl overflow-hidden relative border border-slate-800">
+                <div id="qrReaderContainer" class="w-full h-[105px] max-h-[105px] overflow-hidden"></div>
+                <div id="scannerStatusText" class="text-xs text-amber-300 bg-slate-900/95 text-center py-1 px-2 font-medium">
                     ส่อง QR Code หรือพิมพ์ชื่อนักเรียนด้านล่างเพื่อเลือก
                 </div>
             </div>
 
-            <form id="clinicRecordForm" class="space-y-2.5 text-xs sm:text-sm">
+            <!-- ใช้ div แทน form และใช้ type="button" เพื่อไม่ให้สคริปต์ Auth/Transition ดักจับ Submit จนค้างหน้ายืนยันตัวตน -->
+            <div id="clinicRecordForm" class="space-y-2 text-sm">
                 <div class="grid grid-cols-3 gap-2">
                     <div class="col-span-2 relative">
-                        <label class="font-bold text-slate-800 block mb-1">ชื่อ หรือ รหัสนักเรียน <span class="text-rose-500">*</span></label>
-                        <input type="text" id="clinicStudentIdInput" required autocomplete="off" placeholder="พิมพ์ชื่อ หรือ รหัส..." oninput="handleModalStudentInput(this.value)" onfocus="handleModalStudentInput(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-sm font-bold text-indigo-950 outline-none focus:border-rose-500">
+                        <label class="font-bold text-slate-800 text-xs block mb-0.5">ชื่อ หรือ รหัสนักเรียน <span class="text-rose-500">*</span></label>
+                        <input type="text" id="clinicStudentIdInput" autocomplete="off" placeholder="พิมพ์ชื่อ หรือ รหัส..." oninput="handleModalStudentInput(this.value)" onfocus="handleModalStudentInput(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-sm font-bold text-indigo-950 outline-none focus:border-rose-500">
                         
                         <!-- รายชื่อให้เลือกใน Modal กรณีพิมพ์ชื่อแล้วมีคนชื่อซ้ำ -->
-                        <div id="modalStudentSearchDropdown" class="hidden absolute left-0 right-0 top-[calc(100%+4px)] bg-white border-2 border-indigo-200 rounded-2xl shadow-xl max-h-52 overflow-y-auto z-50 divide-y divide-slate-100"></div>
+                        <div id="modalStudentSearchDropdown" class="hidden absolute left-0 right-0 top-[calc(100%+4px)] bg-white border-2 border-indigo-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto z-50 divide-y divide-slate-100"></div>
                     </div>
                     <div>
-                        <label class="font-bold text-slate-800 block mb-1">ประเภทเคส</label>
-                        <select id="clinicCaseTypeSelect" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-sm font-semibold outline-none">
+                        <label class="font-bold text-slate-800 text-xs block mb-0.5">ประเภทเคส</label>
+                        <select id="clinicCaseTypeSelect" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2 py-1.5 text-sm font-semibold outline-none">
                             <option value="illness">🤒 เจ็บป่วย</option>
                             <option value="accident">🩹 อุบัติเหตุ</option>
                         </select>
@@ -504,30 +564,30 @@
                 </div>
 
                 <!-- กล่องแสดงข้อมูลนักเรียนที่เลือกแล้ว -->
-                <div id="scannedStudentPreview" class="p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between gap-2.5 hidden">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <img id="scannedStudentAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-10 h-10 rounded-xl object-cover border border-indigo-200 shrink-0">
+                <div id="scannedStudentPreview" class="p-2 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between gap-2 hidden">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <img id="scannedStudentAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-9 h-9 rounded-xl object-cover border border-indigo-200 shrink-0">
                         <div class="min-w-0">
                             <div id="scannedStudentName" class="text-sm font-bold text-slate-900 truncate">-</div>
                             <div id="scannedStudentClass" class="text-xs text-indigo-800 font-semibold">ชั้น -</div>
                         </div>
                     </div>
-                    <button type="button" onclick="clearSelectedClinicStudent()" title="เปลี่ยนคน" class="text-[11px] bg-white border border-indigo-200 text-indigo-700 font-bold px-2 py-1 rounded-lg shrink-0 cursor-pointer">เปลี่ยน</button>
+                    <button type="button" onclick="clearSelectedClinicStudent()" title="เปลี่ยนคน" class="text-xs bg-white border border-indigo-200 text-indigo-700 font-bold px-2 py-1 rounded-lg shrink-0 cursor-pointer">เปลี่ยน</button>
                 </div>
 
                 <div>
-                    <label class="font-bold text-slate-800 block mb-1">อาการเบื้องต้น <span class="text-rose-500">*</span></label>
-                    <input type="text" id="clinicSymptomInput" required placeholder="เช่น ปวดศีรษะ, มีไข้, ปวดท้อง, แผลถลอก..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-sm outline-none focus:border-rose-500">
+                    <label class="font-bold text-slate-800 text-xs block mb-0.5">อาการเบื้องต้น <span class="text-rose-500">*</span></label>
+                    <input type="text" id="clinicSymptomInput" placeholder="เช่น ปวดศีรษะ, มีไข้, ปวดท้อง, แผลถลอก..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-rose-500">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                        <label class="font-bold text-slate-800 block mb-1">การปฐมพยาบาล / ยาที่ให้</label>
-                        <input type="text" id="clinicTreatmentInput" placeholder="เช่น พาราเซตามอล 1 เม็ด, ทำแผล" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-sm outline-none focus:border-rose-500">
+                        <label class="font-bold text-slate-800 text-xs block mb-0.5">การปฐมพยาบาล / ยาที่ให้</label>
+                        <input type="text" id="clinicTreatmentInput" placeholder="เช่น พาราเซตามอล 1 เม็ด, ทำแผล" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-rose-500">
                     </div>
                     <div>
-                        <label class="font-bold text-slate-800 block mb-1">สถานะการดูแล</label>
-                        <select id="clinicStatusSelect" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-sm font-semibold outline-none">
+                        <label class="font-bold text-slate-800 text-xs block mb-0.5">สถานะการดูแล</label>
+                        <select id="clinicStatusSelect" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2 py-1.5 text-sm font-semibold outline-none">
                             <option value="resting">🛏️ นอนพักห้องพยาบาล</option>
                             <option value="returned">✅ รับยา/กลับเข้าเรียน</option>
                             <option value="sent_home">🏠 ผู้ปกครองรับกลับ/ส่ง รพ.</option>
@@ -535,13 +595,13 @@
                     </div>
                 </div>
 
-                <div class="pt-1.5 flex justify-end gap-2">
-                    <button type="button" onclick="closeStudentScannerModal()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs sm:text-sm cursor-pointer">ปิด</button>
-                    <button type="submit" id="btnSubmitClinicRecord" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs sm:text-sm shadow-xs cursor-pointer">
+                <div class="pt-1 flex justify-end gap-2">
+                    <button type="button" onclick="closeStudentScannerModal()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-sm cursor-pointer">ปิด</button>
+                    <button type="button" id="btnSubmitClinicRecord" onclick="submitClinicCaseRecord()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl font-bold text-sm shadow-xs cursor-pointer">
                         <i class="fa-solid fa-floppy-disk mr-1"></i> บันทึกข้อมูล
                     </button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -642,7 +702,7 @@
                 html5QrScannerInstance = new Html5Qrcode("qrReaderContainer");
                 await html5QrScannerInstance.start(
                     { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 220, height: 150 } },
+                    { fps: 10, qrbox: { width: 170, height: 85 } },
                     (decodedText) => {
                         const cleanId = decodedText.replace(/^(GATEPASS:\d+:|STUDENT:|BCW:)/i, '').trim();
                         document.getElementById('clinicStudentIdInput').value = cleanId;
@@ -768,7 +828,6 @@
     let isSubmittingClinicForm = false;
     let liveSearchDebounceTimer = null;
 
-    // 1. รอการเชื่อมต่อ Supabase แบบเดียวกับแอปนักเรียน (student.html)
     function getSupabaseClientSafe() {
         return window.supabaseClient || window.db || (window.supabase && typeof window.supabase.from === 'function' ? window.supabase : null);
     }
@@ -782,7 +841,7 @@
         return null;
     }
 
-    // 2. ดึงรายชื่อนักเรียนทั้งหมดเกิน 1,000 คน (Pagination ทีละ 1,000 แถว) + รวมข้อมูลจากตาราง users (role='student')
+    // ดึงรายชื่อนักเรียนทั้งหมดเกิน 1,000 คน (Pagination ทีละ 1,000 แถว)
     async function loadAllStudentsComplete(client) {
         if (!client) return [];
         const studentMap = new Map();
@@ -804,30 +863,7 @@
             from += pageSize;
         }
 
-    try {
-            const { data: userStus, error: userErr } = await client
-                .from('users')
-                .select('student_id, user_id, ref_id, prefix, first_name, full_name, name, last_name, classroom, class_name, avatar_url, photo_url, role')
-                .limit(3000);
-
-            if (!userErr && userStus) {
-                userStus
-                    .filter(u => !u.role || u.role === 'student')
-                    .forEach(u => {
-                        const key = String(u.student_id || u.user_id || u.ref_id || '').trim();
-                        if (key && !studentMap.has(key)) {
-                            studentMap.set(key, {
-                                student_id: key,
-                                prefix: u.prefix || '',
-                                first_name: u.first_name || u.full_name || u.name || '',
-                                last_name: u.last_name || '',
-                                classroom: u.classroom || u.class_name || '-',
-                                avatar_url: u.avatar_url || u.photo_url || ''
-                            });
-                        }
-                    });
-            }
-        } catch (e) {}
+        // ใช้ข้อมูลจากตาราง students เป็นหลักเพื่อป้องกัน Error 400 จาก schema ตาราง users
 
         return Array.from(studentMap.values());
     }
@@ -857,7 +893,6 @@
         }).slice(0, 15);
     }
 
-    // ค้นหาตรงจาก Supabase ทันทีกรณีในแคชยังไม่พบ (เช่น พิมพ์รหัส 14725)
     async function queryStudentsDirectFromDB(keyword) {
         const client = getSupabaseClientSafe();
         const q = String(keyword || '').trim();
@@ -895,21 +930,20 @@
             const room = getStudentClassroom(stu);
             const avatar = stu.avatar_url || stu.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
             return `
-                <button type="button" onclick="${onSelectFnName}('${stuId.replace(/'/g, "\\'")}')" class="w-full text-left px-3 py-2 hover:bg-indigo-50 active:bg-indigo-100 flex items-center justify-between gap-2.5 transition cursor-pointer">
+                <button type="button" onclick="${onSelectFnName}('${stuId.replace(/'/g, "\'")}')" class="w-full text-left px-3 py-2 hover:bg-indigo-50 active:bg-indigo-100 flex items-center justify-between gap-2.5 transition cursor-pointer">
                     <div class="flex items-center gap-2.5 min-w-0">
                         <img src="${avatar}" class="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
                         <div class="min-w-0">
-                            <div class="text-xs sm:text-sm font-bold text-slate-900 truncate">${fullName}</div>
-                            <div class="text-[11px] text-slate-600">ชั้น <strong class="text-indigo-700">${room}</strong> &bull; รหัส ${stuId}</div>
+                            <div class="text-sm font-bold text-slate-900 truncate">${fullName}</div>
+                            <div class="text-xs text-slate-600">ชั้น <strong class="text-indigo-700">${room}</strong> &bull; รหัส ${stuId}</div>
                         </div>
                     </div>
-                    <span class="text-[11px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-lg shrink-0">เลือก</span>
+                    <span class="text-xs font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-lg shrink-0">เลือก</span>
                 </button>
             `;
         }).join('');
     }
 
-    // 1. ค้นหาอัตโนมัติในแถบหน้าหลัก
     window.handleQuickSearchInput = function(val) {
         const dropdown = document.getElementById('quickSearchDropdown');
         if (!dropdown) return;
@@ -941,7 +975,6 @@
         openStudentScannerModal(stuId);
     };
 
-    // 2. ค้นหาอัตโนมัติในหน้าต่าง Modal รับเคส
     window.handleModalStudentInput = function(val) {
         const dropdown = document.getElementById('modalStudentSearchDropdown');
         const q = String(val || '').trim();
@@ -1061,6 +1094,118 @@
         };
     }
 
+    function resetClinicModalFields() {
+        document.getElementById('clinicStudentIdInput').value = '';
+        document.getElementById('clinicSymptomInput').value = '';
+        document.getElementById('clinicTreatmentInput').value = '';
+        document.getElementById('clinicCaseTypeSelect').value = 'illness';
+        document.getElementById('clinicStatusSelect').value = 'resting';
+        document.getElementById('scannedStudentPreview')?.classList.add('hidden');
+    }
+
+    // บันทึกข้อมูลรับเคสตรงเข้า Supabase โดยไม่ผ่าน Form Submit
+    window.submitClinicCaseRecord = async function() {
+        if (isSubmittingClinicForm) return;
+
+        const client = getSupabaseClientSafe();
+        if (!client) {
+            alert('ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณารีเฟรชหน้าเว็บ');
+            return;
+        }
+
+        const rawInput = document.getElementById('clinicStudentIdInput').value.trim();
+        const rawSymptomText = document.getElementById('clinicSymptomInput').value.trim();
+
+        if (!rawInput) {
+            alert('กรุณาระบุชื่อ หรือ รหัสนักเรียน');
+            document.getElementById('clinicStudentIdInput').focus();
+            return;
+        }
+        if (!rawSymptomText) {
+            alert('กรุณาระบุอาการเบื้องต้น');
+            document.getElementById('clinicSymptomInput').focus();
+            return;
+        }
+
+        isSubmittingClinicForm = true;
+        const submitBtn = document.getElementById('btnSubmitClinicRecord');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังบันทึก...';
+        }
+
+        try {
+            let stuObj = ALL_STUDENTS_CACHE.find(s =>
+                getStudentOfficialId(s) === rawInput ||
+                formatStudentFullName(s).includes(rawInput)
+            );
+            if (!stuObj) {
+                const dbFound = await queryStudentsDirectFromDB(rawInput);
+                if (dbFound.length > 0) stuObj = dbFound[0];
+            }
+
+            const stuId = stuObj ? getStudentOfficialId(stuObj) : rawInput;
+            const stuName = stuObj ? formatStudentFullName(stuObj) : rawInput;
+            const stuClass = stuObj ? getStudentClassroom(stuObj) : '-';
+            const statusVal = document.getElementById('clinicStatusSelect').value;
+            const caseTypeVal = document.getElementById('clinicCaseTypeSelect').value;
+            const symptomWithTag = caseTypeVal === 'accident'
+                ? `[อุบัติเหตุ] ${rawSymptomText}`
+                : rawSymptomText;
+
+            let payload = {
+                student_id: stuId,
+                student_name: stuName,
+                class_name: stuClass,
+                case_type: caseTypeVal,
+                symptom: symptomWithTag,
+                treatment: document.getElementById('clinicTreatmentInput').value.trim(),
+                status: statusVal
+            };
+
+            let insertError = null;
+            for (let attempt = 0; attempt < 5; attempt++) {
+                const { error } = await client.from('clinic_records').insert([payload]);
+                if (!error) {
+                    insertError = null;
+                    break;
+                }
+                insertError = error;
+                const missingColMatch = error.message.match(/Could not find the '([^']+)' column/);
+                if (missingColMatch && missingColMatch[1]) {
+                    delete payload[missingColMatch[1]];
+                } else {
+                    break;
+                }
+            }
+            if (insertError) throw insertError;
+
+            if (statusVal === 'sent_home') {
+                const nowTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
+                await client.from('gate_pass_logs').insert([{
+                    student_id: stuId,
+                    reason: `ห้องพยาบาลส่งกลับบ้าน (${rawSymptomText})`,
+                    exit_time: nowTime,
+                    status: 'approved'
+                }]);
+            }
+
+            alert('✅ บันทึกข้อมูลห้องพยาบาลเรียบร้อยแล้ว');
+            resetClinicModalFields();
+            await closeStudentScannerModal();
+            await loadTodayClinicRecords();
+        } catch (err) {
+            alert('เกิดข้อผิดพลาดในการบันทึก: ' + (err.message || err));
+        } finally {
+            isSubmittingClinicForm = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+            }
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', async () => {
         const client = await waitForSupabaseClient();
         if (!client) {
@@ -1068,9 +1213,7 @@
             return;
         }
 
-        // โหลดรายชื่อนักเรียนทั้งหมดครบทุกคน (ไม่ติดเพดาน 1,000 แถว)
         ALL_STUDENTS_CACHE = await loadAllStudentsComplete(client);
-
         await loadTodayClinicRecords();
 
         setInterval(() => {
@@ -1083,90 +1226,6 @@
                     loadTodayClinicRecords();
                 })
                 .subscribe();
-        }
-
-        const recordForm = document.getElementById('clinicRecordForm');
-        if (recordForm && !recordForm.dataset.bound) {
-            recordForm.dataset.bound = 'true';
-            recordForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (isSubmittingClinicForm) return;
-                isSubmittingClinicForm = true;
-
-                const submitBtn = document.getElementById('btnSubmitClinicRecord');
-                if (submitBtn) submitBtn.disabled = true;
-
-                try {
-                    const rawInput = document.getElementById('clinicStudentIdInput').value.trim();
-                    let stuObj = ALL_STUDENTS_CACHE.find(s =>
-                        getStudentOfficialId(s) === rawInput ||
-                        formatStudentFullName(s).includes(rawInput)
-                    );
-                    if (!stuObj) {
-                        const dbFound = await queryStudentsDirectFromDB(rawInput);
-                        if (dbFound.length > 0) stuObj = dbFound[0];
-                    }
-
-                    const stuId = stuObj ? getStudentOfficialId(stuObj) : rawInput;
-                    const stuName = stuObj ? formatStudentFullName(stuObj) : rawInput;
-                    const stuClass = stuObj ? getStudentClassroom(stuObj) : '-';
-                    const statusVal = document.getElementById('clinicStatusSelect').value;
-                    const caseTypeVal = document.getElementById('clinicCaseTypeSelect').value;
-                    const rawSymptomText = document.getElementById('clinicSymptomInput').value.trim();
-                    const symptomWithTag = caseTypeVal === 'accident'
-                        ? `[อุบัติเหตุ] ${rawSymptomText}`
-                        : rawSymptomText;
-
-                    let payload = {
-                        student_id: stuId,
-                        student_name: stuName,
-                        class_name: stuClass,
-                        case_type: caseTypeVal,
-                        symptom: symptomWithTag,
-                        treatment: document.getElementById('clinicTreatmentInput').value.trim(),
-                        status: statusVal
-                    };
-
-                    // บันทึกอัจฉริยะ: หากฐานข้อมูลยังไม่มีคอลัมน์ไหน ระบบจะตัดคอลัมน์นั้นออกแล้วบันทึกให้อัตโนมัติ
-                    let insertError = null;
-                    for (let attempt = 0; attempt < 5; attempt++) {
-                        const { error } = await client.from('clinic_records').insert([payload]);
-                        if (!error) {
-                            insertError = null;
-                            break;
-                        }
-                        insertError = error;
-                        const missingColMatch = error.message.match(/Could not find the '([^']+)' column/);
-                        if (missingColMatch && missingColMatch[1]) {
-                            delete payload[missingColMatch[1]];
-                        } else {
-                            break;
-                        }
-                    }
-                    if (insertError) throw insertError;
-
-                    if (statusVal === 'sent_home') {
-                        const nowTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
-                        await client.from('gate_pass_logs').insert([{
-                            student_id: stuId,
-                            reason: `ห้องพยาบาลส่งกลับบ้าน (${rawSymptomText})`,
-                            exit_time: nowTime,
-                            status: 'approved'
-                        }]);
-                    }
-
-                    alert('✅ บันทึกข้อมูลห้องพยาบาลเรียบร้อยแล้ว');
-                    recordForm.reset();
-                    document.getElementById('scannedStudentPreview')?.classList.add('hidden');
-                    await closeStudentScannerModal();
-                    await loadTodayClinicRecords();
-                } catch (err) {
-                    alert('เกิดข้อผิดพลาด: ' + err.message);
-                } finally {
-                    isSubmittingClinicForm = false;
-                    if (submitBtn) submitBtn.disabled = false;
-                }
-            });
         }
     });
 
@@ -1223,9 +1282,9 @@
             if (document.getElementById('todayCaseCountBadge')) document.getElementById('todayCaseCountBadge').textContent = `${todayList.length} รายการ`;
 
             const renderCards = (list) => list.length === 0
-                ? `<div class="flex flex-col items-center justify-center text-center text-slate-500 py-8">
-                       <i class="fa-solid fa-notes-medical text-2xl text-slate-300 mb-1.5"></i>
-                       <p class="font-bold text-xs sm:text-sm text-slate-600">ยังไม่มีรายการเข้าใช้ห้องพยาบาล</p>
+                ? `<div class="flex flex-col items-center justify-center text-center text-slate-500 py-4">
+                       <i class="fa-solid fa-notes-medical text-2xl text-slate-300 mb-1"></i>
+                       <p class="font-bold text-sm text-slate-600">ยังไม่มีรายการเข้าใช้ห้องพยาบาล</p>
                    </div>`
                 : list.map(item => {
                     const isResting = item.status === 'resting';
@@ -1234,26 +1293,26 @@
                         ? new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.'
                         : '-';
                     const typeBadge = isAccident
-                        ? `<span class="bg-rose-100 text-rose-800 text-[11px] font-bold px-2 py-0.5 rounded-md">🩹 อุบัติเหตุ</span>`
-                        : `<span class="bg-sky-100 text-sky-800 text-[11px] font-bold px-2 py-0.5 rounded-md">🤒 เจ็บป่วย</span>`;
+                        ? `<span class="bg-rose-100 text-rose-800 text-xs font-bold px-2 py-0.5 rounded-md">🩹 อุบัติเหตุ</span>`
+                        : `<span class="bg-sky-100 text-sky-800 text-xs font-bold px-2 py-0.5 rounded-md">🤒 เจ็บป่วย</span>`;
 
                     return `
                         <div class="p-2.5 ${isResting ? 'bg-amber-50/90 border-amber-300' : 'bg-slate-50 border-slate-200'} border rounded-2xl flex items-center justify-between gap-2">
                             <div class="min-w-0 space-y-0.5">
-                                <div class="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                                    ${item.student_name || item.student_id} <span class="text-[11px] sm:text-xs font-semibold text-indigo-700">(${item.class_name || '-'})</span>
+                                <div class="text-sm font-bold text-slate-900 truncate">
+                                    ${item.student_name || item.student_id} <span class="text-xs font-semibold text-indigo-700">(${item.class_name || '-'})</span>
                                 </div>
-                                <div class="text-[11px] sm:text-xs text-slate-700 truncate">
+                                <div class="text-xs text-slate-700 truncate">
                                     อาการ: <strong>${cleanSymptom}</strong> ${item.treatment ? `• ${item.treatment}` : ''}
                                 </div>
                                 <div class="flex items-center gap-2 pt-0.5">
                                     ${typeBadge}
-                                    <span class="text-[11px] text-slate-500 font-medium"><i class="fa-regular fa-clock mr-0.5"></i> ${timeStr}</span>
+                                    <span class="text-xs text-slate-500 font-medium"><i class="fa-regular fa-clock mr-0.5"></i> ${timeStr}</span>
                                 </div>
                             </div>
                             ${isResting
-                                ? `<button type="button" onclick="dischargeClinicStudent('${item.id}')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[11px] sm:text-xs font-bold px-2.5 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-2xs">กลับเข้าเรียน</button>`
-                                : `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-bold px-2 py-1 rounded-xl shrink-0">${item.status === 'sent_home' ? 'ส่งกลับบ้าน' : 'เรียบร้อย'}</span>`
+                                ? `<button type="button" onclick="dischargeClinicStudent('${item.id}')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl shrink-0 cursor-pointer shadow-2xs">กลับเข้าเรียน</button>`
+                                : `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold px-2 py-1 rounded-xl shrink-0">${item.status === 'sent_home' ? 'ส่งกลับบ้าน' : 'เรียบร้อย'}</span>`
                             }
                         </div>
                     `;
@@ -1271,10 +1330,20 @@
         }
     }
 
+    function extractGradeLevel(className) {
+        const str = String(className || '').trim();
+        const match = str.match(/ม\.?\s*([1-6])/);
+        if (match) return `ม.${match[1]}`;
+        const numMatch = str.match(/^([1-6])\//);
+        if (numMatch) return `ม.${numMatch[1]}`;
+        return null;
+    }
+
     function renderWeeklyBarChart(allList) {
         const chartEl = document.getElementById('weeklyBarChartContainer');
         const summaryEl = document.getElementById('weeklySymptomSummary');
-        if (!chartEl) return;
+        const mainGradeGrid = document.getElementById('gradeLevelSummaryGrid');
+        const drawerGradeGrid = document.getElementById('drawerGradeBreakdownContainer');
 
         const nowThai = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
         const currentDay = nowThai.getDay();
@@ -1288,32 +1357,82 @@
         fridayEnd.setDate(mondayStart.getDate() + 4);
         fridayEnd.setHours(23, 59, 59, 999);
 
+        const todayStr = window.getThaiTodayISO();
         const dayLabels = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.'];
         const counts = [0, 0, 0, 0, 0];
         const symptomMap = {};
+        const grades = ['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'];
+        const weeklyGradeCounts = { 'ม.1': 0, 'ม.2': 0, 'ม.3': 0, 'ม.4': 0, 'ม.5': 0, 'ม.6': 0 };
+        const todayGradeCounts = { 'ม.1': 0, 'ม.2': 0, 'ม.3': 0, 'ม.4': 0, 'ม.5': 0, 'ม.6': 0 };
 
         allList.forEach(item => {
             if (!item.created_at) return;
             const itemThaiDate = new Date(new Date(item.created_at).toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+            const itemDateISO = new Date(item.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+            const grade = extractGradeLevel(item.class_name);
+
+            if (itemDateISO === todayStr && grade && todayGradeCounts[grade] !== undefined) {
+                todayGradeCounts[grade]++;
+            }
+
             if (itemThaiDate >= mondayStart && itemThaiDate <= fridayEnd) {
                 const d = itemThaiDate.getDay();
                 if (d >= 1 && d <= 5) counts[d - 1]++;
                 const sym = parseRecordCaseInfo(item).cleanSymptom;
                 if (sym && sym !== '-') symptomMap[sym] = (symptomMap[sym] || 0) + 1;
+                if (grade && weeklyGradeCounts[grade] !== undefined) {
+                    weeklyGradeCounts[grade]++;
+                }
             }
         });
 
-        const maxVal = Math.max(1, ...counts);
-        chartEl.innerHTML = counts.map((cnt, idx) => {
-            const heightPct = Math.max(12, Math.round((cnt / maxVal) * 100));
-            return `
-                <div class="flex flex-col items-center justify-end h-full gap-1">
-                    <span class="text-xs font-extrabold text-indigo-950">${cnt}</span>
-                    <div class="w-full max-w-[36px] bg-gradient-to-t from-rose-600 to-amber-500 rounded-t-xl transition-all" style="height: ${heightPct}%;"></div>
-                    <span class="text-xs font-bold text-slate-700">${dayLabels[idx]}</span>
-                </div>
-            `;
-        }).join('');
+        // แสดงสรุประดับชั้นบนหน้าหลัก (แสดงยอดสัปดาห์นี้ และวงเล็บยอดวันนี้ถ้ามี)
+        if (mainGradeGrid) {
+            mainGradeGrid.innerHTML = grades.map(g => {
+                const wCnt = weeklyGradeCounts[g];
+                const tCnt = todayGradeCounts[g];
+                const activeStyle = wCnt > 0
+                    ? 'bg-indigo-50 border-indigo-300 text-indigo-950'
+                    : 'bg-slate-50 border-slate-200 text-slate-600';
+                return `
+                    <div class="${activeStyle} border rounded-xl py-1.5 px-1">
+                        <div class="text-xs font-bold">${g}</div>
+                        <div class="text-sm sm:text-base font-extrabold leading-tight">${wCnt}</div>
+                        <div class="text-[10px] font-semibold ${tCnt > 0 ? 'text-rose-600' : 'text-slate-400'}">วันนี้ ${tCnt}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // แสดงสรุประดับชั้นในหน้าต่าง Drawer สถิติ
+        if (drawerGradeGrid) {
+            const totalWeek = Object.values(weeklyGradeCounts).reduce((a, b) => a + b, 0);
+            drawerGradeGrid.innerHTML = grades.map(g => {
+                const wCnt = weeklyGradeCounts[g];
+                const pct = totalWeek > 0 ? Math.round((wCnt / totalWeek) * 100) : 0;
+                return `
+                    <div class="bg-white border ${wCnt > 0 ? 'border-indigo-300' : 'border-slate-200'} rounded-xl p-2">
+                        <div class="text-xs font-bold text-slate-700">${g}</div>
+                        <div class="text-base font-extrabold text-indigo-950">${wCnt} <span class="text-xs font-normal text-slate-500">คน</span></div>
+                        <div class="text-[11px] font-semibold text-indigo-600">${pct}%</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        if (chartEl) {
+            const maxVal = Math.max(1, ...counts);
+            chartEl.innerHTML = counts.map((cnt, idx) => {
+                const heightPct = Math.max(12, Math.round((cnt / maxVal) * 100));
+                return `
+                    <div class="flex flex-col items-center justify-end h-full gap-1">
+                        <span class="text-xs font-extrabold text-indigo-950">${cnt}</span>
+                        <div class="w-full max-w-[36px] bg-gradient-to-t from-rose-600 to-amber-500 rounded-t-xl transition-all" style="height: ${heightPct}%;"></div>
+                        <span class="text-xs font-bold text-slate-700">${dayLabels[idx]}</span>
+                    </div>
+                `;
+            }).join('');
+        }
 
         const topSymptoms = Object.entries(symptomMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
         if (summaryEl) {
@@ -1323,7 +1442,7 @@
         }
     }
 
-async function dischargeClinicStudent(recordId) {
+    async function dischargeClinicStudent(recordId) {
         const client = getSupabaseClientSafe();
         if (!client || !recordId) return;
         try {
@@ -1331,7 +1450,6 @@ async function dischargeClinicStudent(recordId) {
                 .from('clinic_records')
                 .update({ status: 'returned' })
                 .eq('id', recordId);
-
             if (error) throw error;
             await loadTodayClinicRecords();
         } catch (e) {
@@ -1484,21 +1602,21 @@ async function dischargeClinicStudent(recordId) {
     }
 </script>
 
-<!-- ================= กล่องรับการแจ้งเตือนจากฝ่ายวิชาการ ================= -->
-<div id="academicPopupOverlay" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs hidden items-center justify-center p-4" style="z-index: 99999;">
-    <div class="bg-white rounded-2xl max-w-md w-full border-2 border-amber-400 shadow-2xl overflow-hidden animate-bounce-once">
-        <div class="bg-gradient-to-r from-indigo-950 to-indigo-900 text-white px-4 py-2.5 flex items-center justify-between border-b-2 border-amber-400">
-            <div class="flex items-center gap-2">
-                <span class="bg-amber-400 text-slate-950 text-[11px] font-extrabold px-2 py-0.5 rounded-md">🔔 แจ้งเตือนด่วน</span>
-                <h3 class="text-xs sm:text-sm font-bold text-amber-300">ข้อความจากฝ่ายวิชาการ</h3>
+<!-- ================= กล่องรับการแจ้งเตือนจากฝ่ายวิชาการ (ปรับขนาดตัวอักษรให้กะทัดรัดพอดีจอมือถือ) ================= -->
+<div id="academicPopupOverlay" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs hidden items-center justify-center p-3" style="z-index: 99999;">
+    <div class="bg-white rounded-2xl max-w-sm w-full border-2 border-amber-400 shadow-2xl overflow-hidden">
+        <div class="bg-gradient-to-r from-indigo-950 to-indigo-900 text-white px-3.5 py-2 flex items-center justify-between border-b-2 border-amber-400">
+            <div class="flex items-center gap-1.5">
+                <span class="bg-amber-400 text-slate-950 text-[11px] font-extrabold px-2 py-0.5 rounded-md">🔔 แจ้งเตือน</span>
+                <h3 class="text-sm font-bold text-amber-300">ข้อความจากฝ่ายวิชาการ</h3>
             </div>
             <button type="button" onclick="document.getElementById('academicPopupOverlay').classList.add('hidden')" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center justify-center cursor-pointer">✕</button>
         </div>
 
-        <div id="academicPopupList" class="p-3 space-y-2 max-h-[65vh] overflow-y-auto bg-slate-50"></div>
+        <div id="academicPopupList" class="p-2.5 space-y-2 max-h-[55vh] overflow-y-auto bg-slate-50 text-sm"></div>
 
-        <div class="p-2.5 bg-white border-t border-slate-200 flex justify-end">
-            <button type="button" onclick="document.getElementById('academicPopupOverlay').classList.add('hidden')" class="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl cursor-pointer">
+        <div class="p-2 bg-white border-t border-slate-200 flex justify-end">
+            <button type="button" onclick="document.getElementById('academicPopupOverlay').classList.add('hidden')" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl cursor-pointer">
                 ปิดหน้าต่างชั่วคราว
             </button>
         </div>
@@ -1571,13 +1689,13 @@ async function dischargeClinicStudent(recordId) {
                     : '';
                 const toTeacher = n.target_teacher_name ? `ถึง: ${n.target_teacher_name}` : 'ถึง: ครูผู้สอน';
                 return `
-                    <div class="bg-white border border-amber-300 rounded-xl p-2.5 shadow-2xs space-y-1.5">
+                    <div class="bg-white border border-amber-300 rounded-xl p-2.5 shadow-2xs space-y-1">
                         <div class="flex items-center justify-between gap-2">
-                            <span class="text-[11px] font-bold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded">${toTeacher}</span>
-                            <span class="text-[11px] text-slate-400">${timeStr}</span>
+                            <span class="text-xs font-bold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded">${toTeacher}</span>
+                            <span class="text-xs text-slate-400">${timeStr}</span>
                         </div>
-                        <div class="text-xs font-extrabold text-slate-900">${n.title || 'แจ้งเตือนจากฝ่ายวิชาการ'}</div>
-                        <p class="text-xs text-slate-700 leading-relaxed">${n.message || ''}</p>
+                        <div class="text-sm font-bold text-slate-900">${n.title || 'แจ้งเตือนจากฝ่ายวิชาการ'}</div>
+                        <p class="text-xs sm:text-sm text-slate-700 leading-snug">${n.message || ''}</p>
                         <div class="pt-1 flex justify-end">
                             <button type="button" onclick="window.markAcademicNotifRead('${n.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1 rounded-lg cursor-pointer">
                                 ✓ รับทราบ
