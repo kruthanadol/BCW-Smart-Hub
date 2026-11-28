@@ -7,6 +7,7 @@
     <link rel="shortcut icon" href="../../assets/images/logo_bcw.png" type="image/png">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -49,13 +50,14 @@
                 min-height: 0 !important;
                 display: flex !important;
                 flex-direction: column !important;
-                overflow: hidden !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
                 padding-top: 8px !important;
                 gap: 8px !important;
             }
             #clinicTodayListSection {
-                flex: 1 1 auto !important;
-                min-height: 0 !important;
+                flex: 1 0 auto !important;
+                min-height: 130px !important;
                 display: flex !important;
                 flex-direction: column !important;
             }
@@ -121,7 +123,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            max-width: 680px;
+            max-width: 760px;
             margin: 0 auto;
             background: #ffffff;
             border-top-left-radius: 24px;
@@ -132,7 +134,7 @@
             transform: translate3d(0, 105%, 0);
             transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
             will-change: transform;
-            max-height: 85vh;
+            max-height: 88vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -145,8 +147,8 @@
                 bottom: auto;
                 left: 50%;
                 right: auto;
-                width: 90%;
-                max-width: 720px;
+                width: 92%;
+                max-width: 820px;
                 border-radius: 24px;
                 padding-bottom: 20px;
                 transform: translate(-50%, -40%) scale(0.95) !important;
@@ -406,14 +408,19 @@
                 </div>
             </section>
 
-            <!-- สรุปสถิติแยกตามระดับชั้น ม.1 - ม.6 (แสดงบนหน้าหลักทันที) -->
-            <section class="clinic-main-card p-2 sm:p-3 overflow-hidden shrink-0">
-                <div class="flex items-center justify-between mb-1.5 px-0.5 gap-2">
+            <!-- ส่วนที่ 1: สถิติและกราฟรายวัน / รายสัปดาห์ แยกตามระดับชั้น ม.1 - ม.6 (แสดงบนหน้าหลักทันที) -->
+            <section class="clinic-main-card p-2.5 sm:p-3 overflow-hidden shrink-0 space-y-2.5">
+                <div class="flex flex-wrap items-center justify-between px-0.5 gap-2">
                     <span class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                        <i class="fa-solid fa-graduation-cap text-indigo-600"></i> สถิติแยกตามระดับชั้น (สัปดาห์นี้ / วันนี้)
+                        <i class="fa-solid fa-graduation-cap text-indigo-600"></i> สถิติและกราฟแยกตามระดับชั้น (สัปดาห์นี้ / วันนี้)
                     </span>
-                    <span id="gradeStatsPeriodBadge" class="text-[11px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">ม.1 – ม.6</span>
+                    <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl text-xs font-bold no-print">
+                        <button type="button" id="btnMainGradeChartWeek" onclick="switchMainGradeChartMode('week')" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white shadow-2xs cursor-pointer transition">สัปดาห์นี้</button>
+                        <button type="button" id="btnMainGradeChartDay" onclick="switchMainGradeChartMode('day')" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer transition">วันนี้</button>
+                    </div>
                 </div>
+
+                <!-- การ์ดตัวเลข ม.1 - ม.6 -->
                 <div id="gradeLevelSummaryGrid" class="grid grid-cols-6 gap-1.5 text-center">
                     <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.1</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
                     <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.2</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
@@ -421,6 +428,26 @@
                     <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.4</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
                     <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.5</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
                     <div class="bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-1"><div class="text-xs font-bold text-slate-700">ม.6</div><div class="text-sm font-extrabold text-indigo-950">0</div></div>
+                </div>
+
+                <!-- กราฟแสดงผลบนหน้าจอหลัก 2 คอลัมน์: กราฟรายระดับชั้น + กราฟรายวัน จ.-ศ. -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-2.5 pt-0.5">
+                    <div class="lg:col-span-2 bg-slate-50 border border-slate-200 rounded-2xl p-2.5">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span id="mainGradeChartSubtitle" class="text-xs font-bold text-slate-800">📊 กราฟเปรียบเทียบผู้ใช้บริการแต่ละระดับชั้น (สัปดาห์นี้ vs วันนี้)</span>
+                        </div>
+                        <div class="h-44 sm:h-48 relative">
+                            <canvas id="mainGradeLevelChartCanvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-2.5">
+                        <div class="mb-1.5">
+                            <span class="text-xs font-bold text-slate-800">📅 กราฟรายวันในสัปดาห์นี้ (จ. – ศ.)</span>
+                        </div>
+                        <div class="h-44 sm:h-48 relative">
+                            <canvas id="mainWeekdayChartCanvas"></canvas>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -488,7 +515,7 @@
         </div>
     </div>
 
-    <!-- Drawer 2: สถิติการใช้ห้องพยาบาลประจำสัปดาห์ -->
+    <!-- Drawer 2: สถิติการใช้ห้องพยาบาลรวมรายเดือน (แยกตามระดับชั้น + รวมทั้งโรงเรียน) และรายสัปดาห์ -->
     <div id="statsDrawerBackdrop" class="bottom-sheet-backdrop" onclick="closeDrawer('statsDrawerBackdrop')">
         <div class="bottom-sheet-card" onclick="event.stopPropagation()">
             <div class="swipe-handle-area"><div class="swipe-handle"></div></div>
@@ -496,13 +523,41 @@
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center text-sm"><i class="fa-solid fa-chart-column"></i></div>
                     <div>
-                        <h3 class="text-sm sm:text-base font-bold text-slate-900">สถิติการใช้ห้องพยาบาลประจำสัปดาห์</h3>
-                        <p class="text-xs text-slate-600">จำนวนผู้เข้าใช้บริการวันจันทร์ – วันศุกร์ (สัปดาห์นี้)</p>
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900">สถิติการใช้ห้องพยาบาลรวมรายเดือนและรายสัปดาห์</h3>
+                        <p id="monthlyStatsSubtitle" class="text-xs text-slate-600">สรุปยอดรายเดือนแยกตามระดับชั้น (ม.1 – ม.6) และรวมทั้งโรงเรียน</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeDrawer('statsDrawerBackdrop')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center cursor-pointer">✕</button>
             </div>
-            <div id="drawerStatsBody" class="p-3 space-y-2.5 drawer-scroll-content flex-1 text-sm">
+            <div id="drawerStatsBody" class="p-3 space-y-3 drawer-scroll-content flex-1 text-sm">
+                <!-- ส่วนที่ 2: สถิติรวมรายเดือนของทั้งโรงเรียน + แยกตามระดับชั้น ม.1 - ม.6 -->
+                <div class="p-3 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="font-bold text-indigo-950 text-sm">🏫 สถิติรวมรายเดือนแยกตามระดับชั้นและรวมทั้งโรงเรียน</div>
+                        <span id="monthlySchoolTotalBadge" class="bg-indigo-600 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full">รวมทั้ง รร. 0 คน</span>
+                    </div>
+
+                    <!-- การ์ดตัวเลขรวมรายเดือนแยกตามระดับชั้น ม.1 - ม.6 -->
+                    <div id="drawerMonthlyGradeBreakdown" class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center"></div>
+
+                    <!-- กราฟ 2 ชุด: รายเดือนแยกตามระดับชั้น + แนวโน้มรวมทั้งโรงเรียน (6 เดือนล่าสุด) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+                        <div class="bg-white border border-slate-200 rounded-xl p-2.5">
+                            <div class="text-xs font-bold text-slate-800 mb-1.5">📊 กราฟรวมรายเดือนแยกตามระดับชั้น (ม.1 – ม.6)</div>
+                            <div class="h-44 relative">
+                                <canvas id="drawerMonthlyGradeChartCanvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-slate-200 rounded-xl p-2.5">
+                            <div class="text-xs font-bold text-slate-800 mb-1.5">📈 กราฟยอดรวมทั้งโรงเรียน (6 เดือนล่าสุด)</div>
+                            <div class="h-44 relative">
+                                <canvas id="drawerMonthlySchoolTrendCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- สถิติรายสัปดาห์เดิม -->
                 <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
                     <div class="font-bold text-slate-900 text-sm mb-2">🎓 สรุปจำนวนผู้ใช้บริการแยกตามระดับชั้น (สัปดาห์นี้)</div>
                     <div id="drawerGradeBreakdownContainer" class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center"></div>
@@ -670,6 +725,9 @@
         } else if (tab === 'stats') {
             openDrawerById('statsDrawerBackdrop');
             setActiveBottomNav('navClinicStats');
+            if (window.ALL_CLINIC_RECORDS_CACHE && typeof renderMonthlyStatsSection === 'function') {
+                renderMonthlyStatsSection(window.ALL_CLINIC_RECORDS_CACHE);
+            }
         }
     };
 
@@ -823,10 +881,17 @@
 <script>
     let ALL_STUDENTS_CACHE = [];
     let TODAY_CLINIC_RECORDS_CACHE = [];
+    window.ALL_CLINIC_RECORDS_CACHE = [];
     let TODAY_REST_MINUTES_CACHE = 0;
     let isLoadingClinicRecords = false;
     let isSubmittingClinicForm = false;
     let liveSearchDebounceTimer = null;
+
+    let mainGradeChartMode = 'week';
+    let mainGradeChartInstance = null;
+    let mainWeekdayChartInstance = null;
+    let drawerMonthlyGradeChartInstance = null;
+    let drawerMonthlySchoolTrendInstance = null;
 
     function getSupabaseClientSafe() {
         return window.supabaseClient || window.db || (window.supabase && typeof window.supabase.from === 'function' ? window.supabase : null);
@@ -1193,8 +1258,11 @@
                 const nowTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
                 await client.from('gate_pass_logs').insert([{
                     student_id: stuId,
+                    student_name: stuName,
+                    classroom: stuClass,
                     reason: `ห้องพยาบาลส่งกลับบ้าน (${rawSymptomText})`,
                     exit_time: nowTime,
+                    approved_by: 'ครูห้องพยาบาล',
                     status: 'approved'
                 }]);
             }
@@ -1246,7 +1314,7 @@
         const todayStr = window.getThaiTodayISO();
 
         try {
-            const { data: records } = await client.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(200);
+            const { data: records } = await client.from('clinic_records').select('*').order('created_at', { ascending: false }).limit(500);
             const rawList = records || [];
 
             const seenKeys = new Set();
@@ -1258,6 +1326,8 @@
                 seenKeys.add(uniqueKey);
                 return true;
             }).map(enrichClinicRecord);
+
+            window.ALL_CLINIC_RECORDS_CACHE = allList;
 
             const todayList = allList.filter(r => {
                 if (!r.created_at) return false;
@@ -1337,6 +1407,7 @@
             if (drawerListEl) drawerListEl.innerHTML = renderCards(allList.slice(0, 30));
 
             renderWeeklyBarChart(allList);
+            renderMonthlyStatsSection(allList);
         } catch (e) {
         } finally {
             isLoadingClinicRecords = false;
@@ -1351,6 +1422,26 @@
         if (numMatch) return `ม.${numMatch[1]}`;
         return null;
     }
+
+    // สลับโหมดกราฟบนหน้าจอหลัก (สัปดาห์นี้ / วันนี้)
+    window.switchMainGradeChartMode = function(mode) {
+        mainGradeChartMode = mode;
+        const bWeek = document.getElementById('btnMainGradeChartWeek');
+        const bDay = document.getElementById('btnMainGradeChartDay');
+        const sub = document.getElementById('mainGradeChartSubtitle');
+        if (bWeek && bDay) {
+            if (mode === 'week') {
+                bWeek.className = "px-2.5 py-1 rounded-lg bg-indigo-600 text-white shadow-2xs cursor-pointer transition";
+                bDay.className = "px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer transition";
+                if (sub) sub.textContent = "📊 กราฟเปรียบเทียบผู้ใช้บริการแต่ละระดับชั้น (สัปดาห์นี้)";
+            } else {
+                bDay.className = "px-2.5 py-1 rounded-lg bg-indigo-600 text-white shadow-2xs cursor-pointer transition";
+                bWeek.className = "px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer transition";
+                if (sub) sub.textContent = "📊 กราฟเปรียบเทียบผู้ใช้บริการแต่ละระดับชั้น (วันนี้)";
+            }
+        }
+        renderWeeklyBarChart(window.ALL_CLINIC_RECORDS_CACHE || []);
+    };
 
     function renderWeeklyBarChart(allList) {
         const chartEl = document.getElementById('weeklyBarChartContainer');
@@ -1417,6 +1508,58 @@
             }).join('');
         }
 
+        // วาดกราฟ Chart.js บนหน้าหลัก (กราฟแยกตามระดับชั้น + กราฟรายวัน จ.-ศ.)
+        if (typeof Chart !== 'undefined') {
+            const ctxMainGrade = document.getElementById('mainGradeLevelChartCanvas')?.getContext('2d');
+            if (ctxMainGrade) {
+                if (mainGradeChartInstance) mainGradeChartInstance.destroy();
+                const targetVals = grades.map(g => mainGradeChartMode === 'week' ? weeklyGradeCounts[g] : todayGradeCounts[g]);
+                mainGradeChartInstance = new Chart(ctxMainGrade, {
+                    type: 'bar',
+                    data: {
+                        labels: grades,
+                        datasets: [{
+                            label: mainGradeChartMode === 'week' ? 'จำนวนผู้ใช้บริการสัปดาห์นี้ (คน)' : 'จำนวนผู้ใช้บริการวันนี้ (คน)',
+                            data: targetVals,
+                            backgroundColor: ['#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
+                            borderRadius: 8,
+                            maxBarThickness: 36
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+            }
+
+            const ctxMainDay = document.getElementById('mainWeekdayChartCanvas')?.getContext('2d');
+            if (ctxMainDay) {
+                if (mainWeekdayChartInstance) mainWeekdayChartInstance.destroy();
+                mainWeekdayChartInstance = new Chart(ctxMainDay, {
+                    type: 'bar',
+                    data: {
+                        labels: dayLabels,
+                        datasets: [{
+                            label: 'เคสรายวัน (คน)',
+                            data: counts,
+                            backgroundColor: '#f97316',
+                            borderRadius: 8,
+                            maxBarThickness: 30
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+            }
+        }
+
         // แสดงสรุประดับชั้นในหน้าต่าง Drawer สถิติ
         if (drawerGradeGrid) {
             const totalWeek = Object.values(weeklyGradeCounts).reduce((a, b) => a + b, 0);
@@ -1452,6 +1595,117 @@
             summaryEl.innerHTML = topSymptoms.length > 0
                 ? `<strong>อาการที่พบบ่อยสัปดาห์นี้:</strong> ` + topSymptoms.map(([k, v]) => `${k} (${v} ครั้ง)`).join(' • ')
                 : `ยังไม่มีข้อมูลกลุ่มอาการสะสมในสัปดาห์นี้`;
+        }
+    }
+
+    // ส่วนที่ 2: สถิติและกราฟรวมรายเดือนของแต่ละระดับชั้น และรวมของทั้งโรงเรียน (ในเมนูลอยด้านล่าง)
+    function renderMonthlyStatsSection(allList) {
+        const nowThai = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        const curMonth = nowThai.getMonth();
+        const curYear = nowThai.getFullYear();
+        const thaiMonthsFull = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const shortMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+        const subEl = document.getElementById('monthlyStatsSubtitle');
+        if (subEl) subEl.textContent = `ประจำเดือน${thaiMonthsFull[curMonth]} พ.ศ. ${curYear + 543} (แยกตามระดับชั้นและรวมทั้งโรงเรียน)`;
+
+        const grades = ['ม.1', 'ม.2', 'ม.3', 'ม.4', 'ม.5', 'ม.6'];
+        const monthlyGradeCounts = { 'ม.1': 0, 'ม.2': 0, 'ม.3': 0, 'ม.4': 0, 'ม.5': 0, 'ม.6': 0 };
+        let monthlySchoolTotal = 0;
+
+        // เตรียมช่วง 6 เดือนล่าสุดสำหรับกราฟรวมทั้งโรงเรียน
+        const trendLabels = [];
+        const trendKeys = [];
+        const trendValues = [0, 0, 0, 0, 0, 0];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(curYear, curMonth - i, 1);
+            trendLabels.push(`${shortMonths[d.getMonth()]} ${(d.getFullYear() + 543).toString().slice(-2)}`);
+            trendKeys.push(`${d.getFullYear()}-${d.getMonth()}`);
+        }
+
+        allList.forEach(item => {
+            if (!item.created_at) return;
+            const dt = new Date(new Date(item.created_at).toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+            const key = `${dt.getFullYear()}-${dt.getMonth()}`;
+            const idx = trendKeys.indexOf(key);
+            if (idx !== -1) trendValues[idx]++;
+
+            if (dt.getMonth() === curMonth && dt.getFullYear() === curYear) {
+                monthlySchoolTotal++;
+                const grade = extractGradeLevel(item.class_name);
+                if (grade && monthlyGradeCounts[grade] !== undefined) {
+                    monthlyGradeCounts[grade]++;
+                }
+            }
+        });
+
+        const badgeEl = document.getElementById('monthlySchoolTotalBadge');
+        if (badgeEl) badgeEl.textContent = `รวมทั้ง รร. ${monthlySchoolTotal} คน`;
+
+        const monthlyGridEl = document.getElementById('drawerMonthlyGradeBreakdown');
+        if (monthlyGridEl) {
+            monthlyGridEl.innerHTML = grades.map(g => {
+                const cnt = monthlyGradeCounts[g];
+                const pct = monthlySchoolTotal > 0 ? Math.round((cnt / monthlySchoolTotal) * 100) : 0;
+                return `
+                    <div class="bg-white border ${cnt > 0 ? 'border-indigo-300' : 'border-slate-200'} rounded-xl p-2">
+                        <div class="text-xs font-bold text-slate-700">${g}</div>
+                        <div class="text-base font-extrabold text-indigo-950">${cnt} <span class="text-xs font-normal text-slate-500">คน</span></div>
+                        <div class="text-[11px] font-semibold text-indigo-600">${pct}%</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        if (typeof Chart !== 'undefined') {
+            const ctxMonthGrade = document.getElementById('drawerMonthlyGradeChartCanvas')?.getContext('2d');
+            if (ctxMonthGrade) {
+                if (drawerMonthlyGradeChartInstance) drawerMonthlyGradeChartInstance.destroy();
+                drawerMonthlyGradeChartInstance = new Chart(ctxMonthGrade, {
+                    type: 'bar',
+                    data: {
+                        labels: grades,
+                        datasets: [{
+                            label: 'จำนวนผู้ใช้บริการเดือนนี้ (คน)',
+                            data: grades.map(g => monthlyGradeCounts[g]),
+                            backgroundColor: ['#4f46e5', '#0284c7', '#0d9488', '#d97706', '#e11d48', '#7c3aed'],
+                            borderRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+            }
+
+            const ctxMonthTrend = document.getElementById('drawerMonthlySchoolTrendCanvas')?.getContext('2d');
+            if (ctxMonthTrend) {
+                if (drawerMonthlySchoolTrendInstance) drawerMonthlySchoolTrendInstance.destroy();
+                drawerMonthlySchoolTrendInstance = new Chart(ctxMonthTrend, {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels,
+                        datasets: [{
+                            label: 'รวมทั้งโรงเรียน (คน/เดือน)',
+                            data: trendValues,
+                            borderColor: '#e11d48',
+                            backgroundColor: 'rgba(225, 29, 72, 0.14)',
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+            }
         }
     }
 
